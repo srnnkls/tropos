@@ -1,0 +1,40 @@
+skills:
+    - code-debug
+    - code-implement
+    - code-review
+    - code-review-receive
+    - code-test
+    - debate-start
+    - docs-implement
+    - dotfiles-manage
+    - git-worktree-use
+    - hooks-test
+    - pr-review
+    - skill-create
+    - spec-archive
+    - spec-clarify
+    - spec-create
+    - spec-issues-create
+    - spec-promote
+    - spec-review
+    - spec-update
+    - spec-validate
+    - task-completion-verify
+    - task-dispatch
+commands:
+    - code.review
+    - debate
+    - hint.focus-leakage
+    - implement
+    - pr.review
+    - spec.archive
+    - spec.clarify
+    - spec.create
+    - spec.issues
+    - spec.promote
+    - spec.review
+    - spec.update
+agents:
+    - task-implementer
+    - task-reviewer
+    - task-tester

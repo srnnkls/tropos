@@ -6,10 +6,6 @@ default_artifacts = ["skills", "commands", "agents"]
   commands = ["code.review", "debate", "hint.focus-leakage", "implement", "pr.review", "spec.archive", "spec.clarify", "spec.create", "spec.issues", "spec.promote", "spec.review", "spec.update"]
   agents = ["task-implementer", "task-reviewer", "task-tester"]
 
-[conflict]
-  file_exists = "error"
-  duplicate_artifact = "error"
-
 [harness]
   [harness.claude]
     path = "~/.claude"
