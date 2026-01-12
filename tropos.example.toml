@@ -1,25 +1,17 @@
 default_harnesses = ["claude"]
 default_artifacts = ["skills", "commands", "agents"]
 
-[manifest]
-  skills = ["code-debug", "code-implement", "code-review", "code-review-receive", "code-test", "debate-start", "docs-implement", "dotfiles-manage", "git-worktree-use", "hooks-test", "pr-review", "skill-create", "spec-archive", "spec-clarify", "spec-create", "spec-issues-create", "spec-promote", "spec-review", "spec-update", "spec-validate", "task-completion-verify", "task-dispatch"]
-  commands = ["code.review", "debate", "hint.focus-leakage", "implement", "pr.review", "spec.archive", "spec.clarify", "spec.create", "spec.issues", "spec.promote", "spec.review", "spec.update"]
-  agents = ["task-implementer", "task-reviewer", "task-tester"]
+[harness.claude]
+path = "~/.claude"
+[harness.claude.variables]
+model_strong = "opus"
+model_weak = "haiku"
 
-[harness]
-  [harness.claude]
-    path = "~/.claude"
-    structure = "nested"
-    generate_commands_from_skills = false
-    [harness.claude.variables]
-      model_strong = "opus"
-      model_weak = "haiku"
-  [harness.opencode]
-    path = "~/.config/opencode"
-    structure = "flat"
-    generate_commands_from_skills = true
-    [harness.opencode.mappings]
-      allowed_tools = "tools"
-    [harness.opencode.variables]
-      model_strong = "anthropic/claude-sonnet-4-5"
-      model_weak = "anthropic/claude-haiku-4-5"
+[harness.opencode]
+path = "~/.config/opencode"
+generate_commands_from_skills = true
+[harness.opencode.mappings]
+allowed_tools = "tools"
+[harness.opencode.variables]
+model_strong = "anthropic/claude-sonnet-4-5"
+model_weak = "anthropic/claude-haiku-4-5"
