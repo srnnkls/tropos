@@ -1,0 +1,39 @@
+{
+  "name": "tropos",
+  "owner": {"name": "srnnkls"},
+  "metadata": {
+    "description": "Spec-driven development workflow plugins",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "skills",
+      "source": "./skills",
+      "description": "24 skills: spec pipeline, code quality, task execution",
+      "version": "1.0.0",
+      "category": "workflow",
+      "keywords": ["spec", "tdd", "review", "dispatch"]
+    },
+    {
+      "name": "commands",
+      "source": "./commands",
+      "description": "Slash commands for specs, reviews, implementation",
+      "version": "1.0.0",
+      "category": "commands"
+    },
+    {
+      "name": "agents",
+      "source": "./agents",
+      "description": "Task agents: implementer, reviewer, tester",
+      "version": "1.0.0",
+      "category": "agents"
+    },
+    {
+      "name": "loqui",
+      "source": {"source": "github", "repo": "srnnkls/loqui"},
+      "description": "Additional skills, rules, commands",
+      "version": "1.0.0",
+      "category": "external"
+    }
+  ]
+}

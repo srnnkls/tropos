@@ -1,0 +1,7 @@
+{
+  "name": "skills",
+  "version": "1.0.0",
+  "description": "24 skills for spec-driven development",
+  "author": {"name": "srnnkls"},
+  "skills": "./"
+}
