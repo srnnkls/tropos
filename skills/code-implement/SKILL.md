@@ -22,6 +22,21 @@ Language-specific patterns, anti-patterns, and best practices for writing code.
 
 ---
 
+## Git Workflow
+
+When implementing from a spec:
+
+1. **Create a branch for the spec** (if not already on one):
+   - Branch from main/master
+   - Name: `feat/<spec-name>`
+   - Example: `feat/user-auth` for `./specs/active/user-auth/`
+
+2. **Verify before starting:**
+   - Confirm you're on the correct spec branch
+   - Pull latest if branch already exists
+
+---
+
 ## Supported Languages
 
 Language-specific guidelines are in `~/.claude/skills/code-implement/resources/loqui/languages/{language}/`.

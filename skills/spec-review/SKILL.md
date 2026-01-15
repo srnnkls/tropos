@@ -31,27 +31,40 @@ Multi-perspective spec review using parallel subagent dispatch for comprehensive
 
 ### Step 2: Select Reviewers
 
-Use **AskUserQuestion** with multiSelect:
+Use **AskUserQuestion** with multiSelect to choose reviewers:
 
 ```
 Header: Reviewers
 Question: Which reviewers should analyze this spec?
 multiSelect: true
 Options:
-- claude-opus: Native subagent - comprehensive, context-aware, follows project patterns
-- opencode-gpt5.2: External perspective - fresh eyes, different reasoning patterns
+- claude-opus: Claude Opus - native subagent, comprehensive, context-aware
+- claude-sonnet: Claude Sonnet - faster native review
+- openai-gpt5.2: OpenAI GPT-5.2 - base model
+- openai-gpt5.2-codex: OpenAI GPT-5.2 Codex - code-specialized
+- openai-gpt5.2-pro: OpenAI GPT-5.2 Pro - extended capabilities
+- gemini-3-flash: Google Gemini 3 Flash - fast, efficient
+- gemini-3-pro: Google Gemini 3 Pro - advanced reasoning
 ```
 
-Default: Both selected for maximum coverage.
+**Default selection:** claude-opus, openai-gpt5.2-pro, gemini-3-pro
+
+**Model mapping to commands:**
+- `claude-opus` → Task tool with `model: "opus"`
+- `claude-sonnet` → Task tool with `model: "sonnet"`
+- `openai-gpt5.2` → `opencode run --model "openai/gpt-5.2"`
+- `openai-gpt5.2-codex` → `opencode run --model "openai/gpt-5.2-codex"`
+- `openai-gpt5.2-pro` → `opencode run --model "openai/gpt-5.2-pro"`
+- `gemini-3-flash` → `opencode run --model "google/gemini-3-flash-preview"`
+- `gemini-3-pro` → `opencode run --model "google/gemini-3-pro-preview"`
 
 ### Step 3: Dispatch Reviewers in Parallel
 
-**CRITICAL:** Dispatch both reviewers in the same message for true parallelism.
+**CRITICAL:** Dispatch all selected reviewers in the same message for true parallelism.
 
-**Claude Reviewer (Task tool):**
+**Review Prompt Template:**
 
 ```
-Task(subagent_type="general-purpose", model="opus", prompt="""
 You are reviewing a spec for completeness and feasibility.
 
 ## Spec Documents
@@ -70,7 +83,7 @@ Return a YAML report:
 
 ```yaml
 reviewer_report:
-  reviewer: claude-opus
+  reviewer: {REVIEWER_ID}
   gates:
     completeness:
       status: pass | fail
@@ -96,71 +109,40 @@ reviewer_report:
   strengths:
     - "Positive observation"
 ```
-""")
 ```
 
-**OpenCode Reviewer (Bash tool, background):**
+**Dispatch by Type:**
 
+**Claude reviewers (Task tool):**
+```python
+Task(
+  subagent_type="general-purpose",
+  model="opus",  # or "sonnet"
+  prompt=review_prompt
+)
+```
+
+**OpenCode reviewers (Bash tool, background):**
 ```bash
-timeout 300 opencode run --model openai/gpt-5.2 --print-last "
-You are reviewing a spec for completeness and feasibility.
-
-## Spec Documents
-[Include spec.md, context.md, tasks.yaml content]
-
-## Review Focus
-Evaluate against these gates:
-
-1. **Completeness** - Are all requirements specified? Missing behaviors?
-2. **Consistency** - Do documents contradict each other? Ambiguous terms?
-3. **Feasibility** - Can tasks be implemented as described? Missing dependencies?
-4. **Clarity** - Would a fresh developer understand what to build?
-
-## Output Format
-Return a YAML report:
-
-\`\`\`yaml
-reviewer_report:
-  reviewer: opencode-gpt5.2
-  gates:
-    completeness:
-      status: pass | fail
-      issues: []
-    consistency:
-      status: pass | fail
-      issues: []
-    feasibility:
-      status: pass | fail
-      issues: []
-    clarity:
-      status: pass | fail
-      issues: []
-  issues:
-    - severity: critical | high | medium
-      gate: completeness
-      area: \${TAXONOMY_AREA}
-      description: \"Clear description\"
-      suggestion: \"How to fix\"
-  clarifying_questions:
-    - area: \${TAXONOMY_AREA}
-      question: \"What needs clarification?\"
-  strengths:
-    - \"Positive observation\"
-\`\`\`
-"
+timeout 300 opencode run --model "{MODEL_PATH}" "{review_prompt}"
 ```
+
+**Examples:**
+- `opencode run --model "openai/gpt-5.2-pro" "{prompt}"`
+- `opencode run --model "google/gemini-3-pro-preview" "{prompt}"`
+- `opencode run --model "openai/gpt-5.2-codex" "{prompt}"`
 
 ### Step 4: Synthesize Reviews
 
-After both reviewers complete:
+After all reviewers complete:
 
-1. **Parse reports** - Extract YAML from both outputs
+1. **Parse reports** - Extract YAML from all outputs
 2. **Merge issues:**
    - Deduplicate by description similarity
-   - Combine issues flagged by both reviewers (higher confidence)
+   - Combine issues flagged by multiple reviewers (higher confidence)
    - Note which reviewer(s) found each issue
 3. **Aggregate gates:**
-   - Gate fails if EITHER reviewer fails it
+   - Gate fails if ANY reviewer fails it
    - Record which reviewer(s) failed each gate
 4. **Prioritize questions:**
    - Group by taxonomy area
@@ -171,12 +153,12 @@ After both reviewers complete:
 **Gate Summary Table:**
 
 ```
-| Gate         | Status | Claude | OpenCode |
-|--------------|--------|--------|----------|
-| Completeness | FAIL   | fail   | pass     |
-| Consistency  | PASS   | pass   | pass     |
-| Feasibility  | FAIL   | fail   | fail     |
-| Clarity      | PASS   | pass   | pass     |
+| Gate         | Status | Claude | GPT-5.2 Pro | Gemini-3 Pro |
+|--------------|--------|--------|-------------|--------------|
+| Completeness | FAIL   | fail   | pass        | fail         |
+| Consistency  | PASS   | pass   | pass        | pass         |
+| Feasibility  | FAIL   | fail   | fail        | pass         |
+| Clarity      | PASS   | pass   | pass        | pass         |
 ```
 
 **Issues by Severity:**
@@ -184,17 +166,17 @@ After both reviewers complete:
 ```
 ## Critical (must fix before implementation)
 - [C1] Missing error handling for auth timeout (Completeness)
-  Found by: claude-opus, opencode-gpt5.2
+  Found by: claude-opus, opencode-gemini3-pro
   Suggestion: Add error case to spec.md#edge-cases
 
 ## High (should fix)
 - [H1] Task T003 depends on undefined API contract (Feasibility)
-  Found by: claude-opus
+  Found by: claude-opus, opencode-gpt5.2-pro
   Suggestion: Define API in context.md or defer task
 
 ## Medium (consider)
 - [M1] Term "session" used inconsistently (Consistency)
-  Found by: opencode-gpt5.2
+  Found by: opencode-gpt5.2-pro
   Suggestion: Add to terminology section
 ```
 
@@ -273,22 +255,26 @@ Recommendation:
 ## Edge Cases
 
 **OpenCode timeout (> 5 minutes):**
-- Continue with Claude-only results
-- Note in output: "OpenCode review timed out, partial results"
-- Still usable but recommend re-running with single reviewer
+- Continue with completed reviews
+- Note in output: "[Reviewer] timed out, partial results"
+- Still usable but recommend re-running
 
 **One reviewer fails:**
 - Parse what you can
 - Report partial results with clear indication
-- "Claude review: complete, OpenCode review: failed to parse"
+- "Claude review: complete, GPT-5.2 Pro: failed to parse, Gemini 3 Pro: complete"
 
 **No reviewers selected:**
 - Default to claude-opus only
-- Warn: "Consider adding external reviewer for fresh perspective"
+- Warn: "Consider adding external reviewers for diverse perspectives"
 
 **Spec not found:**
 - List available specs in `./specs/draft/` and `./specs/active/`
 - Ask user to specify
+
+**OpenCode command syntax:**
+- GPT-5.2 Pro: `opencode run --model "openai/gpt-5.2-pro" {query}`
+- Gemini 3 Pro: `opencode run --model "google/gemini-3-pro-preview" {query}`
 
 ---
 

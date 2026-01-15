@@ -94,6 +94,49 @@ specs/draft/{spec-name}/
     └── assets/          # If "assets" selected
 ```
 
+### Step 3.6: Configure Implementation Reviewers
+
+**Only for Initiative/Feature** (skip for Task):
+
+Use **AskUserQuestion** with multiSelect to choose reviewers for implementation batch reviews:
+
+```
+Header: Reviewers
+Question: Which reviewers should analyze implementation batches?
+multiSelect: true
+Options:
+- claude-opus: Claude Opus - native reviewer, comprehensive (Recommended)
+- claude-sonnet: Claude Sonnet - faster native review
+- openai-gpt5.2: OpenAI GPT-5.2 - base model
+- openai-gpt5.2-codex: OpenAI GPT-5.2 Codex - code-specialized
+- openai-gpt5.2-pro: OpenAI GPT-5.2 Pro - extended capabilities (Recommended)
+- gemini-3-flash: Google Gemini 3 Flash - fast, efficient
+- gemini-3-pro: Google Gemini 3 Pro - advanced reasoning (Recommended)
+```
+
+**Default selection:** claude-opus, openai-gpt5.2-pro, gemini-3-pro
+
+Store in `validation.yaml` under `review_config.reviewers`:
+```yaml
+review_config:
+  reviewers:
+    - type: claude
+      model: opus
+    - type: opencode
+      model: openai/gpt-5.2-pro
+    - type: opencode
+      model: google/gemini-3-pro-preview
+```
+
+**Model mapping:**
+- `claude-opus` → `{type: claude, model: opus}`
+- `claude-sonnet` → `{type: claude, model: sonnet}`
+- `openai-gpt5.2` → `{type: opencode, model: openai/gpt-5.2}`
+- `openai-gpt5.2-codex` → `{type: opencode, model: openai/gpt-5.2-codex}`
+- `openai-gpt5.2-pro` → `{type: opencode, model: openai/gpt-5.2-pro}`
+- `gemini-3-flash` → `{type: opencode, model: google/gemini-3-flash-preview}`
+- `gemini-3-pro` → `{type: opencode, model: google/gemini-3-pro-preview}`
+
 ### Step 4: Create Directory and Documents
 
 ```bash
@@ -161,6 +204,7 @@ Based on validation data and issue type, include optional sections:
 | Gates | Evaluate all | n/a | (file skipped) |
 | Complexity Tracking | If violations | If violations | (file skipped) |
 | Markers | Full | Full | (file skipped) |
+| Review Config | Full | Full | (file skipped) |
 
 **tasks.yaml:**
 
@@ -269,10 +313,15 @@ If "Yes": Invoke `spec-review` skill with the just-created spec name.
 ```
 ├── tasks.yaml        # Progress tracking, TodoWrite sync
 ├── dependencies.yaml # Parallel dispatch DAG
-└── validation.yaml   # Audit trail, gate checks, loqui validation
+└── validation.yaml   # Audit trail, gate checks, reviewer config, loqui validation
 ```
 
 The YAML files are infrastructure - humans *can* read them for debugging or auditing, but the primary consumers are tooling and automation.
+
+**validation.yaml usage:**
+- `review_config.reviewers` - Used by task-dispatch for batch reviews
+- `gates` - Pre-implementation gate checks for Initiatives
+- `markers` - Unresolved items requiring clarification
 
 ### The resources/ Directory
 

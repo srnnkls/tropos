@@ -28,6 +28,53 @@ The tester writes tests BEFORE any implementation exists. Tests must fail becaus
 - Write implementation code
 - Make tests pass
 - Modify existing code (except test files)
+- **Test dependencies or framework behavior**
+
+## Test Your Code, Not Dependencies
+
+**Critical:** Tests must verify YOUR application logic, not that libraries work.
+
+**Bad tests (testing dependencies):**
+```go
+// Tests that cobra's ExactArgs works - NOT your code
+func TestCmd_RequiresExactlyOneArg(t *testing.T) {
+    cmd := NewCmd()
+    cmd.SetArgs([]string{})
+    err := cmd.Execute()
+    assert.Error(t, err)  // Just proves cobra works
+}
+```
+
+**Good tests (testing your code):**
+```go
+// Tests YOUR transformation logic
+func TestTransform_AppliesAllTransformers(t *testing.T) {
+    input := "hello"
+    result := transform(input, []Transformer{Upper, Reverse})
+    assert.Equal(t, "OLLEH", result)
+}
+
+// Tests YOUR business logic decisions
+func TestSync_SkipsUpToDateArtifacts(t *testing.T) {
+    artifact := Artifact{Hash: "abc123"}
+    lockfile := Lockfile{Artifacts: map[string]string{"test": "abc123"}}
+    assert.False(t, needsSync(artifact, lockfile))
+}
+```
+
+**Ask yourself:** If this test passes, does it prove MY code works, or just that a library works?
+
+**Trust frameworks for:**
+- Argument parsing (cobra, flag)
+- HTTP routing (gin, chi)
+- Validation decorators
+- ORM query building
+
+**Test your code for:**
+- Business logic and transformations
+- Integration between your components
+- Error handling decisions YOU make
+- State management in YOUR code
 
 ## Report Format
 

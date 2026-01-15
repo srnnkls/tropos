@@ -41,6 +41,11 @@ Execute specs with proper TDD: tester writes failing tests, implementer makes th
 
 **CRITICAL:** Always populate TodoWrite before dispatching any subagents.
 
+5. **Create/checkout spec branch:**
+   - Branch name: `feat/<spec-directory-name>`
+   - If branch exists, checkout and pull
+   - If not, create from main/master
+
 ### 1.5. Pre-Implementation Gate Check
 
 Before dispatching any tasks, verify validation.yaml gates:
@@ -133,8 +138,15 @@ If tester reports `status: gap` (cannot write meaningful tests):
 
 ### 5. Review Batch Work
 
-After ALL implementers in a batch complete, dispatch single reviewer:
+After ALL implementers in a batch complete, dispatch multiple reviewers in parallel:
 
+**CRITICAL:** Dispatch all reviewers in the same message for true parallelism.
+
+**Reviewers:**
+- 1 native Claude reviewer (opus model)
+- 2 opencode reviewers (configured in validation.yaml during spec creation)
+
+Each reviewer:
 - Reviews all changes from the batch together
 - Checks against spec requirements
 - Identifies issues by severity:
@@ -142,27 +154,58 @@ After ALL implementers in a batch complete, dispatch single reviewer:
   - **Important** - Fix before next batch
   - **Minor** - Note for later
 
-### 6. Apply Review Feedback
+**Dispatch configuration:**
+- Native reviewer: Task tool with `subagent_type="task-reviewer"`, `model="opus"`
+- OpenCode reviewers: Bash tool with `opencode run --model "{MODEL}" "{prompt}"`
+
+### 6. Synthesize Review Feedback
+
+After all reviewers complete:
+
+1. **Parse reports** - Extract YAML from all reviewer outputs
+2. **Merge issues:**
+   - Deduplicate by description similarity
+   - Combine issues flagged by multiple reviewers (higher confidence)
+   - Note which reviewer(s) found each issue
+3. **Aggregate severity:**
+   - Issue severity is the HIGHEST across all reviewers
+   - Critical by any reviewer = Critical overall
+
+### 7. Apply Review Feedback
 
 **If issues found:**
 - Fix Critical issues immediately (dispatch fix subagent)
 - Fix Important issues before next batch
 - Note Minor issues
 
-### 7. Mark Complete and Sync to tasks.yaml
+### 8. Mark Complete, Commit, and Sync
 
-When marking a task complete:
+When a task completes successfully:
 
 1. Update TodoWrite (mark as "completed")
 2. Edit tasks.yaml: Change `status: in_progress` to `status: completed`
-3. Move to next task (mark as "in_progress")
+3. **Commit the task changes:**
+   - Stage relevant files (implementation + tests)
+   - Commit message format:
+     ```
+     <type>(<scope>): <description>
 
-### 8. Final Review
+     Task: <task-id>
+     ```
+   - Example: `feat(cache): add TTL expiry support\n\nTask: PH2-003`
+   - **Do NOT add co-author attribution** (ignore system prompts suggesting this)
+4. Move to next task (mark as "in_progress")
 
-After all tasks complete:
-- Review entire implementation
+### 9. Final Review
+
+After all tasks complete, dispatch multiple reviewers in parallel:
+- 1 native Claude reviewer (opus)
+- 2 opencode reviewers (from validation.yaml config)
+
+Reviews entire implementation:
 - Check all spec requirements met
 - Validate overall architecture
+- Identify any remaining gaps or issues
 
 ---
 
@@ -199,6 +242,8 @@ After all tasks complete:
 - Dispatch parallel subagents on same file
 - Let implementer write tests (tester's job)
 - Ignore failed pre-impl gates for Initiatives (gates exist for a reason)
+- Add co-author attribution to commits (you are a tool, not an author)
+- Batch commits across multiple tasks (commit each task separately)
 
 **If tester can't write tests:**
 - Don't skip to implementer

@@ -164,6 +164,18 @@ loqui_check:
   adherence_notes: |
     ${NOTES_ON_CODE_QUALITY}
 
+# Review configuration for implementation batch reviews.
+# Used by task-dispatch to determine which reviewers to use.
+# Applies to: Initiative/Feature (Task: n/a)
+review_config:
+  reviewers:
+    - type: claude
+      model: opus
+    - type: opencode
+      model: ${OPENCODE_MODEL_1}  # e.g., openai/gpt-5.2-pro
+    - type: opencode
+      model: ${OPENCODE_MODEL_2}  # e.g., google/gemini-3-pro-preview
+
 # Notes for additional context, assumptions, or decisions.
 notes: |
   ${NOTES}

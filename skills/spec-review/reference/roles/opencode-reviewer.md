@@ -7,7 +7,7 @@ External subprocess reviewer for fresh perspective analysis.
 ## Characteristics
 
 - **Fresh perspective:** No prior context, sees spec as newcomer would
-- **Different model:** Uses GPT-5.2, different reasoning patterns
+- **Multiple models:** OpenAI or Google, different reasoning patterns
 - **Independent:** Separate process, no shared state
 - **Quick:** Focused on provided content only
 
@@ -16,7 +16,7 @@ External subprocess reviewer for fresh perspective analysis.
 ## Strengths
 
 - Catches assumptions that insiders miss
-- Different model catches different issues
+- Different models catch different issues
 - Simulates new team member perspective
 - Validates clarity for external audiences
 
@@ -31,13 +31,36 @@ External subprocess reviewer for fresh perspective analysis.
 
 ---
 
+## Available Models
+
+**OpenAI:**
+- `openai/gpt-5.2` - Base GPT-5.2 model
+- `openai/gpt-5.2-codex` - Code-specialized variant
+- `openai/gpt-5.2-pro` - Pro tier with extended capabilities
+
+**Google:**
+- `google/gemini-3-flash-preview` - Fast, efficient model
+- `google/gemini-3-pro-preview` - Advanced reasoning capabilities
+
+---
+
 ## Dispatch Configuration
 
+**Template:**
 ```bash
-timeout 300 opencode run \
-  --model openai/gpt-5.2 \
-  --print-last \
-  "[Review prompt with spec content]"
+timeout 300 opencode run --model "{MODEL}" "[Review prompt with spec content]"
+```
+
+**Examples:**
+```bash
+# OpenAI GPT-5.2 Pro
+opencode run --model "openai/gpt-5.2-pro" "{prompt}"
+
+# Google Gemini 3 Pro
+opencode run --model "google/gemini-3-pro-preview" "{prompt}"
+
+# OpenAI Codex (code-focused)
+opencode run --model "openai/gpt-5.2-codex" "{prompt}"
 ```
 
 5-minute timeout prevents hanging.
