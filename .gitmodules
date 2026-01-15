@@ -1,0 +1,3 @@
+[submodule "skills/code-implement/resources/loqui"]
+	path = skills/code-implement/resources/loqui
+	url = https://github.com/srnnkls/loqui
