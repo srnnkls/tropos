@@ -1,18 +1,28 @@
 # Reviewer Role
 
-Review batch of completed implementations, provide actionable feedback.
+Multi-agent review of batch implementations. Multiple reviewers run in parallel for diverse perspectives.
 
 ## Reviewers
 
-**Multiple reviewers in parallel:**
-- 1 native Claude reviewer: `task-reviewer` with `model: opus`
-- 2 opencode reviewers: configured in `validation.yaml` during spec creation
+**Reviewers dispatch in parallel (SINGLE message):**
+
+| Reviewer | Tool | Model | Required |
+|----------|------|-------|----------|
+| Native Claude | Task (task-reviewer) | opus | Yes |
+| OpenCode (0-N) | Bash (opencode) | from validation.yaml | No |
+
+**Common OpenCode models:**
+- `openai/gpt-5.2-codex` - Code-specialized, fresh perspective
+- `google/gemini-3-pro-preview` - Different reasoning, catches edge cases
+- `openai/gpt-5.2-pro` - Extended capabilities
+
+**CRITICAL:** Dispatch all configured reviewers in the same message for true parallelism.
 
 ## Purpose
 
 Reviewers check ALL implementations from a batch together, ensuring quality and spec compliance before proceeding to the next batch.
 
-**CRITICAL:** Dispatch all reviewers in the same message for true parallelism.
+**This is Phase C of the Three-Phase Pipeline.** It is mandatory - no batch completes without review.
 
 ## Skills to Invoke
 
@@ -21,7 +31,7 @@ Reviewers check ALL implementations from a batch together, ensuring quality and 
 
 ## Input
 
-Reviewer receives all implementer reports from the batch:
+Each reviewer receives all implementer reports from the batch:
 
 ```yaml
 # Task N1
@@ -39,14 +49,14 @@ implementer_report:
   ...
 ```
 
-Plus the relevant task specs from tasks.md.
+Plus the relevant task specs from tasks.yaml.
 
 ## Responsibilities
 
 1. Review all changes from the batch together
-2. Check each task against its spec requirements
-3. Verify tests cover the implementation
-4. Assess code quality
+2. Evaluate against five gates (Correctness, Style, Performance, Security, Architecture)
+3. Check each task against its spec requirements
+4. Verify tests cover the implementation
 5. Identify issues by severity
 6. Report with actionable feedback
 
@@ -63,51 +73,61 @@ Task(
 
 **OpenCode reviewers (Bash tool, background):**
 ```bash
-timeout 300 opencode run --model "{MODEL}" "{review_prompt}"
+# Codex (code-specialized)
+timeout 300 opencode run --model "openai/gpt-5.2-codex" "{review_prompt}"
+
+# Gemini 3 Pro
+timeout 300 opencode run --model "google/gemini-3-pro-preview" "{review_prompt}"
 ```
 
-Models are configured in `validation.yaml` under `review_config.reviewers`.
+Models can be configured in `validation.yaml` under `review_config.reviewers`.
 
 ## When Reviewers Run
 
-**After ALL implementers in a batch complete** - not after each individual task.
+**After ALL implementers in a batch complete** - as Phase C of the pipeline.
 
-For a batch of 3 parallel tasks:
-1. Tester 1, 2, 3 complete (parallel)
-2. Implementer 1, 2, 3 complete (parallel)
-3. **Multiple reviewers for all 3** (native + 2 opencode, parallel) ← these roles
+```
+Batch N:
+├── Phase A: Testers (parallel)
+├── Phase B: Implementers (parallel)
+└── Phase C: Reviewers (1+N in parallel) ← this role
+    ├── Claude opus [required]
+    └── OpenCode reviewers (0-N from validation.yaml)
+```
 
 ## Report Format
 
-Each reviewer produces a YAML report:
+Each reviewer produces a YAML report with gates:
 
 ```yaml
 reviewer_report:
-  reviewer: claude-opus  # or opencode-gpt5.2-pro, opencode-gemini3-pro, etc.
-  overall_status: approved  # or "changes_requested"
-  tasks_reviewed:
-    - N1
-    - N2
-    - N3
+  reviewer: claude-opus  # or opencode-codex, opencode-gemini-3-pro
+  gates:
+    correctness:
+      status: pass | fail
+      issues: ["Logic error in X"]
+    style:
+      status: pass | fail
+      issues: []
+    performance:
+      status: pass | fail
+      issues: []
+    security:
+      status: pass | fail
+      issues: ["SQL injection risk"]
+    architecture:
+      status: pass | fail
+      issues: []
   issues:
     - task: N1
-      severity: critical
-      description: "Missing null check causes crash"
-      suggested_fix: "Add validation before processing"
-      file: src/feature_a.py
-      line: 42
-    - task: N2
-      severity: minor
-      description: "Variable name could be clearer"
-      suggested_fix: "Rename 'x' to 'retry_count'"
-      file: src/feature_b.py
-      line: 15
+      severity: critical | high | medium
+      gate: security
+      location: "src/db/query.py:45"
+      description: "SQL injection via unsanitized input"
+      suggestion: "Use parameterized queries"
   strengths:
     - "Good test coverage for edge cases"
     - "Clean separation of concerns"
-  overall_assessment: |
-    Tasks N1 and N3 meet requirements.
-    Task N2 has a critical issue that must be fixed.
 ```
 
 ## Synthesizing Multiple Reviews
@@ -116,86 +136,137 @@ After all reviewers complete:
 
 1. **Parse reports** - Extract YAML from all reviewer outputs
 2. **Merge issues:**
-   - Deduplicate by description similarity
+   - Deduplicate by location + description similarity
    - Combine issues flagged by multiple reviewers (higher confidence)
    - Note which reviewer(s) found each issue
-3. **Aggregate severity:**
+3. **Aggregate gates:**
+   - Gate fails if ANY reviewer fails it
+   - Record which reviewer(s) failed each gate
+4. **Aggregate severity:**
    - Issue severity is the HIGHEST across all reviewers
    - Critical by any reviewer = Critical overall
-4. **Present unified feedback:**
-   - Group issues by severity
+5. **Present unified feedback:**
+   - Gate summary table
+   - Issues grouped by severity
    - Show which reviewers found each issue
-   - Prioritize issues found by multiple reviewers
+
+**Gate Summary Table:**
+
+```
+| Gate         | Claude | Codex  | Gemini |
+|--------------|--------|--------|--------|
+| Correctness  | pass   | fail   | pass   |
+| Style        | pass   | pass   | pass   |
+| Performance  | pass   | pass   | pass   |
+| Security     | fail   | pass   | fail   |
+| Architecture | pass   | pass   | pass   |
+```
+
+**Issues by Severity:**
+
+```
+## Critical (found by 2+ reviewers - high confidence)
+- [C1] SQL injection at src/db/query.py:45
+  Found by: claude-opus, opencode-gemini-3-pro
+  Suggestion: Use parameterized queries
+
+## High
+- [H1] Missing null check at src/api/handler.ts:112
+  Found by: opencode-codex
+  Suggestion: Add guard clause
+```
 
 ## Issue Severity
 
 | Severity | Definition | Action |
 |----------|------------|--------|
-| Critical | Blocks progress, breaks build/tests | Fix immediately before next batch |
-| Important | Affects quality, missing coverage | Fix before next batch |
-| Minor | Style, naming, small improvements | Note for later |
+| Critical | Bugs, security issues, data corruption | Fix immediately before next batch |
+| High | Significant issues, missing coverage | Fix before next batch |
+| Medium | Style, naming, small improvements | Note for later, proceed |
+
+## Handling Timeouts
+
+If OpenCode reviewer times out (> 5 minutes):
+
+1. Continue with completed reviews (minimum 1 Claude required)
+2. Note: "[Reviewer] timed out, partial results"
+3. Proceed with available data
+4. Consider re-running if critical issues suspected
 
 ## Quality Criteria
 
 Review is good when it:
+- Evaluates all five gates
 - Covers all tasks in the batch
 - Provides actionable feedback (not vague)
 - Prioritizes issues by severity
 - Acknowledges strengths
-- Includes file/line references where applicable
+- Includes file/line references
 
 ## Example
 
-**Input:**
-- 3 implementer_reports from parallel batch
-- 3 task specs from tasks.md
+**Batch:** Tasks T002, T003, T004 (parallel)
 
-**Individual Reviewer Outputs:**
+**Dispatch (single message):**
+```
+Task(task-reviewer, opus): "Review batch T002-T004" ...
+Bash(background): opencode run --model "openai/gpt-5.2-codex" ...
+Bash(background): opencode run --model "google/gemini-3-pro-preview" ...
+```
+
+**Individual Outputs:**
 
 Claude Opus:
 ```yaml
 reviewer_report:
   reviewer: claude-opus
-  overall_status: changes_requested
-  tasks_reviewed: [T002, T003, T004]
+  gates:
+    correctness: { status: fail, issues: ["Missing null check"] }
+    style: { status: pass, issues: [] }
+    performance: { status: pass, issues: [] }
+    security: { status: fail, issues: ["SQL injection"] }
+    architecture: { status: pass, issues: [] }
   issues:
     - task: T002
       severity: critical
-      description: "Tests pass but implementation doesn't handle empty input"
-      suggested_fix: "Add early return for empty case, add test"
-      file: src/feature.py
-      line: 42
+      gate: security
+      location: "src/db/query.py:45"
+      description: "SQL injection via unsanitized input"
+      suggestion: "Use parameterized queries"
 ```
 
-GPT-5.2 Pro:
+OpenCode Gemini:
 ```yaml
 reviewer_report:
-  reviewer: opencode-gpt5.2-pro
-  overall_status: changes_requested
-  tasks_reviewed: [T002, T003, T004]
+  reviewer: opencode-gemini-3-pro
+  gates:
+    correctness: { status: pass, issues: [] }
+    style: { status: pass, issues: [] }
+    performance: { status: pass, issues: [] }
+    security: { status: fail, issues: ["Unsanitized query parameter"] }
+    architecture: { status: pass, issues: [] }
   issues:
     - task: T002
       severity: critical
-      description: "Missing validation for empty input parameter"
-      suggested_fix: "Add parameter validation"
-      file: src/feature.py
-      line: 42
-    - task: T003
-      severity: minor
-      description: "Consider more descriptive variable name"
-      suggested_fix: "Rename 'x' to 'config_value'"
+      gate: security
+      location: "src/db/query.py:45"
+      description: "Query parameter not sanitized"
+      suggestion: "Add input validation"
 ```
 
-**Synthesized Output:**
+**Synthesized:**
 ```
-## Critical Issues (2 reviewers agree on T002)
-- [C1] Missing empty input handling (T002)
-  Found by: claude-opus, opencode-gpt5.2-pro
-  File: src/feature.py:42
-  Fix: Add early return for empty case with validation
+## Gate Summary
+| Gate         | Claude | Codex  | Gemini |
+|--------------|--------|--------|--------|
+| Correctness  | fail   | pass   | pass   |
+| Security     | fail   | pass   | fail   |
+| (others)     | pass   | pass   | pass   |
 
-## Minor Issues
-- [M1] Variable naming in T003
-  Found by: opencode-gpt5.2-pro
-  Fix: Rename 'x' to 'config_value'
+## Critical (2 reviewers agree)
+- [C1] SQL injection at src/db/query.py:45
+  Found by: claude-opus, opencode-gemini-3-pro
+  Fix: Use parameterized queries + input validation
+
+Action: Dispatch fix subagent before proceeding
 ```

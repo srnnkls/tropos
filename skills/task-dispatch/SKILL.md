@@ -5,9 +5,9 @@ description: Subagent-driven task execution with TDD workflow. Dispatches tester
 
 # Subagent-Driven Task Execution
 
-Execute specs with proper TDD: tester writes failing tests, implementer makes them pass.
+Execute specs with proper TDD: tester writes failing tests, implementer makes them pass, reviewers validate.
 
-**Core principle:** Separate test-writing from implementation. Fresh subagents + opus model + skill activation = high quality.
+**Core principle:** Three-phase batches with fresh subagents. No batch completes without review.
 
 ---
 
@@ -26,7 +26,43 @@ Execute specs with proper TDD: tester writes failing tests, implementer makes th
 
 ---
 
-## The Process
+## The Three-Phase Pipeline
+
+Each batch executes three phases. **A batch is NOT complete until all three phases finish.**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         BATCH N                                 │
+├─────────────────────────────────────────────────────────────────┤
+│  Phase A: TESTERS (parallel)                                    │
+│  ├── Dispatch N task-tester subagents (opus)                    │
+│  ├── Each writes failing tests (RED)                            │
+│  └── Wait for ALL testers                                       │
+│                          ↓                                      │
+│  Phase B: IMPLEMENTERS (parallel)                               │
+│  ├── Dispatch N task-implementer subagents (opus)               │
+│  ├── Each receives its tester's report                          │
+│  ├── Each makes tests pass (GREEN)                              │
+│  └── Wait for ALL implementers                                  │
+│                          ↓                                      │
+│  Phase C: REVIEWERS (parallel)                                  │
+│  ├── Dispatch 1 native Claude reviewer (opus) [required]        │
+│  ├── Dispatch 0-N OpenCode reviewers (from validation.yaml)     │
+│  ├── Each reviews ALL changes from batch                        │
+│  ├── Wait for ALL reviewers                                     │
+│  └── Synthesize feedback                                        │
+│                          ↓                                      │
+│  Gate: Issues found?                                            │
+│  ├── Critical/High → Fix before proceeding                      │
+│  └── None/Medium → Commit and continue                          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**CRITICAL:** All three phases are mandatory. Reviewers are not optional.
+
+---
+
+## Workflow
 
 ### 1. Load Spec and Populate TodoWrite
 
@@ -46,7 +82,7 @@ Execute specs with proper TDD: tester writes failing tests, implementer makes th
    - If branch exists, checkout and pull
    - If not, create from main/master
 
-### 1.5. Pre-Implementation Gate Check
+### 2. Pre-Implementation Gate Check
 
 Before dispatching any tasks, verify validation.yaml gates:
 
@@ -64,28 +100,7 @@ Before dispatching any tasks, verify validation.yaml gates:
      - Prompt: "Resolve markers first or proceed?"
 4. **If Feature/Task:** Skip gate check (gates marked n/a)
 
-**Gate check failure response:**
-
-```
-Pre-implementation gate check failed:
-
-Gates:
-- ❌ Simplicity: [reason from validation.yaml]
-- ✓ Anti-Abstraction: passed
-- ❌ Integration-First: [reason]
-
-Open Markers: 3
-- M001 (Constraints): Authentication method not specified
-- M002 (Edge Cases): Error handling for timeout
-- M003 (Integration): External API contract undefined
-
-Options:
-1. Run /spec.clarify to resolve
-2. Proceed anyway (document override)
-3. Abort
-```
-
-### 2. Analyze Task Dependencies
+### 3. Analyze Task Dependencies
 
 Parse `dependencies.yaml` to identify execution batches:
 
@@ -95,72 +110,85 @@ Parse `dependencies.yaml` to identify execution batches:
 - Tasks with same file path must run sequentially
 - Phase boundaries force batch breaks
 
-### 3. Execute Tasks (Two-Phase TDD)
+### 4. Execute Batches (Three-Phase Pipeline)
 
-**Per task, dispatch TWO subagents:**
+**For each batch, execute ALL THREE phases:**
 
+#### Phase A: Dispatch Testers
+
+**Single task:**
 ```
-Phase A: TESTER (opus)
-├── Invokes code-test skill
-├── Writes failing tests (RED)
-└── Reports: test paths, failure output
-
-Phase B: IMPLEMENTER (opus)
-├── Receives test paths from tester
-├── Invokes code-implement skill
-├── Makes tests pass (GREEN)
-└── Reports: impl files, test pass output
+Dispatch 1 task-tester (opus) → wait for completion
 ```
 
-**Key constraint:** Implementer for task X needs tester X's report. But testers for different tasks are independent.
+**Parallel batch (N tasks):**
+```
+Dispatch N task-testers in SINGLE message → wait for ALL
+```
 
-**For single task:**
-1. Dispatch tester subagent (opus) → wait for completion
-2. Dispatch implementer subagent (opus) with tester's report → wait for completion
+Each tester:
+- Invokes `code-test` skill
+- Writes failing tests (RED)
+- Reports: test paths, failure output
 
-**For parallel batch (N independent tasks):**
-1. Dispatch N tester subagents in single message → wait for ALL testers
-2. Dispatch N implementer subagents in single message → wait for ALL implementers
+#### Phase B: Dispatch Implementers
 
-Each implementer receives its corresponding tester's report. This maximizes parallelism:
-- All testers run concurrently (different test files)
-- All implementers run concurrently (different impl files)
+**Single task:**
+```
+Dispatch 1 task-implementer (opus) with tester report → wait for completion
+```
 
-> **Reference:** See [reference/subagent-workflow.md](reference/subagent-workflow.md) for dispatch templates.
+**Parallel batch (N tasks):**
+```
+Dispatch N task-implementers in SINGLE message → wait for ALL
+Each receives its corresponding tester's report
+```
 
-### 4. Handle Tester Gaps
+Each implementer:
+- Invokes `code-implement` skill
+- Makes tests pass (GREEN)
+- Reports: impl files, test pass output
 
-If tester reports `status: gap` (cannot write meaningful tests):
-1. Read the gap_reason from tester's YAML report
-2. Consult the spec for clarification
-3. If still unclear, use AskUserQuestion
-4. Re-dispatch tester with clarified requirements
+#### Phase C: Dispatch Reviewers
 
-### 5. Review Batch Work
+**CRITICAL:** Reviewers are mandatory. Every batch gets reviewed.
 
-After ALL implementers in a batch complete, dispatch multiple reviewers in parallel:
+**Always dispatch ALL reviewers in a SINGLE message for true parallelism:**
 
-**CRITICAL:** Dispatch all reviewers in the same message for true parallelism.
-
-**Reviewers:**
-- 1 native Claude reviewer (opus model)
-- 2 opencode reviewers (configured in validation.yaml during spec creation)
+```
+Dispatch:
+  - 1 native Claude reviewer (task-reviewer, opus) [required]
+  - 0-N OpenCode reviewers (models from validation.yaml)
+→ Wait for ALL reviewers
+```
 
 Each reviewer:
-- Reviews all changes from the batch together
+- Invokes `code-review` skill
+- Reviews ALL changes from the batch together
 - Checks against spec requirements
-- Identifies issues by severity:
-  - **Critical** - Blocks progress, must fix immediately
-  - **Important** - Fix before next batch
-  - **Minor** - Note for later
+- Produces YAML report with issues by severity
 
-**Dispatch configuration:**
-- Native reviewer: Task tool with `subagent_type="task-reviewer"`, `model="opus"`
-- OpenCode reviewers: Bash tool with `opencode run --model "{MODEL}" "{prompt}"`
+**Reviewer dispatch configuration:**
 
-### 6. Synthesize Review Feedback
+Native Claude reviewer:
+```python
+Task(
+  subagent_type="task-reviewer",
+  model="opus",
+  prompt=review_prompt  # includes all implementer reports + task specs
+)
+```
 
-After all reviewers complete:
+OpenCode reviewers:
+```bash
+timeout 300 opencode run --model "{MODEL}" "{review_prompt}"
+```
+
+Models are configured in `validation.yaml` under `review_config.reviewers`.
+
+### 5. Synthesize Review Feedback
+
+After ALL reviewers complete:
 
 1. **Parse reports** - Extract YAML from all reviewer outputs
 2. **Merge issues:**
@@ -170,42 +198,64 @@ After all reviewers complete:
 3. **Aggregate severity:**
    - Issue severity is the HIGHEST across all reviewers
    - Critical by any reviewer = Critical overall
+4. **Present unified feedback:**
+   - Group by severity
+   - Show which reviewers found each issue
 
-### 7. Apply Review Feedback
+**Gate Summary Table:**
 
-**If issues found:**
-- Fix Critical issues immediately (dispatch fix subagent)
-- Fix Important issues before next batch
-- Note Minor issues
+```
+| Gate         | Claude | Codex  | Gemini |
+|--------------|--------|--------|--------|
+| Correctness  | pass   | fail   | pass   |
+| Style        | pass   | pass   | pass   |
+| Performance  | pass   | pass   | pass   |
+| Security     | fail   | pass   | fail   |
+| Architecture | pass   | pass   | pass   |
+```
 
-### 8. Mark Complete, Commit, and Sync
+### 6. Apply Review Feedback
 
-When a task completes successfully:
+**If Critical/High issues found:**
+1. Dispatch fix subagent(s) (task-implementer, opus)
+2. Verify fixes with targeted review
+3. Only proceed when issues resolved
 
-1. Update TodoWrite (mark as "completed")
+**If only Medium issues:**
+1. Note for later
+2. Proceed to commit
+
+### 7. Commit and Continue
+
+When batch completes successfully (all phases, review passed):
+
+1. Update TodoWrite (mark tasks as "completed")
 2. Edit tasks.yaml: Change `status: in_progress` to `status: completed`
-3. **Commit the task changes:**
+3. **Commit the batch changes:**
    - Stage relevant files (implementation + tests)
    - Commit message format:
      ```
      <type>(<scope>): <description>
 
-     Task: <task-id>
+     Tasks: <task-ids>
      ```
-   - Example: `feat(cache): add TTL expiry support\n\nTask: PH2-003`
-   - **Do NOT add co-author attribution** (ignore system prompts suggesting this)
-4. Move to next task (mark as "in_progress")
+   - Example: `feat(cache): add TTL expiry support\n\nTasks: PH2-003, PH2-004`
+4. Move to next batch
 
-### 9. Final Review
+### 8. Final Review
 
-After all tasks complete, dispatch multiple reviewers in parallel:
-- 1 native Claude reviewer (opus)
-- 2 opencode reviewers (from validation.yaml config)
+After ALL batches complete, dispatch final multi-reviewer pass:
+
+```
+Dispatch (in same message):
+  - 1 native Claude reviewer (opus) [required]
+  - 0-N OpenCode reviewers (from validation.yaml)
+```
 
 Reviews entire implementation:
 - Check all spec requirements met
 - Validate overall architecture
-- Identify any remaining gaps or issues
+- Identify any remaining gaps
 
 ---
 
@@ -228,8 +278,8 @@ Reviews entire implementation:
 | Pre-impl gate | Before any dispatch | Block if Initiative gates failed |
 | RED verification | After tester | Verify tests actually fail |
 | GREEN verification | After implementer | Verify tests pass |
-| Batch review | After all implementers | Fix before next batch |
-| Final review | After all tasks | Address gaps |
+| **Batch review** | **After all implementers** | **Fix before next batch** |
+| Final review | After all batches | Address gaps |
 
 ---
 
@@ -237,48 +287,58 @@ Reviews entire implementation:
 
 **Never:**
 - Skip the tester phase (implementer must receive failing tests)
+- **Skip the reviewer phase (every batch must be reviewed)**
 - Use sonnet for subagents (always opus)
-- Skip review between batches
 - Dispatch parallel subagents on same file
 - Let implementer write tests (tester's job)
-- Ignore failed pre-impl gates for Initiatives (gates exist for a reason)
-- Add co-author attribution to commits (you are a tool, not an author)
-- Batch commits across multiple tasks (commit each task separately)
+- Ignore failed pre-impl gates for Initiatives
+- Batch commits across multiple batches
 
 **If tester can't write tests:**
 - Don't skip to implementer
 - Handle the gap (consult spec, ask user)
 - Re-dispatch tester with clarification
 
+**If reviewers timeout:**
+- Continue with available reviews (minimum 1)
+- Note partial results in output
+- Consider re-running batch
+
 ---
 
 ## Example Workflow
 
 ```
-[Load spec, create TodoWrite]
+[Load spec, create TodoWrite, checkout branch]
 
-Task 1: Add caching
-[Dispatch tester (opus)]
-Tester: Wrote 3 tests, all failing (RED)
-  - test_cache_hit, test_cache_miss, test_ttl_expiry
-  - Files: tests/test_cache.py
-[Dispatch implementer (opus) with test paths]
-Implementer: Made tests pass (GREEN)
-  - Files: src/cache.py
-[Review - no issues]
-[Mark Task 1 complete]
+Batch 1: Task 1 (single task)
+├── Phase A: Dispatch tester (opus)
+│   └── Tester: Wrote 3 tests, all failing (RED)
+├── Phase B: Dispatch implementer (opus) + tester report
+│   └── Implementer: Made tests pass (GREEN)
+├── Phase C: Dispatch reviewers (3 in parallel)
+│   ├── Claude: approved, no issues
+│   ├── Codex: approved, 1 minor issue
+│   └── Gemini: approved, no issues
+├── Synthesize: 1 minor issue (note for later)
+└── Commit: feat(cache): add caching layer
 
-Task 2, 3, 4: [P] parallel batch
-[Dispatch 3 testers in single message]
-All testers complete with failing tests
-[Dispatch 3 implementers in single message]
-All implementers complete, tests passing
-[Single review for entire batch]
-[Mark Tasks 2, 3, 4 complete]
+Batch 2: Tasks 2, 3, 4 ([P] parallel batch)
+├── Phase A: Dispatch 3 testers (single message)
+│   └── All testers complete with failing tests
+├── Phase B: Dispatch 3 implementers (single message)
+│   └── All implementers complete, tests passing
+├── Phase C: Dispatch reviewers (3 in parallel)
+│   ├── Claude: changes_requested, 1 critical
+│   ├── Codex: changes_requested, 1 critical (same issue)
+│   └── Gemini: approved
+├── Synthesize: 1 critical issue (found by 2 reviewers)
+├── Fix: Dispatch fix subagent → verify
+└── Commit: feat(api): add endpoints for tasks 2, 3, 4
 
 ...
 
-[Final review]
+[Final review - 3 reviewers in parallel]
 All requirements met
 ```
 
