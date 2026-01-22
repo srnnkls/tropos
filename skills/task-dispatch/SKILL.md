@@ -225,22 +225,42 @@ After ALL reviewers complete:
 1. Note for later
 2. Proceed to commit
 
-### 7. Commit and Continue
+### 7. Commit, Checkpoint, and Continue
 
 When batch completes successfully (all phases, review passed):
 
 1. Update TodoWrite (mark tasks as "completed")
 2. Edit tasks.yaml: Change `status: in_progress` to `status: completed`
-3. **Commit the batch changes:**
-   - Stage relevant files (implementation + tests)
+3. **Write checkpoint.yaml** (enables session recovery):
+   ```yaml
+   checkpoint:
+     spec_name: <spec>
+     spec_path: ./specs/active/<spec>
+     branch: feat/<spec>
+     timestamp: <ISO_TIMESTAMP>
+     last_batch: <N>
+     last_commit: <SHA>
+     tasks:
+       completed: [...]
+       pending: [...]
+     next_batch:
+       number: <N+1>
+       tasks: [...]
+     deferred_issues: [...]  # medium severity, noted for later
+     review_config:
+       reviewers: [...]  # from validation.yaml
+   ```
+4. **Commit the batch changes:**
+   - Stage: implementation + tests + tasks.yaml + checkpoint.yaml
    - Commit message format:
      ```
      <type>(<scope>): <description>
 
      Tasks: <task-ids>
+     Batch: <N>/<total>
      ```
-   - Example: `feat(cache): add TTL expiry support\n\nTasks: PH2-003, PH2-004`
-4. Move to next batch
+   - Example: `feat(cache): add TTL expiry\n\nTasks: PH2-003, PH2-004\nBatch: 2/5`
+5. Move to next batch (or use `/continue` in new session)
 
 ### 8. Final Review
 
@@ -360,6 +380,7 @@ All requirements met
 
 - [subagent-workflow.md](reference/subagent-workflow.md) - Dispatch templates and YAML reports
 - [report-format.md](reference/report-format.md) - YAML report schemas
+- [checkpoint-format.md](reference/checkpoint-format.md) - Session checkpoint schema
 - [roles/tester.md](reference/roles/tester.md) - Test-writing subagent
 - [roles/implementer.md](reference/roles/implementer.md) - Implementation subagent
 - [roles/reviewer.md](reference/roles/reviewer.md) - Review subagent
