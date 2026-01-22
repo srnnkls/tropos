@@ -153,6 +153,12 @@ Each implementer:
 
 **CRITICAL:** Reviewers are mandatory. Every batch gets reviewed.
 
+**Get batch diff before dispatching:**
+```bash
+# Diff of changes made in this batch (since last batch commit)
+git diff <last_batch_commit>..HEAD
+```
+
 **Always dispatch ALL reviewers in a SINGLE message for true parallelism:**
 
 ```
@@ -163,10 +169,15 @@ Dispatch:
 ```
 
 Each reviewer:
-- Invokes `code-review` skill
-- Reviews ALL changes from the batch together
-- Checks against spec requirements
+- Invokes `code-review --diff` (batch diff, not full files)
+- Reviews the diff of changes from this batch
+- Checks against spec requirements for batch tasks
 - Produces YAML report with issues by severity
+
+**Review prompt includes:**
+1. Git diff of batch changes (not full files)
+2. Implementer reports (what was done)
+3. Task specs from tasks.yaml (what was required)
 
 **Reviewer dispatch configuration:**
 
@@ -175,7 +186,7 @@ Native Claude reviewer:
 Task(
   subagent_type="task-reviewer",
   model="opus",
-  prompt=review_prompt  # includes all implementer reports + task specs
+  prompt=review_prompt  # includes: batch diff + implementer reports + task specs
 )
 ```
 

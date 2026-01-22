@@ -20,9 +20,11 @@ Multi-agent review of batch implementations. Multiple reviewers run in parallel 
 
 ## Purpose
 
-Reviewers check ALL implementations from a batch together, ensuring quality and spec compliance before proceeding to the next batch.
+Reviewers check the **diff of changes** from a batch, ensuring quality and spec compliance before proceeding to the next batch.
 
 **This is Phase C of the Three-Phase Pipeline.** It is mandatory - no batch completes without review.
+
+**Key:** Reviewers work with the git diff, not full file contents. This keeps reviews focused and efficient.
 
 ## Skills to Invoke
 
@@ -31,25 +33,32 @@ Reviewers check ALL implementations from a batch together, ensuring quality and 
 
 ## Input
 
-Each reviewer receives all implementer reports from the batch:
+Each reviewer receives:
 
+**1. Batch diff (primary input):**
+```diff
+# git diff <last_batch_commit>..HEAD
+diff --git a/src/feature_a.py b/src/feature_a.py
+new file mode 100644
+...
+```
+
+**2. Implementer reports (context):**
 ```yaml
 # Task N1
 implementer_report:
   status: success
   implementation_files: [src/feature_a.py]
   test_output: "3 passed"
-  ...
 
 # Task N2
 implementer_report:
   status: success
   implementation_files: [src/feature_b.py]
   test_output: "2 passed"
-  ...
 ```
 
-Plus the relevant task specs from tasks.yaml.
+**3. Task specs from tasks.yaml (requirements)**
 
 ## Responsibilities
 

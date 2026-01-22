@@ -145,7 +145,13 @@ Wait for ALL implementers to complete before dispatching reviewers.
 
 **CRITICAL:** Reviewers are mandatory. Every batch gets reviewed.
 
-After ALL implementers in a batch complete, dispatch ALL reviewers in a SINGLE message:
+**Step 1: Get batch diff**
+```bash
+# Get diff of changes made in this batch
+git diff <last_batch_commit>..HEAD > /tmp/batch_diff.txt
+```
+
+**Step 2: Dispatch ALL reviewers in a SINGLE message:**
 
 ```yaml
 # Single message with multiple tool calls for true parallelism
@@ -156,9 +162,14 @@ Task:
   model: opus
   description: "Review batch: Tasks N1, N2, N3"
   prompt: |
-    Review the changes made for Tasks N1, N2, N3.
+    Review the batch diff for Tasks N1, N2, N3.
 
-    **First:** Invoke the `code-review` skill for review methodology.
+    **First:** Invoke the `code-review --diff` skill for review methodology.
+
+    **Batch Diff:**
+    ```diff
+    [paste git diff of batch changes - NOT full files]
+    ```
 
     **What was implemented:**
     [paste all implementer_report YAMLs]
@@ -177,6 +188,8 @@ Task:
     ```yaml
     reviewer_report:
       reviewer: claude-opus
+      batch: N
+      diff_reviewed: true
       gates:
         correctness: { status: pass | fail, issues: [] }
         style: { status: pass | fail, issues: [] }
@@ -197,7 +210,7 @@ Task:
 # OpenCode reviewers (0-N from validation.yaml, Bash tool, background)
 # Only include if configured in validation.yaml review_config.reviewers
 Bash:
-  command: timeout 300 opencode run --model "{MODEL_FROM_CONFIG}" "[review_prompt]"
+  command: timeout 300 opencode run --model "{MODEL_FROM_CONFIG}" "[review_prompt_with_diff]"
   run_in_background: true
 ```
 
