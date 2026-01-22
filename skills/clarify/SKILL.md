@@ -1,11 +1,11 @@
 ---
-name: spec-clarify
-description: Resolve ambiguities and markers in validation.yaml interactively. Updates spec docs directly with full audit trail.
+name: clarify
+description: Resolve ambiguities interactively with tracked changes. Works with spec-create, spec-review, code-review, and other skills.
 ---
 
-# Spec Clarify Skill
+# Clarify Skill
 
-Resolve ambiguities and markers by updating spec documents directly with tracked changes.
+Resolve ambiguities by updating documents directly with tracked changes. Context-aware: adapts to specs, code reviews, or standalone use.
 
 ---
 
@@ -15,6 +15,8 @@ Resolve ambiguities and markers by updating spec documents directly with tracked
 - Resolving markers before task-dispatch (especially for Initiatives)
 - Clarifying ambiguous requirements discovered post-validation
 - Addressing gaps identified in ambiguity_scan
+- Resolving questions from code-review findings
+- Any interactive clarification with audit trail
 
 **Don't use for:**
 - Initial validation (use spec-validate)
@@ -22,10 +24,23 @@ Resolve ambiguities and markers by updating spec documents directly with tracked
 
 ---
 
+## Context Detection
+
+The skill auto-detects context based on what's available:
+
+| Context | Detection | Source |
+|---------|-----------|--------|
+| **Spec** | `./specs/active/*/validation.yaml` exists | ambiguity_scan + markers |
+| **Code Review** | Recent `~/.claude/reviews/*.md` | Review issues/questions |
+| **Standalone** | Neither above | User-provided questions |
+
+---
+
 ## Workflow
 
 ### Step 1: Load and Scan
 
+**Spec context:**
 1. Find active spec in `./specs/active/*/`
 2. Read `validation.yaml` from spec directory
 3. Run ambiguity scan:
@@ -34,6 +49,15 @@ Resolve ambiguities and markers by updating spec documents directly with tracked
 4. Collect open markers where `status: open`
 5. Merge candidates: ambiguity gaps + open markers (deduplicate by area)
 6. If no candidates: report "No unresolved items" and exit
+
+**Code review context:**
+1. Find most recent review in `~/.claude/reviews/`
+2. Extract issues marked as needing clarification
+3. Present as candidates
+
+**Standalone:**
+1. Ask user what needs clarification
+2. Proceed with interactive Q&A
 
 ### Step 2: Present Candidates
 
@@ -50,7 +74,7 @@ Options:
 
 **Prioritization:** Scope > Behavior > Data Model > Constraints > Edge Cases > Integration > Terminology
 
-### Step 3: Update Spec Documents Directly
+### Step 3: Update Documents Directly
 
 When a clarification is resolved, update the relevant section in the source document:
 
@@ -77,6 +101,7 @@ Create a new session entry in `clarification_sessions`:
 clarification_sessions:
   - id: S00${N}
     timestamp: ${ISO_TIMESTAMP}
+    source: clarify  # or spec-review, code-review if invoked from there
     questions:
       - id: Q001
         question: "${QUESTION}"
@@ -162,6 +187,7 @@ Added: "Two-tier role system: Admin (full access), User (standard permissions)"
 clarification_sessions:
   - id: S001
     timestamp: 2025-01-15T10:30:00Z
+    source: clarify
     questions:
       - id: Q001
         question: "What user roles exist and what are their boundaries?"
@@ -187,7 +213,13 @@ Question: Which authentication method should be used?
 
 ## Integration
 
-**Invoked by:** `/spec.clarify` command
+**Command:** `/clarify [context]`
+
+**Invoked from:**
+- `spec-create` - Clarify during spec creation
+- `spec-review` - Resolve issues found during review
+- `code-review` - Clarify code review findings
+- `task-dispatch` - Resolve blocking markers before dispatch
 
 **Related skills:**
 - `spec-validate` - Initial validation (creates ambiguity_scan and markers)

@@ -42,7 +42,7 @@ ambiguity_scan:
 # Taxonomy coverage tracks which requirement areas have been addressed.
 # Status values:
 #   - covered: Addressed via plan context or clarifications
-#   - gap: Identified but not addressed (may need /spec.clarify)
+#   - gap: Identified but not addressed (may need /clarify)
 #   - n/a: Not applicable to this issue type
 taxonomy_coverage:
   scope:
@@ -81,7 +81,7 @@ clarification_log:
 
 # Clarification sessions provide full resolution tracking with audit trail.
 # Each session groups related Q/A pairs and tracks document updates.
-# Used by spec-clarify to record which sections were modified.
+# Used by clarify to record which sections were modified.
 clarification_sessions:
   - id: S001
     timestamp: ${TIMESTAMP}
@@ -100,7 +100,7 @@ clarification_sessions:
 
 # Markers track unresolved items requiring future clarification.
 # Created during spec-create when gaps are identified.
-# Resolved via /spec.clarify command.
+# Resolved via /clarify command.
 markers:
   - id: M001
     area: ${TAXONOMY_AREA}
@@ -134,7 +134,7 @@ gates:
     reason: "${EXPLANATION}"
 
 # Deferred items were identified but not clarified due to question limit.
-# Candidates for future /spec.clarify if needed.
+# Candidates for future /clarify if needed.
 deferred:
   - area: ${TAXONOMY_AREA}
     question: "${QUESTION_NOT_ASKED}"

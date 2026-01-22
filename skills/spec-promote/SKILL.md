@@ -148,7 +148,7 @@ Failed gates block promotion. User must resolve before promoting.
 
 **Workflow:**
 - Create: `spec-validate` -> `spec-create` (creates in draft/)
-- Review: Manual review or `/spec.clarify`
+- Review: Manual review or `/clarify`
 - Promote: This skill (draft/ -> active/)
 - Execute: `task-dispatch` or `/implement`
 - Archive: `spec-archive` (active/ -> archive/)
@@ -156,4 +156,4 @@ Failed gates block promotion. User must resolve before promoting.
 **Related:**
 - Command: `/spec.promote`
 - Skills: `spec-create` (creates drafts), `spec-archive` (archives active)
-- Skill: `spec-clarify` (resolve open markers before promoting)
+- Skill: `clarify` (resolve open markers before promoting)

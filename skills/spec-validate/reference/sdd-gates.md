@@ -63,12 +63,12 @@ When gates are checked by task-dispatch:
 2. If issue_type is Initiative and any gate status is "failed":
    - Block dispatch
    - Report which gates failed
-   - Prompt user to resolve via /spec.clarify or manual edit
+   - Prompt user to resolve via /clarify or manual edit
 3. If all gates passed or issue_type is not Initiative: proceed
 
 ## Resolution
 
 Failed gates can be resolved by:
-1. `/spec.clarify` - Interactive resolution
+1. `/clarify` - Interactive resolution
 2. Manual edit of validation.yaml with justification
 3. Changing issue_type (if scope was misclassified)

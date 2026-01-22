@@ -22,7 +22,7 @@ Execute specs with proper TDD: tester writes failing tests, implementer makes th
 - No spec exists yet (use `spec-validate` → `spec-create` first)
 - Tasks are tightly coupled (manual execution better)
 - Single small task (just do it directly)
-- Initiative spec has failed gates (resolve first via /spec.clarify)
+- Initiative spec has failed gates (resolve first via /clarify)
 
 ---
 
@@ -92,7 +92,7 @@ Before dispatching any tasks, verify validation.yaml gates:
    - Check all gates in `gates` section
    - If any gate has `status: failed`:
      - Report which gates failed with reasons
-     - Prompt: "Resolve via /spec.clarify or proceed anyway?"
+     - Prompt: "Resolve via /clarify or proceed anyway?"
      - If user chooses to proceed: document override in validation.yaml
    - Check `markers` section for `status: open`
    - If blocking markers exist:
@@ -440,7 +440,7 @@ All requirements met
 
 **Use with:**
 - `spec-validate` → `spec-create` - Create spec before dispatch
-- `spec-clarify` - Resolve markers/gates before dispatch
+- `clarify` - Resolve markers/gates before dispatch
 - `code-test` - Tester invokes for TDD methodology
 - `code-implement` - Implementer invokes for language guidelines
 - `code-review` - Reviewer invokes for review methodology

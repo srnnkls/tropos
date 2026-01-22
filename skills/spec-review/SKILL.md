@@ -284,7 +284,7 @@ Recommendation:
 
 **Related skills:**
 - `spec-create` - Creates specs to review
-- `spec-clarify` - Resolves markers found during review
+- `clarify` - Resolves markers found during review
 - `task-dispatch` - Next step after review passes
 
 ---
