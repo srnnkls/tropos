@@ -177,7 +177,7 @@ Task(
 
 **OpenCode reviewers (Bash tool, background):**
 ```bash
-timeout 300 opencode run --model "{MODEL_PATH}" "{review_prompt}"
+timeout 1200 opencode run --model "{MODEL_PATH}" "{review_prompt}"
 ```
 
 **Examples:**
@@ -475,7 +475,7 @@ Next: Create PR with /pr.create or merge directly
 - Report error, suggest valid refs
 - List recent commits for reference
 
-**OpenCode timeout (> 5 minutes):**
+**OpenCode timeout (> 20 minutes):**
 - Continue with completed reviews
 - Note: "[Reviewer] timed out, partial results"
 

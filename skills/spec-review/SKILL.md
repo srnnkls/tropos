@@ -124,7 +124,7 @@ Task(
 
 **OpenCode reviewers (Bash tool, background):**
 ```bash
-timeout 300 opencode run --model "{MODEL_PATH}" "{review_prompt}"
+timeout 1200 opencode run --model "{MODEL_PATH}" "{review_prompt}"
 ```
 
 **Examples:**
@@ -254,7 +254,7 @@ Recommendation:
 
 ## Edge Cases
 
-**OpenCode timeout (> 5 minutes):**
+**OpenCode timeout (> 20 minutes):**
 - Continue with completed reviews
 - Note in output: "[Reviewer] timed out, partial results"
 - Still usable but recommend re-running
