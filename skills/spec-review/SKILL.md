@@ -7,7 +7,7 @@ description: Multi-agent spec review with parallel Claude/OpenCode reviewers. Us
 
 Multi-perspective spec review using parallel subagent dispatch for comprehensive validation.
 
-> **Reference:** See [reference/roles/](reference/roles/) for reviewer personas, [reference/report-format.md](reference/report-format.md) for YAML schemas, [reference/playbook.md](reference/playbook.md) for edge case handling.
+> **Reference:** See [reference/roles/](reference/roles/) for reviewer personas, [reference/report.md](reference/report.md) for YAML schemas, [reference/playbook.md](reference/playbook.md) for edge case handling.
 
 ---
 
@@ -293,5 +293,5 @@ Recommendation:
 
 - [reference/roles/claude-reviewer.md](reference/roles/claude-reviewer.md) - Claude reviewer persona
 - [reference/roles/opencode-reviewer.md](reference/roles/opencode-reviewer.md) - OpenCode reviewer persona
-- [reference/report-format.md](reference/report-format.md) - YAML report schemas
+- [reference/report.md](reference/report.md) - YAML report schemas
 - [reference/playbook.md](reference/playbook.md) - Edge case handling

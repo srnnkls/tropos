@@ -186,7 +186,7 @@ timeout 300 opencode run --model "{MODEL}" "{review_prompt}"
 
 Models are configured in `validation.yaml` under `review_config.reviewers`.
 
-### 5. Synthesize Review Feedback
+### 5. Synthesize Review Feedback and Write review.yaml
 
 After ALL reviewers complete:
 
@@ -198,8 +198,36 @@ After ALL reviewers complete:
 3. **Aggregate severity:**
    - Issue severity is the HIGHEST across all reviewers
    - Critical by any reviewer = Critical overall
-4. **Present unified feedback:**
-   - Group by severity
+4. **Write review.yaml** (append batch review):
+   ```yaml
+   # ./specs/active/<spec>/review.yaml
+   batch_reviews:
+     - batch: <N>
+       timestamp: <ISO_TIMESTAMP>
+       commit: <SHA>
+       tasks: [T001, T002]
+       reviewers:
+         - id: claude-opus
+           status: completed
+           gates: { correctness: pass, style: pass, ... }
+         - id: opencode-codex
+           status: completed | timeout | failed
+           gates: { ... }
+       synthesized:
+         gates: { correctness: pass, style: fail, ... }
+         critical_issues: <N>
+         high_issues: <N>
+         medium_issues: <N>
+       outcome: approved | changes_requested
+   issues:
+     critical: [...]
+     high: [...]
+     medium: [...]
+   deferred_issues: [...]  # medium severity
+   ```
+5. **Present unified feedback:**
+   - Gate summary table
+   - Issues grouped by severity
    - Show which reviewers found each issue
 
 **Gate Summary Table:**
@@ -219,10 +247,11 @@ After ALL reviewers complete:
 **If Critical/High issues found:**
 1. Dispatch fix subagent(s) (task-implementer, opus)
 2. Verify fixes with targeted review
-3. Only proceed when issues resolved
+3. Update review.yaml with resolution
+4. Only proceed when issues resolved
 
 **If only Medium issues:**
-1. Note for later
+1. Add to review.yaml deferred_issues
 2. Proceed to commit
 
 ### 7. Commit, Checkpoint, and Continue
@@ -251,7 +280,7 @@ When batch completes successfully (all phases, review passed):
        reviewers: [...]  # from validation.yaml
    ```
 4. **Commit the batch changes:**
-   - Stage: implementation + tests + tasks.yaml + checkpoint.yaml
+   - Stage: implementation + tests + tasks.yaml + checkpoint.yaml + review.yaml
    - Commit message format:
      ```
      <type>(<scope>): <description>
@@ -264,7 +293,13 @@ When batch completes successfully (all phases, review passed):
 
 ### 8. Final Review
 
-After ALL batches complete, dispatch final multi-reviewer pass:
+After ALL batches complete, invoke `code-review` skill in **final mode**:
+
+```
+/code.review --final <spec-name>
+```
+
+Or dispatch multi-reviewer pass directly:
 
 ```
 Dispatch (in same message):
@@ -272,10 +307,36 @@ Dispatch (in same message):
   - 0-N OpenCode reviewers (from validation.yaml)
 ```
 
-Reviews entire implementation:
-- Check all spec requirements met
-- Validate overall architecture
-- Identify any remaining gaps
+**Final review checks:**
+- All spec requirements met (cross-reference spec.md)
+- All tasks complete (verify tasks.yaml)
+- Acceptance criteria satisfied
+- Overall architecture sound
+- Deferred issues addressed or documented
+- Tests passing
+
+**Write final_review section in review.yaml:**
+```yaml
+final_review:
+  status: completed
+  timestamp: <ISO_TIMESTAMP>
+  reviewers: [claude-opus, opencode-codex, ...]
+  gates: { correctness: pass, style: pass, ... }
+  spec_compliance:
+    all_tasks_complete: true
+    acceptance_criteria_met: true
+    edge_cases_handled: true
+  issues: [...]
+  strengths: [...]
+  overall_assessment: "Implementation complete and verified"
+  recommendation: ready_to_merge | changes_requested
+readiness:
+  all_batches_reviewed: true
+  critical_issues_resolved: true
+  high_issues_resolved: true
+  final_review_passed: true
+  tests_passing: true
+```
 
 ---
 
@@ -379,8 +440,9 @@ All requirements met
 ## Reference
 
 - [subagent-workflow.md](reference/subagent-workflow.md) - Dispatch templates and YAML reports
-- [report-format.md](reference/report-format.md) - YAML report schemas
+- [report.md](reference/report.md) - YAML report schemas
 - [checkpoint-format.md](reference/checkpoint-format.md) - Session checkpoint schema
+- [review.md](reference/review.md) - Implementation review schema (review.yaml)
 - [roles/tester.md](reference/roles/tester.md) - Test-writing subagent
 - [roles/implementer.md](reference/roles/implementer.md) - Implementation subagent
 - [roles/reviewer.md](reference/roles/reviewer.md) - Review subagent

@@ -74,6 +74,65 @@ Edge case handling and decision trees for review scenarios.
 
 ---
 
+## Input Type Detection
+
+### Disambiguation Flags
+
+Flags override auto-detection:
+
+| Flag | Forces |
+|------|--------|
+| `--spec` | Spec mode (final review) |
+| `--rev` | Git rev/range mode |
+| `--path` | Path mode |
+| `--diff` | Diff mode (staged/unstaged) |
+
+### Auto-Detection Priority (no flag)
+
+1. **Spec** - `test -d ./specs/active/{arg}/`
+2. **Git rev** - `git rev-parse --verify {arg}`
+3. **Git range** - contains `..` or valid range syntax
+4. **Path** - `test -e {arg}`
+5. **Diff** - no argument, use staged/unstaged
+
+### Ambiguous Input
+
+**Symptom:** Input could match multiple types (e.g., "main" is both a branch and could be a spec)
+
+**Response:**
+1. If flag provided → use flag, skip detection
+2. Otherwise, follow priority order (spec → git → path)
+3. Suggest flag if detection seems wrong:
+   ```
+   Detected "main" as spec. Use --rev main for git branch.
+   ```
+
+---
+
+## Review Storage
+
+### Spec Mode
+
+**Location:** `./specs/active/<spec>/review.yaml`
+**Persistence:** Committed with spec, part of audit trail
+
+### Other Modes (Ephemeral)
+
+**Location:** `~/.claude/reviews/<generated-name>.md`
+**Persistence:** Ephemeral, like Claude's internal plans
+
+**Naming:**
+```
+review-<sha>-<timestamp>.md           # Git rev
+review-<from>..<to>-<timestamp>.md    # Git range
+review-<path-slug>-<timestamp>.md     # Path
+review-staged-<timestamp>.md          # Staged changes
+```
+
+**Cleanup:** User manages `~/.claude/reviews/` manually
+
+---
+
 ## Code Target Edge Cases
 
 ### No Argument, No Changes
@@ -163,16 +222,24 @@ Edge case handling and decision trees for review scenarios.
 ```
 Start
   │
-  ├─ Code target found?
-  │   ├─ No → Check git diff, list files, ask user
-  │   └─ Yes → Continue
+  ├─ Detect input type
+  │   ├─ Spec exists? → Spec mode (final review)
+  │   ├─ Valid git rev? → Git rev mode
+  │   ├─ Contains '..'? → Git range mode
+  │   ├─ Path exists? → Path mode
+  │   └─ No argument? → Diff mode (staged/unstaged)
   │
-  ├─ Reviewers selected?
-  │   ├─ None → Default to Claude, warn
-  │   └─ Some → Continue
+  ├─ Load review context
+  │   ├─ Spec → Read spec.md, tasks.yaml, review.yaml, validation.yaml
+  │   ├─ Git → git show/diff, commit messages
+  │   ├─ Path → Read files
+  │   └─ Diff → git diff --cached or git diff
   │
-  ├─ Dispatch reviewers
-  │   │
+  ├─ Select reviewers
+  │   ├─ Spec → Use validation.yaml config (no prompt)
+  │   └─ Other → Prompt user with AskUserQuestion
+  │
+  ├─ Dispatch reviewers (parallel)
   │   ├─ All succeed → Synthesize
   │   ├─ Some fail → Use available, note partial
   │   └─ All fail → Report failure, suggest retry
@@ -186,9 +253,18 @@ Start
   │   ├─ Aggregate gates
   │   └─ Prioritize by severity
   │
-  ├─ Any gates failed?
-  │   ├─ Yes → Recommend addressing issues
-  │   └─ No → Recommend merge/commit
+  ├─ Write review output
+  │   ├─ Spec → ./specs/active/<spec>/review.yaml
+  │   └─ Other → ~/.claude/reviews/<name>.md (ephemeral)
+  │
+  ├─ Present results
+  │   ├─ Gate summary table
+  │   ├─ Issues by severity
+  │   └─ Spec: spec compliance + deferred issues
+  │
+  ├─ Recommend action
+  │   ├─ All pass → Ready to merge/commit
+  │   └─ Issues → Address before proceeding
   │
   └─ End
 ```

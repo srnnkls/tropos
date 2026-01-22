@@ -7,7 +7,7 @@ description: Code review methodology. Use when reviewing code locally or prepari
 
 Multi-perspective code review using parallel subagent dispatch for comprehensive analysis.
 
-> **Reference:** See [reference/roles/](reference/roles/) for reviewer personas, [reference/report-format.md](reference/report-format.md) for YAML schemas, [reference/playbook.md](reference/playbook.md) for edge case handling.
+> **Reference:** See [reference/roles/](reference/roles/) for reviewer personas, [reference/report.md](reference/report.md) for YAML schemas, [reference/playbook.md](reference/playbook.md) for edge case handling.
 
 ---
 
@@ -15,29 +15,129 @@ Multi-perspective code review using parallel subagent dispatch for comprehensive
 
 - Reviewing code changes locally before commit
 - Preparing review feedback for a PR
+- Final review of a spec implementation
 - Analyzing code quality across multiple dimensions
-- Getting diverse perspectives on implementation choices
+
+---
+
+## Command
+
+```
+/code.review [target]
+/code.review --spec <name>
+/code.review --rev <ref>
+/code.review --path <path>
+/code.review --diff
+```
+
+**Target types (auto-detected by default):**
+- **Spec name** → Final review of spec implementation
+- **Git rev** → Review changes in commit(s)
+- **Git range** → Review changes between refs
+- **Path** → Review file or directory
+- **No argument** → Review staged/unstaged changes
+
+**Disambiguation flags (optional):**
+- `--spec` → Force spec mode (e.g., spec named "main")
+- `--rev` → Force git rev mode (e.g., path named "HEAD")
+- `--path` → Force path mode (e.g., directory named "v1.0")
+- `--diff` → Force diff mode (staged/unstaged changes)
 
 ---
 
 ## Workflow
 
-### Step 1: Identify Code to Review
+### Step 1: Detect Input Type
 
-1. Parse target from argument (e.g., `/code.review src/auth/`)
-2. If no argument: use staged changes (`git diff --cached`)
-3. If no staged changes: use unstaged changes (`git diff`)
-4. If no changes: ask user to specify file/directory
+**If flag provided, use it directly:**
 
-### Step 2: Detect Language and Load Guidelines
+```
+--spec auth-system  → Spec mode (no detection)
+--rev main          → Git rev mode (no detection)
+--path ./main       → Path mode (no detection)
+```
 
-1. Identify primary language(s) from file extensions
-2. Load language-specific patterns from `code-implement` skill if available
-3. Note project conventions from CLAUDE.md
+**Otherwise, auto-detect:**
+
+```
+Input                    | Detection                           | Mode
+-------------------------|-------------------------------------|-------------
+auth-system              | ./specs/active/auth-system/ exists  | Spec (final)
+HEAD~3                   | Valid git rev                       | Git rev
+main..feature            | Valid git range                     | Git range
+abc123f                  | Valid commit SHA                    | Git rev
+src/auth/                | Path exists                         | Path
+(no argument)            | -                                   | Diff
+```
+
+**Auto-detection priority:**
+
+1. **Check for spec:** `test -d ./specs/active/{arg}/`
+   - If exists → **Spec mode** (final review)
+2. **Check for git rev:** `git rev-parse --verify {arg} 2>/dev/null`
+   - If valid → **Git rev mode**
+3. **Check for git range:** contains `..` and valid refs
+   - If valid → **Git range mode**
+4. **Check for path:** `test -e {arg}`
+   - If exists → **Path mode**
+5. **No argument:**
+   - Check `git diff --cached` → staged changes
+   - Check `git diff` → unstaged changes
+   - If neither → ask user
+
+**Ambiguity examples:**
+```bash
+# "main" could be spec, branch, or directory
+/code.review main           # Auto-detect (spec first, then git, then path)
+/code.review --spec main    # Force: spec named "main"
+/code.review --rev main     # Force: git branch "main"
+/code.review --path main    # Force: directory named "main"
+```
+
+### Step 2: Load Review Context
+
+**Spec mode:**
+```
+Read (in parallel):
+  ./specs/active/<spec>/spec.md        # Requirements
+  ./specs/active/<spec>/tasks.yaml     # Task definitions
+  ./specs/active/<spec>/review.yaml    # Batch review history
+  ./specs/active/<spec>/validation.yaml # Review config + reviewers
+```
+
+**Git rev/range mode:**
+```bash
+git show <rev>              # Single commit
+git diff <range>            # Range (e.g., main..feature)
+git log --oneline <range>   # Commit messages for context
+```
+
+**Path mode:**
+```bash
+# Read file(s) at path
+# If directory, find changed files or all files
+```
+
+**Diff mode:**
+```bash
+git diff --cached           # Staged changes (preferred)
+git diff                    # Unstaged changes (fallback)
+```
 
 ### Step 3: Select Reviewers
 
-Use **AskUserQuestion** with multiSelect to choose reviewers:
+**Spec mode:** Use reviewers from `validation.yaml` (no prompt):
+
+```yaml
+review_config:
+  reviewers:
+    - type: claude
+      model: opus
+    - type: opencode
+      model: openai/gpt-5.2-codex
+```
+
+**Other modes:** Use **AskUserQuestion** with multiSelect:
 
 ```
 Header: Reviewers
@@ -46,29 +146,18 @@ multiSelect: true
 Options:
 - claude-opus: Claude Opus - native subagent, context-aware, codebase access
 - claude-sonnet: Claude Sonnet - faster native review
-- openai-gpt5.2: OpenAI GPT-5.2 - base model
-- openai-gpt5.2-codex: OpenAI GPT-5.2 Codex - code-specialized
+- openai-gpt5.2-codex: OpenAI GPT-5.2 Codex - code-specialized (Recommended)
 - openai-gpt5.2-pro: OpenAI GPT-5.2 Pro - extended capabilities
-- gemini-3-flash: Google Gemini 3 Flash - fast, efficient
 - gemini-3-pro: Google Gemini 3 Pro - advanced reasoning
 ```
 
 **Default selection:** claude-opus, openai-gpt5.2-codex
 
-**Model mapping to commands:**
-- `claude-opus` → Task tool with `model: "opus"`
-- `claude-sonnet` → Task tool with `model: "sonnet"`
-- `openai-gpt5.2` → `opencode run --model "openai/gpt-5.2"`
-- `openai-gpt5.2-codex` → `opencode run --model "openai/gpt-5.2-codex"`
-- `openai-gpt5.2-pro` → `opencode run --model "openai/gpt-5.2-pro"`
-- `gemini-3-flash` → `opencode run --model "google/gemini-3-flash-preview"`
-- `gemini-3-pro` → `opencode run --model "google/gemini-3-pro-preview"`
-
 ### Step 4: Dispatch Reviewers in Parallel
 
-**CRITICAL:** Dispatch all selected reviewers in the same message for true parallelism.
+**CRITICAL:** Dispatch all reviewers in the same message for true parallelism.
 
-**Review Prompt Template:**
+**Review Prompt (standard):**
 
 ```
 You are reviewing code for quality, correctness, and maintainability.
@@ -76,8 +165,8 @@ You are reviewing code for quality, correctness, and maintainability.
 ## Code to Review
 [Include diff or file contents]
 
-## Language
-{LANGUAGE}
+## Context
+[Git commit message, PR description, or spec requirements]
 
 ## Review Focus
 Evaluate against these gates:
@@ -89,53 +178,35 @@ Evaluate against these gates:
 5. **Architecture** - Design patterns, coupling, separation of concerns
 
 ## Output Format
-Return a YAML report:
-
-```yaml
-reviewer_report:
-  reviewer: {REVIEWER_ID}
-  gates:
-    correctness:
-      status: pass | fail
-      issues: []
-    style:
-      status: pass | fail
-      issues: []
-    performance:
-      status: pass | fail
-      issues: []
-    security:
-      status: pass | fail
-      issues: []
-    architecture:
-      status: pass | fail
-      issues: []
-  issues:
-    - severity: critical | high | medium
-      gate: correctness | style | performance | security | architecture
-      area: ${AREA}
-      location: "file:line"
-      description: "Clear description"
-      suggestion: "How to fix"
-  strengths:
-    - "Positive observation"
-```
+[Standard reviewer_report YAML - see reference/report.md]
 ```
 
-**Dispatch by Type:**
+**Review Prompt (spec mode - final review):**
 
-**Claude reviewers (Task tool):**
-```python
-Task(
-  subagent_type="general-purpose",
-  model="opus",  # or "sonnet"
-  prompt=review_prompt
-)
 ```
+You are performing a FINAL REVIEW of a complete spec implementation.
 
-**OpenCode reviewers (Bash tool, background):**
-```bash
-timeout 300 opencode run --model "{MODEL_PATH}" "{review_prompt}"
+## Spec Requirements
+[Include spec.md content]
+
+## Tasks Implemented
+[Include tasks.yaml]
+
+## Batch Review History
+[Summarize from review.yaml]
+
+## Deferred Issues
+[List medium-severity issues from batch reviews]
+
+## Review Focus
+1. **Spec Compliance** - All requirements met? Acceptance criteria satisfied?
+2. **Gates** - Correctness, Style, Performance, Security, Architecture
+3. **Deferred Issues** - Address or document remaining issues
+4. **Integration** - Components work together? No regressions?
+5. **Test Coverage** - All behaviors tested?
+
+## Output Format
+[Final review YAML - see reference/report.md]
 ```
 
 ### Step 5: Synthesize Reviews
@@ -154,18 +225,99 @@ After all reviewers complete:
    - Critical → High → Medium
    - Within severity, group by gate
 
-### Step 6: Present Review
+### Step 6: Write Review Output
+
+**Spec mode** → `./specs/active/<spec>/review.yaml`:
+
+```yaml
+final_review:
+  status: completed
+  timestamp: <ISO_TIMESTAMP>
+  reviewers: [...]
+  gates: { correctness: pass, style: pass, ... }
+  spec_compliance:
+    all_tasks_complete: true
+    acceptance_criteria_met: true
+    edge_cases_handled: true
+  issues: [...]
+  strengths: [...]
+  recommendation: ready_to_merge | changes_requested
+
+readiness:
+  all_batches_reviewed: true
+  critical_issues_resolved: true
+  high_issues_resolved: true
+  final_review_passed: true
+  tests_passing: true
+```
+
+**Other modes** → `~/.claude/reviews/<generated-name>.md` (ephemeral):
+
+```bash
+# Generate review name based on input type
+mkdir -p ~/.claude/reviews
+
+# Git rev:    review-abc123f-2026-01-22T14-30.md
+# Git range:  review-main..feature-2026-01-22T14-30.md
+# Path:       review-src-auth-2026-01-22T14-30.md
+# Diff:       review-staged-2026-01-22T14-30.md
+```
+
+**Ephemeral review format (Markdown):**
+
+```markdown
+# Code Review: <target>
+
+**Date:** 2026-01-22T14:30:00Z
+**Reviewers:** claude-opus, opencode-codex
+**Target:** HEAD~3 | main..feature | src/auth/ | staged changes
+
+## Gate Summary
+
+| Gate         | Status | Claude | Codex  |
+|--------------|--------|--------|--------|
+| Correctness  | PASS   | pass   | pass   |
+| Style        | PASS   | pass   | pass   |
+| Performance  | PASS   | pass   | pass   |
+| Security     | FAIL   | fail   | pass   |
+| Architecture | PASS   | pass   | pass   |
+
+## Issues
+
+### Critical
+- **[C1]** SQL injection in user input (Security)
+  - Location: src/db/query.py:45
+  - Found by: claude-opus
+  - Suggestion: Use parameterized queries
+
+### High
+...
+
+### Medium
+...
+
+## Strengths
+- Clean separation of concerns
+- Good error messages
+
+## Recommendation
+Address critical issues before proceeding
+```
+
+Reviews are stored ephemerally like Claude's internal plans - useful for reference but not committed to the repo.
+
+### Step 7: Present Review
 
 **Gate Summary Table:**
 
 ```
-| Gate         | Status | Claude | Codex  | Gemini-3 Pro |
-|--------------|--------|--------|--------|--------------|
-| Correctness  | FAIL   | fail   | fail   | pass         |
-| Style        | PASS   | pass   | pass   | pass         |
-| Performance  | PASS   | pass   | pass   | pass         |
-| Security     | FAIL   | fail   | pass   | fail         |
-| Architecture | PASS   | pass   | pass   | pass         |
+| Gate         | Status | Claude | Codex  |
+|--------------|--------|--------|--------|
+| Correctness  | PASS   | pass   | pass   |
+| Style        | PASS   | pass   | pass   |
+| Performance  | PASS   | pass   | pass   |
+| Security     | FAIL   | fail   | pass   |
+| Architecture | PASS   | pass   | pass   |
 ```
 
 **Issues by Severity:**
@@ -173,46 +325,49 @@ After all reviewers complete:
 ```
 ## Critical (must fix)
 - [C1] SQL injection in user input (Security) at src/db/query.py:45
-  Found by: claude-opus, gemini-3-pro
+  Found by: claude-opus
   Suggestion: Use parameterized queries
 
 ## High (should fix)
-- [H1] Missing null check before dereference (Correctness) at src/api/handler.ts:112
-  Found by: claude-opus, opencode-codex
-  Suggestion: Add guard clause
+...
 
 ## Medium (consider)
-- [M1] Variable name `x` is unclear (Style) at src/utils/calc.py:23
-  Found by: opencode-codex
-  Suggestion: Rename to `multiplier`
+...
 ```
 
-**Strengths (if any):**
+**Spec mode additional output:**
 
 ```
-## Strengths
-- Clean separation of concerns in module structure
-- Good error messages with context
+### Spec Compliance
+- All tasks complete: ✓
+- Acceptance criteria met: ✓
+- Edge cases handled: ✓
+
+### Deferred Issues
+- Resolved: 3
+- Remaining: 0
 ```
 
-### Step 7: Recommend Action
+### Step 8: Recommend Action
 
 **All gates pass:**
 ```
 Review complete. All gates passed.
-
 Recommendation: Ready to commit/merge
 ```
 
 **Issues found:**
 ```
-Review complete. 2 gates failed.
+Review complete. 1 gate failed.
+Critical: 1, High: 0, Medium: 2
+Recommendation: Address critical issues before proceeding
+```
 
-Critical issues: 1
-High issues: 1
-Medium issues: 1
-
-Recommendation: Address critical/high issues before proceeding
+**Spec mode (all pass):**
+```
+Final review complete: auth-system
+Recommendation: Ready to merge ✓
+Next: Create PR with /pr.create or merge directly
 ```
 
 ---
@@ -246,38 +401,71 @@ Recommendation: Address critical/high issues before proceeding
 
 ---
 
+## Examples
+
+```bash
+# Auto-detected (most common)
+/code.review auth-system      # Spec → final review
+/code.review HEAD~3           # Git rev → last 3 commits
+/code.review main..feature    # Git range → branch diff
+/code.review abc123f          # Git rev → specific commit
+/code.review src/auth/        # Path → directory
+/code.review                  # Diff → staged/unstaged
+
+# Disambiguation flags (when names collide)
+/code.review --spec main      # Spec named "main" (not git branch)
+/code.review --rev main       # Git branch "main" (not spec/path)
+/code.review --path HEAD      # Directory named "HEAD" (not git ref)
+/code.review --rev v1.0       # Git tag "v1.0" (not path)
+/code.review --diff           # Staged/unstaged changes explicitly
+```
+
+---
+
+## Review Storage
+
+| Mode | Location | Persistence |
+|------|----------|-------------|
+| Spec | `./specs/active/<spec>/review.yaml` | Committed with spec |
+| Other | `~/.claude/reviews/<name>.md` | Ephemeral (like plans) |
+
+**Naming convention for ephemeral reviews:**
+- `review-<sha>-<timestamp>.md` - Git rev
+- `review-<from>..<to>-<timestamp>.md` - Git range
+- `review-<path-slug>-<timestamp>.md` - Path
+- `review-staged-<timestamp>.md` - Staged changes
+
+---
+
 ## Edge Cases
+
+**Spec not found:**
+- List available specs in `./specs/active/`
+- Suggest closest match if typo likely
+
+**Git rev invalid:**
+- Report error, suggest valid refs
+- List recent commits for reference
 
 **OpenCode timeout (> 5 minutes):**
 - Continue with completed reviews
-- Note in output: "[Reviewer] timed out, partial results"
-
-**One reviewer fails:**
-- Parse what you can
-- Report partial results with clear indication
-
-**No reviewers selected:**
-- Default to claude-opus only
-- Warn: "Consider adding external reviewers for diverse perspectives"
+- Note: "[Reviewer] timed out, partial results"
 
 **No code to review:**
 - List recent changed files
 - Ask user to specify target
 
-**OpenCode not available:**
-- Warn: "OpenCode not installed, using Claude only"
-- Proceed with Claude reviewer
-
 ---
 
 ## Integration
 
-**Command:** `/code.review [path]`
+**Command:** `/code.review [target]`
 
 **Related skills:**
 - `code-implement` - Language-specific patterns to check against
 - `pr-review` - GitHub PR workflow (uses this for methodology)
 - `code-debug` - Root cause analysis when issues found
+- `task-dispatch` - Batch reviews during implementation (Phase C)
 
 ---
 
@@ -285,6 +473,6 @@ Recommendation: Address critical/high issues before proceeding
 
 - [reference/roles/claude-reviewer.md](reference/roles/claude-reviewer.md) - Claude reviewer persona
 - [reference/roles/opencode-reviewer.md](reference/roles/opencode-reviewer.md) - OpenCode reviewer persona
-- [reference/report-format.md](reference/report-format.md) - YAML report schemas
+- [reference/report.md](reference/report.md) - YAML report schemas
 - [reference/playbook.md](reference/playbook.md) - Edge case handling
 - [reference/checklist.md](reference/checklist.md) - Review checklist
