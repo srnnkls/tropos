@@ -153,9 +153,37 @@ Options:
 
 **Default selection:** claude-opus, openai-gpt5.2-codex
 
+**Model mapping to commands:**
+- `claude-opus` → Task tool with `model: "opus"`
+- `claude-sonnet` → Task tool with `model: "sonnet"`
+- `openai-gpt5.2-codex` → `opencode run --model "openai/gpt-5.2-codex"`
+- `openai-gpt5.2-pro` → `opencode run --model "openai/gpt-5.2-pro"`
+- `gemini-3-pro` → `opencode run --model "google/gemini-3-pro-preview"`
+
 ### Step 4: Dispatch Reviewers in Parallel
 
 **CRITICAL:** Dispatch all reviewers in the same message for true parallelism.
+
+**Dispatch by Type:**
+
+**Claude reviewers (Task tool):**
+```python
+Task(
+  subagent_type="general-purpose",
+  model="opus",  # or "sonnet"
+  prompt=review_prompt
+)
+```
+
+**OpenCode reviewers (Bash tool, background):**
+```bash
+timeout 300 opencode run --model "{MODEL_PATH}" "{review_prompt}"
+```
+
+**Examples:**
+- `opencode run --model "openai/gpt-5.2-codex" "{prompt}"`
+- `opencode run --model "openai/gpt-5.2-pro" "{prompt}"`
+- `opencode run --model "google/gemini-3-pro-preview" "{prompt}"`
 
 **Review Prompt (standard):**
 
