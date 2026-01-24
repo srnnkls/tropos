@@ -8,7 +8,7 @@ Multi-agent review of batch implementations. Multiple reviewers run in parallel 
 
 | Reviewer | Tool | Model | Required |
 |----------|------|-------|----------|
-| Native Claude | Task (task-reviewer) | opus | Yes |
+| Native Claude | Task (task-reviewer) | from validation.yaml (opus) | Yes |
 | OpenCode (0-N) | Bash (opencode) | from validation.yaml | No |
 
 **Common OpenCode models:**
@@ -71,25 +71,27 @@ implementer_report:
 
 ## Dispatch Configuration
 
-**Native Claude reviewer (Task tool):**
-```python
+**CRITICAL:** Dispatch ALL reviewers in a SINGLE message for true parallelism.
+
+```
+# Single message with multiple tool calls:
+
+# 1. Native Claude reviewer (Task tool) [required]
 Task(
   subagent_type="task-reviewer",
-  model="opus",
+  model={claude_model},  # from review_config (opus)
   prompt=review_prompt
 )
+
+# 2. OpenCode reviewers (Bash tool, background) [from validation.yaml]
+Bash(run_in_background=true):
+  timeout 1200 opencode run --model "openai/gpt-5.2-codex" --variant {reasoning_effort}-medium "{review_prompt}"
+
+Bash(run_in_background=true):
+  timeout 1200 opencode run --model "google/gemini-3-pro-preview" --variant {reasoning_effort}-medium "{review_prompt}"
 ```
 
-**OpenCode reviewers (Bash tool, background):**
-```bash
-# Codex (code-specialized, example with high reasoning)
-timeout 1200 opencode run --model "openai/gpt-5.2-codex" --variant high-medium "{review_prompt}"
-
-# Gemini 3 Pro (example with high reasoning)
-timeout 1200 opencode run --model "google/gemini-3-pro-preview" --variant high-medium "{review_prompt}"
-```
-
-Models and reasoning effort are configured in `validation.yaml` under `review_config`.
+All models and reasoning effort are configured in `validation.yaml` under `review_config`.
 
 ## When Reviewers Run
 
@@ -218,9 +220,9 @@ Review is good when it:
 
 **Dispatch (single message):**
 ```
-Task(task-reviewer, opus): "Review batch T002-T004" ...
-Bash(background): opencode run --model "openai/gpt-5.2-codex" --variant {reasoning}-medium ...
-Bash(background): opencode run --model "google/gemini-3-pro-preview" --variant {reasoning}-medium ...
+Task(task-reviewer, {claude_model}): "Review batch T002-T004" ...
+Bash(background): opencode run --model "openai/gpt-5.2-codex" --variant {reasoning_effort}-medium ...
+Bash(background): opencode run --model "google/gemini-3-pro-preview" --variant {reasoning_effort}-medium ...
 ```
 
 **Individual Outputs:**

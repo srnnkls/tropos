@@ -49,6 +49,7 @@ Format: `{reasoning}-medium` (verbosity fixed at medium)
 - `low-medium` - Quick responses, minimal deliberation
 - `medium-medium` - Balanced reasoning
 - `high-medium` - Deep analysis, thorough deliberation (recommended for reviews)
+- `xhigh-medium` - Maximum reasoning (GPT-5.2 only)
 
 ---
 

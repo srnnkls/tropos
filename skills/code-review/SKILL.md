@@ -163,13 +163,13 @@ Options:
 - low: Quick responses, minimal deliberation
 - medium: Balanced reasoning (Recommended)
 - high: Deep analysis, thorough deliberation
+- xhigh: Maximum reasoning (GPT-5.2 only)
 ```
 
 **Default:** medium
 
 **Model mapping to commands:**
 - `claude-opus` → Task tool with `model: "opus"`
-- `claude-sonnet` → Task tool with `model: "sonnet"`
 - `openai-gpt5.2-codex` → `opencode run --model "openai/gpt-5.2-codex" --variant {reasoning}-medium`
 - `openai-gpt5.2-pro` → `opencode run --model "openai/gpt-5.2-pro" --variant {reasoning}-medium`
 - `gemini-3-pro` → `opencode run --model "google/gemini-3-pro-preview" --variant {reasoning}-medium`

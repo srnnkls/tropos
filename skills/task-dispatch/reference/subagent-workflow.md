@@ -159,7 +159,7 @@ git diff <last_batch_commit>..HEAD > /tmp/batch_diff.txt
 # Native Claude reviewer (Task tool) [REQUIRED]
 Task:
   subagent_type: task-reviewer
-  model: opus
+  model: {claude_model}  # from review_config (opus)
   description: "Review batch: Tasks N1, N2, N3"
   prompt: |
     Review the batch diff for Tasks N1, N2, N3.
@@ -208,18 +208,24 @@ Task:
     ```
 
 # OpenCode reviewers (0-N from validation.yaml, Bash tool, background)
-# Only include if configured in validation.yaml review_config.reviewers
+# Include one Bash call per model configured in validation.yaml review_config.reviewers
+# Use reasoning_effort from review_config to build variant: {reasoning_effort}-medium
+
 Bash:
-  command: timeout 1200 opencode run --model "{MODEL_FROM_CONFIG}" --variant high-medium "[review_prompt_with_diff]"
+  command: timeout 1200 opencode run --model "openai/gpt-5.2-codex" --variant {reasoning_effort}-medium "[review_prompt_with_diff]"
+  run_in_background: true
+
+Bash:
+  command: timeout 1200 opencode run --model "google/gemini-3-pro-preview" --variant {reasoning_effort}-medium "[review_prompt_with_diff]"
   run_in_background: true
 ```
 
-Wait for ALL reviewers to complete before synthesizing.
+Wait for ALL reviewers (Claude + OpenCode) to complete before synthesizing.
 
 **validation.yaml configuration:**
 ```yaml
 review_config:
-  reasoning_effort: high  # low | medium | high (user-selected)
+  reasoning_effort: high  # low | medium | high | xhigh (user-selected, xhigh GPT-5.2 only)
   reviewers:
     - openai/gpt-5.2-codex
     - google/gemini-3-pro-preview

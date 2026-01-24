@@ -57,6 +57,7 @@ Options:
 - low: Quick responses, minimal deliberation
 - medium: Balanced reasoning (Recommended)
 - high: Deep analysis, thorough deliberation
+- xhigh: Maximum reasoning (GPT-5.2 only)
 ```
 
 **Default:** medium

@@ -29,12 +29,12 @@ metadata:
 
 # Review configuration (copied from validation.yaml)
 # Variant format: {reasoning_effort}-medium (verbosity fixed at medium)
-# Reasoning options: low | medium | high
+# Reasoning options: low | medium | high | xhigh (xhigh GPT-5.2 only)
 review_config:
-  reasoning_effort: ${REASONING_EFFORT}  # low | medium | high
+  reasoning_effort: ${REASONING_EFFORT}  # low | medium | high | xhigh
   reviewers:
     - type: claude
-      model: opus
+      model: ${CLAUDE_MODEL}  # opus
     - type: opencode
       model: ${OPENCODE_MODEL_1}
     - type: opencode

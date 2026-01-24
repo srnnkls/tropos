@@ -55,7 +55,7 @@ checkpoint:
   # Review config for resumption
   # Variant format: {reasoning_effort}-medium (verbosity fixed at medium)
   review_config:
-    reasoning_effort: medium  # low | medium | high
+    reasoning_effort: medium  # low | medium | high | xhigh (xhigh GPT-5.2 only)
     reviewers:
       - openai/gpt-5.2-codex
       - google/gemini-3-pro-preview

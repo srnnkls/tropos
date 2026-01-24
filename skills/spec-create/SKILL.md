@@ -124,6 +124,7 @@ Options:
 - low: Quick responses, minimal deliberation
 - medium: Balanced reasoning (Recommended)
 - high: Deep analysis, thorough deliberation
+- xhigh: Maximum reasoning (GPT-5.2 only)
 ```
 
 **Default:** medium
@@ -131,10 +132,10 @@ Options:
 Store in `validation.yaml` under `review_config`:
 ```yaml
 review_config:
-  reasoning_effort: medium  # low | medium | high
+  reasoning_effort: medium  # low | medium | high | xhigh
   reviewers:
     - type: claude
-      model: opus
+      model: opus  # or sonnet
     - type: opencode
       model: openai/gpt-5.2-pro
     - type: opencode

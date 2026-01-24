@@ -181,21 +181,27 @@ Each reviewer:
 
 **Reviewer dispatch configuration:**
 
-Native Claude reviewer:
-```python
+**CRITICAL:** Dispatch ALL reviewers in a SINGLE message for true parallelism.
+
+```
+# Single message with multiple tool calls:
+
+# 1. Native Claude reviewer (Task tool) [required]
 Task(
   subagent_type="task-reviewer",
-  model="opus",
-  prompt=review_prompt  # includes: batch diff + implementer reports + task specs
+  model={claude_model},  # from review_config (opus)
+  prompt=review_prompt   # includes: batch diff + implementer reports + task specs
 )
+
+# 2. OpenCode reviewers (Bash tool, background) [from validation.yaml]
+Bash(run_in_background=true):
+  timeout 1200 opencode run --model "openai/gpt-5.2-codex" --variant {reasoning_effort}-medium "{review_prompt}"
+
+Bash(run_in_background=true):
+  timeout 1200 opencode run --model "google/gemini-3-pro-preview" --variant {reasoning_effort}-medium "{review_prompt}"
 ```
 
-OpenCode reviewers:
-```bash
-timeout 1200 opencode run --model "{MODEL}" --variant {reasoning}-medium "{review_prompt}"
-```
-
-Models and reasoning effort are configured in `validation.yaml` under `review_config`.
+All models and reasoning effort are configured in `validation.yaml` under `review_config`.
 
 ### 5. Synthesize Review Feedback and Write review.yaml
 
@@ -357,9 +363,9 @@ readiness:
 |------|---------------|-------|-------|
 | Tester | task-tester | opus | code-test |
 | Implementer | task-implementer | opus | code-implement |
-| Reviewer | task-reviewer | opus | code-review |
+| Reviewer | task-reviewer | from review_config (opus) | code-review |
 
-**CRITICAL:** Always specify `model: opus` in Task tool calls.
+**CRITICAL:** Always specify `model: opus` for testers, implementers, and reviewers.
 
 ---
 

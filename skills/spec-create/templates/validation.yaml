@@ -167,13 +167,13 @@ loqui_check:
 # Review configuration for implementation batch reviews.
 # Used by task-dispatch to determine which reviewers to use.
 # Applies to: Initiative/Feature (Task: n/a)
-# Variant format: {reasoning}-medium (verbosity fixed at medium)
-# Reasoning options: low | medium | high
+# Variant format: {reasoning_effort}-medium (verbosity fixed at medium)
+# Reasoning options: low | medium | high | xhigh (xhigh GPT-5.2 only)
 review_config:
-  reasoning_effort: ${REASONING_EFFORT}  # low | medium | high (user-selected)
+  reasoning_effort: ${REASONING_EFFORT}  # low | medium | high | xhigh (user-selected)
   reviewers:
     - type: claude
-      model: opus
+      model: ${CLAUDE_MODEL}  # opus (user-selected)
     - type: opencode
       model: ${OPENCODE_MODEL_1}  # e.g., openai/gpt-5.2-pro
     - type: opencode
