@@ -53,7 +53,9 @@ checkpoint:
       location: "src/auth/auth.py:45"
 
   # Review config for resumption
+  # Variant format: {reasoning_effort}-medium (verbosity fixed at medium)
   review_config:
+    reasoning_effort: medium  # low | medium | high
     reviewers:
       - openai/gpt-5.2-codex
       - google/gemini-3-pro-preview

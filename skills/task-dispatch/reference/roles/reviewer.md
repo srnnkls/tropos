@@ -82,14 +82,14 @@ Task(
 
 **OpenCode reviewers (Bash tool, background):**
 ```bash
-# Codex (code-specialized)
-timeout 300 opencode run --model "openai/gpt-5.2-codex" "{review_prompt}"
+# Codex (code-specialized, example with high reasoning)
+timeout 1200 opencode run --model "openai/gpt-5.2-codex" --variant high-medium "{review_prompt}"
 
-# Gemini 3 Pro
-timeout 300 opencode run --model "google/gemini-3-pro-preview" "{review_prompt}"
+# Gemini 3 Pro (example with high reasoning)
+timeout 1200 opencode run --model "google/gemini-3-pro-preview" --variant high-medium "{review_prompt}"
 ```
 
-Models can be configured in `validation.yaml` under `review_config.reviewers`.
+Models and reasoning effort are configured in `validation.yaml` under `review_config`.
 
 ## When Reviewers Run
 
@@ -219,8 +219,8 @@ Review is good when it:
 **Dispatch (single message):**
 ```
 Task(task-reviewer, opus): "Review batch T002-T004" ...
-Bash(background): opencode run --model "openai/gpt-5.2-codex" ...
-Bash(background): opencode run --model "google/gemini-3-pro-preview" ...
+Bash(background): opencode run --model "openai/gpt-5.2-codex" --variant {reasoning}-medium ...
+Bash(background): opencode run --model "google/gemini-3-pro-preview" --variant {reasoning}-medium ...
 ```
 
 **Individual Outputs:**

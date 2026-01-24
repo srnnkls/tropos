@@ -210,7 +210,7 @@ Task:
 # OpenCode reviewers (0-N from validation.yaml, Bash tool, background)
 # Only include if configured in validation.yaml review_config.reviewers
 Bash:
-  command: timeout 300 opencode run --model "{MODEL_FROM_CONFIG}" "[review_prompt_with_diff]"
+  command: timeout 1200 opencode run --model "{MODEL_FROM_CONFIG}" --variant high-medium "[review_prompt_with_diff]"
   run_in_background: true
 ```
 
@@ -219,10 +219,12 @@ Wait for ALL reviewers to complete before synthesizing.
 **validation.yaml configuration:**
 ```yaml
 review_config:
+  reasoning_effort: high  # low | medium | high (user-selected)
   reviewers:
     - openai/gpt-5.2-codex
     - google/gemini-3-pro-preview
   # Empty list = Claude-only review
+  # Variant = {reasoning_effort}-medium
 ```
 
 ---

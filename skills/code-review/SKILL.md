@@ -137,8 +137,9 @@ review_config:
       model: openai/gpt-5.2-codex
 ```
 
-**Other modes:** Use **AskUserQuestion** with multiSelect:
+**Other modes:** Use **AskUserQuestion**:
 
+**Question 1:** Select reviewers:
 ```
 Header: Reviewers
 Question: Which reviewers should analyze this code?
@@ -153,12 +154,25 @@ Options:
 
 **Default selection:** claude-opus, openai-gpt5.2-codex
 
+**Question 2:** Select reasoning effort (if OpenCode reviewers selected):
+```
+Header: Reasoning
+Question: What reasoning effort level for OpenCode reviewers?
+multiSelect: false
+Options:
+- low: Quick responses, minimal deliberation
+- medium: Balanced reasoning (Recommended)
+- high: Deep analysis, thorough deliberation
+```
+
+**Default:** medium
+
 **Model mapping to commands:**
 - `claude-opus` → Task tool with `model: "opus"`
 - `claude-sonnet` → Task tool with `model: "sonnet"`
-- `openai-gpt5.2-codex` → `opencode run --model "openai/gpt-5.2-codex"`
-- `openai-gpt5.2-pro` → `opencode run --model "openai/gpt-5.2-pro"`
-- `gemini-3-pro` → `opencode run --model "google/gemini-3-pro-preview"`
+- `openai-gpt5.2-codex` → `opencode run --model "openai/gpt-5.2-codex" --variant {reasoning}-medium`
+- `openai-gpt5.2-pro` → `opencode run --model "openai/gpt-5.2-pro" --variant {reasoning}-medium`
+- `gemini-3-pro` → `opencode run --model "google/gemini-3-pro-preview" --variant {reasoning}-medium`
 
 ### Step 4: Dispatch Reviewers in Parallel
 
@@ -177,13 +191,13 @@ Task(
 
 **OpenCode reviewers (Bash tool, background):**
 ```bash
-timeout 1200 opencode run --model "{MODEL_PATH}" "{review_prompt}"
+timeout 1200 opencode run --model "{MODEL_PATH}" --variant {reasoning}-medium "{review_prompt}"
 ```
 
-**Examples:**
-- `opencode run --model "openai/gpt-5.2-codex" "{prompt}"`
-- `opencode run --model "openai/gpt-5.2-pro" "{prompt}"`
-- `opencode run --model "google/gemini-3-pro-preview" "{prompt}"`
+**Examples (with high reasoning):**
+- `opencode run --model "openai/gpt-5.2-codex" --variant high-medium "{prompt}"`
+- `opencode run --model "openai/gpt-5.2-pro" --variant high-medium "{prompt}"`
+- `opencode run --model "google/gemini-3-pro-preview" --variant high-medium "{prompt}"`
 
 **Review Prompt (standard):**
 

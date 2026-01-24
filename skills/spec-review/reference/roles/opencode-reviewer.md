@@ -42,25 +42,33 @@ External subprocess reviewer for fresh perspective analysis.
 - `google/gemini-3-flash-preview` - Fast, efficient model
 - `google/gemini-3-pro-preview` - Advanced reasoning capabilities
 
+**Reasoning Effort (--variant flag):**
+
+Format: `{reasoning}-medium` (verbosity fixed at medium)
+
+- `low-medium` - Quick responses, minimal deliberation
+- `medium-medium` - Balanced reasoning
+- `high-medium` - Deep analysis, thorough deliberation (recommended for reviews)
+
 ---
 
 ## Dispatch Configuration
 
 **Template:**
 ```bash
-timeout 300 opencode run --model "{MODEL}" "[Review prompt with spec content]"
+timeout 1200 opencode run --model "{MODEL}" --variant high-medium "[Review prompt with spec content]"
 ```
 
 **Examples:**
 ```bash
 # OpenAI GPT-5.2 Pro
-opencode run --model "openai/gpt-5.2-pro" "{prompt}"
+opencode run --model "openai/gpt-5.2-pro" --variant high-medium "{prompt}"
 
 # Google Gemini 3 Pro
-opencode run --model "google/gemini-3-pro-preview" "{prompt}"
+opencode run --model "google/gemini-3-pro-preview" --variant high-medium "{prompt}"
 
 # OpenAI Codex (code-focused)
-opencode run --model "openai/gpt-5.2-codex" "{prompt}"
+opencode run --model "openai/gpt-5.2-codex" --variant high-medium "{prompt}"
 ```
 
 5-minute timeout prevents hanging.

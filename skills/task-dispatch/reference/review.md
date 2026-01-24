@@ -28,7 +28,10 @@ metadata:
   batches_reviewed: ${M}
 
 # Review configuration (copied from validation.yaml)
+# Variant format: {reasoning_effort}-medium (verbosity fixed at medium)
+# Reasoning options: low | medium | high
 review_config:
+  reasoning_effort: ${REASONING_EFFORT}  # low | medium | high
   reviewers:
     - type: claude
       model: opus

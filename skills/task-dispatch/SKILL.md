@@ -192,10 +192,10 @@ Task(
 
 OpenCode reviewers:
 ```bash
-timeout 300 opencode run --model "{MODEL}" "{review_prompt}"
+timeout 1200 opencode run --model "{MODEL}" --variant {reasoning}-medium "{review_prompt}"
 ```
 
-Models are configured in `validation.yaml` under `review_config.reviewers`.
+Models and reasoning effort are configured in `validation.yaml` under `review_config`.
 
 ### 5. Synthesize Review Feedback and Write review.yaml
 

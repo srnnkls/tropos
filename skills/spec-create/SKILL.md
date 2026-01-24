@@ -98,8 +98,7 @@ specs/draft/{spec-name}/
 
 **Only for Initiative/Feature** (skip for Task):
 
-Use **AskUserQuestion** with multiSelect to choose reviewers for implementation batch reviews:
-
+**Question 1:** Select reviewers:
 ```
 Header: Reviewers
 Question: Which reviewers should analyze implementation batches?
@@ -116,9 +115,23 @@ Options:
 
 **Default selection:** claude-opus, openai-gpt5.2-pro, gemini-3-pro
 
-Store in `validation.yaml` under `review_config.reviewers`:
+**Question 2:** Select reasoning effort (if OpenCode reviewers selected):
+```
+Header: Reasoning
+Question: What reasoning effort level for OpenCode reviewers?
+multiSelect: false
+Options:
+- low: Quick responses, minimal deliberation
+- medium: Balanced reasoning (Recommended)
+- high: Deep analysis, thorough deliberation
+```
+
+**Default:** medium
+
+Store in `validation.yaml` under `review_config`:
 ```yaml
 review_config:
+  reasoning_effort: medium  # low | medium | high
   reviewers:
     - type: claude
       model: opus
@@ -127,6 +140,8 @@ review_config:
     - type: opencode
       model: google/gemini-3-pro-preview
 ```
+
+**Variant format:** `{reasoning_effort}-medium` (verbosity fixed at medium)
 
 **Model mapping:**
 - `claude-opus` → `{type: claude, model: opus}`

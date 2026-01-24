@@ -167,7 +167,10 @@ loqui_check:
 # Review configuration for implementation batch reviews.
 # Used by task-dispatch to determine which reviewers to use.
 # Applies to: Initiative/Feature (Task: n/a)
+# Variant format: {reasoning}-medium (verbosity fixed at medium)
+# Reasoning options: low | medium | high
 review_config:
+  reasoning_effort: ${REASONING_EFFORT}  # low | medium | high (user-selected)
   reviewers:
     - type: claude
       model: opus
