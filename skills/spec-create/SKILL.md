@@ -137,7 +137,7 @@ review_config:
     - type: claude
       model: opus  # or sonnet
     - type: opencode
-      model: openai/gpt-5.2-pro
+      model: openai/gpt-5.2
     - type: opencode
       model: google/gemini-3-pro-preview
 ```
@@ -149,7 +149,7 @@ review_config:
 - `claude-sonnet` → `{type: claude, model: sonnet}`
 - `openai-gpt5.2` → `{type: opencode, model: openai/gpt-5.2}`
 - `openai-gpt5.2-codex` → `{type: opencode, model: openai/gpt-5.2-codex}`
-- `openai-gpt5.2-pro` → `{type: opencode, model: openai/gpt-5.2-pro}`
+- `openai-gpt5.2-pro` → `{type: opencode, model: openai/gpt-5.2}`
 - `gemini-3-flash` → `{type: opencode, model: google/gemini-3-flash-preview}`
 - `gemini-3-pro` → `{type: opencode, model: google/gemini-3-pro-preview}`
 

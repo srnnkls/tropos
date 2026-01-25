@@ -175,7 +175,7 @@ review_config:
     - type: claude
       model: ${CLAUDE_MODEL}  # opus (user-selected)
     - type: opencode
-      model: ${OPENCODE_MODEL_1}  # e.g., openai/gpt-5.2-pro
+      model: ${OPENCODE_MODEL_1}  # e.g., openai/gpt-5.2
     - type: opencode
       model: ${OPENCODE_MODEL_2}  # e.g., google/gemini-3-pro-preview
 

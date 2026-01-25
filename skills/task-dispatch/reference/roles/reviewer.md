@@ -14,7 +14,7 @@ Multi-agent review of batch implementations. Multiple reviewers run in parallel 
 **Common OpenCode models:**
 - `openai/gpt-5.2-codex` - Code-specialized, fresh perspective
 - `google/gemini-3-pro-preview` - Different reasoning, catches edge cases
-- `openai/gpt-5.2-pro` - Extended capabilities
+- `openai/gpt-5.2` - Extended capabilities
 
 **CRITICAL:** Dispatch all configured reviewers in the same message for true parallelism.
 

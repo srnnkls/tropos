@@ -67,7 +67,7 @@ Options:
 - `claude-sonnet` → Task tool with `model: "sonnet"`
 - `openai-gpt5.2` → `opencode run --model "openai/gpt-5.2" --variant {reasoning}-medium`
 - `openai-gpt5.2-codex` → `opencode run --model "openai/gpt-5.2-codex" --variant {reasoning}-medium`
-- `openai-gpt5.2-pro` → `opencode run --model "openai/gpt-5.2-pro" --variant {reasoning}-medium`
+- `openai-gpt5.2-pro` → `opencode run --model "openai/gpt-5.2" --variant {reasoning}-medium`
 - `gemini-3-flash` → `opencode run --model "google/gemini-3-flash-preview" --variant {reasoning}-medium`
 - `gemini-3-pro` → `opencode run --model "google/gemini-3-pro-preview" --variant {reasoning}-medium`
 
@@ -141,7 +141,7 @@ timeout 1200 opencode run --model "{MODEL_PATH}" --variant {reasoning}-medium "{
 ```
 
 **Examples (with high reasoning):**
-- `opencode run --model "openai/gpt-5.2-pro" --variant high-medium "{prompt}"`
+- `opencode run --model "openai/gpt-5.2" --variant high-medium "{prompt}"`
 - `opencode run --model "google/gemini-3-pro-preview" --variant high-medium "{prompt}"`
 - `opencode run --model "openai/gpt-5.2-codex" --variant high-medium "{prompt}"`
 
@@ -286,7 +286,7 @@ Recommendation:
 - Ask user to specify
 
 **OpenCode command syntax:**
-- GPT-5.2 Pro: `opencode run --model "openai/gpt-5.2-pro" --variant {reasoning}-medium {query}`
+- GPT-5.2 Pro: `opencode run --model "openai/gpt-5.2" --variant {reasoning}-medium {query}`
 - Gemini 3 Pro: `opencode run --model "google/gemini-3-pro-preview" --variant {reasoning}-medium {query}`
 
 ---

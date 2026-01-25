@@ -36,7 +36,7 @@ External subprocess reviewer for fresh perspective analysis.
 **OpenAI:**
 - `openai/gpt-5.2` - Base GPT-5.2 model
 - `openai/gpt-5.2-codex` - Code-specialized variant
-- `openai/gpt-5.2-pro` - Pro tier with extended capabilities
+- `openai/gpt-5.2` - Pro tier with extended capabilities
 
 **Google:**
 - `google/gemini-3-flash-preview` - Fast, efficient model
@@ -63,7 +63,7 @@ timeout 1200 opencode run --model "{MODEL}" --variant high-medium "[Review promp
 **Examples:**
 ```bash
 # OpenAI GPT-5.2 Pro
-opencode run --model "openai/gpt-5.2-pro" --variant high-medium "{prompt}"
+opencode run --model "openai/gpt-5.2" --variant high-medium "{prompt}"
 
 # Google Gemini 3 Pro
 opencode run --model "google/gemini-3-pro-preview" --variant high-medium "{prompt}"

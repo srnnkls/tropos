@@ -171,7 +171,7 @@ Options:
 **Model mapping to commands:**
 - `claude-opus` → Task tool with `model: "opus"`
 - `openai-gpt5.2-codex` → `opencode run --model "openai/gpt-5.2-codex" --variant {reasoning}-medium`
-- `openai-gpt5.2-pro` → `opencode run --model "openai/gpt-5.2-pro" --variant {reasoning}-medium`
+- `openai-gpt5.2-pro` → `opencode run --model "openai/gpt-5.2" --variant {reasoning}-medium`
 - `gemini-3-pro` → `opencode run --model "google/gemini-3-pro-preview" --variant {reasoning}-medium`
 
 ### Step 4: Dispatch Reviewers in Parallel
@@ -196,7 +196,7 @@ timeout 1200 opencode run --model "{MODEL_PATH}" --variant {reasoning}-medium "{
 
 **Examples (with high reasoning):**
 - `opencode run --model "openai/gpt-5.2-codex" --variant high-medium "{prompt}"`
-- `opencode run --model "openai/gpt-5.2-pro" --variant high-medium "{prompt}"`
+- `opencode run --model "openai/gpt-5.2" --variant high-medium "{prompt}"`
 - `opencode run --model "google/gemini-3-pro-preview" --variant high-medium "{prompt}"`
 
 **Review Prompt (standard):**
