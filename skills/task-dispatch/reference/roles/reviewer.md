@@ -160,7 +160,7 @@ Each reviewer produces a YAML report with gates:
 
 ```yaml
 reviewer_report:
-  reviewer: claude-opus  # or opencode-codex, opencode-gemini-3-pro
+  reviewer: general-claude-opus  # or general-opencode-gpt5.3-codex, general-opencode-gemini-3-pro, architecture-claude-opus, compliance-claude-opus
   gates:
     correctness:
       status: pass | fail
@@ -294,10 +294,10 @@ Bash(background): opencode run --model "google/gemini-3-pro-preview" --variant {
 
 **Individual Outputs:**
 
-Claude Opus:
+Claude (General):
 ```yaml
 reviewer_report:
-  reviewer: claude-opus
+  reviewer: general-claude-opus
   gates:
     correctness: { status: fail, issues: ["Missing null check"] }
     style: { status: pass, issues: [] }
@@ -313,10 +313,10 @@ reviewer_report:
       suggestion: "Use parameterized queries"
 ```
 
-OpenCode Gemini:
+OpenCode Gemini (General):
 ```yaml
 reviewer_report:
-  reviewer: opencode-gemini-3-pro
+  reviewer: general-opencode-gemini-3-pro
   gates:
     correctness: { status: pass, issues: [] }
     style: { status: pass, issues: [] }
@@ -335,15 +335,17 @@ reviewer_report:
 **Synthesized:**
 ```
 ## Gate Summary
-| Gate         | Claude | Codex  | Gemini |
-|--------------|--------|--------|--------|
-| Correctness  | fail   | pass   | pass   |
-| Security     | fail   | pass   | fail   |
-| (others)     | pass   | pass   | pass   |
+| Gate         | Status | General              | Architecture | Compliance |
+|--------------|--------|----------------------|--------------|------------|
+| Correctness  | FAIL   | fail (Claude)        | —            | —          |
+| Style        | PASS   | —                    | —            | pass       |
+| Security     | FAIL   | fail (Claude, Gemini)| —            | —          |
+| Performance  | PASS   | pass                 | pass         | —          |
+| Architecture | PASS   | —                    | pass         | —          |
 
 ## Critical (2 reviewers agree)
 - [C1] SQL injection at src/db/query.py:45
-  Found by: claude-opus, opencode-gemini-3-pro
+  Found by: general-claude-opus, general-opencode-gemini-3-pro
   Fix: Use parameterized queries + input validation
 
 Action: Dispatch fix subagent before proceeding

@@ -47,7 +47,7 @@ Task:
     You are writing failing tests for Task N from [spec-file].
 
     **First:** Invoke the `code-test` skill for TDD methodology.
-    **Second:** Invoke the `code-implement` skill for language-specific test patterns.
+    **Second:** Invoke the `code-implement` skill for language-specific test conventions (NOT for writing implementation code — that is the implementer's job).
 
     **Task requirements:**
     [paste task from tasks.yaml including test_hints]
@@ -92,6 +92,8 @@ Wait for ALL testers to complete before dispatching implementers.
 ---
 
 ## Implementer Dispatch Template
+
+**PRECONDITION:** Tester for this task completed with `status: success`. The tester_report YAML below is REQUIRED — if missing, dispatch the tester first.
 
 ```yaml
 Task:
@@ -153,38 +155,49 @@ Wait for ALL implementers to complete before dispatching reviewers.
 
 **CRITICAL:** Reviewers are mandatory. Every batch gets reviewed. Three roles, multiple harnesses.
 
-**Step 1: Get batch diff**
+**Step 1: Resolve batch diff**
 ```bash
-git diff <last_batch_commit>..HEAD > /tmp/batch_diff.txt
+# last_batch_commit from checkpoint.yaml (or initial branch point for first batch)
+# diff_cmd: "git diff <last_batch_commit>..HEAD"
+# range: <last_batch_commit>..HEAD   (for gestalt diff)
 ```
 
 **Step 2: Dispatch ALL role × harness combinations in a SINGLE message:**
+
+Reviewers receive pointers (diff command, file paths) and load code themselves. No content is pasted inline.
+
+**Variables for all reviewer prompts:**
+- `{diff_cmd}` — full command, e.g., `git diff abc123f..HEAD`
+- `{range}` — git range for gestalt, e.g., `abc123f..HEAD`
+- `{workdir}` — repo root or worktree path
+- `{spec_dir}` — spec directory path (e.g., `./specs/active/cache`)
+- `{task_ids}` — task IDs in this batch (e.g., `T001, T002`)
+- `{batch_n}` — batch number
 
 ```yaml
 # Single message — all in parallel
 
 # ── General role — Claude harness [REQUIRED] ──
 Task:
-  subagent_type: task-reviewer
+  subagent_type: general-purpose
   model: {claude_model}  # from review_config (opus)
-  description: "General review: Tasks N1, N2, N3"
+  description: "General review: Tasks {task_ids}"
   prompt: |
     You are the GENERAL reviewer. Your gates: Correctness, Security, Performance.
 
     **First:** Invoke the `code-review` skill for review methodology.
 
-    **Batch Diff:**
-    ```diff
-    [paste git diff of batch changes]
-    ```
+    ## What to Review
 
-    **What was implemented:**
-    [paste all implementer_report YAMLs]
+    Working directory: {workdir}
+    Run: `{diff_cmd}`
 
-    **Spec requirements:**
-    [paste relevant tasks from tasks.yaml]
+    Context: Batch {batch_n} review — tasks {task_ids}
 
-    **Your gates (others handled by Architecture and Compliance roles):**
+    Read `{spec_dir}/tasks.yaml` for task requirements.
+
+    ## Your Gates
+
     1. Correctness - Logic errors, edge cases, error handling
     2. Performance - Efficiency, data structures
     3. Security - Input validation, secrets, injection risks
@@ -196,16 +209,16 @@ Task:
     **Report in YAML format:**
     ```yaml
     reviewer_report:
-      reviewer: general-claude
+      reviewer: general-claude-opus
       role: general
-      batch: N
+      batch: {batch_n}
       diff_reviewed: true
       gates:
         correctness: { status: pass | fail, issues: [] }
         performance: { status: pass | fail, issues: [] }
         security: { status: pass | fail, issues: [] }
       issues:
-        - task: N1
+        - task: T001
           severity: critical | high | medium
           gate: correctness
           location: "file:line"
@@ -217,35 +230,39 @@ Task:
 
 # ── General role — OpenCode harnesses [0-N from validation.yaml] ──
 Bash:
-  command: timeout 1200 opencode run --model "openai/gpt-5.3-codex" --variant {reasoning_effort}-medium "[general_review_prompt_with_diff]"
+  command: timeout 1200 opencode run --model "openai/gpt-5.3-codex" --variant {reasoning_effort}-medium "{general_review_prompt}"
   run_in_background: true
 
 Bash:
-  command: timeout 1200 opencode run --model "google/gemini-3-pro-preview" --variant {reasoning_effort}-medium "[general_review_prompt_with_diff]"
+  command: timeout 1200 opencode run --model "google/gemini-3-pro-preview" --variant {reasoning_effort}-medium "{general_review_prompt}"
   run_in_background: true
 
 # ── Architecture role — Claude harness [REQUIRED] ──
 Task:
   subagent_type: task-reviewer
   model: opus
-  description: "Architecture review: Tasks N1, N2, N3"
+  description: "Architecture review: Tasks {task_ids}"
   prompt: |
     You are the ARCHITECTURE reviewer. Your gate: Architecture.
 
     **First:** Invoke the `gestalt` skill.
 
-    **Run these gestalt commands:**
+    ## What to Review
+
+    Working directory: {workdir}
+    Run: `{diff_cmd}`
+
+    Context: Batch {batch_n} review — tasks {task_ids}
+
+    ## Gestalt Commands (run these from {workdir})
+
     1. `gestalt analyze` — current architecture
-    2. `gestalt diff {last_batch_commit}..HEAD` — definition-level changes
-    3. `gestalt diff {last_batch_commit}..HEAD --verbose` — impact propagation
+    2. `gestalt diff {range}` — definition-level changes
+    3. `gestalt diff {range} --verbose` — impact propagation
     4. Additional `gestalt callers/callees/refs/rank` as needed
 
-    **Batch Diff:**
-    ```diff
-    [paste git diff of batch changes]
-    ```
+    ## Review Focus
 
-    **Your review focus:**
     1. Coupling — inter-module coupling changes?
     2. Hotspots — new high-centrality symbols?
     3. Cycles — dependency cycles introduced?
@@ -259,9 +276,9 @@ Task:
     **Report in YAML format:**
     ```yaml
     reviewer_report:
-      reviewer: architecture-gestalt
+      reviewer: architecture-claude-opus
       role: architecture
-      batch: N
+      batch: {batch_n}
       diff_reviewed: true
       gates:
         architecture: { status: pass | fail, issues: [] }
@@ -286,23 +303,27 @@ Task:
 Task:
   subagent_type: task-reviewer
   model: opus
-  description: "Compliance review: Tasks N1, N2, N3"
+  description: "Compliance review: Tasks {task_ids}"
   prompt: |
     You are the COMPLIANCE reviewer. Your gate: Style.
 
     **First:** Invoke the `loqui` skill.
 
-    **Read loqui guidelines for each language in the diff:**
-    1. Detect language(s) from file extensions
+    ## What to Review
+
+    Working directory: {workdir}
+    Run: `{diff_cmd}`
+
+    Context: Batch {batch_n} review — tasks {task_ids}
+
+    ## Loqui Guidelines
+
+    1. Detect language(s) from file extensions in the diff
     2. Read `~/.claude/skills/code-implement/resources/loqui/languages/{lang}/README.md`
     3. Read topic files relevant to the changes (quality.md, composition.md, modules.md, errors.md)
 
-    **Batch Diff:**
-    ```diff
-    [paste git diff of batch changes]
-    ```
+    ## Review Focus
 
-    **Your review focus:**
     1. Naming — 5x rule, descriptive names?
     2. Composition — composition over inheritance?
     3. Modules — feature-based organization?
@@ -316,9 +337,9 @@ Task:
     **Report in YAML format:**
     ```yaml
     reviewer_report:
-      reviewer: compliance-loqui
+      reviewer: compliance-claude-opus
       role: compliance
-      batch: N
+      batch: {batch_n}
       diff_reviewed: true
       gates:
         style: { status: pass | fail, issues: [] }

@@ -68,7 +68,7 @@ batch_reviews:
     commit: ${SHA}
     tasks: [T001, T002]
     reviewers:
-      - id: claude-opus
+      - id: general-claude-opus
         status: completed
         gates:
           correctness: pass
@@ -76,7 +76,7 @@ batch_reviews:
           performance: pass
           security: pass
           architecture: pass
-      - id: opencode-gpt5.3-codex
+      - id: general-opencode-gpt5.3-codex
         status: completed
         gates:
           correctness: pass
@@ -84,7 +84,7 @@ batch_reviews:
           performance: pass
           security: pass
           architecture: pass
-      - id: opencode-gemini-3-pro
+      - id: general-opencode-gemini-3-pro
         status: timeout  # or completed | failed
         gates: null
     synthesized:
@@ -111,7 +111,7 @@ issues:
       location: "src/auth/login.py:45"
       description: "SQL injection via unsanitized input"
       suggestion: "Use parameterized queries"
-      found_by: [claude-opus, opencode-gemini-3-pro]
+      found_by: [general-claude-opus, general-opencode-gemini-3-pro]
       status: resolved  # or open
       resolution:
         batch: 2
@@ -125,7 +125,7 @@ issues:
       location: "src/models/user.py:23"
       description: "Missing null check before dereference"
       suggestion: "Add guard clause"
-      found_by: [claude-opus]
+      found_by: [general-claude-opus]
       status: resolved
       resolution:
         batch: 1
@@ -139,7 +139,7 @@ issues:
       location: "src/auth/auth.py:45"
       description: "Variable name 'x' is unclear"
       suggestion: "Rename to 'retry_count'"
-      found_by: [opencode-gpt5.3-codex]
+      found_by: [general-opencode-gpt5.3-codex]
       status: deferred  # medium issues can be deferred
       resolution: null
 
