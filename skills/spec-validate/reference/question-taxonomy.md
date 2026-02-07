@@ -351,6 +351,41 @@ Question: What should we call the output format specification?
 
 ---
 
+## Design
+
+**Purpose:** Probe design reasoning when Design SDD section is opted in.
+
+**Trigger:** Only active when user selects "Design" in SDD opt-ins (Step 3.6).
+
+**Question patterns:**
+- "Were other approaches considered?"
+- "What invariants must the design maintain?"
+- "How does complexity change with this approach?"
+
+**Option template:**
+```
+Header: Design
+Question: What design aspects need exploration?
+
+- Alternatives: Rejected approaches need documenting - Capture reasoning
+- Invariants: Correctness properties to maintain - Enable test linkage
+- Complexity: Before/after comparison needed - Justify the change
+- None: Design reasoning is straightforward
+```
+
+**Example:**
+```
+Header: Design
+Question: Were other approaches considered before this one?
+
+- Yes, describe: I can list rejected alternatives and why
+- Partially: Some were considered informally
+- No: This is the first approach explored
+- Skip: I'll fill in design.md directly
+```
+
+---
+
 ## Prioritization Heuristic
 
 When selecting which taxonomy area to ask about next:
@@ -367,6 +402,8 @@ When selecting which taxonomy area to ask about next:
 2. High Impact × Medium Uncertainty (6) → Ask second
 3. Medium Impact × High Uncertainty (6) → Ask second
 4. Lower scores → Ask if questions remain
+
+**Note:** Design is opt-in triggered (Step 3.6), not part of the standard priority scan. Design questions are only asked when the user selects the Design SDD section.
 
 **Stop conditions:**
 - All taxonomy areas covered

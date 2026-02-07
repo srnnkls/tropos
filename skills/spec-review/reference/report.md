@@ -31,18 +31,22 @@ reviewer_report:
       status: pass | fail
       issues:
         - "Scope boundary unclear"
+    design_depth:
+      status: pass | fail | n/a
+      issues:
+        - "Alternatives lack rejection rationale"
 
   # Detailed issues with suggestions
   issues:
     - severity: critical | high | medium
-      gate: completeness | consistency | feasibility | clarity
-      area: scope | behavior | data_model | constraints | edge_cases | integration | terminology
+      gate: completeness | consistency | feasibility | clarity | design_depth
+      area: scope | behavior | data_model | constraints | edge_cases | integration | terminology | design
       description: "Clear description of the issue"
       suggestion: "Actionable fix"
 
   # Questions requiring user input
   clarifying_questions:
-    - area: scope | behavior | data_model | constraints | edge_cases | integration | terminology
+    - area: scope | behavior | data_model | constraints | edge_cases | integration | terminology | design
       question: "What needs clarification?"
 
   # Positive observations
@@ -74,6 +78,9 @@ synthesized_report:
       failed_by: [claude-opus, opencode-gpt5.2]
     clarity:
       status: pass | fail
+      failed_by: []
+    design_depth:
+      status: pass | fail | n/a
       failed_by: []
 
   # Merged and deduplicated issues
@@ -113,6 +120,7 @@ synthesized_report:
 |--------|---------|
 | `pass` | No issues found for this gate |
 | `fail` | One or more issues found |
+| `n/a` | Gate not applicable (e.g., design_depth when no design.md present) |
 
 ---
 
@@ -139,3 +147,4 @@ Used for `area` field to categorize issues:
 | `edge_cases` | Error handling, limits |
 | `integration` | APIs, dependencies, interfaces |
 | `terminology` | Domain terms, definitions |
+| `design` | Alternatives, invariants, complexity analysis |

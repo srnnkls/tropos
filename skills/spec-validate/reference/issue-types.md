@@ -144,6 +144,7 @@ For when the user isn't sure of the scope yet. Gathers context first, then trans
 | Tech Decisions | Auto | Opt-in | Skip |
 | API Contract | Auto | Opt-in | Skip |
 | Data Model | Auto | Opt-in | Skip |
+| Design doc | Opt-in (complex) | Opt-in | Skip |
 | Markers blocking | Yes | No | No |
 | validation.yaml | Full | Full | Skip |
 | dependencies.yaml | Full DAG | Phase-based | Skip |

@@ -141,6 +141,37 @@ Edge case handling and decision trees for review scenarios.
 
 ---
 
+## Design Depth Gate Edge Cases
+
+### No design.md Present
+
+**Symptom:** Spec directory has no `design.md` file
+
+**Response:**
+1. Set `design_depth` gate to `n/a` for all reviewers
+2. Do not flag as an issue — design.md is opt-in
+3. Proceed with remaining 4 gates
+
+### Shallow Design Document
+
+**Symptom:** `design.md` exists but sections are skeletal (e.g., single-line alternatives without rejection rationale)
+
+**Response:**
+1. Fail `design_depth` gate
+2. Issue severity: `high`
+3. Suggestion: "Flesh out alternatives with specific rejection reasoning, or remove design.md if design reasoning is straightforward"
+
+### Design Contradicts Spec
+
+**Symptom:** `design.md` alternatives or invariants conflict with `spec.md` requirements
+
+**Response:**
+1. Fail both `consistency` and `design_depth` gates
+2. Issue severity: `critical`
+3. Suggestion: "Resolve contradiction between design.md and spec.md — update whichever is outdated"
+
+---
+
 ## Decision Tree
 
 ```

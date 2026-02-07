@@ -4,7 +4,7 @@ Additional best practices and examples for creating effective plan documents.
 
 ---
 
-## The Three Document Types
+## The Four Document Types
 
 ### plan.md - "Why" and "How" at Conceptual Level
 
@@ -34,6 +34,30 @@ Additional best practices and examples for creating effective plan documents.
 **Level:** Tactical, updated as you work, captures learnings
 
 **Purpose:** Document the implementation reality as it unfolds. This is your "lab notebook" - record what works, what doesn't, why you made changes, and what you learned.
+
+### design.md - Design Reasoning (Opt-in)
+
+**Contains:**
+- Problem quantification (current vs target with evidence)
+- Alternatives considered and rejected (with specific reasoning)
+- Invariants (correctness properties with IDs for test linkage)
+- Complexity comparison (before/after)
+- Verification strategy (test cases linked to invariant IDs, benchmarks, migration)
+- Design notes (edge cases, caveats, subtle decisions)
+
+**Level:** Analytical, captures the reasoning between "what to build" and "how to break it into tasks"
+
+**Purpose:** Document the structured design analysis that doesn't fit in spec.md (which captures *why*) or context.md (which captures *what happened*). Reasoning only — code sketches belong in `resources/implementation.md`.
+
+**When warranted:**
+- Multiple viable approaches need comparison
+- Non-obvious invariants must be maintained
+- Complexity trade-offs need justification
+
+**When NOT warranted:**
+- Straightforward implementation with obvious approach
+- Small tasks or bug fixes
+- When spec.md's Architecture Decisions section suffices
 
 ### tasks.yaml - Machine-Readable Work Checklist
 
