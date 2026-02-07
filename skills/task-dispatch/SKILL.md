@@ -426,6 +426,7 @@ readiness:
 - Let implementer write tests (tester's job)
 - Ignore failed pre-impl gates for Initiatives
 - Batch commits across multiple batches
+- **Let subagents return prose around YAML reports (context explosion risk)**
 
 **If tester can't write tests:**
 - Don't skip to implementer
@@ -474,6 +475,20 @@ Batch 2: Tasks 2, 3, 4 ([P] parallel batch)
 [Final review - 3 reviewers in parallel]
 All requirements met
 ```
+
+---
+
+## Context Budget
+
+Subagent outputs are the primary source of context consumption. Each `TaskOutput` result
+embeds the full subagent conversation into the parent session (duplicated across `.output`
+and `.result` fields — a platform bug). Mitigations:
+
+1. **YAML-only final messages** — All dispatch templates instruct subagents to return ONLY the YAML report. No prose, no explanation, no summary.
+2. **Truncated output fields** — `failure_output` and `test_output` limited to last 20 lines (summary + counts).
+3. **Batch size awareness** — With N parallel subagents, context grows by ~N × (subagent conversation size). Limit parallel batch size when context is above 50%.
+
+**Budget math:** Each subagent conversation typically runs 150-400 KB. With duplication, that's 300-800 KB per task embedded in parent context. A 5-task parallel batch can consume 1.5-4 MB — potentially 70%+ of a 200K token window.
 
 ---
 

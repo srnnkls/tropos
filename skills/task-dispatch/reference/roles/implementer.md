@@ -46,17 +46,17 @@ tester_report:
 
 ## Report Format
 
+**OUTPUT CONSTRAINT:** Your ENTIRE final message must be ONLY the YAML report below.
+No prose, no explanation, no summary of what you did. The full subagent conversation
+gets embedded into the parent session context — every extra token costs budget.
+
 ```yaml
 implementer_report:
   status: success  # or "blocked"
   implementation_files:
     - path: src/api/cache.py
   test_output: |
-    tests/test_cache.py::test_cache_hit PASSED
-    tests/test_cache.py::test_cache_miss PASSED
-    tests/test_cache.py::test_ttl_expiry PASSED
-
-    3 passed in 0.15s
+    [last 20 lines of test output only]
   clarifications: []
   blocked_reason: null
 ```
@@ -137,10 +137,6 @@ implementer_report:
   implementation_files:
     - path: src/api/cache.py
   test_output: |
-    tests/test_cache.py::test_cache_hit PASSED
-    tests/test_cache.py::test_cache_miss PASSED
-    tests/test_cache.py::test_ttl_expiry PASSED
-
     3 passed in 0.15s
   clarifications: []
   blocked_reason: null

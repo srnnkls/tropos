@@ -60,6 +60,10 @@ Task:
 
     **Work from:** [directory]
 
+    **OUTPUT CONSTRAINT:** Your ENTIRE final message must be ONLY the YAML report below.
+    No prose, no explanation, no summary. The full subagent conversation gets embedded
+    into the parent session context — every extra token costs budget.
+
     **Report in YAML format:**
     ```yaml
     tester_report:
@@ -68,7 +72,7 @@ Task:
         - path: [test file path]
           tests: [list of test names]
       failure_output: |
-        [actual test failure output]
+        [last 20 lines of test failure output only]
       gap_reason: null  # or explanation if status=gap
     ```
 ```
@@ -112,6 +116,10 @@ Task:
 
     **Work from:** [directory]
 
+    **OUTPUT CONSTRAINT:** Your ENTIRE final message must be ONLY the YAML report below.
+    No prose, no explanation, no summary. The full subagent conversation gets embedded
+    into the parent session context — every extra token costs budget.
+
     **Report in YAML format:**
     ```yaml
     implementer_report:
@@ -119,7 +127,7 @@ Task:
       implementation_files:
         - path: [impl file path]
       test_output: |
-        [test pass output]
+        [last 20 lines of test output only]
       clarifications:
         - question: [if used AskUserQuestion]
           answer: [user's response]
@@ -181,6 +189,10 @@ Task:
     2. Performance - Efficiency, data structures
     3. Security - Input validation, secrets, injection risks
 
+    **OUTPUT CONSTRAINT:** Your ENTIRE final message must be ONLY the YAML report below.
+    No prose, no explanation, no summary. The full subagent conversation gets embedded
+    into the parent session context — every extra token costs budget.
+
     **Report in YAML format:**
     ```yaml
     reviewer_report:
@@ -240,6 +252,10 @@ Task:
     4. Seams — cluster boundaries respected?
     5. Impact — propagation radius of changes?
 
+    **OUTPUT CONSTRAINT:** Your ENTIRE final message must be ONLY the YAML report below.
+    No prose, no explanation, no summary. The full subagent conversation gets embedded
+    into the parent session context — every extra token costs budget.
+
     **Report in YAML format:**
     ```yaml
     reviewer_report:
@@ -292,6 +308,10 @@ Task:
     3. Modules — feature-based organization?
     4. Errors — language-idiomatic error handling?
     5. Anti-patterns — items from language README checklist?
+
+    **OUTPUT CONSTRAINT:** Your ENTIRE final message must be ONLY the YAML report below.
+    No prose, no explanation, no summary. The full subagent conversation gets embedded
+    into the parent session context — every extra token costs budget.
 
     **Report in YAML format:**
     ```yaml
@@ -411,6 +431,10 @@ Task:
     Make targeted fixes only. Don't refactor beyond what's needed.
     Run tests to verify fixes don't break anything.
 
+    **OUTPUT CONSTRAINT:** Your ENTIRE final message must be ONLY the YAML report below.
+    No prose, no explanation, no summary. The full subagent conversation gets embedded
+    into the parent session context — every extra token costs budget.
+
     **Report in YAML format:**
     ```yaml
     fix_report:
@@ -419,7 +443,7 @@ Task:
         - issue: [description]
           fix: [what you did]
       test_output: |
-        [test output after fixes]
+        [last 20 lines of test output only]
     ```
 ```
 
@@ -525,3 +549,4 @@ If OpenCode reviewer times out (> 5 minutes):
 6. **Fresh context** - Each subagent starts clean
 7. **Track progress** - Update TodoWrite after each phase
 8. **Configure harnesses** - Set OpenCode models in validation.yaml (General role only)
+9. **Minimize subagent output** - Subagent final messages get embedded into parent context (duplicated in `.output` and `.result`). Every extra token directly inflates parent context. Subagents must return ONLY the YAML report — no prose, no explanation.

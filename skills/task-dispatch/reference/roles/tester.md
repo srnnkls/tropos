@@ -78,6 +78,10 @@ func TestSync_SkipsUpToDateArtifacts(t *testing.T) {
 
 ## Report Format
 
+**OUTPUT CONSTRAINT:** Your ENTIRE final message must be ONLY the YAML report below.
+No prose, no explanation, no summary of what you did. The full subagent conversation
+gets embedded into the parent session context — every extra token costs budget.
+
 ```yaml
 tester_report:
   status: success  # or "gap"
@@ -88,13 +92,7 @@ tester_report:
         - test_edge_case
         - test_error_handling
   failure_output: |
-    FAILED tests/test_feature.py::test_basic_behavior
-    AssertionError: Expected X but got None
-
-    FAILED tests/test_feature.py::test_edge_case
-    AttributeError: 'NoneType' has no attribute 'process'
-
-    2 failed in 0.05s
+    [last 20 lines of test failure output only]
   gap_reason: null
 ```
 
@@ -148,9 +146,6 @@ tester_report:
         - test_cache_miss_calls_backend
         - test_cache_expires_after_ttl
   failure_output: |
-    FAILED test_cache_hit_returns_cached_response
-    ModuleNotFoundError: No module named 'src.api.cache'
-
     3 failed in 0.02s
   gap_reason: null
 ```
