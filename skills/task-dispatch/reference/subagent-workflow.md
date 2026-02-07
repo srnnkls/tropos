@@ -143,32 +143,31 @@ Wait for ALL implementers to complete before dispatching reviewers.
 
 ## Reviewer Dispatch Template
 
-**CRITICAL:** Reviewers are mandatory. Every batch gets reviewed.
+**CRITICAL:** Reviewers are mandatory. Every batch gets reviewed. Three roles, multiple harnesses.
 
 **Step 1: Get batch diff**
 ```bash
-# Get diff of changes made in this batch
 git diff <last_batch_commit>..HEAD > /tmp/batch_diff.txt
 ```
 
-**Step 2: Dispatch ALL reviewers in a SINGLE message:**
+**Step 2: Dispatch ALL role × harness combinations in a SINGLE message:**
 
 ```yaml
-# Single message with multiple tool calls for true parallelism
+# Single message — all in parallel
 
-# Native Claude reviewer (Task tool) [REQUIRED]
+# ── General role — Claude harness [REQUIRED] ──
 Task:
   subagent_type: task-reviewer
   model: {claude_model}  # from review_config (opus)
-  description: "Review batch: Tasks N1, N2, N3"
+  description: "General review: Tasks N1, N2, N3"
   prompt: |
-    Review the batch diff for Tasks N1, N2, N3.
+    You are the GENERAL reviewer. Your gates: Correctness, Security, Performance.
 
-    **First:** Invoke the `code-review --diff` skill for review methodology.
+    **First:** Invoke the `code-review` skill for review methodology.
 
     **Batch Diff:**
     ```diff
-    [paste git diff of batch changes - NOT full files]
+    [paste git diff of batch changes]
     ```
 
     **What was implemented:**
@@ -177,25 +176,22 @@ Task:
     **Spec requirements:**
     [paste relevant tasks from tasks.yaml]
 
-    **Review against these gates:**
+    **Your gates (others handled by Architecture and Compliance roles):**
     1. Correctness - Logic errors, edge cases, error handling
-    2. Style - Naming, formatting, idioms
-    3. Performance - Efficiency, data structures
-    4. Security - Input validation, secrets, injection risks
-    5. Architecture - Design patterns, coupling
+    2. Performance - Efficiency, data structures
+    3. Security - Input validation, secrets, injection risks
 
     **Report in YAML format:**
     ```yaml
     reviewer_report:
-      reviewer: claude-opus
+      reviewer: general-claude
+      role: general
       batch: N
       diff_reviewed: true
       gates:
         correctness: { status: pass | fail, issues: [] }
-        style: { status: pass | fail, issues: [] }
         performance: { status: pass | fail, issues: [] }
         security: { status: pass | fail, issues: [] }
-        architecture: { status: pass | fail, issues: [] }
       issues:
         - task: N1
           severity: critical | high | medium
@@ -207,29 +203,140 @@ Task:
         - "Positive observation"
     ```
 
-# OpenCode reviewers (0-N from validation.yaml, Bash tool, background)
-# Include one Bash call per model configured in validation.yaml review_config.reviewers
-# Use reasoning_effort from review_config to build variant: {reasoning_effort}-medium
-
+# ── General role — OpenCode harnesses [0-N from validation.yaml] ──
 Bash:
-  command: timeout 1200 opencode run --model "openai/gpt-5.2-codex" --variant {reasoning_effort}-medium "[review_prompt_with_diff]"
+  command: timeout 1200 opencode run --model "openai/gpt-5.3-codex" --variant {reasoning_effort}-medium "[general_review_prompt_with_diff]"
   run_in_background: true
 
 Bash:
-  command: timeout 1200 opencode run --model "google/gemini-3-pro-preview" --variant {reasoning_effort}-medium "[review_prompt_with_diff]"
+  command: timeout 1200 opencode run --model "google/gemini-3-pro-preview" --variant {reasoning_effort}-medium "[general_review_prompt_with_diff]"
   run_in_background: true
+
+# ── Architecture role — Claude harness [REQUIRED] ──
+Task:
+  subagent_type: task-reviewer
+  model: opus
+  description: "Architecture review: Tasks N1, N2, N3"
+  prompt: |
+    You are the ARCHITECTURE reviewer. Your gate: Architecture.
+
+    **First:** Invoke the `gestalt` skill.
+
+    **Run these gestalt commands:**
+    1. `gestalt analyze` — current architecture
+    2. `gestalt diff {last_batch_commit}..HEAD` — definition-level changes
+    3. `gestalt diff {last_batch_commit}..HEAD --verbose` — impact propagation
+    4. Additional `gestalt callers/callees/refs/rank` as needed
+
+    **Batch Diff:**
+    ```diff
+    [paste git diff of batch changes]
+    ```
+
+    **Your review focus:**
+    1. Coupling — inter-module coupling changes?
+    2. Hotspots — new high-centrality symbols?
+    3. Cycles — dependency cycles introduced?
+    4. Seams — cluster boundaries respected?
+    5. Impact — propagation radius of changes?
+
+    **Report in YAML format:**
+    ```yaml
+    reviewer_report:
+      reviewer: architecture-gestalt
+      role: architecture
+      batch: N
+      diff_reviewed: true
+      gates:
+        architecture: { status: pass | fail, issues: [] }
+      structural_analysis:
+        coupling_delta: increased | stable | decreased
+        new_hotspots: [{ symbol: "name", file: "path", in_degree: N }]
+        cycles_introduced: [{ members: ["A", "B"] }]
+        seam_violations: [{ symbol: "name", expected_cluster: "X", actual_cluster: "Y" }]
+        impact_radius: N
+      issues:
+        - severity: critical | high | medium
+          gate: architecture
+          area: coupling
+          location: "file:line"
+          description: "Clear description"
+          suggestion: "How to fix"
+      strengths:
+        - "Positive observation"
+    ```
+
+# ── Compliance role — Claude harness [REQUIRED] ──
+Task:
+  subagent_type: task-reviewer
+  model: opus
+  description: "Compliance review: Tasks N1, N2, N3"
+  prompt: |
+    You are the COMPLIANCE reviewer. Your gate: Style.
+
+    **First:** Invoke the `loqui` skill.
+
+    **Read loqui guidelines for each language in the diff:**
+    1. Detect language(s) from file extensions
+    2. Read `~/.claude/skills/code-implement/resources/loqui/languages/{lang}/README.md`
+    3. Read topic files relevant to the changes (quality.md, composition.md, modules.md, errors.md)
+
+    **Batch Diff:**
+    ```diff
+    [paste git diff of batch changes]
+    ```
+
+    **Your review focus:**
+    1. Naming — 5x rule, descriptive names?
+    2. Composition — composition over inheritance?
+    3. Modules — feature-based organization?
+    4. Errors — language-idiomatic error handling?
+    5. Anti-patterns — items from language README checklist?
+
+    **Report in YAML format:**
+    ```yaml
+    reviewer_report:
+      reviewer: compliance-loqui
+      role: compliance
+      batch: N
+      diff_reviewed: true
+      gates:
+        style: { status: pass | fail, issues: [] }
+      compliance_analysis:
+        languages_checked: [python]
+        rules_evaluated: N
+        violations:
+          - rule: "naming/5x-rule"
+            source: "python/quality.md"
+            location: "file:line"
+            description: "Description"
+            suggestion: "Fix"
+      issues:
+        - severity: critical | high | medium
+          gate: style
+          area: naming
+          location: "file:line"
+          description: "Clear description"
+          suggestion: "How to fix"
+      strengths:
+        - "Positive observation"
+    ```
 ```
 
-Wait for ALL reviewers (Claude + OpenCode) to complete before synthesizing.
+Wait for ALL role × harness combinations to complete before synthesizing.
 
 **validation.yaml configuration:**
 ```yaml
 review_config:
   reasoning_effort: high  # low | medium | high | xhigh (user-selected, xhigh GPT-5.2 only)
-  reviewers:
-    - openai/gpt-5.2-codex
-    - google/gemini-3-pro-preview
-  # Empty list = Claude-only review
+  roles:
+    general: true       # always true
+    architecture: true   # gestalt-based
+    compliance: true     # loqui-based
+  harnesses:
+    - openai/gpt-5.3-codex          # OpenCode for General role
+    - google/gemini-3-pro-preview    # OpenCode for General role
+  # Empty harnesses list = Claude-only review (all 3 roles still run)
   # Variant = {reasoning_effort}-medium
 ```
 
@@ -237,43 +344,48 @@ review_config:
 
 ## Review Synthesis
 
-After all reviewers complete:
+After all role × harness combinations complete:
 
-1. **Parse reports** - Extract YAML from all reviewer outputs
-2. **Merge issues:**
+1. **Parse reports** - Extract YAML from all outputs (including `structural_analysis` and `compliance_analysis`)
+2. **Group by role** - Aggregate harness results within each role first
+3. **Merge issues within role:**
+   - General role: deduplicate across Claude + OpenCode harnesses
+   - Issues flagged by multiple harnesses = higher confidence
+4. **Merge issues across roles:**
    - Deduplicate by location + description similarity
-   - Combine issues flagged by multiple reviewers (higher confidence)
-   - Note which reviewer(s) found each issue
-3. **Aggregate gates:**
-   - Gate fails if ANY reviewer fails it
-   - Record which reviewer(s) failed each gate
-4. **Aggregate severity:**
-   - Issue severity is the HIGHEST across all reviewers
-   - Critical by any reviewer = Critical overall
+   - Preserve role attribution
+5. **Aggregate gates:**
+   - Each role owns its gates (General: Correctness/Security/Performance, Architecture: Architecture, Compliance: Style)
+   - Gate fails if ANY harness within the owning role fails it
+6. **Aggregate severity:**
+   - Issue severity is the HIGHEST across all harnesses
+   - Critical by any harness = Critical overall
 
-**Gate Summary Table:**
+**Gate Summary Table (by role):**
 
 ```
-| Gate         | Claude | Codex  | Gemini |
-|--------------|--------|--------|--------|
-| Correctness  | pass   | fail   | pass   |
-| Style        | pass   | pass   | pass   |
-| Performance  | pass   | pass   | pass   |
-| Security     | fail   | pass   | fail   |
-| Architecture | pass   | pass   | pass   |
+| Gate         | Status | General | Architecture | Compliance |
+|--------------|--------|---------|--------------|------------|
+| Correctness  | FAIL   | fail (Codex)          | —            | —          |
+| Style        | PASS   | —                     | —            | pass       |
+| Performance  | PASS   | pass                  | pass         | —          |
+| Security     | FAIL   | fail (Claude, Gemini) | —            | —          |
+| Architecture | PASS   | —                     | pass         | —          |
 ```
+
+`—` = not in scope for this role. On failure, note which harness(es) failed.
 
 **Issues by Severity:**
 
 ```
-## Critical (found by 2+ reviewers)
+## Critical (found by 2+ harnesses — high confidence)
 - [C1] SQL injection in user input at src/db/query.py:45
-  Found by: claude-opus, gemini-3-pro
+  Role: General | Failed by: Claude, Gemini
   Suggestion: Use parameterized queries
 
 ## High
 - [H1] Missing null check at src/api/handler.ts:112
-  Found by: claude-opus
+  Role: General | Failed by: Codex
   Suggestion: Add guard clause
 ```
 
@@ -330,12 +442,12 @@ Build Execution Batches
     |         |
     |    YES: Phase A: Dispatch 1 tester (opus)
     |         Phase B: Dispatch 1 implementer (opus)
-    |         Phase C: Dispatch 1+N reviewers (parallel)
+    |         Phase C: Dispatch 3+N reviewers (3 roles × harnesses, parallel)
     |         |
     |    NO (parallel [P] tasks):
     |         Phase A: Dispatch N testers (single message)
     |         Phase B: Dispatch N implementers (single message)
-    |         Phase C: Dispatch 1+N reviewers (single message)
+    |         Phase C: Dispatch 3+N reviewers (3 roles × harnesses, single message)
     |         |
     |         v
     +--> Synthesize Reviews
@@ -352,12 +464,12 @@ Build Execution Batches
 [Next Batch]
     |
     v
-Final Review (1+N reviewers in parallel)
+Final Review (3 roles × harnesses in parallel)
     |
     v
 Done
 
-(1+N = 1 Claude [required] + N OpenCode [from validation.yaml])
+(3+N = 3 roles [General, Architecture, Compliance] × Claude + N OpenCode [General only])
 ```
 
 ---
@@ -407,9 +519,9 @@ If OpenCode reviewer times out (> 5 minutes):
 
 1. **Always opus** - Never use sonnet for task subagents
 2. **Tester first** - Implementer must receive failing tests
-3. **Reviewers mandatory** - Every batch gets at least Claude reviewer (+ configured OpenCode)
+3. **All three roles mandatory** - Every batch gets General + Architecture + Compliance review
 4. **YAML reports** - Structured handoff between phases
-5. **Single message dispatch** - All parallel subagents in one message
+5. **Single message dispatch** - All role × harness combinations in one message
 6. **Fresh context** - Each subagent starts clean
 7. **Track progress** - Update TodoWrite after each phase
-8. **Configure reviewers** - Set OpenCode models in validation.yaml (0-N)
+8. **Configure harnesses** - Set OpenCode models in validation.yaml (General role only)

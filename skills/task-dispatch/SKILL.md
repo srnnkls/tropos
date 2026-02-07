@@ -45,12 +45,14 @@ Each batch executes three phases. **A batch is NOT complete until all three phas
 │  ├── Each makes tests pass (GREEN)                              │
 │  └── Wait for ALL implementers                                  │
 │                          ↓                                      │
-│  Phase C: REVIEWERS (parallel)                                  │
-│  ├── Dispatch 1 native Claude reviewer (opus) [required]        │
-│  ├── Dispatch 0-N OpenCode reviewers (from validation.yaml)     │
-│  ├── Each reviews ALL changes from batch                        │
-│  ├── Wait for ALL reviewers                                     │
-│  └── Synthesize feedback                                        │
+│  Phase C: REVIEWERS (all roles × harnesses in parallel)          │
+│  ├── General × Claude (opus) [required]                         │
+│  ├── General × OpenCode (0-N from validation.yaml)              │
+│  ├── Architecture × Claude (opus, gestalt) [required]           │
+│  ├── Compliance × Claude (opus, loqui) [required]               │
+│  ├── Each role reviews own gates only                            │
+│  ├── Wait for ALL                                                │
+│  └── Synthesize by role, then aggregate                          │
 │                          ↓                                      │
 │  Gate: Issues found?                                            │
 │  ├── Critical/High → Fix before proceeding                      │
@@ -159,49 +161,76 @@ Each implementer:
 git diff <last_batch_commit>..HEAD
 ```
 
-**Always dispatch ALL reviewers in a SINGLE message for true parallelism:**
+**Always dispatch ALL role × harness combinations in a SINGLE message for true parallelism:**
 
 ```
 Dispatch:
-  - 1 native Claude reviewer (task-reviewer, opus) [required]
-  - 0-N OpenCode reviewers (models from validation.yaml)
-→ Wait for ALL reviewers
+  - General × Claude [required]
+  - General × OpenCode (0-N from validation.yaml)
+  - Architecture × Claude [required]
+  - Compliance × Claude [required]
+→ Wait for ALL
 ```
 
-Each reviewer:
-- Invokes `code-review --diff` (batch diff, not full files)
-- Reviews the diff of changes from this batch
-- Checks against spec requirements for batch tasks
-- Produces YAML report with issues by severity
+**Reviewer cascade (each role owns distinct gates):**
 
-**Review prompt includes:**
+| Role | Primary Gates | Skill | Harnesses |
+|------|---------------|-------|-----------|
+| General | Correctness, Security, Performance | `code-review` | Claude + OpenCode (0-N) |
+| Architecture | Architecture | `gestalt` | Claude only |
+| Compliance | Style | `loqui` | Claude only |
+
+**Review prompt includes (all role × harness combos):**
 1. Git diff of batch changes (not full files)
 2. Implementer reports (what was done)
 3. Task specs from tasks.yaml (what was required)
 
-**Reviewer dispatch configuration:**
+**Architecture role additionally runs:**
+- `gestalt analyze` — current hotspots, seams, coupling
+- `gestalt diff <last_batch_commit>..HEAD` — definition-level changes
+- `gestalt diff <last_batch_commit>..HEAD --verbose` — impact propagation
 
-**CRITICAL:** Dispatch ALL reviewers in a SINGLE message for true parallelism.
+**Compliance role additionally reads:**
+- Loqui guidelines for each language in the diff (`~/.claude/skills/code-implement/resources/loqui/languages/{lang}/`)
+
+**Dispatch configuration:**
+
+**CRITICAL:** Dispatch ALL role × harness combinations in a SINGLE message for true parallelism.
 
 ```
-# Single message with multiple tool calls:
+# Single message — all in parallel:
 
-# 1. Native Claude reviewer (Task tool) [required]
+# General role — Claude harness [required]
 Task(
   subagent_type="task-reviewer",
   model={claude_model},  # from review_config (opus)
-  prompt=review_prompt   # includes: batch diff + implementer reports + task specs
+  prompt=general_review_prompt  # correctness, security, performance
 )
 
-# 2. OpenCode reviewers (Bash tool, background) [from validation.yaml]
+# General role — OpenCode harnesses [0-N from validation.yaml]
 Bash(run_in_background=true):
-  timeout 1200 opencode run --model "openai/gpt-5.2-codex" --variant {reasoning_effort}-medium "{review_prompt}"
+  timeout 1200 opencode run --model "openai/gpt-5.3-codex" --variant {reasoning_effort}-medium "{general_review_prompt}"
 
 Bash(run_in_background=true):
-  timeout 1200 opencode run --model "google/gemini-3-pro-preview" --variant {reasoning_effort}-medium "{review_prompt}"
+  timeout 1200 opencode run --model "google/gemini-3-pro-preview" --variant {reasoning_effort}-medium "{general_review_prompt}"
+
+# Architecture role — Claude harness [required]
+Task(
+  subagent_type="task-reviewer",
+  model="opus",
+  prompt=architecture_review_prompt  # gestalt analyze + diff + callers/callees
+)
+
+# Compliance role — Claude harness [required]
+Task(
+  subagent_type="task-reviewer",
+  model="opus",
+  prompt=compliance_review_prompt  # loqui guidelines + naming/composition/errors
+)
 ```
 
-All models and reasoning effort are configured in `validation.yaml` under `review_config`.
+All OpenCode models and reasoning effort configured in `validation.yaml` under `review_config`.
+Review prompts per role: see `code-review` skill Step 4.
 
 ### 5. Synthesize Review Feedback and Write review.yaml
 
@@ -247,17 +276,19 @@ After ALL reviewers complete:
    - Issues grouped by severity
    - Show which reviewers found each issue
 
-**Gate Summary Table:**
+**Gate Summary Table (by role):**
 
 ```
-| Gate         | Claude | Codex  | Gemini |
-|--------------|--------|--------|--------|
-| Correctness  | pass   | fail   | pass   |
-| Style        | pass   | pass   | pass   |
-| Performance  | pass   | pass   | pass   |
-| Security     | fail   | pass   | fail   |
-| Architecture | pass   | pass   | pass   |
+| Gate         | Status | General              | Architecture | Compliance |
+|--------------|--------|----------------------|--------------|------------|
+| Correctness  | FAIL   | fail (Codex)          | —            | —          |
+| Style        | PASS   | —                     | —            | pass       |
+| Performance  | PASS   | pass                  | pass         | —          |
+| Security     | FAIL   | fail (Claude, Gemini) | —            | —          |
+| Architecture | PASS   | —                     | pass         | —          |
 ```
+
+`—` = not in scope for this role. On failure, parenthetical = which harness(es) failed.
 
 ### 6. Apply Review Feedback
 
@@ -316,12 +347,14 @@ After ALL batches complete, invoke `code-review` skill in **final mode**:
 /code.review --final <spec-name>
 ```
 
-Or dispatch multi-reviewer pass directly:
+Or dispatch all roles directly:
 
 ```
 Dispatch (in same message):
-  - 1 native Claude reviewer (opus) [required]
-  - 0-N OpenCode reviewers (from validation.yaml)
+  - General × Claude [required]
+  - General × OpenCode (0-N from validation.yaml)
+  - Architecture × Claude [required]
+  - Compliance × Claude [required]
 ```
 
 **Final review checks:**
@@ -363,7 +396,9 @@ readiness:
 |------|---------------|-------|-------|
 | Tester | task-tester | opus | code-test |
 | Implementer | task-implementer | opus | code-implement |
-| Reviewer | task-reviewer | from review_config (opus) | code-review |
+| General Reviewer | task-reviewer | opus | code-review |
+| Architecture Reviewer | task-reviewer | opus | gestalt |
+| Compliance Reviewer | task-reviewer | opus | loqui |
 
 **CRITICAL:** Always specify `model: opus` for testers, implementers, and reviewers.
 
@@ -449,7 +484,9 @@ All requirements met
 - `clarify` - Resolve markers/gates before dispatch
 - `code-test` - Tester invokes for TDD methodology
 - `code-implement` - Implementer invokes for language guidelines
-- `code-review` - Reviewer invokes for review methodology
+- `code-review` - General reviewer invokes for review methodology
+- `gestalt` - Architecture reviewer invokes for structural analysis
+- `loqui` - Compliance reviewer invokes for language guidelines
 - `task-completion-verify` - Verify before claiming done
 
 ---

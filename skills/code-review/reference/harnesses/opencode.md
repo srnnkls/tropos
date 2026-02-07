@@ -1,6 +1,6 @@
-# OpenCode Reviewer Role
+# OpenCode Harness
 
-External subprocess reviewer for fresh perspective analysis.
+External subprocess harness for fresh-perspective review execution.
 
 ---
 
@@ -23,21 +23,11 @@ External subprocess reviewer for fresh perspective analysis.
 
 ---
 
-## Review Focus
-
-1. **Correctness:** Does the logic make sense standalone?
-2. **Style:** Is naming clear without context?
-3. **Performance:** Are there obvious inefficiencies?
-4. **Security:** Common vulnerability patterns
-5. **Architecture:** Is structure understandable?
-
----
-
 ## Available Models
 
 **OpenAI:**
 - `openai/gpt-5.2` - Base GPT-5.2 model
-- `openai/gpt-5.2-codex` - Code-specialized variant (recommended)
+- `openai/gpt-5.3-codex` - Code-specialized variant (recommended)
 - `openai/gpt-5.2` - Pro tier with extended capabilities
 
 **Google:**
@@ -65,7 +55,7 @@ timeout 1200 opencode run --model "{MODEL}" --variant high-medium "[Review promp
 **Examples:**
 ```bash
 # OpenAI Codex (code-focused, recommended)
-opencode run --model "openai/gpt-5.2-codex" --variant high-medium "{prompt}"
+opencode run --model "openai/gpt-5.3-codex" --variant high-medium "{prompt}"
 
 # OpenAI GPT-5.2 Pro
 opencode run --model "openai/gpt-5.2" --variant high-medium "{prompt}"
@@ -78,6 +68,15 @@ opencode run --model "google/gemini-3-pro-preview" --variant high-medium "{promp
 
 ---
 
+## Limitations
+
+- Cannot verify against actual codebase
+- May flag "issues" that are project conventions
+- Limited context for architecture assessment
+- Depends on external service availability
+
+---
+
 ## Expected Behavior
 
 - Analyzes only provided code
@@ -85,12 +84,3 @@ opencode run --model "google/gemini-3-pro-preview" --variant high-medium "{promp
 - Outputs structured YAML report
 - Highlights clarity and readability issues effectively
 - Catches common anti-patterns
-
----
-
-## Limitations
-
-- Cannot verify against actual codebase
-- May flag "issues" that are project conventions
-- Limited context for architecture assessment
-- Depends on external service availability
