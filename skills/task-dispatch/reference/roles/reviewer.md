@@ -2,21 +2,39 @@
 
 Multi-agent review of batch implementations. Multiple reviewers run in parallel for diverse perspectives.
 
-## Reviewers
+## Roles × Harnesses
 
-**Reviewers dispatch in parallel (SINGLE message):**
+**All role × harness combinations dispatch in parallel (SINGLE message).**
 
-| Reviewer | Tool | Model | Required |
-|----------|------|-------|----------|
-| Native Claude | Task (task-reviewer) | from validation.yaml (opus) | Yes |
-| OpenCode (0-N) | Bash (opencode) | from validation.yaml | No |
+### Roles
 
-**Common OpenCode models:**
-- `openai/gpt-5.2-codex` - Code-specialized, fresh perspective
+| Role | Primary Gates | Focus | Skill |
+|------|---------------|-------|-------|
+| **General** | Correctness, Security, Performance | Logic, edge cases, vulnerabilities | `code-review` |
+| **Architecture** | Architecture | Coupling, hotspots, cycles, seams, impact | `gestalt` |
+| **Compliance** | Style | Naming, composition, modules, error patterns | `loqui` |
+
+### Harnesses
+
+| Harness | Type | Tool |
+|---------|------|------|
+| **Claude** | Native subagent | Task (task-reviewer) |
+| **OpenCode** | External subprocess | Bash (opencode, background) |
+
+### Roles × Harnesses
+
+| Role | Claude | OpenCode |
+|------|--------|----------|
+| General | 1 (required) | 0-N (from validation.yaml) |
+| Architecture | 1 (required) | — (needs gestalt tools) |
+| Compliance | 1 (required) | — (needs loqui file reads) |
+
+**Common OpenCode models (General role):**
+- `openai/gpt-5.3-codex` - Code-specialized, fresh perspective
 - `google/gemini-3-pro-preview` - Different reasoning, catches edge cases
 - `openai/gpt-5.2` - Extended capabilities
 
-**CRITICAL:** Dispatch all configured reviewers in the same message for true parallelism.
+**CRITICAL:** Dispatch all role × harness combinations in the same message for true parallelism.
 
 ## Purpose
 
@@ -28,8 +46,17 @@ Reviewers check the **diff of changes** from a batch, ensuring quality and spec 
 
 ## Skills to Invoke
 
-**First action:** Invoke `code-review` skill for review methodology.
-**Second action:** Invoke `code-implement` skill for language-specific patterns.
+**General reviewer:**
+- **First:** Invoke `code-review` skill for review methodology
+- **Second:** Invoke `code-implement` skill for language-specific patterns
+
+**Architecture reviewer:**
+- **First:** Invoke `gestalt` skill for code intelligence commands
+- Run `gestalt analyze`, `gestalt diff`, and additional commands as needed
+
+**Compliance reviewer:**
+- **First:** Invoke `loqui` skill for language guidelines
+- Read loqui resources for each language detected in the diff
 
 ## Input
 
@@ -71,27 +98,42 @@ implementer_report:
 
 ## Dispatch Configuration
 
-**CRITICAL:** Dispatch ALL reviewers in a SINGLE message for true parallelism.
+**CRITICAL:** Dispatch ALL role × harness combinations in a SINGLE message for true parallelism.
 
 ```
-# Single message with multiple tool calls:
+# Single message — all in parallel:
 
-# 1. Native Claude reviewer (Task tool) [required]
+# General role — Claude harness [required]
 Task(
   subagent_type="task-reviewer",
   model={claude_model},  # from review_config (opus)
-  prompt=review_prompt
+  prompt=general_review_prompt  # correctness, security, performance
 )
 
-# 2. OpenCode reviewers (Bash tool, background) [from validation.yaml]
+# General role — OpenCode harnesses [0-N from validation.yaml]
 Bash(run_in_background=true):
-  timeout 1200 opencode run --model "openai/gpt-5.2-codex" --variant {reasoning_effort}-medium "{review_prompt}"
+  timeout 1200 opencode run --model "openai/gpt-5.3-codex" --variant {reasoning_effort}-medium "{general_review_prompt}"
 
 Bash(run_in_background=true):
-  timeout 1200 opencode run --model "google/gemini-3-pro-preview" --variant {reasoning_effort}-medium "{review_prompt}"
+  timeout 1200 opencode run --model "google/gemini-3-pro-preview" --variant {reasoning_effort}-medium "{general_review_prompt}"
+
+# Architecture role — Claude harness [required]
+Task(
+  subagent_type="task-reviewer",
+  model="opus",
+  prompt=architecture_review_prompt  # gestalt analyze + diff + structural analysis
+)
+
+# Compliance role — Claude harness [required]
+Task(
+  subagent_type="task-reviewer",
+  model="opus",
+  prompt=compliance_review_prompt  # loqui guidelines + naming/composition/errors
+)
 ```
 
-All models and reasoning effort are configured in `validation.yaml` under `review_config`.
+All OpenCode models and reasoning effort configured in `validation.yaml` under `review_config`.
+Review prompts per role: see `code-review` skill Step 4.
 
 ## When Reviewers Run
 
@@ -101,9 +143,11 @@ All models and reasoning effort are configured in `validation.yaml` under `revie
 Batch N:
 ├── Phase A: Testers (parallel)
 ├── Phase B: Implementers (parallel)
-└── Phase C: Reviewers (1+N in parallel) ← this role
-    ├── Claude opus [required]
-    └── OpenCode reviewers (0-N from validation.yaml)
+└── Phase C: Reviewers (3+N in parallel) ← this role
+    ├── General × Claude [required]
+    ├── General × OpenCode (0-N from validation.yaml)
+    ├── Architecture × Claude [required]
+    └── Compliance × Claude [required]
 ```
 
 ## Report Format
@@ -161,30 +205,49 @@ After all reviewers complete:
    - Issues grouped by severity
    - Show which reviewers found each issue
 
-**Gate Summary Table:**
+**Gate Summary Table (by role):**
 
 ```
-| Gate         | Claude | Codex  | Gemini |
-|--------------|--------|--------|--------|
-| Correctness  | pass   | fail   | pass   |
-| Style        | pass   | pass   | pass   |
-| Performance  | pass   | pass   | pass   |
-| Security     | fail   | pass   | fail   |
-| Architecture | pass   | pass   | pass   |
+| Gate         | Status | General              | Architecture | Compliance |
+|--------------|--------|----------------------|--------------|------------|
+| Correctness  | PASS   | pass          | —            | —          |
+| Style        | FAIL   | —             | —            | fail       |
+| Performance  | PASS   | pass          | pass         | —          |
+| Security     | FAIL   | fail (Claude) | —            | —          |
+| Architecture | PASS   | —             | pass         | —          |
+```
+
+`—` = not in scope for this role. On failure, parenthetical = which harness(es) failed.
+
+**Structural Analysis (Architecture role):**
+
+```
+Coupling: stable | New hotspots: 0 | Cycles: 0 | Impact radius: 3
+```
+
+**Compliance Analysis (Compliance role):**
+
+```
+Languages: python | Rules: 12 | Violations: 1
 ```
 
 **Issues by Severity:**
 
 ```
-## Critical (found by 2+ reviewers - high confidence)
+## Critical (found by 2+ harnesses — high confidence)
 - [C1] SQL injection at src/db/query.py:45
-  Found by: claude-opus, opencode-gemini-3-pro
+  Role: General | Found by: Claude, Gemini
   Suggestion: Use parameterized queries
 
 ## High
 - [H1] Missing null check at src/api/handler.ts:112
-  Found by: opencode-codex
+  Role: General | Found by: Codex
   Suggestion: Add guard clause
+
+## Medium
+- [M1] Variable 'd' should have descriptive name (naming/5x-rule)
+  Role: Compliance | Rule: python/quality.md
+  Suggestion: Rename to 'duration_seconds'
 ```
 
 ## Issue Severity
@@ -221,7 +284,7 @@ Review is good when it:
 **Dispatch (single message):**
 ```
 Task(task-reviewer, {claude_model}): "Review batch T002-T004" ...
-Bash(background): opencode run --model "openai/gpt-5.2-codex" --variant {reasoning_effort}-medium ...
+Bash(background): opencode run --model "openai/gpt-5.3-codex" --variant {reasoning_effort}-medium ...
 Bash(background): opencode run --model "google/gemini-3-pro-preview" --variant {reasoning_effort}-medium ...
 ```
 

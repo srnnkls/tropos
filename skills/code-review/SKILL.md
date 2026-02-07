@@ -7,7 +7,38 @@ description: Code review methodology. Use when reviewing code locally or prepari
 
 Multi-perspective code review using parallel subagent dispatch for comprehensive analysis.
 
-> **Reference:** See [reference/roles/](reference/roles/) for reviewer personas, [reference/report.md](reference/report.md) for YAML schemas, [reference/playbook.md](reference/playbook.md) for edge case handling.
+> **Reference:** See [reference/roles/](reference/roles/) for reviewer concerns, [reference/harnesses/](reference/harnesses/) for dispatch configuration, [reference/report.md](reference/report.md) for YAML schemas, [reference/playbook.md](reference/playbook.md) for edge case handling.
+
+---
+
+## Reviewer Cascade
+
+Three roles with distinct, non-overlapping concerns. Roles × harnesses dispatch in parallel.
+
+### Roles
+
+| Role | Concern | Primary Gates | Skill |
+|------|---------|---------------|-------|
+| **General** | Correctness, security, edge cases | Correctness, Security, Performance | `code-review` |
+| **Architecture** | Structural impact, coupling, hotspots | Architecture | `gestalt` |
+| **Compliance** | Language idioms, naming, patterns | Style | `loqui` |
+
+### Harnesses
+
+| Harness | Type | Characteristics |
+|---------|------|-----------------|
+| **Claude** | Task (native subagent) | Context-aware, tool access, codebase access |
+| **OpenCode** | Bash (external subprocess) | Fresh perspective, no context, multiple models |
+
+### Roles × Harnesses
+
+| Role | Claude | OpenCode |
+|------|--------|----------|
+| General | 1 (required) | 0-N (from validation.yaml) |
+| Architecture | 1 (required) | — (needs gestalt tools) |
+| Compliance | 1 (required) | — (needs loqui file reads) |
+
+**Cascade logic:** General covers breadth (and gets external harness diversity). Architecture goes deep on structure. Compliance goes deep on standards. Each role owns its gates.
 
 ---
 
@@ -126,38 +157,53 @@ git diff                    # Unstaged changes (fallback)
 
 ### Step 3: Select Reviewers
 
-**Spec mode:** Use reviewers from `validation.yaml` (no prompt):
+**Spec mode:** Use config from `validation.yaml` (no prompt):
 
 ```yaml
 review_config:
-  reviewers:
-    - type: claude
-      model: opus
-    - type: opencode
-      model: openai/gpt-5.2-codex
+  reasoning_effort: high
+  roles:
+    general: true       # always true
+    architecture: true   # gestalt-based structural review
+    compliance: true     # loqui-based standards review
+  harnesses:
+    - openai/gpt-5.3-codex           # OpenCode harness for General role
+    - google/gemini-3-pro-preview     # OpenCode harness for General role
 ```
 
 **Other modes:** Use **AskUserQuestion**:
 
-**Question 1:** Select reviewers:
+**Question 1:** Select roles:
 ```
-Header: Reviewers
-Question: Which reviewers should analyze this code?
+Header: Roles
+Question: Which review roles should analyze this code?
 multiSelect: true
 Options:
-- claude-opus: Claude Opus - native subagent, context-aware, codebase access
-- claude-sonnet: Claude Sonnet - faster native review
-- openai-gpt5.2-codex: OpenAI GPT-5.2 Codex - code-specialized (Recommended)
-- openai-gpt5.2-pro: OpenAI GPT-5.2 Pro - extended capabilities
-- gemini-3-pro: Google Gemini 3 Pro - advanced reasoning
+- general: General — correctness, security, performance (Recommended)
+- architecture: Architecture — structural analysis via gestalt (Recommended)
+- compliance: Compliance — language standards via loqui (Recommended)
 ```
 
-**Default selection:** claude-opus, openai-gpt5.2-codex
+**Default selection:** general, architecture, compliance
 
-**Question 2:** Select reasoning effort (if OpenCode reviewers selected):
+**Question 2:** Select OpenCode harnesses for General role:
+```
+Header: Harnesses
+Question: Which external models should run the General review?
+multiSelect: true
+Options:
+- openai-gpt5.3-codex: OpenAI GPT-5.3 Codex — code-specialized (Recommended)
+- openai-gpt5.2-pro: OpenAI GPT-5.2 Pro — extended capabilities
+- gemini-3-pro: Google Gemini 3 Pro — advanced reasoning
+- none: Claude only — no external harnesses
+```
+
+**Default selection:** openai-gpt5.3-codex
+
+**Question 3:** Select reasoning effort (if OpenCode harnesses selected):
 ```
 Header: Reasoning
-Question: What reasoning effort level for OpenCode reviewers?
+Question: What reasoning effort level for OpenCode harnesses?
 multiSelect: false
 Options:
 - low: Quick responses, minimal deliberation
@@ -168,41 +214,60 @@ Options:
 
 **Default:** medium
 
-**Model mapping to commands:**
-- `claude-opus` → Task tool with `model: "opus"`
-- `openai-gpt5.2-codex` → `opencode run --model "openai/gpt-5.2-codex" --variant {reasoning}-medium`
-- `openai-gpt5.2-pro` → `opencode run --model "openai/gpt-5.2" --variant {reasoning}-medium`
-- `gemini-3-pro` → `opencode run --model "google/gemini-3-pro-preview" --variant {reasoning}-medium`
+**Dispatch mapping:**
+
+| Role | Harness | Tool | Dispatch |
+|------|---------|------|----------|
+| General | Claude | Task | `subagent_type="general-purpose"`, `model="opus"` |
+| General | OpenCode | Bash | `opencode run --model "{model}" --variant {reasoning}-medium` |
+| Architecture | Claude | Task | `subagent_type="task-reviewer"`, `model="opus"` + gestalt |
+| Compliance | Claude | Task | `subagent_type="task-reviewer"`, `model="opus"` + loqui |
 
 ### Step 4: Dispatch Reviewers in Parallel
 
-**CRITICAL:** Dispatch all reviewers in the same message for true parallelism.
+**CRITICAL:** Dispatch ALL role × harness combinations in the SAME message for true parallelism.
 
-**Dispatch by Type:**
+**Dispatch:**
 
-**Claude reviewers (Task tool):**
-```python
+```
+# Single message — all in parallel:
+
+# General role — Claude harness [required]
 Task(
   subagent_type="general-purpose",
-  model="opus",  # or "sonnet"
-  prompt=review_prompt
+  model="opus",
+  prompt=general_review_prompt
+)
+
+# General role — OpenCode harnesses [0-N from config]
+Bash(run_in_background=true):
+  timeout 1200 opencode run --model "openai/gpt-5.3-codex" --variant {reasoning}-medium "{general_review_prompt}"
+Bash(run_in_background=true):
+  timeout 1200 opencode run --model "google/gemini-3-pro-preview" --variant {reasoning}-medium "{general_review_prompt}"
+
+# Architecture role — Claude harness [required]
+Task(
+  subagent_type="task-reviewer",
+  model="opus",
+  prompt=architecture_review_prompt
+)
+
+# Compliance role — Claude harness [required]
+Task(
+  subagent_type="task-reviewer",
+  model="opus",
+  prompt=compliance_review_prompt
 )
 ```
 
-**OpenCode reviewers (Bash tool, background):**
-```bash
-timeout 1200 opencode run --model "{MODEL_PATH}" --variant {reasoning}-medium "{review_prompt}"
-```
+---
 
-**Examples (with high reasoning):**
-- `opencode run --model "openai/gpt-5.2-codex" --variant high-medium "{prompt}"`
-- `opencode run --model "openai/gpt-5.2" --variant high-medium "{prompt}"`
-- `opencode run --model "google/gemini-3-pro-preview" --variant high-medium "{prompt}"`
-
-**Review Prompt (standard):**
+**General Review Prompt:**
 
 ```
-You are reviewing code for quality, correctness, and maintainability.
+You are reviewing code for correctness, security, and performance.
+
+**First:** Invoke the `code-review` skill for review methodology.
 
 ## Code to Review
 [Include diff or file contents]
@@ -214,55 +279,124 @@ You are reviewing code for quality, correctness, and maintainability.
 Evaluate against these gates:
 
 1. **Correctness** - Logic errors, edge cases, error handling, type safety
-2. **Style** - Naming, formatting, idioms, readability
-3. **Performance** - Efficiency, data structures, unnecessary work
-4. **Security** - Input validation, secrets, injection risks
-5. **Architecture** - Design patterns, coupling, separation of concerns
+2. **Performance** - Efficiency, data structures, unnecessary work
+3. **Security** - Input validation, secrets, injection risks
+
+Leave architecture and style to specialized reviewers.
 
 ## Output Format
 [Standard reviewer_report YAML - see reference/report.md]
 ```
 
-**Review Prompt (spec mode - final review):**
+**Architecture Review Prompt:**
 
 ```
-You are performing a FINAL REVIEW of a complete spec implementation.
+You are performing a structural architecture review using gestalt code intelligence.
 
-## Spec Requirements
-[Include spec.md content]
+**First:** Invoke the `gestalt` skill.
 
-## Tasks Implemented
-[Include tasks.yaml]
+## Code to Review
+[Include diff or file contents]
 
-## Batch Review History
-[Summarize from review.yaml]
+## Gestalt Commands (run these)
 
-## Deferred Issues
-[List medium-severity issues from batch reviews]
+1. `gestalt analyze` — Current architecture: hotspots, seams, coupling
+2. `gestalt diff {base}..HEAD` — Definition-level changes
+3. `gestalt diff {base}..HEAD --verbose` — Impact propagation layers
+4. Run additional gestalt commands as needed:
+   - `gestalt callers <symbol>` for changed symbols with high fan-in
+   - `gestalt callees <symbol>` for changed symbols with high fan-out
+   - `gestalt rank --file <changed-file>` for centrality shifts
 
 ## Review Focus
-1. **Spec Compliance** - All requirements met? Acceptance criteria satisfied?
-2. **Gates** - Correctness, Style, Performance, Security, Architecture
-3. **Deferred Issues** - Address or document remaining issues
-4. **Integration** - Components work together? No regressions?
-5. **Test Coverage** - All behaviors tested?
+
+1. **Coupling** — Did changes increase inter-module coupling?
+2. **Hotspots** — Did changes create new high-centrality symbols?
+3. **Cycles** — Did changes introduce dependency cycles?
+4. **Seams** — Do changes respect existing cluster boundaries?
+5. **Impact** — How far do changes propagate through the call graph?
+
+Leave correctness, security, and style to other reviewers.
 
 ## Output Format
-[Final review YAML - see reference/report.md]
+[Architecture reviewer_report YAML - see reference/report.md#architecture-role-structural_analysis]
+```
+
+**Compliance Review Prompt:**
+
+```
+You are performing a language-standards compliance review using loqui guidelines.
+
+**First:** Invoke the `loqui` skill.
+
+## Code to Review
+[Include diff or file contents]
+
+## Loqui Guidelines (read these for each language in the diff)
+
+1. Detect language(s) from file extensions
+2. Read `~/.claude/skills/code-implement/resources/loqui/languages/{language}/README.md`
+3. Read topic files relevant to the changes:
+   - quality.md — naming, comments, documentation
+   - composition.md — structuring behavior
+   - modules.md — package structure, public APIs
+   - errors.md — error handling patterns
+
+## Review Focus
+
+1. **Naming** — Do names follow loqui conventions? 5x rule applied?
+2. **Composition** — Composition over inheritance? Proper behavior structuring?
+3. **Modules** — Feature-based organization? Clean public APIs?
+4. **Errors** — Language-idiomatic error handling?
+5. **Anti-patterns** — Any items from the language README checklist?
+
+Leave correctness, security, and performance to other reviewers.
+
+## Output Format
+[Compliance reviewer_report YAML - see reference/report.md#compliance-role-compliance_analysis]
+```
+
+**Spec Mode Final Review Prompt (all reviewers):**
+
+Append to each reviewer's prompt:
+
+```
+## Final Review Context
+You are performing a FINAL REVIEW of a complete spec implementation.
+
+### Spec Requirements
+[Include spec.md content]
+
+### Tasks Implemented
+[Include tasks.yaml]
+
+### Batch Review History
+[Summarize from review.yaml]
+
+### Deferred Issues
+[List medium-severity issues from batch reviews]
+
+### Additional Focus
+- Spec Compliance — All requirements met? Acceptance criteria satisfied?
+- Deferred Issues — Address or document remaining issues
+- Integration — Components work together? No regressions?
+- Test Coverage — All behaviors tested?
 ```
 
 ### Step 5: Synthesize Reviews
 
 After all reviewers complete:
 
-1. **Parse reports** - Extract YAML from all outputs
+1. **Parse reports** - Extract YAML from all outputs (including `structural_analysis` and `compliance_analysis` sections)
 2. **Merge issues:**
    - Deduplicate by location + description similarity
    - Combine issues flagged by multiple reviewers (higher confidence)
    - Note which reviewer(s) found each issue
+   - Preserve specialized findings (coupling delta, loqui rule violations) as-is
 3. **Aggregate gates:**
-   - Gate fails if ANY reviewer fails it
-   - Record which reviewer(s) failed each gate
+   - Each role owns its gates — gate verdict comes from the owning role
+   - Within a role, gate fails if ANY harness fails it
+   - On failure, record which harness(es) failed
 4. **Prioritize by severity:**
    - Critical → High → Medium
    - Within severity, group by gate
@@ -350,16 +484,35 @@ Reviews are stored ephemerally like Claude's internal plans - useful for referen
 
 ### Step 7: Present Review
 
-**Gate Summary Table:**
+**Gate Summary Table (by role):**
 
 ```
-| Gate         | Status | Claude | Codex  |
-|--------------|--------|--------|--------|
-| Correctness  | PASS   | pass   | pass   |
-| Style        | PASS   | pass   | pass   |
-| Performance  | PASS   | pass   | pass   |
-| Security     | FAIL   | fail   | pass   |
-| Architecture | PASS   | pass   | pass   |
+| Gate         | Status | General | Architecture | Compliance |
+|--------------|--------|---------|--------------|------------|
+| Correctness  | PASS   | pass           | —            | —          |
+| Style        | PASS   | —              | —            | pass       |
+| Performance  | PASS   | pass           | pass         | —          |
+| Security     | FAIL   | fail (Claude)  | —            | —          |
+| Architecture | PASS   | —              | pass         | —          |
+```
+
+`—` = not in scope for this role. On failure, note which harness(es) failed in the issues section.
+
+**Structural Analysis (Architecture role):**
+
+```
+Coupling: stable
+New hotspots: none
+Cycles introduced: none
+Impact radius: 3 symbols
+```
+
+**Compliance Analysis (Compliance role):**
+
+```
+Languages: python
+Rules evaluated: 12
+Violations: 1 (naming/5x-rule at src/utils.py:23)
 ```
 
 **Issues by Severity:**
@@ -504,6 +657,8 @@ Next: Create PR with /pr.create or merge directly
 **Command:** `/code.review [target]`
 
 **Related skills:**
+- `gestalt` - Architecture reviewer uses for structural analysis
+- `loqui` - Compliance reviewer uses for language guidelines
 - `code-implement` - Language-specific patterns to check against
 - `pr-review` - GitHub PR workflow (uses this for methodology)
 - `code-debug` - Root cause analysis when issues found
@@ -513,8 +668,11 @@ Next: Create PR with /pr.create or merge directly
 
 ## Reference
 
-- [reference/roles/claude-reviewer.md](reference/roles/claude-reviewer.md) - Claude reviewer persona
-- [reference/roles/opencode-reviewer.md](reference/roles/opencode-reviewer.md) - OpenCode reviewer persona
+- [reference/roles/general.md](reference/roles/general.md) - General role (correctness, security, performance)
+- [reference/roles/architecture.md](reference/roles/architecture.md) - Architecture role (coupling, hotspots, cycles, seams)
+- [reference/roles/compliance.md](reference/roles/compliance.md) - Compliance role (naming, composition, modules, errors)
+- [reference/harnesses/claude.md](reference/harnesses/claude.md) - Claude harness (native subagent)
+- [reference/harnesses/opencode.md](reference/harnesses/opencode.md) - OpenCode harness (external subprocess)
 - [reference/report.md](reference/report.md) - YAML report schemas
 - [reference/playbook.md](reference/playbook.md) - Edge case handling
 - [reference/checklist.md](reference/checklist.md) - Review checklist

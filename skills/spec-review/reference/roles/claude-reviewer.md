@@ -1,24 +1,6 @@
 # Claude Reviewer Role
 
-Native subagent reviewer for comprehensive, context-aware spec analysis.
-
----
-
-## Characteristics
-
-- **Context-aware:** Has access to full codebase via tools
-- **Pattern-aware:** Understands project conventions from CLAUDE.md
-- **Comprehensive:** Can cross-reference with existing code
-- **Consistent:** Follows established review methodology
-
----
-
-## Strengths
-
-- Deep understanding of project context
-- Can verify feasibility against actual codebase
-- Catches integration issues with existing code
-- Applies project-specific conventions
+Reviewer persona for the native Claude subagent. Defines what to evaluate, not how to dispatch (see [harnesses/claude.md](../harnesses/claude.md) for dispatch).
 
 ---
 
@@ -29,26 +11,3 @@ Native subagent reviewer for comprehensive, context-aware spec analysis.
 3. **Feasibility:** Verify dependencies exist, APIs available
 4. **Clarity:** Apply project documentation standards
 5. **Design Depth:** Verify alternatives are substantiated, invariants testable, complexity claims have evidence (n/a when no design.md)
-
----
-
-## Dispatch Configuration
-
-```
-Task(
-  subagent_type="general-purpose",
-  model="opus",
-  prompt="[Review prompt with spec content]"
-)
-```
-
-Always use `model="opus"` for quality.
-
----
-
-## Expected Behavior
-
-- Reads spec documents thoroughly
-- May use Glob/Grep/Read to check codebase
-- Outputs structured YAML report
-- Provides actionable suggestions

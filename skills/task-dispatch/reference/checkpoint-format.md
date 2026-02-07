@@ -57,7 +57,7 @@ checkpoint:
   review_config:
     reasoning_effort: medium  # low | medium | high | xhigh (xhigh GPT-5.2 only)
     reviewers:
-      - openai/gpt-5.2-codex
+      - openai/gpt-5.3-codex
       - google/gemini-3-pro-preview
 ```
 

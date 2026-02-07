@@ -7,7 +7,7 @@ description: Multi-agent spec review with parallel Claude/OpenCode reviewers. Us
 
 Multi-perspective spec review using parallel subagent dispatch for comprehensive validation.
 
-> **Reference:** See [reference/roles/](reference/roles/) for reviewer personas, [reference/report.md](reference/report.md) for YAML schemas, [reference/playbook.md](reference/playbook.md) for edge case handling.
+> **Reference:** See [reference/roles/](reference/roles/) for reviewer perspectives, [reference/harnesses/](reference/harnesses/) for dispatch configuration, [reference/report.md](reference/report.md) for YAML schemas, [reference/playbook.md](reference/playbook.md) for edge case handling.
 
 ---
 
@@ -27,7 +27,7 @@ Multi-perspective spec review using parallel subagent dispatch for comprehensive
 1. Parse spec name from argument (e.g., `/spec.review auth-system`)
 2. If no argument: find most recent in `./specs/draft/`
 3. If no specs in draft: check `./specs/active/`
-4. Read spec documents: `spec.md`, `context.md`, `tasks.yaml`, `validation.yaml`
+4. Read spec documents: `spec.md`, `context.md`, `tasks.yaml`, `validation.yaml`, and `design.md` (if present)
 
 ### Step 2: Select Reviewers
 
@@ -40,7 +40,7 @@ Options:
 - claude-opus: Claude Opus - native subagent, comprehensive, context-aware
 - claude-sonnet: Claude Sonnet - faster native review
 - openai-gpt5.2: OpenAI GPT-5.2 - base model
-- openai-gpt5.2-codex: OpenAI GPT-5.2 Codex - code-specialized
+- openai-gpt5.3-codex: OpenAI GPT-5.3 Codex - code-specialized
 - openai-gpt5.2-pro: OpenAI GPT-5.2 Pro - extended capabilities
 - gemini-3-flash: Google Gemini 3 Flash - fast, efficient
 - gemini-3-pro: Google Gemini 3 Pro - advanced reasoning
@@ -48,7 +48,19 @@ Options:
 
 **Default selection:** claude-opus, openai-gpt5.2-pro, gemini-3-pro
 
-**Question 2:** Select reasoning effort (if OpenCode reviewers selected):
+**Question 2:** Select provider (if OpenCode reviewers selected):
+```
+Header: Provider
+Question: Which provider for OpenCode reviewers?
+multiSelect: false
+Options:
+- native: Native APIs (openai/google) (Recommended)
+- github-copilot: GitHub Copilot
+```
+
+**Default:** native
+
+**Question 3:** Select reasoning effort (if OpenCode reviewers selected):
 ```
 Header: Reasoning
 Question: What reasoning effort level for OpenCode reviewers?
@@ -65,11 +77,18 @@ Options:
 **Model mapping to commands:**
 - `claude-opus` → Task tool with `model: "opus"`
 - `claude-sonnet` → Task tool with `model: "sonnet"`
-- `openai-gpt5.2` → `opencode run --model "openai/gpt-5.2" --variant {reasoning}-medium`
-- `openai-gpt5.2-codex` → `opencode run --model "openai/gpt-5.2-codex" --variant {reasoning}-medium`
-- `openai-gpt5.2-pro` → `opencode run --model "openai/gpt-5.2" --variant {reasoning}-medium`
-- `gemini-3-flash` → `opencode run --model "google/gemini-3-flash-preview" --variant {reasoning}-medium`
-- `gemini-3-pro` → `opencode run --model "google/gemini-3-pro-preview" --variant {reasoning}-medium`
+
+Provider determines the model path prefix:
+
+| Reviewer | native | github-copilot |
+|---|---|---|
+| `openai-gpt5.2` | `openai/gpt-5.2` | `github-copilot/gpt-5.2` |
+| `openai-gpt5.3-codex` | `openai/gpt-5.3-codex` | `github-copilot/gpt-5.3-codex` |
+| `openai-gpt5.2-pro` | `openai/gpt-5.2` | `github-copilot/gpt-5.2` |
+| `gemini-3-flash` | `google/gemini-3-flash-preview` | `github-copilot/gemini-3-flash` |
+| `gemini-3-pro` | `google/gemini-3-pro-preview` | `github-copilot/gemini-3-pro` |
+
+Command: `opencode run --model "{model_path}" --variant {reasoning}-medium`
 
 ### Step 3: Dispatch Reviewers in Parallel
 
@@ -82,6 +101,7 @@ You are reviewing a spec for completeness and feasibility.
 
 ## Spec Documents
 [Include spec.md, context.md, tasks.yaml content]
+[Include design.md content if present]
 
 ## Review Focus
 Evaluate against these gates:
@@ -90,6 +110,7 @@ Evaluate against these gates:
 2. **Consistency** - Do documents contradict each other? Ambiguous terms?
 3. **Feasibility** - Can tasks be implemented as described? Missing dependencies?
 4. **Clarity** - Would a fresh developer understand what to build?
+5. **Design Depth** - Are alternatives substantiated, invariants testable, complexity claims evidenced? (n/a if no design.md)
 
 ## Output Format
 Return a YAML report:
@@ -109,6 +130,9 @@ reviewer_report:
       issues: []
     clarity:
       status: pass | fail
+      issues: []
+    design_depth:
+      status: pass | fail | n/a
       issues: []
   issues:
     - severity: critical | high | medium
@@ -140,10 +164,15 @@ Task(
 timeout 1200 opencode run --model "{MODEL_PATH}" --variant {reasoning}-medium "{review_prompt}"
 ```
 
-**Examples (with high reasoning):**
+**Examples (high reasoning, native provider):**
 - `opencode run --model "openai/gpt-5.2" --variant high-medium "{prompt}"`
 - `opencode run --model "google/gemini-3-pro-preview" --variant high-medium "{prompt}"`
-- `opencode run --model "openai/gpt-5.2-codex" --variant high-medium "{prompt}"`
+- `opencode run --model "openai/gpt-5.3-codex" --variant high-medium "{prompt}"`
+
+**Examples (high reasoning, github-copilot provider):**
+- `opencode run --model "github-copilot/gpt-5.2" --variant high-medium "{prompt}"`
+- `opencode run --model "github-copilot/gemini-3-pro" --variant high-medium "{prompt}"`
+- `opencode run --model "github-copilot/gpt-5.3-codex" --variant high-medium "{prompt}"`
 
 ### Step 4: Synthesize Reviews
 
@@ -172,6 +201,7 @@ After all reviewers complete:
 | Consistency  | PASS   | pass   | pass        | pass         |
 | Feasibility  | FAIL   | fail   | fail        | pass         |
 | Clarity      | PASS   | pass   | pass        | pass         |
+| Design Depth | n/a    | n/a    | n/a         | n/a          |
 ```
 
 **Issues by Severity:**
@@ -262,6 +292,7 @@ Recommendation:
 | **Consistency** | Documents align, no contradictions, terms used consistently |
 | **Feasibility** | Tasks implementable, dependencies available, no blockers |
 | **Clarity** | Unambiguous, fresh developer can understand scope |
+| **Design Depth** | Alternatives substantiated, invariants testable, complexity evidenced (n/a when no design.md) |
 
 ---
 
@@ -286,8 +317,9 @@ Recommendation:
 - Ask user to specify
 
 **OpenCode command syntax:**
-- GPT-5.2 Pro: `opencode run --model "openai/gpt-5.2" --variant {reasoning}-medium {query}`
-- Gemini 3 Pro: `opencode run --model "google/gemini-3-pro-preview" --variant {reasoning}-medium {query}`
+- Model path determined by provider selection (see model mapping table above)
+- Native: `opencode run --model "openai/gpt-5.2" --variant {reasoning}-medium {query}`
+- Copilot: `opencode run --model "github-copilot/gpt-5.2" --variant {reasoning}-medium {query}`
 
 ---
 
@@ -304,7 +336,9 @@ Recommendation:
 
 ## Reference
 
-- [reference/roles/claude-reviewer.md](reference/roles/claude-reviewer.md) - Claude reviewer persona
-- [reference/roles/opencode-reviewer.md](reference/roles/opencode-reviewer.md) - OpenCode reviewer persona
+- [reference/roles/claude-reviewer.md](reference/roles/claude-reviewer.md) - Claude reviewer (context-aware perspective)
+- [reference/roles/opencode-reviewer.md](reference/roles/opencode-reviewer.md) - OpenCode reviewer (fresh perspective)
+- [reference/harnesses/claude.md](reference/harnesses/claude.md) - Claude harness (native subagent)
+- [reference/harnesses/opencode.md](reference/harnesses/opencode.md) - OpenCode harness (external subprocess)
 - [reference/report.md](reference/report.md) - YAML report schemas
 - [reference/playbook.md](reference/playbook.md) - Edge case handling

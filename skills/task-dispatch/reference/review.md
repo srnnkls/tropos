@@ -76,7 +76,7 @@ batch_reviews:
           performance: pass
           security: pass
           architecture: pass
-      - id: opencode-gpt5.2-codex
+      - id: opencode-gpt5.3-codex
         status: completed
         gates:
           correctness: pass
@@ -139,7 +139,7 @@ issues:
       location: "src/auth/auth.py:45"
       description: "Variable name 'x' is unclear"
       suggestion: "Rename to 'retry_count'"
-      found_by: [opencode-gpt5.2-codex]
+      found_by: [opencode-gpt5.3-codex]
       status: deferred  # medium issues can be deferred
       resolution: null
 

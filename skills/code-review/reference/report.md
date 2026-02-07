@@ -10,7 +10,7 @@ Each reviewer outputs this structure:
 
 ```yaml
 reviewer_report:
-  reviewer: claude-opus | opencode-codex | gemini-3-pro
+  reviewer: claude-opus | opencode-codex | gemini-3-pro | architecture-gestalt | compliance-loqui
 
   gates:
     correctness:
@@ -55,7 +55,7 @@ Main agent produces this after merging reviewer reports:
 
 ```yaml
 synthesized_report:
-  reviewers: [claude-opus, opencode-codex, gemini-3-pro]
+  reviewers: [claude-opus, opencode-codex, gemini-3-pro, architecture-gestalt, compliance-loqui]
 
   gates:
     correctness:
@@ -132,3 +132,76 @@ synthesized_report:
 | `secrets` | Credentials, keys, tokens |
 | `coupling` | Dependencies, interfaces |
 | `testing` | Test coverage, testability |
+
+---
+
+## Role-Specific Report Extensions
+
+### Architecture Role: `structural_analysis`
+
+Architecture reviewers include this section alongside standard gates/issues:
+
+```yaml
+reviewer_report:
+  reviewer: architecture-gestalt
+  role: architecture
+  gates:
+    architecture:
+      status: pass | fail
+      issues: [...]
+    performance:
+      status: pass | fail
+      issues: [...]
+  structural_analysis:
+    coupling_delta: increased | stable | decreased
+    new_hotspots: [{ symbol: "name", file: "path", in_degree: N }]
+    cycles_introduced: [{ members: ["A", "B", "C"] }]
+    seam_violations: [{ symbol: "name", expected_cluster: "X", actual_cluster: "Y" }]
+    impact_radius: N  # symbols affected beyond direct changes
+  issues:
+    - severity: critical | high | medium
+      gate: architecture
+      area: coupling
+      location: "file:line"
+      description: "Clear description"
+      suggestion: "Actionable fix"
+  strengths:
+    - "Good structural observation"
+```
+
+### Compliance Role: `compliance_analysis`
+
+Compliance reviewers include this section alongside standard gates/issues:
+
+```yaml
+reviewer_report:
+  reviewer: compliance-loqui
+  role: compliance
+  gates:
+    style:
+      status: pass | fail
+      issues: [...]
+  compliance_analysis:
+    languages_checked: [python, rust]
+    rules_evaluated: N
+    violations:
+      - rule: "naming/5x-rule"
+        source: "python/quality.md"
+        location: "file:line"
+        description: "Variable 'd' should have a descriptive name"
+        suggestion: "Rename to 'duration_seconds'"
+      - rule: "composition/no-inheritance"
+        source: "python/composition.md"
+        location: "file:line"
+        description: "Class hierarchy 3 levels deep"
+        suggestion: "Flatten with composition"
+  issues:
+    - severity: critical | high | medium
+      gate: style
+      area: naming
+      location: "file:line"
+      description: "Clear description"
+      suggestion: "Actionable fix"
+  strengths:
+    - "Good compliance observation"
+```

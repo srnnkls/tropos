@@ -1,6 +1,6 @@
-# Claude Reviewer Role
+# Claude Harness
 
-Native subagent reviewer for comprehensive, context-aware code analysis.
+Native subagent harness for context-aware review execution.
 
 ---
 
@@ -23,23 +23,39 @@ Native subagent reviewer for comprehensive, context-aware code analysis.
 
 ---
 
-## Review Focus
+## Limitations
 
-1. **Correctness:** Verify logic against similar code in codebase
-2. **Style:** Check against project conventions and patterns
-3. **Performance:** Compare with existing implementations
-4. **Security:** Apply project security standards
-5. **Architecture:** Ensure consistency with existing design
+- Single model perspective
+- May be anchored by prior context
 
 ---
 
 ## Dispatch Configuration
 
+**General role:**
 ```
 Task(
   subagent_type="general-purpose",
   model="opus",
   prompt="[Review prompt with code content]"
+)
+```
+
+**Architecture role:**
+```
+Task(
+  subagent_type="task-reviewer",
+  model="opus",
+  prompt="[Architecture review prompt with gestalt instructions]"
+)
+```
+
+**Compliance role:**
+```
+Task(
+  subagent_type="task-reviewer",
+  model="opus",
+  prompt="[Compliance review prompt with loqui instructions]"
 )
 ```
 
