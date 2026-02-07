@@ -216,9 +216,9 @@ Options:
 
 Track selections in validation data for spec-create (populates Implementation Strategy section).
 
-### Step 3.6: SDD Section Opt-ins (Features Only)
+### Step 3.6: SDD Section Opt-ins (Features/Initiatives)
 
-For Features, offer opt-in for detailed SDD sections:
+For Features and Initiatives, offer opt-in for detailed SDD sections:
 
 ```
 Header: SDD sections
@@ -228,6 +228,7 @@ Options:
 - Tech Decisions: Document technology choices and rationale
 - API Contract: Define API endpoints and schemas
 - Data Model: Document entities and relationships
+- Design: Design document with alternatives, invariants, complexity analysis
 - None: Keep spec lightweight
 ```
 
@@ -248,6 +249,23 @@ Options:
 ```
 
 Lead with your recommendation. Apply YAGNI ruthlessly.
+
+### Step 4.5: Design Probing (When Design Opt-in Selected)
+
+If the user selected **Design** in Step 3.6, probe for alternatives context:
+
+```
+Header: Alternatives
+Question: Were other approaches considered before this one?
+multiSelect: false
+Options:
+- Yes, describe: I can list rejected alternatives and why
+- Partially: Some were considered informally
+- No: This is the first approach explored
+- Skip: I'll fill in design.md directly
+```
+
+Track response in validation data. Seeds the Alternatives section of `design.md` during spec-create.
 
 ### Step 5: Generate Validation Data
 
@@ -283,7 +301,7 @@ This data passes to spec-create for validation.yaml.
 ## Output
 
 This skill produces **validation data**, not documents. The data flows to `spec-create` which generates:
-- spec.md, context.md, tasks.md, dependencies.yaml, validation.yaml
+- spec.md, context.md, design.md (if Design opt-in), tasks.yaml, dependencies.yaml, validation.yaml
 
 ---
 

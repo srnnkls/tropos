@@ -107,7 +107,7 @@ Options:
 - claude-opus: Claude Opus - native reviewer, comprehensive (Recommended)
 - claude-sonnet: Claude Sonnet - faster native review
 - openai-gpt5.2: OpenAI GPT-5.2 - base model
-- openai-gpt5.2-codex: OpenAI GPT-5.2 Codex - code-specialized
+- openai-gpt5.3-codex: OpenAI GPT-5.3 Codex - code-specialized
 - openai-gpt5.2-pro: OpenAI GPT-5.2 Pro - extended capabilities (Recommended)
 - gemini-3-flash: Google Gemini 3 Flash - fast, efficient
 - gemini-3-pro: Google Gemini 3 Pro - advanced reasoning (Recommended)
@@ -148,7 +148,7 @@ review_config:
 - `claude-opus` → `{type: claude, model: opus}`
 - `claude-sonnet` → `{type: claude, model: sonnet}`
 - `openai-gpt5.2` → `{type: opencode, model: openai/gpt-5.2}`
-- `openai-gpt5.2-codex` → `{type: opencode, model: openai/gpt-5.2-codex}`
+- `openai-gpt5.3-codex` → `{type: opencode, model: openai/gpt-5.3-codex}`
 - `openai-gpt5.2-pro` → `{type: opencode, model: openai/gpt-5.2}`
 - `gemini-3-flash` → `{type: opencode, model: google/gemini-3-flash-preview}`
 - `gemini-3-pro` → `{type: opencode, model: google/gemini-3-pro-preview}`
@@ -166,6 +166,7 @@ Generate these files:
 3. **`tasks.yaml`** - Work checklist (dignity CLI, TodoWrite sync)
 4. **`dependencies.yaml`** - Task dependency graph (parallel dispatch)
 5. **`validation.yaml`** - Audit trail and gate checks
+6. **`design.md`** - Design reasoning document (conditional: Design SDD opt-in)
 
 **Document scaling by issue type:**
 
@@ -173,6 +174,7 @@ Generate these files:
 |----------|-----------|---------|------|
 | spec.md | Full strategic | Standard | Lightweight |
 | context.md | High-level | Standard | Skip |
+| design.md | Opt-in (complex) | Opt-in | Skip |
 | tasks.yaml | Feature breakdown + phases | Task breakdown | Single task |
 | dependencies.yaml | Full DAG | Phase-based | Skip |
 | validation.yaml | Full (7 areas + gates) | Full (7 areas) | Skip |
@@ -212,6 +214,19 @@ Based on validation data and issue type, include optional sections:
 |---------|------------|---------|------|
 | Tech Decisions | Include | Opt-in | (file skipped) |
 | Data Model | Include | Opt-in | (file skipped) |
+
+**design.md:**
+
+| Section | Initiative | Feature | Task |
+|---------|------------|---------|------|
+| Problem | Opt-in | Opt-in | (file skipped) |
+| Alternatives | Opt-in | Opt-in | (file skipped) |
+| Invariants | Opt-in | Opt-in | (file skipped) |
+| Complexity | Opt-in | Opt-in | (file skipped) |
+| Verification | Opt-in | Opt-in | (file skipped) |
+| Design Notes | Opt-in | Opt-in | (file skipped) |
+
+**Design document trigger:** Created when Design SDD opt-in selected during validation. All sections optional — include only what adds value. Code sketches belong in `resources/implementation.md`.
 
 **validation.yaml:**
 
@@ -322,6 +337,7 @@ If "Yes": Invoke `spec-review` skill with the just-created spec name.
 ```
 ├── spec.md      # WHY & WHAT - Strategic requirements, acceptance criteria
 ├── context.md   # WHAT WE LEARNED - Key files, decisions, gotchas
+├── design.md    # WHY THIS WAY - Alternatives, invariants, complexity (opt-in)
 └── resources/   # HOW TO BUILD - Implementation details (when provided)
 ```
 
@@ -351,7 +367,7 @@ Only created when implementation details are provided in input. Contains structu
 | `patterns/` | Integration and test patterns |
 | `assets/` | Diagrams, screenshots, other media |
 
-**Review burden:** 2-3 documents (spec.md, context.md, resources/ when present), not 8+.
+**Review burden:** 2-4 documents (spec.md, context.md, design.md when opted in, resources/ when present), not 8+.
 
 See [guidelines.md](guidelines.md) for detailed breakdown.
 
@@ -382,6 +398,7 @@ Located in `templates/` directory:
 - [tasks.yaml](templates/tasks.yaml)
 - [spec.md](templates/spec.md)
 - [context.md](templates/context.md)
+- [design.md](templates/design.md)
 
 ---
 

@@ -52,7 +52,8 @@ The real artifact is `tasks.yaml`—a machine-readable task list that syncs with
 ```
 For humans (review these):
 ├── spec.md      # Strategic "why"
-└── context.md   # Tactical "what we learned"
+├── context.md   # Tactical "what we learned"
+└── design.md    # Design reasoning (opt-in)
 
 For tooling / deep auditing:
 ├── tasks.yaml        # Progress tracking, TodoWrite sync
@@ -60,7 +61,17 @@ For tooling / deep auditing:
 └── validation.yaml   # Audit trail, gate checks
 ```
 
-Review burden: 2 documents, not 8. The YAML files are infrastructure.
+Review burden: 2-4 documents, not 8. The YAML files are infrastructure.
+
+**context.md vs design.md:**
+
+| Aspect | context.md AD entries | design.md |
+|--------|----------------------|-----------|
+| Depth | 4-line summaries per decision | Full exploration per topic |
+| Scope | Individual decisions | Holistic design analysis |
+| Timing | Captured during implementation | Written before implementation |
+| Content | Decision + alternatives + impact | Problem quantification, invariants, complexity, verification |
+| When | Always (for Features/Initiatives) | Opt-in (when design reasoning warrants it) |
 
 ## Why LLMs Need Scaffolding
 

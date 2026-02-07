@@ -140,6 +140,14 @@ deferred:
     question: "${QUESTION_NOT_ASKED}"
   # Additional deferred items follow same structure
 
+# Design document context (opt-in via SDD sections).
+# Tracks whether design.md should be generated and what content is available.
+# Only present when Design opt-in selected during validation.
+design_context:
+  design_opted_in: ${BOOL}
+  alternatives_described: ${BOOL}
+  alternative_descriptions: []
+
 # Design readiness checklist for programmatic gate checks.
 # All items must be true for implementation to proceed.
 readiness:

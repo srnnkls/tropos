@@ -28,6 +28,7 @@ Native subagent reviewer for comprehensive, context-aware spec analysis.
 2. **Consistency:** Check against project terminology and patterns
 3. **Feasibility:** Verify dependencies exist, APIs available
 4. **Clarity:** Apply project documentation standards
+5. **Design Depth:** Verify alternatives are substantiated, invariants testable, complexity claims have evidence (n/a when no design.md)
 
 ---
 
