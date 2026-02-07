@@ -60,7 +60,7 @@ Edge case handling and decision trees for review scenarios.
 **Symptom:** User deselects all options
 
 **Response:**
-1. Default to claude-opus only
+1. Default to general-claude-opus only
 2. Warn: "No reviewers selected, defaulting to Claude. Consider external reviewer for fresh perspective."
 
 ### OpenCode Not Available
@@ -82,7 +82,7 @@ Flags override auto-detection:
 
 | Flag | Forces |
 |------|--------|
-| `--spec` | Spec mode (final review) |
+| `--spec` | Spec mode (batch review) |
 | `--rev` | Git rev/range mode |
 | `--path` | Path mode |
 | `--diff` | Diff mode (staged/unstaged) |
@@ -223,7 +223,7 @@ review-staged-<timestamp>.md          # Staged changes
 Start
   │
   ├─ Detect input type
-  │   ├─ Spec exists? → Spec mode (final review)
+  │   ├─ Spec exists? → Spec mode (batch review)
   │   ├─ Valid git rev? → Git rev mode
   │   ├─ Contains '..'? → Git range mode
   │   ├─ Path exists? → Path mode

@@ -133,7 +133,14 @@ Each tester:
 - Writes failing tests (RED)
 - Reports: test paths, failure output
 
+**GATE:** Wait for ALL testers to complete before proceeding to Phase B.
+- If any tester reports `status: gap` → handle gap (consult spec, ask user, re-dispatch). Do NOT proceed to Phase B.
+- If all testers report `status: success` → proceed to Phase B with their reports.
+
 #### Phase B: Dispatch Implementers
+
+**PRECONDITION:** Phase A complete. Every implementer MUST receive its corresponding tester_report.
+If you have no tester_report for a task, you have not run Phase A — go back and dispatch the tester first.
 
 **Single task:**
 ```
@@ -155,10 +162,11 @@ Each implementer:
 
 **CRITICAL:** Reviewers are mandatory. Every batch gets reviewed.
 
-**Get batch diff before dispatching:**
+**Resolve batch diff before dispatching:**
 ```bash
-# Diff of changes made in this batch (since last batch commit)
-git diff <last_batch_commit>..HEAD
+# last_batch_commit from checkpoint.yaml (or initial branch point for first batch)
+# diff_cmd: "git diff <last_batch_commit>..HEAD"
+# range: <last_batch_commit>..HEAD   (for gestalt diff)
 ```
 
 **Always dispatch ALL role × harness combinations in a SINGLE message for true parallelism:**
@@ -180,15 +188,15 @@ Dispatch:
 | Architecture | Architecture | `gestalt` | Claude only |
 | Compliance | Style | `loqui` | Claude only |
 
-**Review prompt includes (all role × harness combos):**
-1. Git diff of batch changes (not full files)
-2. Implementer reports (what was done)
-3. Task specs from tasks.yaml (what was required)
+**Reviewers receive pointers and load code themselves:**
+1. `{diff_cmd}` (e.g., `git diff <last_batch_commit>..HEAD`) — reviewer runs the command
+2. Spec directory path — reviewer reads `tasks.yaml` for requirements
+3. Workdir — reviewer runs all commands from this directory
 
 **Architecture role additionally runs:**
 - `gestalt analyze` — current hotspots, seams, coupling
-- `gestalt diff <last_batch_commit>..HEAD` — definition-level changes
-- `gestalt diff <last_batch_commit>..HEAD --verbose` — impact propagation
+- `gestalt diff {range}` — definition-level changes
+- `gestalt diff {range} --verbose` — impact propagation
 
 **Compliance role additionally reads:**
 - Loqui guidelines for each language in the diff (`~/.claude/skills/code-implement/resources/loqui/languages/{lang}/`)
@@ -202,7 +210,7 @@ Dispatch:
 
 # General role — Claude harness [required]
 Task(
-  subagent_type="task-reviewer",
+  subagent_type="general-purpose",
   model={claude_model},  # from review_config (opus)
   prompt=general_review_prompt  # correctness, security, performance
 )
@@ -252,13 +260,13 @@ After ALL reviewers complete:
        timestamp: <ISO_TIMESTAMP>
        commit: <SHA>
        tasks: [T001, T002]
-       reviewers:
-         - id: claude-opus
-           status: completed
-           gates: { correctness: pass, style: pass, ... }
-         - id: opencode-codex
-           status: completed | timeout | failed
-           gates: { ... }
+        reviewers:
+          - id: general-claude-opus
+            status: completed
+            gates: { correctness: pass, style: pass, ... }
+          - id: general-opencode-gpt5.3-codex
+            status: completed | timeout | failed
+            gates: { ... }
        synthesized:
          gates: { correctness: pass, style: fail, ... }
          critical_issues: <N>
@@ -370,7 +378,7 @@ Dispatch (in same message):
 final_review:
   status: completed
   timestamp: <ISO_TIMESTAMP>
-  reviewers: [claude-opus, opencode-codex, ...]
+  reviewers: [general-claude-opus, general-opencode-gpt5.3-codex, architecture-claude-opus, compliance-claude-opus, ...]
   gates: { correctness: pass, style: pass, ... }
   spec_compliance:
     all_tasks_complete: true
@@ -396,7 +404,7 @@ readiness:
 |------|---------------|-------|-------|
 | Tester | task-tester | opus | code-test |
 | Implementer | task-implementer | opus | code-implement |
-| General Reviewer | task-reviewer | opus | code-review |
+| General Reviewer | general-purpose | opus | code-review |
 | Architecture Reviewer | task-reviewer | opus | gestalt |
 | Compliance Reviewer | task-reviewer | opus | loqui |
 

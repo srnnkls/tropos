@@ -56,20 +56,22 @@ Three roles with distinct, non-overlapping concerns. Roles × harnesses dispatch
 ```
 /code.review [target]
 /code.review --spec <name>
+/code.review --final <name>
 /code.review --rev <ref>
 /code.review --path <path>
 /code.review --diff
 ```
 
 **Target types (auto-detected by default):**
-- **Spec name** → Final review of spec implementation
+- **Spec name** → Batch review (last unreviewed implementation batch)
 - **Git rev** → Review changes in commit(s)
 - **Git range** → Review changes between refs
 - **Path** → Review file or directory
 - **No argument** → Review staged/unstaged changes
 
 **Disambiguation flags (optional):**
-- `--spec` → Force spec mode (e.g., spec named "main")
+- `--spec` → Force spec mode, batch review (e.g., spec named "main")
+- `--final` → Force spec final review (full branch diff, all requirements)
 - `--rev` → Force git rev mode (e.g., path named "HEAD")
 - `--path` → Force path mode (e.g., directory named "v1.0")
 - `--diff` → Force diff mode (staged/unstaged changes)
@@ -93,7 +95,7 @@ Three roles with distinct, non-overlapping concerns. Roles × harnesses dispatch
 ```
 Input                    | Detection                           | Mode
 -------------------------|-------------------------------------|-------------
-auth-system              | ./specs/active/auth-system/ exists  | Spec (final)
+auth-system              | ./specs/active/auth-system/ exists  | Spec (batch)
 HEAD~3                   | Valid git rev                       | Git rev
 main..feature            | Valid git range                     | Git range
 abc123f                  | Valid commit SHA                    | Git rev
@@ -104,7 +106,7 @@ src/auth/                | Path exists                         | Path
 **Auto-detection priority:**
 
 1. **Check for spec:** `test -d ./specs/active/{arg}/`
-   - If exists → **Spec mode** (final review)
+   - If exists → **Spec mode** (batch review)
 2. **Check for git rev:** `git rev-parse --verify {arg} 2>/dev/null`
    - If valid → **Git rev mode**
 3. **Check for git range:** contains `..` and valid refs
@@ -125,35 +127,94 @@ src/auth/                | Path exists                         | Path
 /code.review --path main    # Force: directory named "main"
 ```
 
-### Step 2: Load Review Context
+### Step 2: Resolve Review Target
 
-**Spec mode:**
-```
-Read (in parallel):
-  ./specs/active/<spec>/spec.md        # Requirements
-  ./specs/active/<spec>/tasks.yaml     # Task definitions
-  ./specs/active/<spec>/review.yaml    # Batch review history
-  ./specs/active/<spec>/validation.yaml # Review config + reviewers
-```
+Resolve the detected input into a `review_target` — pointers that reviewers use to load code themselves. The orchestrator resolves pointers but does NOT load diff content.
 
-**Git rev/range mode:**
+**Spec mode (batch review):**
+
+Spec reviews target the *last implementation batch*, not the entire spec.
+
 ```bash
-git show <rev>              # Single commit
-git diff <range>            # Range (e.g., main..feature)
-git log --oneline <range>   # Commit messages for context
+# 1. Read checkpoint to find last batch boundary and batch tasks
+cat ./specs/active/<spec>/checkpoint.yaml   # last_commit, next_batch.tasks
+# 2. Read review history to find what's already reviewed
+cat ./specs/active/<spec>/review.yaml       # batch_reviews[-1].commit
+# 3. Read validation.yaml for review config
+cat ./specs/active/<spec>/validation.yaml   # review_config.harnesses, roles
+```
+
+Diff range = `<last_reviewed_commit>..HEAD` (or `<last_batch_commit>..HEAD` if no prior reviews).
+Tasks = `checkpoint.yaml` → `next_batch.tasks` (current batch) or derive from `tasks.yaml` (tasks with `status: in_progress` or completed since last review).
+
+If `--final` flag: diff range = entire spec branch vs base (e.g., `main..feat/<spec>`).
+
+```yaml
+review_target:
+  mode: spec
+  diff_cmd: "git diff <last_reviewed_commit>..HEAD"
+  range: "<last_reviewed_commit>..HEAD"     # for gestalt diff
+  workdir: "."                              # or worktree root
+  context: "Batch N review for spec: <name>"
+  spec_dir: "./specs/active/<name>"
+  tasks: [T001, T002]                       # from checkpoint.yaml next_batch.tasks
+```
+
+**Spec mode (final review):** `/code.review --final <spec>`
+```yaml
+review_target:
+  mode: spec-final
+  diff_cmd: "git diff main..feat/<spec>"
+  range: "main..feat/<spec>"                # for gestalt diff
+  workdir: "."
+  context: "Final review of spec: <name>"
+  spec_dir: "./specs/active/<name>"
+```
+
+**Git rev mode:**
+```yaml
+review_target:
+  mode: rev
+  diff_cmd: "git show <rev>"
+  range: "<rev>~1..<rev>"                   # for gestalt diff
+  workdir: "."
+  context: "<commit message>"
+```
+
+**Git range mode:**
+```yaml
+review_target:
+  mode: range
+  diff_cmd: "git diff <from>..<to>"
+  range: "<from>..<to>"                     # for gestalt diff
+  workdir: "."
+  context: "<from>..<to>"
 ```
 
 **Path mode:**
-```bash
-# Read file(s) at path
-# If directory, find changed files or all files
+```yaml
+review_target:
+  mode: path
+  paths:
+    - "<path>"
+  workdir: "."
+  context: "Review of <path>"
+```
+
+**Note:** Path mode has no diff_cmd or range. Architecture reviewer skips `gestalt diff` (no range available) but still runs `gestalt analyze` and `gestalt rank --file <path>` for structural context.
 ```
 
 **Diff mode:**
-```bash
-git diff --cached           # Staged changes (preferred)
-git diff                    # Unstaged changes (fallback)
+```yaml
+review_target:
+  mode: diff
+  diff_cmd: "git diff --cached"            # or "git diff" for unstaged
+  range: null                              # gestalt diff not applicable
+  workdir: "."
+  context: "Staged changes"
 ```
+
+**Worktree-aware:** If the target is inside a git worktree, set `workdir` to the worktree root. All commands in reviewer prompts run relative to `workdir`.
 
 ### Step 3: Select Reviewers
 
@@ -262,6 +323,17 @@ Task(
 
 ---
 
+### Reviewer Prompt Templates
+
+All prompts use `review_target` variables resolved in Step 2. Reviewers load code themselves — no content is pasted inline.
+
+**Variables available to all prompts:**
+- `{diff_cmd}` — command to run (e.g., `git diff main..feat/cache`, `git show abc123f`)
+- `{range}` — git range for gestalt diff (e.g., `main..feat/cache`, `HEAD~3..HEAD`); null in path/diff modes
+- `{workdir}` — directory to run commands in (repo root or worktree path)
+- `{context}` — one-line description (commit message, spec batch, PR title)
+- `{paths}` — (path mode only) file/directory paths to read directly
+
 **General Review Prompt:**
 
 ```
@@ -269,14 +341,16 @@ You are reviewing code for correctness, security, and performance.
 
 **First:** Invoke the `code-review` skill for review methodology.
 
-## Code to Review
-[Include diff or file contents]
+## What to Review
 
-## Context
-[Git commit message, PR description, or spec requirements]
+Working directory: {workdir}
+
+[if diff_cmd] Run: `{diff_cmd}`
+[if paths] Read these files: {paths}
+
+Context: {context}
 
 ## Review Focus
-Evaluate against these gates:
 
 1. **Correctness** - Logic errors, edge cases, error handling, type safety
 2. **Performance** - Efficiency, data structures, unnecessary work
@@ -284,8 +358,13 @@ Evaluate against these gates:
 
 Leave architecture and style to specialized reviewers.
 
+## Output Constraint
+Your ENTIRE final message must be ONLY the YAML report below.
+No prose, no explanation, no summary. The full subagent conversation gets embedded
+into the parent session context — every extra token costs budget.
+
 ## Output Format
-[Standard reviewer_report YAML - see reference/report.md]
+Standard reviewer_report YAML - see reference/report.md
 ```
 
 **Architecture Review Prompt:**
@@ -295,15 +374,21 @@ You are performing a structural architecture review using gestalt code intellige
 
 **First:** Invoke the `gestalt` skill.
 
-## Code to Review
-[Include diff or file contents]
+## What to Review
 
-## Gestalt Commands (run these)
+Working directory: {workdir}
+
+[if diff_cmd] Run: `{diff_cmd}`
+[if paths] Read these files: {paths}
+
+Context: {context}
+
+## Gestalt Commands (run these from {workdir})
 
 1. `gestalt analyze` — Current architecture: hotspots, seams, coupling
-2. `gestalt diff {base}..HEAD` — Definition-level changes
-3. `gestalt diff {base}..HEAD --verbose` — Impact propagation layers
-4. Run additional gestalt commands as needed:
+2. [if range] `gestalt diff {range}` — Definition-level changes
+3. [if range] `gestalt diff {range} --verbose` — Impact propagation layers
+4. Additional as needed:
    - `gestalt callers <symbol>` for changed symbols with high fan-in
    - `gestalt callees <symbol>` for changed symbols with high fan-out
    - `gestalt rank --file <changed-file>` for centrality shifts
@@ -318,8 +403,13 @@ You are performing a structural architecture review using gestalt code intellige
 
 Leave correctness, security, and style to other reviewers.
 
+## Output Constraint
+Your ENTIRE final message must be ONLY the YAML report below.
+No prose, no explanation, no summary. The full subagent conversation gets embedded
+into the parent session context — every extra token costs budget.
+
 ## Output Format
-[Architecture reviewer_report YAML - see reference/report.md#architecture-role-structural_analysis]
+Architecture reviewer_report YAML - see reference/report.md
 ```
 
 **Compliance Review Prompt:**
@@ -329,8 +419,14 @@ You are performing a language-standards compliance review using loqui guidelines
 
 **First:** Invoke the `loqui` skill.
 
-## Code to Review
-[Include diff or file contents]
+## What to Review
+
+Working directory: {workdir}
+
+[if diff_cmd] Run: `{diff_cmd}`
+[if paths] Read these files: {paths}
+
+Context: {context}
 
 ## Loqui Guidelines (read these for each language in the diff)
 
@@ -352,31 +448,44 @@ You are performing a language-standards compliance review using loqui guidelines
 
 Leave correctness, security, and performance to other reviewers.
 
+## Output Constraint
+Your ENTIRE final message must be ONLY the YAML report below.
+No prose, no explanation, no summary. The full subagent conversation gets embedded
+into the parent session context — every extra token costs budget.
+
 ## Output Format
-[Compliance reviewer_report YAML - see reference/report.md#compliance-role-compliance_analysis]
+Compliance reviewer_report YAML - see reference/report.md
 ```
 
-**Spec Mode Final Review Prompt (all reviewers):**
+**Spec Mode Appendix (appended to each reviewer's prompt):**
 
-Append to each reviewer's prompt:
+For `mode: spec` (batch review), append:
+
+```
+## Batch Context
+
+Tasks in this batch: {task_ids}
+Spec directory: {spec_dir}
+
+Read `{spec_dir}/tasks.yaml` for task requirements.
+Read `{spec_dir}/review.yaml` for prior batch review history.
+```
+
+For `mode: spec-final` (final review), append:
 
 ```
 ## Final Review Context
+
 You are performing a FINAL REVIEW of a complete spec implementation.
 
-### Spec Requirements
-[Include spec.md content]
+Spec directory: {spec_dir}
 
-### Tasks Implemented
-[Include tasks.yaml]
+Read these files for full context:
+- `{spec_dir}/spec.md` — requirements and acceptance criteria
+- `{spec_dir}/tasks.yaml` — all tasks and their status
+- `{spec_dir}/review.yaml` — batch review history and deferred issues
 
-### Batch Review History
-[Summarize from review.yaml]
-
-### Deferred Issues
-[List medium-severity issues from batch reviews]
-
-### Additional Focus
+Additional focus:
 - Spec Compliance — All requirements met? Acceptance criteria satisfied?
 - Deferred Issues — Address or document remaining issues
 - Integration — Components work together? No regressions?
@@ -403,7 +512,38 @@ After all reviewers complete:
 
 ### Step 6: Write Review Output
 
-**Spec mode** → `./specs/active/<spec>/review.yaml`:
+**Spec batch mode** → append to `./specs/active/<spec>/review.yaml`:
+
+```yaml
+batch_reviews:
+  - batch: N
+    timestamp: <ISO_TIMESTAMP>
+    commit: <SHA>
+    tasks: [T001, T002]
+    reviewers:
+      - id: general-claude-opus
+        status: completed
+        gates: { correctness: pass, performance: pass, security: pass }
+      - id: architecture-claude-opus
+        status: completed
+        gates: { architecture: pass }
+      - id: compliance-claude-opus
+        status: completed
+        gates: { style: pass }
+    synthesized:
+      gates: { correctness: pass, style: pass, performance: pass, security: pass, architecture: pass }
+      critical_issues: 0
+      high_issues: 0
+      medium_issues: 1
+    outcome: approved | changes_requested
+issues:
+  critical: [...]
+  high: [...]
+  medium: [...]
+deferred_issues: [...]
+```
+
+**Spec final mode** → write `final_review` section in `./specs/active/<spec>/review.yaml`:
 
 ```yaml
 final_review:
@@ -445,25 +585,25 @@ mkdir -p ~/.claude/reviews
 # Code Review: <target>
 
 **Date:** 2026-01-22T14:30:00Z
-**Reviewers:** claude-opus, opencode-codex
+**Reviewers:** general-claude-opus, general-opencode-gpt5.3-codex, architecture-claude-opus, compliance-claude-opus
 **Target:** HEAD~3 | main..feature | src/auth/ | staged changes
 
 ## Gate Summary
 
-| Gate         | Status | Claude | Codex  |
-|--------------|--------|--------|--------|
-| Correctness  | PASS   | pass   | pass   |
-| Style        | PASS   | pass   | pass   |
-| Performance  | PASS   | pass   | pass   |
-| Security     | FAIL   | fail   | pass   |
-| Architecture | PASS   | pass   | pass   |
+| Gate         | Status | General              | Architecture | Compliance |
+|--------------|--------|----------------------|--------------|------------|
+| Correctness  | PASS   | pass                 | —            | —          |
+| Style        | PASS   | —                    | —            | pass       |
+| Performance  | PASS   | pass                 | pass         | —          |
+| Security     | FAIL   | fail (Claude)        | —            | —          |
+| Architecture | PASS   | —                    | pass         | —          |
 
 ## Issues
 
 ### Critical
 - **[C1]** SQL injection in user input (Security)
   - Location: src/db/query.py:45
-  - Found by: claude-opus
+  - Found by: general-claude-opus
   - Suggestion: Use parameterized queries
 
 ### High
@@ -520,7 +660,7 @@ Violations: 1 (naming/5x-rule at src/utils.py:23)
 ```
 ## Critical (must fix)
 - [C1] SQL injection in user input (Security) at src/db/query.py:45
-  Found by: claude-opus
+  Found by: general-claude-opus
   Suggestion: Use parameterized queries
 
 ## High (should fix)
@@ -600,7 +740,7 @@ Next: Create PR with /pr.create or merge directly
 
 ```bash
 # Auto-detected (most common)
-/code.review auth-system      # Spec → final review
+/code.review auth-system      # Spec → batch review (last unreviewed batch)
 /code.review HEAD~3           # Git rev → last 3 commits
 /code.review main..feature    # Git range → branch diff
 /code.review abc123f          # Git rev → specific commit
@@ -609,6 +749,7 @@ Next: Create PR with /pr.create or merge directly
 
 # Disambiguation flags (when names collide)
 /code.review --spec main      # Spec named "main" (not git branch)
+/code.review --final main     # Final review of spec "main" (full branch diff)
 /code.review --rev main       # Git branch "main" (not spec/path)
 /code.review --path HEAD      # Directory named "HEAD" (not git ref)
 /code.review --rev v1.0       # Git tag "v1.0" (not path)

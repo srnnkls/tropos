@@ -37,7 +37,7 @@ Native subagent harness for context-aware review execution.
 Task(
   subagent_type="general-purpose",
   model="opus",
-  prompt="[Review prompt with code content]"
+  prompt="[Review prompt with diff pointers]"
 )
 ```
 

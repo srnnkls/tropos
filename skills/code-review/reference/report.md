@@ -10,7 +10,7 @@ Each reviewer outputs this structure:
 
 ```yaml
 reviewer_report:
-  reviewer: claude-opus | opencode-codex | gemini-3-pro | architecture-gestalt | compliance-loqui
+  reviewer: general-claude-opus | general-opencode-gpt5.3-codex | general-opencode-gemini-3-pro | architecture-claude-opus | compliance-claude-opus
 
   gates:
     correctness:
@@ -55,12 +55,12 @@ Main agent produces this after merging reviewer reports:
 
 ```yaml
 synthesized_report:
-  reviewers: [claude-opus, opencode-codex, gemini-3-pro, architecture-gestalt, compliance-loqui]
+  reviewers: [general-claude-opus, general-opencode-gpt5.3-codex, general-opencode-gemini-3-pro, architecture-claude-opus, compliance-claude-opus]
 
   gates:
     correctness:
       status: pass | fail
-      failed_by: [claude-opus]
+      failed_by: [general-claude-opus]
     style:
       status: pass | fail
       failed_by: []
@@ -69,7 +69,7 @@ synthesized_report:
       failed_by: []
     security:
       status: pass | fail
-      failed_by: [claude-opus, gemini-3-pro]
+      failed_by: [general-claude-opus, general-opencode-gemini-3-pro]
     architecture:
       status: pass | fail
       failed_by: []
@@ -82,7 +82,7 @@ synthesized_report:
       location: "src/db/query.py:45"
       description: "SQL injection via unsanitized user input"
       suggestion: "Use parameterized queries"
-      found_by: [claude-opus, gemini-3-pro]
+      found_by: [general-claude-opus, general-opencode-gemini-3-pro]
 
   strengths:
     - "Clear separation of concerns"
@@ -143,7 +143,7 @@ Architecture reviewers include this section alongside standard gates/issues:
 
 ```yaml
 reviewer_report:
-  reviewer: architecture-gestalt
+  reviewer: architecture-claude-opus
   role: architecture
   gates:
     architecture:
@@ -175,7 +175,7 @@ Compliance reviewers include this section alongside standard gates/issues:
 
 ```yaml
 reviewer_report:
-  reviewer: compliance-loqui
+  reviewer: compliance-claude-opus
   role: compliance
   gates:
     style:
