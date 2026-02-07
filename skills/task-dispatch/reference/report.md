@@ -5,9 +5,22 @@ YAML report schemas for structured handoff between subagents.
 ## Why YAML Reports
 
 - **Structured parsing** - Main agent can reliably extract data
-- **Consistent handoff** - Tester → Implementer → Reviewer
+- **Consistent handoff** - Tester -> Implementer -> Reviewer
 - **Clear status** - Success, gap, blocked states
 - **Evidence-based** - Actual outputs, not claims
+
+## Output Constraint
+
+**All subagents must return ONLY the YAML report as their final message.**
+
+No prose, no explanation, no summary. The full subagent conversation gets embedded
+into the parent session context (duplicated in `.output` and `.result` fields) —
+every extra token in the final message directly inflates parent context consumption.
+
+Truncation rules for output fields:
+- `failure_output`: last 20 lines only (summary + counts)
+- `test_output`: last 20 lines only (summary + counts)
+- `gap_reason` / `blocked_reason`: 5 lines max
 
 ---
 
@@ -28,13 +41,7 @@ tester_report:
 
   # Actual test failure output (proves RED state)
   failure_output: |
-    FAILED tests/test_feature.py::test_name_1
-    AssertionError: Expected True but got None
-
-    FAILED tests/test_feature.py::test_name_2
-    ModuleNotFoundError: No module named 'src.feature'
-
-    2 failed in 0.05s
+    [last 20 lines of test failure output only]
 
   # If status=gap, explain why tests couldn't be written
   gap_reason: null | |
@@ -66,11 +73,7 @@ implementer_report:
 
   # Actual test pass output (proves GREEN state)
   test_output: |
-    tests/test_feature.py::test_name_1 PASSED
-    tests/test_feature.py::test_name_2 PASSED
-    tests/test_feature.py::test_name_3 PASSED
-
-    3 passed in 0.15s
+    [last 20 lines of test output only]
 
   # If used AskUserQuestion, record Q&A
   clarifications:
@@ -159,7 +162,7 @@ fix_report:
 
   # Test output after fixes
   test_output: |
-    5 passed in 0.20s
+    [last 20 lines of test output only]
 
   # If status=failed, explain
   failure_reason: null | |

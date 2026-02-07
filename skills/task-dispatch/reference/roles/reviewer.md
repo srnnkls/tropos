@@ -152,6 +152,10 @@ Batch N:
 
 ## Report Format
 
+**OUTPUT CONSTRAINT:** Your ENTIRE final message must be ONLY the YAML report below.
+No prose, no explanation, no summary of what you did. The full subagent conversation
+gets embedded into the parent session context — every extra token costs budget.
+
 Each reviewer produces a YAML report with gates:
 
 ```yaml
