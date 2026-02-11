@@ -35,12 +35,12 @@ Each batch executes three phases. **A batch is NOT complete until all three phas
 │                         BATCH N                                 │
 ├─────────────────────────────────────────────────────────────────┤
 │  Phase A: TESTERS (parallel)                                    │
-│  ├── Dispatch N task-tester subagents (opus)                    │
+│  ├── Dispatch N tester subagents                                 │
 │  ├── Each writes failing tests (RED)                            │
 │  └── Wait for ALL testers                                       │
 │                          ↓                                      │
 │  Phase B: IMPLEMENTERS (parallel)                               │
-│  ├── Dispatch N task-implementer subagents (opus)               │
+│  ├── Dispatch N implementer subagents                            │
 │  ├── Each receives its tester's report                          │
 │  ├── Each makes tests pass (GREEN)                              │
 │  └── Wait for ALL implementers                                  │
@@ -49,7 +49,9 @@ Each batch executes three phases. **A batch is NOT complete until all three phas
 │  ├── General × Claude (opus) [required]                         │
 │  ├── General × OpenCode (0-N from validation.yaml)              │
 │  ├── Architecture × Claude (opus, gestalt) [required]           │
+│  ├── Architecture × OpenCode (0-N from validation.yaml)         │
 │  ├── Compliance × Claude (opus, loqui) [required]               │
+│  ├── Compliance × OpenCode (0-N from validation.yaml)           │
 │  ├── Each role reviews own gates only                            │
 │  ├── Wait for ALL                                                │
 │  └── Synthesize by role, then aggregate                          │
@@ -120,12 +122,12 @@ Parse `dependencies.yaml` to identify execution batches:
 
 **Single task:**
 ```
-Dispatch 1 task-tester (opus) → wait for completion
+Dispatch 1 tester → wait for completion
 ```
 
 **Parallel batch (N tasks):**
 ```
-Dispatch N task-testers in SINGLE message → wait for ALL
+Dispatch N testers in SINGLE message → wait for ALL
 ```
 
 Each tester:
@@ -144,12 +146,12 @@ If you have no tester_report for a task, you have not run Phase A — go back an
 
 **Single task:**
 ```
-Dispatch 1 task-implementer (opus) with tester report → wait for completion
+Dispatch 1 implementer with tester report → wait for completion
 ```
 
 **Parallel batch (N tasks):**
 ```
-Dispatch N task-implementers in SINGLE message → wait for ALL
+Dispatch N implementers in SINGLE message → wait for ALL
 Each receives its corresponding tester's report
 ```
 
@@ -172,11 +174,13 @@ Each implementer:
 **Always dispatch ALL role × harness combinations in a SINGLE message for true parallelism:**
 
 ```
-Dispatch:
+Dispatch (full cartesian product):
   - General × Claude [required]
   - General × OpenCode (0-N from validation.yaml)
   - Architecture × Claude [required]
+  - Architecture × OpenCode (0-N from validation.yaml)
   - Compliance × Claude [required]
+  - Compliance × OpenCode (0-N from validation.yaml)
 → Wait for ALL
 ```
 
@@ -185,8 +189,8 @@ Dispatch:
 | Role | Primary Gates | Skill | Harnesses |
 |------|---------------|-------|-----------|
 | General | Correctness, Security, Performance | `code-review` | Claude + OpenCode (0-N) |
-| Architecture | Architecture | `gestalt` | Claude only |
-| Compliance | Style | `loqui` | Claude only |
+| Architecture | Architecture | `gestalt` | Claude + OpenCode (0-N) |
+| Compliance | Style | `loqui` | Claude + OpenCode (0-N) |
 
 **Reviewers receive pointers and load code themselves:**
 1. `{diff_cmd}` (e.g., `git diff <last_batch_commit>..HEAD`) — reviewer runs the command
@@ -199,42 +203,31 @@ Dispatch:
 - `gestalt diff {range} --verbose` — impact propagation
 
 **Compliance role additionally reads:**
-- Loqui guidelines for each language in the diff (`~/.claude/skills/code-implement/resources/loqui/languages/{lang}/`)
+- Loqui guidelines for each language in the diff (`./skills/code-implement/resources/loqui/languages/{lang}/`)
 
 **Dispatch configuration:**
 
 **CRITICAL:** Dispatch ALL role × harness combinations in a SINGLE message for true parallelism.
 
 ```
-# Single message — all in parallel:
+# Single message — full cartesian product in parallel:
 
-# General role — Claude harness [required]
+# ── For each role (General, Architecture, Compliance): ──
+
+# {Role} — Claude harness [required for each role]
 Task(
-  subagent_type="general-purpose",
-  model={claude_model},  # from review_config (opus)
-  prompt=general_review_prompt  # correctness, security, performance
+  subagent_type="general",
+  prompt={role_review_prompt}
 )
 
-# General role — OpenCode harnesses [0-N from validation.yaml]
+# {Role} — OpenCode harnesses [0-N from validation.yaml, for each role]
 Bash(run_in_background=true):
-  timeout 1200 opencode run --model "openai/gpt-5.3-codex" --variant {reasoning_effort}-medium "{general_review_prompt}"
+  timeout 1200 opencode run --model "openai/gpt-5.3-codex" --variant {reasoning_effort}-medium "{role_review_prompt}"
 
 Bash(run_in_background=true):
-  timeout 1200 opencode run --model "google/gemini-3-pro-preview" --variant {reasoning_effort}-medium "{general_review_prompt}"
+  timeout 1200 opencode run --model "google/gemini-3-pro-preview" --variant {reasoning_effort}-medium "{role_review_prompt}"
 
-# Architecture role — Claude harness [required]
-Task(
-  subagent_type="task-reviewer",
-  model="opus",
-  prompt=architecture_review_prompt  # gestalt analyze + diff + callers/callees
-)
-
-# Compliance role — Claude harness [required]
-Task(
-  subagent_type="task-reviewer",
-  model="opus",
-  prompt=compliance_review_prompt  # loqui guidelines + naming/composition/errors
-)
+# Example with 3 roles × (1 Claude + 2 OpenCode) = 9 parallel dispatches
 ```
 
 All OpenCode models and reasoning effort configured in `validation.yaml` under `review_config`.
@@ -301,7 +294,7 @@ After ALL reviewers complete:
 ### 6. Apply Review Feedback
 
 **If Critical/High issues found:**
-1. Dispatch fix subagent(s) (task-implementer, opus)
+1. Dispatch fix subagent(s)
 2. Verify fixes with targeted review
 3. Update review.yaml with resolution
 4. Only proceed when issues resolved
@@ -355,14 +348,16 @@ After ALL batches complete, invoke `code-review` skill in **final mode**:
 /code.review --final <spec-name>
 ```
 
-Or dispatch all roles directly:
+Or dispatch all roles directly (full cartesian product):
 
 ```
 Dispatch (in same message):
   - General × Claude [required]
   - General × OpenCode (0-N from validation.yaml)
   - Architecture × Claude [required]
+  - Architecture × OpenCode (0-N from validation.yaml)
   - Compliance × Claude [required]
+  - Compliance × OpenCode (0-N from validation.yaml)
 ```
 
 **Final review checks:**
@@ -378,7 +373,7 @@ Dispatch (in same message):
 final_review:
   status: completed
   timestamp: <ISO_TIMESTAMP>
-  reviewers: [general-claude-opus, general-opencode-gpt5.3-codex, architecture-claude-opus, compliance-claude-opus, ...]
+  reviewers: [general-claude-opus, general-opencode-gpt5.3-codex, architecture-claude-opus, architecture-opencode-gpt5.3-codex, compliance-claude-opus, compliance-opencode-gpt5.3-codex, ...]
   gates: { correctness: pass, style: pass, ... }
   spec_compliance:
     all_tasks_complete: true
@@ -400,15 +395,15 @@ readiness:
 
 ## Subagent Configuration
 
-| Role | Subagent Type | Model | Skill |
-|------|---------------|-------|-------|
-| Tester | task-tester | opus | code-test |
-| Implementer | task-implementer | opus | code-implement |
-| General Reviewer | general-purpose | opus | code-review |
-| Architecture Reviewer | task-reviewer | opus | gestalt |
-| Compliance Reviewer | task-reviewer | opus | loqui |
+| Role | Subagent Type | Skill |
+|------|---------------|-------|
+| Tester | general | code-test |
+| Implementer | general | code-implement |
+| General Reviewer | general | code-review |
+| Architecture Reviewer | general | gestalt |
+| Compliance Reviewer | general | loqui |
 
-**CRITICAL:** Always specify `model: opus` for testers, implementers, and reviewers.
+**CRITICAL:** Always use `subagent_type: "general"` for all subagents. OpenCode's Task tool only supports `"general"` and `"explore"`.
 
 ---
 
@@ -429,7 +424,7 @@ readiness:
 **Never:**
 - Skip the tester phase (implementer must receive failing tests)
 - **Skip the reviewer phase (every batch must be reviewed)**
-- Use sonnet for subagents (always opus)
+- Use sonnet/explore for task subagents (always general)
 - Dispatch parallel subagents on same file
 - Let implementer write tests (tester's job)
 - Ignore failed pre-impl gates for Initiatives
@@ -454,9 +449,9 @@ readiness:
 [Load spec, create TodoWrite, checkout branch]
 
 Batch 1: Task 1 (single task)
-├── Phase A: Dispatch tester (opus)
+├── Phase A: Dispatch tester
 │   └── Tester: Wrote 3 tests, all failing (RED)
-├── Phase B: Dispatch implementer (opus) + tester report
+├── Phase B: Dispatch implementer + tester report
 │   └── Implementer: Made tests pass (GREEN)
 ├── Phase C: Dispatch reviewers (3 in parallel)
 │   ├── Claude: approved, no issues

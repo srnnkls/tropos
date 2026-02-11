@@ -87,6 +87,54 @@ batch_reviews:
       - id: general-opencode-gemini-3-pro
         status: timeout  # or completed | failed
         gates: null
+      - id: architecture-claude-opus
+        status: completed
+        gates:
+          correctness: pass
+          style: pass
+          performance: pass
+          security: pass
+          architecture: pass
+      - id: architecture-opencode-gpt5.3-codex
+        status: completed
+        gates:
+          correctness: pass
+          style: pass
+          performance: pass
+          security: pass
+          architecture: pass
+      - id: architecture-opencode-gemini-3-pro
+        status: completed
+        gates:
+          correctness: pass
+          style: pass
+          performance: pass
+          security: pass
+          architecture: pass
+      - id: compliance-claude-opus
+        status: completed
+        gates:
+          correctness: pass
+          style: pass
+          performance: pass
+          security: pass
+          architecture: pass
+      - id: compliance-opencode-gpt5.3-codex
+        status: completed
+        gates:
+          correctness: pass
+          style: pass
+          performance: pass
+          security: pass
+          architecture: pass
+      - id: compliance-opencode-gemini-3-pro
+        status: completed
+        gates:
+          correctness: pass
+          style: pass
+          performance: pass
+          security: pass
+          architecture: pass
     synthesized:
       gates:
         correctness: pass

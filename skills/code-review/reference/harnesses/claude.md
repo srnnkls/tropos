@@ -32,34 +32,16 @@ Native subagent harness for context-aware review execution.
 
 ## Dispatch Configuration
 
-**General role:**
+Dispatches any role via the Task tool. The role prompt determines review focus.
+
 ```
 Task(
-  subagent_type="general-purpose",
-  model="opus",
-  prompt="[Review prompt with diff pointers]"
+  subagent_type="general",
+  prompt="{role_review_prompt}"
 )
 ```
 
-**Architecture role:**
-```
-Task(
-  subagent_type="task-reviewer",
-  model="opus",
-  prompt="[Architecture review prompt with gestalt instructions]"
-)
-```
-
-**Compliance role:**
-```
-Task(
-  subagent_type="task-reviewer",
-  model="opus",
-  prompt="[Compliance review prompt with loqui instructions]"
-)
-```
-
-Use `model="opus"` for thorough review, `model="sonnet"` for faster results.
+The `{role_review_prompt}` is the General, Architecture, or Compliance prompt from SKILL.md Step 4.
 
 ---
 
@@ -67,6 +49,7 @@ Use `model="opus"` for thorough review, `model="sonnet"` for faster results.
 
 - Reads code thoroughly
 - May use Glob/Grep/Read to check codebase patterns
+- Runs gestalt commands (Architecture role) or reads loqui files (Compliance role) as directed by the role prompt
 - Outputs structured YAML report
 - Provides actionable suggestions with concrete fixes
 - References existing code when suggesting improvements

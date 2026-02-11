@@ -40,14 +40,16 @@ Before dispatching, analyze `dependencies.yaml` for execution batches:
 
 ```yaml
 Task:
-  subagent_type: task-tester
-  model: opus
+  subagent_type: general
   description: "Write tests for Task N: [task name]"
   prompt: |
     You are writing failing tests for Task N from [spec-file].
 
-    **First:** Invoke the `code-test` skill for TDD methodology.
-    **Second:** Invoke the `code-implement` skill for language-specific test conventions (NOT for writing implementation code — that is the implementer's job).
+    ## TDD Methodology
+    Follow RED-GREEN-REFACTOR: write failing tests first, then minimal code to pass.
+
+    ## Language Conventions
+    Read `./skills/code-implement/resources/loqui/languages/{lang}/README.md` for language-specific test conventions (NOT for writing implementation code — that is the implementer's job).
 
     **Task requirements:**
     [paste task from tasks.yaml including test_hints]
@@ -82,9 +84,9 @@ Dispatch ALL testers in a SINGLE message:
 
 ```yaml
 # Single message with multiple Task tool calls
-Task (task-tester, opus): "Write tests for Task N1" ...
-Task (task-tester, opus): "Write tests for Task N2" ...
-Task (task-tester, opus): "Write tests for Task N3" ...
+Task (general): "Write tests for Task N1" ...
+Task (general): "Write tests for Task N2" ...
+Task (general): "Write tests for Task N3" ...
 ```
 
 Wait for ALL testers to complete before dispatching implementers.
@@ -97,13 +99,13 @@ Wait for ALL testers to complete before dispatching implementers.
 
 ```yaml
 Task:
-  subagent_type: task-implementer
-  model: opus
+  subagent_type: general
   description: "Implement Task N: [task name]"
   prompt: |
     You are implementing Task N from [spec-file].
 
-    **First:** Invoke the `code-implement` skill for language guidelines.
+    ## Language Guidelines
+    Read `./skills/code-implement/resources/loqui/languages/{lang}/README.md` for language-specific conventions.
 
     **Tests written by tester:**
     ```yaml
@@ -142,9 +144,9 @@ Dispatch ALL implementers in a SINGLE message, each with its corresponding teste
 
 ```yaml
 # Single message with multiple Task tool calls
-Task (task-implementer, opus): "Implement Task N1" + tester_1_report
-Task (task-implementer, opus): "Implement Task N2" + tester_2_report
-Task (task-implementer, opus): "Implement Task N3" + tester_3_report
+Task (general): "Implement Task N1" + tester_1_report
+Task (general): "Implement Task N2" + tester_2_report
+Task (general): "Implement Task N3" + tester_3_report
 ```
 
 Wait for ALL implementers to complete before dispatching reviewers.
@@ -175,17 +177,15 @@ Reviewers receive pointers (diff command, file paths) and load code themselves. 
 - `{batch_n}` — batch number
 
 ```yaml
-# Single message — all in parallel
+# Single message — full cartesian product in parallel
+# For each role, dispatch Claude harness + all OpenCode harnesses
 
 # ── General role — Claude harness [REQUIRED] ──
 Task:
-  subagent_type: general-purpose
-  model: {claude_model}  # from review_config (opus)
+  subagent_type: general
   description: "General review: Tasks {task_ids}"
   prompt: |
     You are the GENERAL reviewer. Your gates: Correctness, Security, Performance.
-
-    **First:** Invoke the `code-review` skill for review methodology.
 
     ## What to Review
 
@@ -239,13 +239,10 @@ Bash:
 
 # ── Architecture role — Claude harness [REQUIRED] ──
 Task:
-  subagent_type: task-reviewer
-  model: opus
+  subagent_type: general
   description: "Architecture review: Tasks {task_ids}"
   prompt: |
     You are the ARCHITECTURE reviewer. Your gate: Architecture.
-
-    **First:** Invoke the `gestalt` skill.
 
     ## What to Review
 
@@ -254,7 +251,7 @@ Task:
 
     Context: Batch {batch_n} review — tasks {task_ids}
 
-    ## Gestalt Commands (run these from {workdir})
+    ## Structural Analysis (run these from {workdir})
 
     1. `gestalt analyze` — current architecture
     2. `gestalt diff {range}` — definition-level changes
@@ -299,15 +296,21 @@ Task:
         - "Positive observation"
     ```
 
+# ── Architecture role — OpenCode harnesses [0-N from validation.yaml] ──
+Bash:
+  command: timeout 1200 opencode run --model "openai/gpt-5.3-codex" --variant {reasoning_effort}-medium "{architecture_review_prompt}"
+  run_in_background: true
+
+Bash:
+  command: timeout 1200 opencode run --model "google/gemini-3-pro-preview" --variant {reasoning_effort}-medium "{architecture_review_prompt}"
+  run_in_background: true
+
 # ── Compliance role — Claude harness [REQUIRED] ──
 Task:
-  subagent_type: task-reviewer
-  model: opus
+  subagent_type: general
   description: "Compliance review: Tasks {task_ids}"
   prompt: |
     You are the COMPLIANCE reviewer. Your gate: Style.
-
-    **First:** Invoke the `loqui` skill.
 
     ## What to Review
 
@@ -319,7 +322,7 @@ Task:
     ## Loqui Guidelines
 
     1. Detect language(s) from file extensions in the diff
-    2. Read `~/.claude/skills/code-implement/resources/loqui/languages/{lang}/README.md`
+    2. Read `./skills/code-implement/resources/loqui/languages/{lang}/README.md`
     3. Read topic files relevant to the changes (quality.md, composition.md, modules.md, errors.md)
 
     ## Review Focus
@@ -362,6 +365,15 @@ Task:
       strengths:
         - "Positive observation"
     ```
+
+# ── Compliance role — OpenCode harnesses [0-N from validation.yaml] ──
+Bash:
+  command: timeout 1200 opencode run --model "openai/gpt-5.3-codex" --variant {reasoning_effort}-medium "{compliance_review_prompt}"
+  run_in_background: true
+
+Bash:
+  command: timeout 1200 opencode run --model "google/gemini-3-pro-preview" --variant {reasoning_effort}-medium "{compliance_review_prompt}"
+  run_in_background: true
 ```
 
 Wait for ALL role × harness combinations to complete before synthesizing.
@@ -375,10 +387,11 @@ review_config:
     architecture: true   # gestalt-based
     compliance: true     # loqui-based
   harnesses:
-    - openai/gpt-5.3-codex          # OpenCode for General role
-    - google/gemini-3-pro-preview    # OpenCode for General role
+    - openai/gpt-5.3-codex          # OpenCode (applied to ALL roles)
+    - google/gemini-3-pro-preview    # OpenCode (applied to ALL roles)
   # Empty harnesses list = Claude-only review (all 3 roles still run)
   # Variant = {reasoning_effort}-medium
+  # Full dispatch = roles × (1 Claude + len(harnesses) OpenCode)
 ```
 
 ---
@@ -390,7 +403,7 @@ After all role × harness combinations complete:
 1. **Parse reports** - Extract YAML from all outputs (including `structural_analysis` and `compliance_analysis`)
 2. **Group by role** - Aggregate harness results within each role first
 3. **Merge issues within role:**
-   - General role: deduplicate across Claude + OpenCode harnesses
+   - Deduplicate across Claude + OpenCode harnesses within each role
    - Issues flagged by multiple harnesses = higher confidence
 4. **Merge issues across roles:**
    - Deduplicate by location + description similarity
@@ -438,8 +451,7 @@ When review finds Critical/High issues:
 
 ```yaml
 Task:
-  subagent_type: task-implementer
-  model: opus
+  subagent_type: general
   description: "Fix issues from batch review"
   prompt: |
     Fix these issues from code review:
@@ -487,12 +499,12 @@ Build Execution Batches
     |         |
     |    YES: Phase A: Dispatch 1 tester (opus)
     |         Phase B: Dispatch 1 implementer (opus)
-    |         Phase C: Dispatch 3+N reviewers (3 roles × harnesses, parallel)
+    |         Phase C: Dispatch reviewers (roles × harnesses, parallel)
     |         |
     |    NO (parallel [P] tasks):
     |         Phase A: Dispatch N testers (single message)
     |         Phase B: Dispatch N implementers (single message)
-    |         Phase C: Dispatch 3+N reviewers (3 roles × harnesses, single message)
+    |         Phase C: Dispatch reviewers (roles × harnesses, single message)
     |         |
     |         v
     +--> Synthesize Reviews
@@ -509,12 +521,12 @@ Build Execution Batches
 [Next Batch]
     |
     v
-Final Review (3 roles × harnesses in parallel)
+Final Review (roles × harnesses in parallel)
     |
     v
 Done
 
-(3+N = 3 roles [General, Architecture, Compliance] × Claude + N OpenCode [General only])
+(roles × harnesses = {General, Architecture, Compliance} × {Claude + N OpenCode models})
 ```
 
 ---
@@ -530,8 +542,7 @@ If tester reports `status: gap`:
 
 ```yaml
 Task:
-  subagent_type: task-tester
-  model: opus
+  subagent_type: general
   description: "Write tests for Task N (clarified)"
   prompt: |
     Previous attempt reported gap: [gap_reason]
@@ -562,12 +573,12 @@ If OpenCode reviewer times out (> 5 minutes):
 
 ## Best Practices
 
-1. **Always opus** - Never use sonnet for task subagents
+1. **subagent_type: general** - Use `general` for all task subagents
 2. **Tester first** - Implementer must receive failing tests
 3. **All three roles mandatory** - Every batch gets General + Architecture + Compliance review
 4. **YAML reports** - Structured handoff between phases
 5. **Single message dispatch** - All role × harness combinations in one message
 6. **Fresh context** - Each subagent starts clean
 7. **Track progress** - Update TodoWrite after each phase
-8. **Configure harnesses** - Set OpenCode models in validation.yaml (General role only)
+8. **Configure harnesses** - Set OpenCode models in validation.yaml (applied to ALL roles)
 9. **Minimize subagent output** - Subagent final messages get embedded into parent context (duplicated in `.output` and `.result`). Every extra token directly inflates parent context. Subagents must return ONLY the YAML report — no prose, no explanation.

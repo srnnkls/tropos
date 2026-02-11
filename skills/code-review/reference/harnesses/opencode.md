@@ -9,7 +9,7 @@ External subprocess harness for fresh-perspective review execution.
 - **Fresh perspective:** No prior context, sees code as newcomer would
 - **Multiple models:** OpenAI or Google, different reasoning patterns
 - **Independent:** Separate process, no shared state
-- **Code-focused:** Specialized models available (Codex)
+- **Full tool access:** Can run gestalt, read loqui files, execute git commands
 
 ---
 
@@ -20,6 +20,7 @@ External subprocess harness for fresh-perspective review execution.
 - Simulates new team member perspective
 - Validates readability for external audiences
 - Code-specialized models excel at pattern detection
+- Full tool access enables all review roles (General, Architecture, Compliance)
 
 ---
 
@@ -47,20 +48,24 @@ Format: `{reasoning}-medium` (verbosity fixed at medium)
 
 ## Dispatch Configuration
 
+Dispatches any role via `opencode run`. The role prompt determines review focus.
+
 **Template:**
 ```bash
-timeout 1200 opencode run --model "{MODEL}" --variant high-medium "[Review prompt with code content]"
+timeout 1200 opencode run --model "{MODEL}" --variant high-medium "{role_review_prompt}"
 ```
+
+The `{role_review_prompt}` is the General, Architecture, or Compliance prompt from SKILL.md Step 4.
 
 **Examples:**
 ```bash
-# OpenAI Codex (code-focused, recommended)
+# Any role × OpenAI Codex
 opencode run --model "openai/gpt-5.3-codex" --variant high-medium "{prompt}"
 
-# OpenAI GPT-5.2 Pro
+# Any role × OpenAI GPT-5.2
 opencode run --model "openai/gpt-5.2" --variant high-medium "{prompt}"
 
-# Google Gemini 3 Pro
+# Any role × Google Gemini 3 Pro
 opencode run --model "google/gemini-3-pro-preview" --variant high-medium "{prompt}"
 ```
 
@@ -70,17 +75,16 @@ opencode run --model "google/gemini-3-pro-preview" --variant high-medium "{promp
 
 ## Limitations
 
-- Cannot verify against actual codebase
+- No prior session context (fresh perspective — this is also a strength)
 - May flag "issues" that are project conventions
-- Limited context for architecture assessment
 - Depends on external service availability
 
 ---
 
 ## Expected Behavior
 
-- Analyzes only provided code
-- No access to codebase (fresh perspective)
+- Runs `{diff_cmd}` or reads files as directed by the role prompt
+- Runs gestalt commands (Architecture role) or reads loqui files (Compliance role) as directed
 - Outputs structured YAML report
 - Highlights clarity and readability issues effectively
 - Catches common anti-patterns

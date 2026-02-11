@@ -32,13 +32,15 @@ Three roles with distinct, non-overlapping concerns. Roles × harnesses dispatch
 
 ### Roles × Harnesses
 
+Full cartesian product: every role can run on every harness.
+
 | Role | Claude | OpenCode |
 |------|--------|----------|
 | General | 1 (required) | 0-N (from validation.yaml) |
-| Architecture | 1 (required) | — (needs gestalt tools) |
-| Compliance | 1 (required) | — (needs loqui file reads) |
+| Architecture | 1 (required) | 0-N (from validation.yaml) |
+| Compliance | 1 (required) | 0-N (from validation.yaml) |
 
-**Cascade logic:** General covers breadth (and gets external harness diversity). Architecture goes deep on structure. Compliance goes deep on standards. Each role owns its gates.
+**Cascade logic:** Each role owns its gates. Claude harness provides context-aware review. OpenCode harnesses provide fresh perspective with different models. All harnesses have full tool access (gestalt, loqui file reads, git).
 
 ---
 
@@ -228,9 +230,11 @@ review_config:
     architecture: true   # gestalt-based structural review
     compliance: true     # loqui-based standards review
   harnesses:
-    - openai/gpt-5.3-codex           # OpenCode harness for General role
-    - google/gemini-3-pro-preview     # OpenCode harness for General role
+    - openai/gpt-5.3-codex           # OpenCode harness (applied to ALL roles)
+    - google/gemini-3-pro-preview     # OpenCode harness (applied to ALL roles)
 ```
+
+Harnesses listed here apply to every enabled role. Each role × harness combination dispatches in parallel.
 
 **Other modes:** Use **AskUserQuestion**:
 
@@ -247,10 +251,10 @@ Options:
 
 **Default selection:** general, architecture, compliance
 
-**Question 2:** Select OpenCode harnesses for General role:
+**Question 2:** Select OpenCode harnesses (applied to all roles):
 ```
 Header: Harnesses
-Question: Which external models should run the General review?
+Question: Which external models should provide additional review perspectives?
 multiSelect: true
 Options:
 - openai-gpt5.3-codex: OpenAI GPT-5.3 Codex — code-specialized (Recommended)
@@ -275,14 +279,16 @@ Options:
 
 **Default:** medium
 
-**Dispatch mapping:**
+**Dispatch mapping (role × harness):**
 
-| Role | Harness | Tool | Dispatch |
-|------|---------|------|----------|
-| General | Claude | Task | `subagent_type="general-purpose"`, `model="opus"` |
-| General | OpenCode | Bash | `opencode run --model "{model}" --variant {reasoning}-medium` |
-| Architecture | Claude | Task | `subagent_type="task-reviewer"`, `model="opus"` + gestalt |
-| Compliance | Claude | Task | `subagent_type="task-reviewer"`, `model="opus"` + loqui |
+Every combination uses the same role prompt. Harness determines dispatch mechanics only.
+
+| Harness | Tool | Dispatch Template |
+|---------|------|-------------------|
+| Claude | Task | `Task(subagent_type="general", prompt={role_prompt})` |
+| OpenCode | Bash | `opencode run --model "{model}" --variant {reasoning}-medium "{role_prompt}"` |
+
+Roles provide the prompt content (gates, focus, report schema). Harnesses provide the transport.
 
 ### Step 4: Dispatch Reviewers in Parallel
 
@@ -290,35 +296,36 @@ Options:
 
 **Dispatch:**
 
+Generate the full cartesian product: roles × harnesses. All combinations dispatch in the SAME message.
+
 ```
-# Single message — all in parallel:
+# Single message — all role × harness combinations in parallel:
 
-# General role — Claude harness [required]
+# ── For each role (General, Architecture, Compliance): ──
+
+# {Role} — Claude harness [required for each role]
 Task(
-  subagent_type="general-purpose",
-  model="opus",
-  prompt=general_review_prompt
+  subagent_type="general",
+  prompt={role_review_prompt}
 )
 
-# General role — OpenCode harnesses [0-N from config]
+# {Role} — OpenCode harnesses [0-N from config, for each role]
 Bash(run_in_background=true):
-  timeout 1200 opencode run --model "openai/gpt-5.3-codex" --variant {reasoning}-medium "{general_review_prompt}"
+  timeout 1200 opencode run --model "{model_1}" --variant {reasoning}-medium "{role_review_prompt}"
 Bash(run_in_background=true):
-  timeout 1200 opencode run --model "google/gemini-3-pro-preview" --variant {reasoning}-medium "{general_review_prompt}"
+  timeout 1200 opencode run --model "{model_2}" --variant {reasoning}-medium "{role_review_prompt}"
 
-# Architecture role — Claude harness [required]
-Task(
-  subagent_type="task-reviewer",
-  model="opus",
-  prompt=architecture_review_prompt
-)
-
-# Compliance role — Claude harness [required]
-Task(
-  subagent_type="task-reviewer",
-  model="opus",
-  prompt=compliance_review_prompt
-)
+# Example with 3 roles × (1 Claude + 2 OpenCode) = 9 parallel dispatches:
+#
+# General × Claude
+# General × openai/gpt-5.3-codex
+# General × google/gemini-3-pro-preview
+# Architecture × Claude
+# Architecture × openai/gpt-5.3-codex
+# Architecture × google/gemini-3-pro-preview
+# Compliance × Claude
+# Compliance × openai/gpt-5.3-codex
+# Compliance × google/gemini-3-pro-preview
 ```
 
 ---
@@ -337,9 +344,7 @@ All prompts use `review_target` variables resolved in Step 2. Reviewers load cod
 **General Review Prompt:**
 
 ```
-You are reviewing code for correctness, security, and performance.
-
-**First:** Invoke the `code-review` skill for review methodology.
+You are the GENERAL reviewer. Your gates: Correctness, Security, Performance.
 
 ## What to Review
 
@@ -370,9 +375,7 @@ Standard reviewer_report YAML - see reference/report.md
 **Architecture Review Prompt:**
 
 ```
-You are performing a structural architecture review using gestalt code intelligence.
-
-**First:** Invoke the `gestalt` skill.
+You are the ARCHITECTURE reviewer. Your gate: Architecture.
 
 ## What to Review
 
@@ -383,7 +386,7 @@ Working directory: {workdir}
 
 Context: {context}
 
-## Gestalt Commands (run these from {workdir})
+## Structural Analysis (run these from {workdir})
 
 1. `gestalt analyze` — Current architecture: hotspots, seams, coupling
 2. [if range] `gestalt diff {range}` — Definition-level changes
@@ -415,9 +418,7 @@ Architecture reviewer_report YAML - see reference/report.md
 **Compliance Review Prompt:**
 
 ```
-You are performing a language-standards compliance review using loqui guidelines.
-
-**First:** Invoke the `loqui` skill.
+You are the COMPLIANCE reviewer. Your gate: Style.
 
 ## What to Review
 
@@ -431,7 +432,8 @@ Context: {context}
 ## Loqui Guidelines (read these for each language in the diff)
 
 1. Detect language(s) from file extensions
-2. Read `~/.claude/skills/code-implement/resources/loqui/languages/{language}/README.md`
+2. Read loqui language guidelines from:
+   `./skills/code-implement/resources/loqui/languages/{language}/README.md`
 3. Read topic files relevant to the changes:
    - quality.md — naming, comments, documentation
    - composition.md — structuring behavior
@@ -524,10 +526,19 @@ batch_reviews:
       - id: general-claude-opus
         status: completed
         gates: { correctness: pass, performance: pass, security: pass }
+      - id: general-opencode-gpt5.3-codex
+        status: completed
+        gates: { correctness: pass, performance: pass, security: pass }
       - id: architecture-claude-opus
         status: completed
         gates: { architecture: pass }
+      - id: architecture-opencode-gpt5.3-codex
+        status: completed
+        gates: { architecture: pass }
       - id: compliance-claude-opus
+        status: completed
+        gates: { style: pass }
+      - id: compliance-opencode-gpt5.3-codex
         status: completed
         gates: { style: pass }
     synthesized:
@@ -585,7 +596,7 @@ mkdir -p ~/.claude/reviews
 # Code Review: <target>
 
 **Date:** 2026-01-22T14:30:00Z
-**Reviewers:** general-claude-opus, general-opencode-gpt5.3-codex, architecture-claude-opus, compliance-claude-opus
+**Reviewers:** general-claude-opus, general-opencode-gpt5.3-codex, architecture-claude-opus, architecture-opencode-gpt5.3-codex, compliance-claude-opus, compliance-opencode-gpt5.3-codex
 **Target:** HEAD~3 | main..feature | src/auth/ | staged changes
 
 ## Gate Summary

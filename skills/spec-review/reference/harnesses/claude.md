@@ -33,13 +33,12 @@ Native subagent harness for context-aware spec review execution.
 
 ```
 Task(
-  subagent_type="general-purpose",
-  model="opus",
+  subagent_type="general",
   prompt="[Review prompt with spec content]"
 )
 ```
 
-Always use `model="opus"` for quality.
+Always use `subagent_type="general"` for Claude reviewers.
 
 ---
 

@@ -75,8 +75,8 @@ Options:
 **Default:** medium
 
 **Model mapping to commands:**
-- `claude-opus` → Task tool with `model: "opus"`
-- `claude-sonnet` → Task tool with `model: "sonnet"`
+- `claude-opus` → Task tool with `subagent_type: "general"`
+- `claude-sonnet` → Task tool with `subagent_type: "general"`
 
 Provider determines the model path prefix:
 
@@ -153,8 +153,7 @@ reviewer_report:
 **Claude reviewers (Task tool):**
 ```python
 Task(
-  subagent_type="general-purpose",
-  model="opus",  # or "sonnet"
+  subagent_type="general",
   prompt=review_prompt
 )
 ```

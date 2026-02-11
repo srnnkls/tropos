@@ -1,6 +1,6 @@
 # Compliance Reviewer Role
 
-Language-standard compliance reviewer using loqui guidelines.
+Language-standard compliance reviewer using loqui guidelines. Runs on any harness (Claude or OpenCode).
 
 ---
 
@@ -10,6 +10,7 @@ Language-standard compliance reviewer using loqui guidelines.
 - **Language-specific:** Loads guidelines for each language present in the diff
 - **Pattern-focused:** Checks naming, composition, module structure, error handling
 - **Prescriptive:** References specific loqui rules in findings
+- **Harness-agnostic:** Works on Claude (native subagent) and OpenCode (external subprocess) — both can read loqui files
 
 ---
 
@@ -42,7 +43,7 @@ Language-standard compliance reviewer using loqui guidelines.
 The reviewer reads guidelines for each language detected in the diff:
 
 ```
-~/.claude/skills/code-implement/resources/loqui/languages/{language}/
+./skills/code-implement/resources/loqui/languages/{language}/
 ├── README.md        # Core principles, anti-patterns checklist
 ├── quality.md       # Naming, comments, documentation
 ├── composition.md   # Structuring behavior
