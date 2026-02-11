@@ -84,11 +84,11 @@ Execute the next batch using the same pipeline as `task-dispatch`:
 
 ```
 Phase A: TESTERS
-├── Dispatch task-tester(s) for next_batch.tasks
+├── Dispatch tester(s) for next_batch.tasks
 └── Wait for completion
 
 Phase B: IMPLEMENTERS
-├── Dispatch task-implementer(s) with tester reports
+├── Dispatch implementer(s) with tester reports
 └── Wait for completion
 
 Phase C: REVIEWERS
@@ -97,7 +97,7 @@ Phase C: REVIEWERS
 ```
 
 **CRITICAL:** Follow all `task-dispatch` rules:
-- Always use `model: opus` for subagents
+- Always use `subagent_type: "general"` for subagents
 - Dispatch parallel subagents in single message
 - Never skip reviewer phase
 - Fix Critical/High issues before proceeding

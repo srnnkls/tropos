@@ -4,7 +4,7 @@ Write failing tests for task requirements (RED phase of TDD).
 
 ## Subagent
 
-`task-tester` with `model: opus`
+`subagent_type: "general"`
 
 ## Purpose
 
@@ -12,8 +12,8 @@ The tester writes tests BEFORE any implementation exists. Tests must fail becaus
 
 ## Skills to Invoke
 
-**First action:** Invoke `code-test` skill for TDD methodology.
-**Second action:** Invoke `code-implement` skill for language-specific test patterns.
+**First action:** Read `./skills/code-test/SKILL.md` for TDD methodology.
+**Second action:** Read `./skills/code-implement/resources/loqui/languages/{lang}/README.md` for language-specific test patterns.
 
 ## Responsibilities
 

@@ -18,18 +18,20 @@ Multi-agent review of batch implementations. Multiple reviewers run in parallel 
 
 | Harness | Type | Tool |
 |---------|------|------|
-| **Claude** | Native subagent | Task (task-reviewer) |
+| **Claude** | Native subagent | Task (general) |
 | **OpenCode** | External subprocess | Bash (opencode, background) |
 
 ### Roles × Harnesses
 
+Full cartesian product: every role dispatches on every harness.
+
 | Role | Claude | OpenCode |
 |------|--------|----------|
 | General | 1 (required) | 0-N (from validation.yaml) |
-| Architecture | 1 (required) | — (needs gestalt tools) |
-| Compliance | 1 (required) | — (needs loqui file reads) |
+| Architecture | 1 (required) | 0-N (from validation.yaml) |
+| Compliance | 1 (required) | 0-N (from validation.yaml) |
 
-**Common OpenCode models (General role):**
+**Common OpenCode models (all roles):**
 - `openai/gpt-5.3-codex` - Code-specialized, fresh perspective
 - `google/gemini-3-pro-preview` - Different reasoning, catches edge cases
 - `openai/gpt-5.2` - Extended capabilities
@@ -101,35 +103,24 @@ implementer_report:
 **CRITICAL:** Dispatch ALL role × harness combinations in a SINGLE message for true parallelism.
 
 ```
-# Single message — all in parallel:
+# Single message — full cartesian product in parallel:
 
-# General role — Claude harness [required]
+# ── For each role (General, Architecture, Compliance): ──
+
+# {Role} — Claude harness [required for each role]
 Task(
-  subagent_type="task-reviewer",
-  model={claude_model},  # from review_config (opus)
-  prompt=general_review_prompt  # correctness, security, performance
+  subagent_type="general",
+  prompt={role_review_prompt}
 )
 
-# General role — OpenCode harnesses [0-N from validation.yaml]
+# {Role} — OpenCode harnesses [0-N from validation.yaml, for each role]
 Bash(run_in_background=true):
-  timeout 1200 opencode run --model "openai/gpt-5.3-codex" --variant {reasoning_effort}-medium "{general_review_prompt}"
+  timeout 1200 opencode run --model "openai/gpt-5.3-codex" --variant {reasoning_effort}-medium "{role_review_prompt}"
 
 Bash(run_in_background=true):
-  timeout 1200 opencode run --model "google/gemini-3-pro-preview" --variant {reasoning_effort}-medium "{general_review_prompt}"
+  timeout 1200 opencode run --model "google/gemini-3-pro-preview" --variant {reasoning_effort}-medium "{role_review_prompt}"
 
-# Architecture role — Claude harness [required]
-Task(
-  subagent_type="task-reviewer",
-  model="opus",
-  prompt=architecture_review_prompt  # gestalt analyze + diff + structural analysis
-)
-
-# Compliance role — Claude harness [required]
-Task(
-  subagent_type="task-reviewer",
-  model="opus",
-  prompt=compliance_review_prompt  # loqui guidelines + naming/composition/errors
-)
+# Example with 3 roles × (1 Claude + 2 OpenCode) = 9 parallel dispatches
 ```
 
 All OpenCode models and reasoning effort configured in `validation.yaml` under `review_config`.
@@ -143,11 +134,13 @@ Review prompts per role: see `code-review` skill Step 4.
 Batch N:
 ├── Phase A: Testers (parallel)
 ├── Phase B: Implementers (parallel)
-└── Phase C: Reviewers (3+N in parallel) ← this role
+└── Phase C: Reviewers (roles × harnesses in parallel) ← this role
     ├── General × Claude [required]
     ├── General × OpenCode (0-N from validation.yaml)
     ├── Architecture × Claude [required]
-    └── Compliance × Claude [required]
+    ├── Architecture × OpenCode (0-N from validation.yaml)
+    ├── Compliance × Claude [required]
+    └── Compliance × OpenCode (0-N from validation.yaml)
 ```
 
 ## Report Format
@@ -285,11 +278,20 @@ Review is good when it:
 
 **Batch:** Tasks T002, T003, T004 (parallel)
 
-**Dispatch (single message):**
+**Dispatch (single message, full cartesian product):**
 ```
-Task(task-reviewer, {claude_model}): "Review batch T002-T004" ...
-Bash(background): opencode run --model "openai/gpt-5.3-codex" --variant {reasoning_effort}-medium ...
-Bash(background): opencode run --model "google/gemini-3-pro-preview" --variant {reasoning_effort}-medium ...
+# 3 roles × Claude
+Task(general): "General review: batch T002-T004" ...
+Task(general): "Architecture review: batch T002-T004" ...
+Task(general): "Compliance review: batch T002-T004" ...
+# 3 roles × OpenCode model 1
+Bash(background): opencode run --model "openai/gpt-5.3-codex" --variant {reasoning_effort}-medium "General review: ..."
+Bash(background): opencode run --model "openai/gpt-5.3-codex" --variant {reasoning_effort}-medium "Architecture review: ..."
+Bash(background): opencode run --model "openai/gpt-5.3-codex" --variant {reasoning_effort}-medium "Compliance review: ..."
+# 3 roles × OpenCode model 2
+Bash(background): opencode run --model "google/gemini-3-pro-preview" --variant {reasoning_effort}-medium "General review: ..."
+Bash(background): opencode run --model "google/gemini-3-pro-preview" --variant {reasoning_effort}-medium "Architecture review: ..."
+Bash(background): opencode run --model "google/gemini-3-pro-preview" --variant {reasoning_effort}-medium "Compliance review: ..."
 ```
 
 **Individual Outputs:**

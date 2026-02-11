@@ -61,7 +61,7 @@ Write all stances to the scratchpad's Team Positions section.
 Launch all team subagents **simultaneously** using the Task tool:
 
 ```
-Task(subagent_type="general-purpose", prompt="""
+Task(subagent_type="general", prompt="""
 You are the {COLOR} TEAM in a debate on: {topic}
 
 Your stance: {stance}
@@ -77,7 +77,7 @@ Gather evidence before writing using read-only tools.
 - WebFetch: Retrieve specific documentation, articles, or technical references
 
 For deep research questions, spawn focused subagents:
-  Task(subagent_type="general-purpose", prompt="Research {specific question}...")
+  Task(subagent_type="general", prompt="Research {specific question}...")
 
 ## Writing Phase
 1. Read ./debates/{topic}_{context}.md

@@ -4,7 +4,7 @@ Make failing tests pass (GREEN phase of TDD).
 
 ## Subagent
 
-`task-implementer` with `model: opus`
+`subagent_type: "general"`
 
 ## Purpose
 
@@ -12,7 +12,7 @@ The implementer receives failing tests from the tester and writes minimal code t
 
 ## Skills to Invoke
 
-**First action:** Invoke `code-implement` skill for language-specific guidelines.
+**First action:** Read `./skills/code-implement/resources/loqui/languages/{lang}/README.md` for language-specific guidelines.
 
 ## Input
 

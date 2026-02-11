@@ -10,7 +10,7 @@ Each reviewer outputs this structure:
 
 ```yaml
 reviewer_report:
-  reviewer: general-claude-opus | general-opencode-gpt5.3-codex | general-opencode-gemini-3-pro | architecture-claude-opus | compliance-claude-opus
+  reviewer: {role}-{harness}-{model}  # e.g., general-claude-opus, architecture-opencode-gpt5.3-codex, compliance-opencode-gemini-3-pro
 
   gates:
     correctness:
@@ -55,7 +55,7 @@ Main agent produces this after merging reviewer reports:
 
 ```yaml
 synthesized_report:
-  reviewers: [general-claude-opus, general-opencode-gpt5.3-codex, general-opencode-gemini-3-pro, architecture-claude-opus, compliance-claude-opus]
+  reviewers: [general-claude-opus, general-opencode-gpt5.3-codex, architecture-claude-opus, architecture-opencode-gpt5.3-codex, compliance-claude-opus, compliance-opencode-gpt5.3-codex]  # full cartesian product
 
   gates:
     correctness:
