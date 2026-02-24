@@ -30,6 +30,16 @@ cd "/path with spaces/dir"
 rm -rf ./build  # Not $HOME/...
 ```
 
+> **Policy:** Always use relative paths with `rm` commands. Absolute paths involving critical directories (`$HOME`, `/`, etc.) are blocked by policy.
+>
+> ```bash
+> # ✗ WRONG: Absolute path involving $HOME - blocked
+> rm -rf $HOME/project/build
+>
+> # ✓ CORRECT: Relative path
+> rm -rf ./build
+> ```
+
 **Chain commands:**
 ```bash
 cmd1 && cmd2 && cmd3  # Stop on failure
