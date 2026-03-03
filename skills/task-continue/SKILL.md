@@ -2,7 +2,13 @@
 name: task-continue
 description: Resume spec implementation from checkpoint. Use when continuing task-dispatch after context limit or session break.
 user-invocable: continue
+argument-hint: "[spec-name]"
 ---
+
+## Pre-loaded Context
+
+Available checkpoints:
+!`ls -t ./specs/active/*/checkpoint.yaml 2>/dev/null | head -5`
 
 # Task Continue Skill
 

@@ -1,7 +1,19 @@
 ---
 name: pr-review
 description: Review GitHub PRs with inline comments and structured summaries. Use when reviewing PRs via gh CLI.
+argument-hint: "[pr-number-or-url]"
 ---
+
+## Pre-loaded PR Context
+
+PR metadata:
+!`gh pr view $0 --json title,body,additions,deletions,files,commits 2>/dev/null`
+
+PR diff:
+!`gh pr diff $0 2>/dev/null`
+
+Pending draft comments:
+!`gh review comments $0 --mine --states=pending 2>/dev/null`
 
 # PR Review Skill
 
@@ -32,6 +44,8 @@ Use **AskUserQuestion** to gather configuration (see `code-review` for details):
 
 ### Step 2: Fetch PR Context
 
+If pre-loaded context above is populated, skip fetching. Otherwise (cross-repo or no argument):
+
 ```bash
 gh pr view {pr} --repo {owner}/{repo} --json title,body,files,commits,additions,deletions
 gh pr diff {pr} --repo {owner}/{repo}
@@ -40,7 +54,7 @@ gh api repos/{owner}/{repo}/pulls/{pr} --jq '.head.sha'  # Get commit SHA
 
 ### Step 3: Check Existing Drafts
 
-Fetch any pending review from previous session:
+If pre-loaded draft comments above are populated, skip fetching. Otherwise:
 
 ```bash
 gh review comments {pr} -R {owner}/{repo} --mine --states=pending

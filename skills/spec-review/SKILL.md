@@ -1,6 +1,7 @@
 ---
 name: spec-review
 description: Multi-agent spec review with parallel Claude/OpenCode reviewers. Use after spec-create or standalone via /spec.review.
+argument-hint: "[spec-dir]"
 ---
 
 # Spec Review Skill

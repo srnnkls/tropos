@@ -1,6 +1,7 @@
 ---
 name: debate-start
 description: Start structured red vs. blue team debates via subagents. Use when exploring a topic from multiple adversarial perspectives.
+argument-hint: "[topic]"
 ---
 
 # Start Debate Skill

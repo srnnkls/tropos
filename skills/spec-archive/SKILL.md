@@ -1,6 +1,7 @@
 ---
 name: spec-archive
 description: Archive completed development specs from ./specs/active/ to ./specs/archive/, updating documents with completion status and maintaining archive index. Use when finishing tasks or moving completed work to archive.
+argument-hint: "[spec-name]"
 ---
 
 # Spec Archive Skill

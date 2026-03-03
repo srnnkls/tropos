@@ -1,6 +1,7 @@
 ---
 name: spec-issues-create
 description: Generate GitHub issue drafts from spec directories, creating initiative/feature/task markdown files with gh CLI commands. Use when converting specs to GitHub issues or setting up issue tracking for features.
+argument-hint: "[spec-dir]"
 ---
 
 # Spec Issues Skill
