@@ -1,7 +1,22 @@
 ---
 name: spec-update
 description: Update spec documents by analyzing git history to sync task status with reality.
+argument-hint: "[spec-path] [--mode=status|content|full]"
 ---
+
+## Pre-loaded Context
+
+Working directory:
+!`git status --short`
+
+Branches:
+!`git branch -vv`
+
+Recent commits:
+!`git log --oneline -20`
+
+Active specs:
+!`ls -d ./specs/active/*/ 2>/dev/null`
 
 # Spec Update Skill
 

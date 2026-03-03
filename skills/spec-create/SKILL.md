@@ -1,6 +1,7 @@
 ---
 name: spec-create
 description: Create spec documents (spec.md, context.md, tasks.yaml, dependencies.yaml, validation.yaml). Receives validation data from spec-validate.
+argument-hint: "[spec-name]"
 ---
 
 # Spec Creation Skill
