@@ -5,7 +5,7 @@ Implementation review tracking in `review.yaml`. Mirrors validation.yaml structu
 ## Location
 
 ```
-./specs/active/<spec-name>/review.yaml
+./scopes/<spec-name>/review.yaml
 ```
 
 ## Schema
@@ -19,8 +19,8 @@ Implementation review tracking in `review.yaml`. Mirrors validation.yaml structu
 # task-continue) and human review.
 
 metadata:
-  spec_name: ${SPEC_NAME}
-  spec_path: ./specs/active/${SPEC_NAME}
+  scope_name: ${SPEC_NAME}
+  scope_path: ./scopes/${SPEC_NAME}
   branch: feat/${SPEC_NAME}
   created: ${DATE}
   last_updated: ${TIMESTAMP}
@@ -212,7 +212,7 @@ final_review:
     performance: pending
     security: pending
     architecture: pending
-  spec_compliance:
+  scope_compliance:
     all_tasks_complete: ${BOOL}
     acceptance_criteria_met: ${BOOL}
     edge_cases_handled: ${BOOL}

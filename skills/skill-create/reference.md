@@ -96,7 +96,7 @@ Use YAML list syntax for cleaner declarations.
 
 ### Operational Skills
 
-**Examples:** `spec-create`, `spec-archive`
+**Examples:** `scope`
 
 **Characteristics:**
 - Multi-step workflow modifying files/state
@@ -115,7 +115,7 @@ Use YAML list syntax for cleaner declarations.
 
 ### Generation Skills
 
-**Examples:** `spec-issues-create`
+**Examples:** `docs-implement`
 
 **Characteristics:**
 - Transform one format to another
@@ -182,13 +182,13 @@ $ARGUMENTS
 
 ## Task
 
-Use the `spec-create` skill to create planning documents.
+Use the `scope` skill to create planning documents.
 
-**Input:** `$ARGUMENTS` (optional - spec name)
+**Input:** `$ARGUMENTS` (optional - scope name)
 
-Follow the spec-create skill workflow.
+Follow the scope skill workflow.
 
-> **See**: `.claude/skills/spec-create/SKILL.md`
+> **See**: `.claude/skills/scope/SKILL.md`
 ```
 
 **Benefits:**
@@ -250,8 +250,8 @@ skill-name/
 Reference related skills in documentation:
 ```markdown
 ## Related
-- `spec-validate` - Clarify requirements before creation
-- `spec-archive` - Archive completed specs
+- `scope` - Define and track work
+- `clarify` - Resolve ambiguities
 ```
 
 ### With Project Docs

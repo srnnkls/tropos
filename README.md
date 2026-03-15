@@ -1,6 +1,6 @@
 # tropos
 
-*Spec → Delegate → Review → Repeat*
+*Scope → Delegate → Review → Repeat*
 
 > *τρόπος* • manner, way, style; a turn, direction
 >
@@ -10,14 +10,14 @@
 
 ## About
 
-A Claude Code configuration for agentic development flows. Specs scaffold the work, git records the truth. Structure before code, verification before claims, delegation over heroics.
+A Claude Code configuration for agentic development flows. Scopes scaffold the work, git records the truth. Structure before code, verification before claims, delegation over heroics.
 
 ## Philosophy
 
-- *Spec* — Validate requirements, create tracking documents
+- *Scope* — Research, validate requirements, create tracking documents
 - *Delegate* — Fresh subagent per task with quality gates
 - *Review* — Review completed work before continuing
-- *Repeat* — Update spec, continue cycle, archive when done
+- *Repeat* — Update scope, continue cycle, mark done
 
 Supporting principles:
 
@@ -29,7 +29,7 @@ Supporting principles:
 
 ## Plugins
 
-- *[skills](skills/)* — Spec pipeline, code quality, task execution
+- *[skills](skills/)* — Scope pipeline, code quality, task execution
 - *[commands](commands/)* — Shortcuts for common workflows
 - *[agents](agents/)* — Implementer, reviewer, tester
 

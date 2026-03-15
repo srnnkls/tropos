@@ -89,7 +89,7 @@ Flags override auto-detection:
 
 ### Auto-Detection Priority (no flag)
 
-1. **Spec** - `test -d ./specs/active/{arg}/`
+1. **Spec** - `test -d ./scopes/{arg}/`
 2. **Git rev** - `git rev-parse --verify {arg}`
 3. **Git range** - contains `..` or valid range syntax
 4. **Path** - `test -e {arg}`
@@ -113,7 +113,7 @@ Flags override auto-detection:
 
 ### Spec Mode
 
-**Location:** `./specs/active/<spec>/review.yaml`
+**Location:** `./scopes/<spec>/review.yaml`
 **Persistence:** Committed with spec, part of audit trail
 
 ### Other Modes (Ephemeral)
@@ -230,7 +230,7 @@ Start
   │   └─ No argument? → Diff mode (staged/unstaged)
   │
   ├─ Load review context
-  │   ├─ Spec → Read spec.md, tasks.yaml, review.yaml, validation.yaml
+  │   ├─ Spec → Read scope.md, tasks.yaml, review.yaml, validation.yaml
   │   ├─ Git → git show/diff, commit messages
   │   ├─ Path → Read files
   │   └─ Diff → git diff --cached or git diff
@@ -254,7 +254,7 @@ Start
   │   └─ Prioritize by severity
   │
   ├─ Write review output
-  │   ├─ Spec → ./specs/active/<spec>/review.yaml
+  │   ├─ Spec → ./scopes/<spec>/review.yaml
   │   └─ Other → ~/.claude/reviews/<name>.md (ephemeral)
   │
   ├─ Present results

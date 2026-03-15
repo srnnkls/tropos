@@ -1,4 +1,4 @@
-# Dependencies: ${TASK_NAME}
+# Dependencies: ${SCOPE_NAME}
 # Machine + human readable DAG for parallel dispatch
 
 # ------------------------------------------------------------------------------
@@ -66,17 +66,3 @@ batches:
 # For tasks that aren't file creation/modification
 # ------------------------------------------------------------------------------
 actions: []
-  # - id: A001
-  #   type: delete
-  #   file: deprecated/old_module.py
-  #   depends_on: [T005]
-  # - id: A002
-  #   type: rename
-  #   from: src/temp.py
-  #   to: src/final.py
-  #   depends_on: [T003]
-  # - id: A003
-  #   type: move
-  #   from: src/utils.py
-  #   to: lib/utils.py
-  #   depends_on: []

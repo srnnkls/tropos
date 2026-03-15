@@ -1,6 +1,6 @@
 ---
 name: review
-description: Unified review dispatcher. Auto-detects review type from argument or presents selection menu. Routes to code-review, pr-review, or spec-review.
+description: Unified review dispatcher. Auto-detects review type from argument or presents selection menu. Routes to code-review, pr-review, or scope review.
 argument-hint: "[target]"
 allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(find *), Bash(gh pr list *)
 ---
@@ -16,8 +16,8 @@ Recent commits:
 Current branch:
 !`git branch --show-current 2>/dev/null`
 
-Active specs:
-!`find ./specs/active -maxdepth 1 -mindepth 1 -type d 2>/dev/null`
+Active scopes:
+!`find scopes -name scope.md -maxdepth 2 2>/dev/null | sed 's|/scope.md||' | sed 's|scopes/||'`
 
 Open PRs:
 !`gh pr list --limit 5 --json number,title,headRefName --jq '.[] | "#\(.number) \(.title) (\(.headRefName))"' 2>/dev/null`
@@ -36,7 +36,8 @@ Apply these rules to `$ARGUMENTS` in order:
 |---|---|---|
 | Numeric, `#N`, or GitHub PR URL | PR review | `Skill(pr-review, $ARGUMENTS)` |
 | 7+ hex chars (commit SHA) | Commit review | `Skill(code-review, --rev $ARGUMENTS)` |
-| Matches `./specs/active/*/` | Spec review | `Skill(spec-review, $ARGUMENTS)` |
+| `--final <name>` | Final scope review | `Skill(code-review, --final $NAME)` |
+| Matches `scopes/*/scope.md` or scope name | Scope review | `Skill(scope, review $SCOPE_NAME)` |
 | File path that exists | Path review | `Skill(code-review, --path $ARGUMENTS)` |
 | No argument | Menu fallback | See below |
 
@@ -57,7 +58,7 @@ Options:
 - Uncommitted: Review staged and unstaged modifications
 ```
 
-With "Other" covering: spec review, path review, or custom target.
+With "Other" covering: scope review, path review, or custom target.
 
 **Routing by selection:**
 
@@ -67,7 +68,7 @@ With "Other" covering: spec review, path review, or custom target.
 | Commit | `Skill(code-review, --rev ...)` — ask for SHA first |
 | Branch diff | `Skill(code-review, --diff <base>..HEAD)` — ask for base branch first |
 | Uncommitted | `Skill(code-review)` — auto-detects staged/unstaged |
-| Other: spec | `Skill(spec-review)` — target skill asks for spec |
+| Other: scope | `Skill(scope, review)` — scope skill asks for name |
 
 ---
 

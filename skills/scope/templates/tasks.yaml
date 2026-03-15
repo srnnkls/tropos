@@ -1,5 +1,5 @@
 # Core fields (required - used by dignity/spec/tasks.py)
-spec: ${SPEC_NAME}
+scope: ${SCOPE_NAME}
 code: ${CODE}
 next_id: 1
 tasks: []
@@ -10,12 +10,12 @@ meta:
   last_updated: ${DATE}
   progress: 0/0
 
-# Phases organize tasks logically (optional - for complex specs)
+# Phases organize tasks logically (optional - for complex scopes)
 # Each phase references task IDs and may have a checkpoint gate
 phases: []
 # Example populated structure:
 #
-# spec: add-auth-feature
+# scope: add-auth-feature
 # code: AUT
 # next_id: 4
 # tasks:
