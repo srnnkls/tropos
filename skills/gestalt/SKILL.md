@@ -2,6 +2,8 @@
 name: gestalt
 description: |
   Query code intelligence with gestalt. Use when finding callers/callees, tracing references, running CozoScript queries, or generating repo maps.
+metadata:
+  type: generic
 ---
 
 # gestalt

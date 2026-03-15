@@ -1,6 +1,8 @@
 ---
 name: clarify
-description: Resolve ambiguities interactively with tracked changes. Works with scope, code-review, and other skills.
+description: Resolve ambiguities interactively with tracked changes. Works with scope, code review, and other skills.
+metadata:
+  type: domain
 ---
 
 # Clarify Skill
@@ -12,10 +14,10 @@ Resolve ambiguities by updating documents directly with tracked changes. Context
 ## When to Use
 
 **Use for:**
-- Resolving markers before task-dispatch (especially for Initiatives)
+- Resolving markers before dispatch (especially for Initiatives)
 - Clarifying ambiguous requirements discovered post-validation
 - Addressing gaps identified in ambiguity_scan
-- Resolving questions from code-review findings
+- Resolving questions from code review findings
 - Any interactive clarification with audit trail
 
 **Don't use for:**
@@ -101,7 +103,7 @@ Create a new session entry in `clarification_sessions`:
 clarification_sessions:
   - id: S00${N}
     timestamp: ${ISO_TIMESTAMP}
-    source: clarify  # or scope-review, code-review if invoked from there
+    source: clarify  # or scope-review, code review if invoked from there
     questions:
       - id: Q001
         question: "${QUESTION}"
@@ -217,9 +219,9 @@ Question: Which authentication method should be used?
 
 **Invoked from:**
 - `scope` - Clarify during scope creation or review
-- `code-review` - Clarify code review findings
-- `task-dispatch` - Resolve blocking markers before dispatch
+- `code review` - Clarify code review findings
+- `dispatch` - Resolve blocking markers before dispatch
 
 **Related skills:**
 - `scope` - Creates scopes with ambiguity_scan and markers
-- `task-dispatch` - Checks for blocking markers before dispatch
+- `dispatch` - Checks for blocking markers before dispatch

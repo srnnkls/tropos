@@ -1,0 +1,494 @@
+# Subagent-Driven Task Execution
+
+Execute scopes with proper TDD: tester writes failing tests, implementer makes them pass, reviewers validate.
+
+**Core principle:** Three-phase batches with fresh subagents. No batch completes without review.
+
+---
+
+## When to Use
+
+**Use when:**
+- Executing an implementation scope (created with `scope`)
+- Tasks are mostly independent
+- Want TDD enforcement with quality gates
+
+**Don't use when:**
+- No scope exists yet (use `/scope` first)
+- Tasks are tightly coupled (manual execution better)
+- Single small task (just do it directly)
+- Initiative scope has failed gates (resolve first via /clarify)
+
+---
+
+## The Three-Phase Pipeline
+
+Each batch executes three phases. **A batch is NOT complete until all three phases finish.**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         BATCH N                                 │
+├─────────────────────────────────────────────────────────────────┤
+│  Phase A: TESTERS (parallel)                                    │
+│  ├── Dispatch N tester subagents                                 │
+│  ├── Each writes failing tests (RED)                            │
+│  └── Wait for ALL testers                                       │
+│                          ↓                                      │
+│  Phase B: IMPLEMENTERS (parallel)                               │
+│  ├── Dispatch N implementer subagents                            │
+│  ├── Each receives its tester's report                          │
+│  ├── Each makes tests pass (GREEN)                              │
+│  └── Wait for ALL implementers                                  │
+│                          ↓                                      │
+│  Phase C: REVIEWERS (all roles × harnesses in parallel)          │
+│  ├── General × Claude (opus) [required]                         │
+│  ├── General × OpenCode (0-N from validation.yaml)              │
+│  ├── Architecture × Claude (opus, gestalt) [required]           │
+│  ├── Architecture × OpenCode (0-N from validation.yaml)         │
+│  ├── Compliance × Claude (opus, loqui) [required]               │
+│  ├── Compliance × OpenCode (0-N from validation.yaml)           │
+│  ├── Each role reviews own gates only                            │
+│  ├── Wait for ALL                                                │
+│  └── Synthesize by role, then aggregate                          │
+│                          ↓                                      │
+│  Gate: Issues found?                                            │
+│  ├── Critical/High → Fix before proceeding                      │
+│  └── None/Medium → Commit and continue                          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**CRITICAL:** All three phases are mandatory. Reviewers are not optional.
+
+---
+
+## Workflow
+
+### 1. Load Scope and Populate TodoWrite
+
+1. Find most recent scope in `./scopes/*/`
+2. Read `tasks.yaml` from that directory
+3. Parse tasks with `status: pending` or `status: in_progress`
+4. Create TodoWrite with ALL uncompleted tasks:
+   - First uncompleted task: "in_progress"
+   - Others: "pending"
+   - content: task text
+   - activeForm: present continuous form
+
+**CRITICAL:** Always populate TodoWrite before dispatching any subagents.
+
+5. **Create/checkout scope branch:**
+   - Branch name: `feat/<scope-directory-name>`
+   - If branch exists, checkout and pull
+   - If not, create from main/master
+
+### 2. Pre-Implementation Gate Check
+
+Before dispatching any tasks, verify validation.yaml gates:
+
+1. Read `validation.yaml` from scope directory
+2. Check `metadata.issue_type`
+3. **If Initiative:**
+   - Check all gates in `gates` section
+   - If any gate has `status: failed`:
+     - Report which gates failed with reasons
+     - Prompt: "Resolve via /clarify or proceed anyway?"
+     - If user chooses to proceed: document override in validation.yaml
+   - Check `markers` section for `status: open`
+   - If blocking markers exist:
+     - Report marker count and summaries
+     - Prompt: "Resolve markers first or proceed?"
+4. **If Feature/Task:** Skip gate check (gates marked n/a)
+
+### 3. Analyze Task Dependencies
+
+Parse `dependencies.yaml` to identify execution batches:
+
+**Dependency rules:**
+- Tasks in Phase N depend on Phase N-1 completion
+- Tasks with `[P]` marker AND different file paths can run in parallel
+- Tasks with same file path must run sequentially
+- Phase boundaries force batch breaks
+
+### 4. Execute Batches (Three-Phase Pipeline)
+
+**For each batch, execute ALL THREE phases:**
+
+#### Phase A: Dispatch Testers
+
+**Single task:**
+```
+Dispatch 1 tester → wait for completion
+```
+
+**Parallel batch (N tasks):**
+```
+Dispatch N testers in SINGLE message → wait for ALL
+```
+
+Each tester:
+- Invokes `test` skill
+- Writes failing tests (RED)
+- Reports: test paths, failure output
+
+**GATE:** Wait for ALL testers to complete before proceeding to Phase B.
+- If any tester reports `status: gap` → handle gap (consult scope, ask user, re-dispatch). Do NOT proceed to Phase B.
+- If all testers report `status: success` → proceed to Phase B with their reports.
+
+#### Phase B: Dispatch Implementers
+
+**PRECONDITION:** Phase A complete. Every implementer MUST receive its corresponding tester_report.
+If you have no tester_report for a task, you have not run Phase A — go back and dispatch the tester first.
+
+**Single task:**
+```
+Dispatch 1 implementer with tester report → wait for completion
+```
+
+**Parallel batch (N tasks):**
+```
+Dispatch N implementers in SINGLE message → wait for ALL
+Each receives its corresponding tester's report
+```
+
+Each implementer:
+- Invokes `implement` skill
+- Makes tests pass (GREEN)
+- Reports: impl files, test pass output
+
+#### Phase C: Dispatch Reviewers
+
+**CRITICAL:** Reviewers are mandatory. Every batch gets reviewed.
+
+**Resolve batch diff before dispatching:**
+```bash
+# last_batch_commit from checkpoint.yaml (or initial branch point for first batch)
+# diff_cmd: "git diff <last_batch_commit>..HEAD"
+# range: <last_batch_commit>..HEAD   (for gestalt diff)
+```
+
+**Always dispatch ALL role × harness combinations in a SINGLE message for true parallelism:**
+
+```
+Dispatch (full cartesian product):
+  - General × Claude [required]
+  - General × OpenCode (0-N from validation.yaml)
+  - Architecture × Claude [required]
+  - Architecture × OpenCode (0-N from validation.yaml)
+  - Compliance × Claude [required]
+  - Compliance × OpenCode (0-N from validation.yaml)
+→ Wait for ALL
+```
+
+**Reviewer cascade (each role owns distinct gates):**
+
+| Role | Primary Gates | Skill | Harnesses |
+|------|---------------|-------|-----------|
+| General | Correctness, Security, Performance | `code review` | Claude + OpenCode (0-N) |
+| Architecture | Architecture | `gestalt` | Claude + OpenCode (0-N) |
+| Compliance | Style | `loqui` | Claude + OpenCode (0-N) |
+
+**Reviewers receive pointers and load code themselves:**
+1. `{diff_cmd}` (e.g., `git diff <last_batch_commit>..HEAD`) — reviewer runs the command
+2. Scope directory path — reviewer reads `tasks.yaml` for requirements
+3. Workdir — reviewer runs all commands from this directory
+
+**Architecture role additionally runs:**
+- `gestalt analyze` — current hotspots, seams, coupling
+- `gestalt diff {range}` — definition-level changes
+- `gestalt diff {range} --verbose` — impact propagation
+
+**Compliance role additionally reads:**
+- Loqui guidelines for each language in the diff (`./skills/loqui/reference/loqui/languages/{lang}/`)
+
+**Dispatch configuration:**
+
+Dispatch reviewers per `/review` infrastructure and `code review` role definitions. Read `validation.yaml` `review_config` for selected harnesses and reasoning effort.
+
+See `/review` [reference/harnesses.md](../../review/reference/harnesses.md) for dispatch templates.
+Review prompts per role: see `code review` skill Step 4.
+
+### 5. Synthesize Review Feedback and Write review.yaml
+
+After ALL reviewers complete:
+
+1. **Parse reports** - Extract YAML from all reviewer outputs
+2. **Merge issues:**
+   - Deduplicate by description similarity
+   - Combine issues flagged by multiple reviewers (higher confidence)
+   - Note which reviewer(s) found each issue
+3. **Aggregate severity:**
+   - Issue severity is the HIGHEST across all reviewers
+   - Critical by any reviewer = Critical overall
+4. **Write review.yaml** (append batch review):
+   ```yaml
+   # ./scopes/<scope>/review.yaml
+   batch_reviews:
+     - batch: <N>
+       timestamp: <ISO_TIMESTAMP>
+       commit: <SHA>
+       tasks: [T001, T002]
+        reviewers:
+          - id: general-claude-opus
+            status: completed
+            gates: { correctness: pass, style: pass, ... }
+          - id: general-opencode-gpt5.4
+            status: completed | timeout | failed
+            gates: { ... }
+       synthesized:
+         gates: { correctness: pass, style: fail, ... }
+         critical_issues: <N>
+         high_issues: <N>
+         medium_issues: <N>
+       outcome: approved | changes_requested
+   issues:
+     critical: [...]
+     high: [...]
+     medium: [...]
+   deferred_issues: [...]  # medium severity
+   ```
+5. **Present unified feedback:**
+   - Gate summary table
+   - Issues grouped by severity
+   - Show which reviewers found each issue
+
+**Gate Summary Table (by role):**
+
+```
+| Gate         | Status | General              | Architecture | Compliance |
+|--------------|--------|----------------------|--------------|------------|
+| Correctness  | FAIL   | fail (Codex)          | —            | —          |
+| Style        | PASS   | —                     | —            | pass       |
+| Performance  | PASS   | pass                  | pass         | —          |
+| Security     | FAIL   | fail (Claude, Gemini) | —            | —          |
+| Architecture | PASS   | —                     | pass         | —          |
+```
+
+`—` = not in scope for this role. On failure, parenthetical = which harness(es) failed.
+
+### 6. Apply Review Feedback
+
+**If Critical/High issues found:**
+1. Dispatch fix subagent(s)
+2. Verify fixes with targeted review
+3. Update review.yaml with resolution
+4. Only proceed when issues resolved
+
+**If only Medium issues:**
+1. Add to review.yaml deferred_issues
+2. Proceed to commit
+
+### 7. Commit, Checkpoint, and Continue
+
+When batch completes successfully (all phases, review passed):
+
+1. Update TodoWrite (mark tasks as "completed")
+2. Edit tasks.yaml: Change `status: in_progress` to `status: completed`
+3. **Write checkpoint.yaml** (enables session recovery):
+   ```yaml
+   checkpoint:
+     scope_name: <scope>
+     scope_path: ./scopes/<scope>
+     branch: feat/<scope>
+     timestamp: <ISO_TIMESTAMP>
+     last_batch: <N>
+     last_commit: <SHA>
+     tasks:
+       completed: [...]
+       pending: [...]
+     next_batch:
+       number: <N+1>
+       tasks: [...]
+     deferred_issues: [...]  # medium severity, noted for later
+     review_config:
+       reviewers: [...]  # from validation.yaml
+   ```
+4. **Commit the batch changes:**
+   - Stage: implementation + tests + tasks.yaml + checkpoint.yaml + review.yaml
+   - Commit message format:
+     ```
+     <type>(<scope>): <description>
+
+     Tasks: <task-ids>
+     Batch: <N>/<total>
+     ```
+   - Example: `feat(cache): add TTL expiry\n\nTasks: PH2-003, PH2-004\nBatch: 2/5`
+5. Move to next batch (or use `/continue` in new session)
+
+### 8. Final Review
+
+After ALL batches complete, invoke `code review` skill in **final mode**:
+
+```
+/review --final <scope-name>
+```
+
+Or dispatch all roles directly (full cartesian product):
+
+```
+Dispatch (in same message):
+  - General × Claude [required]
+  - General × OpenCode (0-N from validation.yaml)
+  - Architecture × Claude [required]
+  - Architecture × OpenCode (0-N from validation.yaml)
+  - Compliance × Claude [required]
+  - Compliance × OpenCode (0-N from validation.yaml)
+```
+
+**Final review checks:**
+- All scope requirements met (cross-reference scope.md)
+- All tasks complete (verify tasks.yaml)
+- Acceptance criteria satisfied
+- Overall architecture sound
+- Deferred issues addressed or documented
+- Tests passing
+
+**Write final_review section in review.yaml:**
+```yaml
+final_review:
+  status: completed
+  timestamp: <ISO_TIMESTAMP>
+  reviewers: [general-claude-opus, general-opencode-gpt5.4, architecture-claude-opus, architecture-opencode-gpt5.4, compliance-claude-opus, compliance-opencode-gpt5.4, ...]
+  gates: { correctness: pass, style: pass, ... }
+  scope_compliance:
+    all_tasks_complete: true
+    acceptance_criteria_met: true
+    edge_cases_handled: true
+  issues: [...]
+  strengths: [...]
+  overall_assessment: "Implementation complete and verified"
+  recommendation: ready_to_merge | changes_requested
+readiness:
+  all_batches_reviewed: true
+  critical_issues_resolved: true
+  high_issues_resolved: true
+  final_review_passed: true
+  tests_passing: true
+```
+
+---
+
+## Subagent Configuration
+
+| Role | Subagent Type | Skill |
+|------|---------------|-------|
+| Tester | general | test |
+| Implementer | general | implement |
+| General Reviewer | general | code review |
+| Architecture Reviewer | general | gestalt |
+| Compliance Reviewer | general | loqui |
+
+**CRITICAL:** Always use `subagent_type: "general"` for all subagents. OpenCode's Task tool only supports `"general"` and `"explore"`.
+
+---
+
+## Quality Gates
+
+| Gate | When | Action if Failed |
+|------|------|------------------|
+| Pre-impl gate | Before any dispatch | Block if Initiative gates failed |
+| RED verification | After tester | Verify tests actually fail |
+| GREEN verification | After implementer | Verify tests pass |
+| **Batch review** | **After all implementers** | **Fix before next batch** |
+| Final review | After all batches | Address gaps |
+
+---
+
+## Red Flags
+
+**Never:**
+- Skip the tester phase (implementer must receive failing tests)
+- **Skip the reviewer phase (every batch must be reviewed)**
+- Use sonnet/explore for task subagents (always general)
+- Dispatch parallel subagents on same file
+- Let implementer write tests (tester's job)
+- Ignore failed pre-impl gates for Initiatives
+- Batch commits across multiple batches
+- **Let subagents return prose around YAML reports (context explosion risk)**
+
+**If tester can't write tests:**
+- Don't skip to implementer
+- Handle the gap (consult scope, ask user)
+- Re-dispatch tester with clarification
+
+**If reviewers timeout:**
+- Continue with available reviews (minimum 1)
+- Note partial results in output
+- Consider re-running batch
+
+---
+
+## Example Workflow
+
+```
+[Load scope, create TodoWrite, checkout branch]
+
+Batch 1: Task 1 (single task)
+├── Phase A: Dispatch tester
+│   └── Tester: Wrote 3 tests, all failing (RED)
+├── Phase B: Dispatch implementer + tester report
+│   └── Implementer: Made tests pass (GREEN)
+├── Phase C: Dispatch reviewers (3 in parallel)
+│   ├── Claude: approved, no issues
+│   ├── Codex: approved, 1 minor issue
+│   └── Gemini: approved, no issues
+├── Synthesize: 1 minor issue (note for later)
+└── Commit: feat(cache): add caching layer
+
+Batch 2: Tasks 2, 3, 4 ([P] parallel batch)
+├── Phase A: Dispatch 3 testers (single message)
+│   └── All testers complete with failing tests
+├── Phase B: Dispatch 3 implementers (single message)
+│   └── All implementers complete, tests passing
+├── Phase C: Dispatch reviewers (3 in parallel)
+│   ├── Claude: changes_requested, 1 critical
+│   ├── Codex: changes_requested, 1 critical (same issue)
+│   └── Gemini: approved
+├── Synthesize: 1 critical issue (found by 2 reviewers)
+├── Fix: Dispatch fix subagent → verify
+└── Commit: feat(api): add endpoints for tasks 2, 3, 4
+
+...
+
+[Final review - 3 reviewers in parallel]
+All requirements met
+```
+
+---
+
+## Context Budget
+
+Subagent outputs are the primary source of context consumption. Each `TaskOutput` result
+embeds the full subagent conversation into the parent session (duplicated across `.output`
+and `.result` fields — a platform bug). Mitigations:
+
+1. **YAML-only final messages** — All dispatch templates instruct subagents to return ONLY the YAML report. No prose, no explanation, no summary.
+2. **Truncated output fields** — `failure_output` and `test_output` limited to last 20 lines (summary + counts).
+3. **Batch size awareness** — With N parallel subagents, context grows by ~N × (subagent conversation size). Limit parallel batch size when context is above 50%.
+
+**Budget math:** Each subagent conversation typically runs 150-400 KB. With duplication, that's 300-800 KB per task embedded in parent context. A 5-task parallel batch can consume 1.5-4 MB — potentially 70%+ of a 200K token window.
+
+---
+
+## Integration
+
+**Use with:**
+- `scope` - Create scope before dispatch
+- `clarify` - Resolve markers/gates before dispatch
+- `test` - Tester invokes for TDD methodology
+- `implement` - Implementer invokes for language guidelines
+- `code review` - General reviewer invokes for review methodology
+- `gestalt` - Architecture reviewer invokes for structural analysis
+- `loqui` - Compliance reviewer invokes for language guidelines
+- `dispatch` (verify operation) - Verify before claiming done
+
+---
+
+## Reference
+
+- [subagent-workflow.md](../reference/subagent-workflow.md) - Dispatch templates and YAML reports
+- [report.md](../reference/report.md) - YAML report schemas
+- [checkpoint-format.md](../reference/checkpoint-format.md) - Session checkpoint schema
+- [review.md](../reference/review.md) - Implementation review schema (review.yaml)
+- [roles/tester.md](../reference/roles/tester.md) - Test-writing subagent
+- [roles/implementer.md](../reference/roles/implementer.md) - Implementation subagent
+- [roles/reviewer.md](../reference/roles/reviewer.md) - Review subagent
