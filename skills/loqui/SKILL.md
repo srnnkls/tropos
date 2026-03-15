@@ -2,6 +2,8 @@
 name: loqui
 description: |
   Access language-specific coding guidelines from loqui. Use when implementing code and needing patterns, style guidance, or best practices for Python, Go, Rust, or Bash.
+metadata:
+  type: generic
 ---
 
 # Loqui
@@ -12,10 +14,10 @@ Language guidelines for writing code with eloquence and style.
 
 ## Location
 
-Loqui resources are deployed as part of the `code-implement` skill:
+Loqui resources are in this skill's directory:
 
 ```
-~/.claude/skills/code-implement/resources/loqui/languages/{language}/
+~/.claude/skills/loqui/reference/loqui/languages/{language}/
 ```
 
 **Use Read tool** (not Glob) to access - paths outside cwd require direct reads.
@@ -26,10 +28,10 @@ Loqui resources are deployed as part of the `code-implement` skill:
 
 | Language | Path |
 |----------|------|
-| Python | `~/.claude/skills/code-implement/resources/loqui/languages/python/` |
-| Go | `~/.claude/skills/code-implement/resources/loqui/languages/go/` |
-| Rust | `~/.claude/skills/code-implement/resources/loqui/languages/rust/` |
-| Bash | `~/.claude/skills/code-implement/resources/loqui/languages/bash/` |
+| Python | `~/.claude/skills/loqui/loqui/languages/python/` |
+| Go | `~/.claude/skills/loqui/loqui/languages/go/` |
+| Rust | `~/.claude/skills/loqui/loqui/languages/rust/` |
+| Bash | `~/.claude/skills/loqui/loqui/languages/bash/` |
 
 ---
 
@@ -54,7 +56,7 @@ Each language directory follows this structure:
 ## Workflow
 
 1. Identify the target language
-2. Read `~/.claude/skills/code-implement/resources/loqui/languages/{language}/README.md`
+2. Read `~/.claude/skills/loqui/reference/loqui/languages/{language}/README.md`
 3. Consult specific topic files as needed (composition, errors, modules, etc.)
 4. Apply patterns to implementation
 
@@ -74,6 +76,6 @@ Shared across all languages:
 
 ## Related
 
-- `code-implement` - Primary skill for implementation (includes loqui)
-- `code-test` - TDD workflow
-- `code-review` - Review methodology
+- `implement` - Generic implementation methodology
+- `test` - TDD workflow
+- `code` - Code domain (references loqui for compliance review)

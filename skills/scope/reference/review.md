@@ -1,6 +1,80 @@
-# Scope Review Reference
+# Scope Review
 
-Reviewer roles, harnesses, report schemas, and edge case handling for the review sub-operation.
+Multi-perspective scope review using parallel subagent dispatch.
+
+---
+
+## When to Use
+
+- After creation to validate before implementation
+- When scope feels incomplete or ambiguous
+- Before `dispatch` for Initiatives
+- Standalone review of existing scopes
+
+---
+
+## Workflow
+
+### Step 1: Identify Scope
+
+1. Parse scope name from argument (e.g., `/scope review auth-system`)
+2. If no argument: find most recent in `./scopes/`
+3. Read scope documents: `scope.md`, `tasks.yaml`, `validation.yaml`, and `design.md` (if present)
+
+### Step 2: Select Reviewers
+
+Select reviewers per `/review` infrastructure. See `/review` SKILL.md "Reviewer Selection (Interactive)" for prompts and model mapping.
+
+### Step 3: Dispatch Reviewers in Parallel
+
+**CRITICAL:** Dispatch all selected reviewers in the same message for true parallelism.
+
+**Review Prompt Template:**
+
+```
+You are reviewing a scope for completeness and feasibility.
+
+## Scope Documents
+[Include scope.md content]
+[Include tasks.yaml content]
+[Include design.md content if present]
+
+## Review Focus
+Evaluate against these gates:
+1. **Completeness** - Are all requirements specified? Missing behaviors?
+2. **Consistency** - Do documents contradict each other? Ambiguous terms?
+3. **Feasibility** - Can tasks be implemented as described? Missing dependencies?
+4. **Clarity** - Would a fresh developer understand what to build?
+5. **Design Depth** - Are alternatives substantiated, invariants testable? (n/a if no design.md)
+
+## Output Format
+Return a YAML reviewer_report (see Report Schema below).
+```
+
+Dispatch per `/review` harness configuration. See `/review` [reference/harnesses.md](../../review/reference/harnesses.md) for dispatch templates.
+
+### Step 4: Synthesize Reviews
+
+1. **Parse reports** — Extract YAML from all outputs
+2. **Merge issues** — Deduplicate by similarity, combine multi-reviewer findings (higher confidence)
+3. **Aggregate gates** — Gate fails if ANY reviewer fails it
+4. **Prioritize questions** — Rank: Scope > Behavior > Data Model > Constraints > Edge Cases > Integration > Terminology
+
+### Step 5: Present Review
+
+Gate summary table + issues by severity (Critical → High → Medium), noting which reviewers found each.
+
+### Step 6: Clarifying Questions
+
+Use **AskUserQuestion** with questions grouped by taxonomy area. Record answers for validation.yaml.
+
+### Step 7: Update Validation
+
+Add clarification session to `validation.yaml`. Update markers (close resolved, add new for deferred).
+
+### Step 8: Recommend Action
+
+All gates pass → "Ready for implementation." Issues found → "Address critical/high issues, re-run /scope review."
 
 ---
 
@@ -32,47 +106,23 @@ Reviewer roles, harnesses, report schemas, and edge case handling for the review
 
 ## Harnesses
 
-### Claude Harness (Native Subagent)
-
-```
-Task(
-  subagent_type="general",
-  prompt="[Review prompt with scope content]"
-)
-```
-
-Always use `subagent_type="general"` for Claude reviewers.
-
-### OpenCode Harness (External Subprocess)
-
-```bash
-timeout 1200 opencode run --model "{MODEL}" --variant {reasoning}-medium "[Review prompt]"
-```
-
-**Available models:**
-
-| Model | native | github-copilot |
-|---|---|---|
-| GPT-5.2 | `openai/gpt-5.2` | `github-copilot/gpt-5.2` |
-| GPT-5.3 Codex | `openai/gpt-5.3-codex` | `github-copilot/gpt-5.3-codex` |
-| Gemini 3 Flash | `google/gemini-3-flash-preview` | `github-copilot/gemini-3-flash` |
-| Gemini 3 Pro | `google/gemini-3-pro-preview` | `github-copilot/gemini-3-pro` |
-
-**Reasoning Effort (--variant flag):**
-- `low-medium` — Quick responses
-- `medium-medium` — Balanced reasoning
-- `high-medium` — Deep analysis (recommended for reviews)
-- `xhigh-medium` — Maximum reasoning (GPT-5.2 only)
+See `/review` for harness details, models, and dispatch templates:
+- [reference/harnesses.md](../../review/reference/harnesses.md) — dispatch configuration
+- [reference/models.md](../../review/reference/models.md) — available models and variant format
 
 ---
 
 ## Report Schema
 
+Base report format: see `/review` [reference/report.md](../../review/reference/report.md).
+
+Scope reviews use domain-specific gates and areas instead of the code review gates.
+
 ### Reviewer Report
 
 ```yaml
 reviewer_report:
-  reviewer: claude-opus | opencode-gpt5.2
+  reviewer: claude-opus | opencode-gpt5.4
   gates:
     completeness:
       status: pass | fail
@@ -106,7 +156,7 @@ reviewer_report:
 
 ```yaml
 synthesized_report:
-  reviewers: [claude-opus, opencode-gpt5.2]
+  reviewers: [claude-opus, opencode-gpt5.4]
   gates:
     completeness:
       status: pass | fail
@@ -118,7 +168,7 @@ synthesized_report:
       area: edge_cases
       description: "Missing error handling"
       suggestion: "Add error case"
-      found_by: [claude-opus, opencode-gpt5.2]
+      found_by: [claude-opus, opencode-gpt5.4]
   recommendation: ready_to_implement | address_issues
 ```
 
