@@ -1,10 +1,12 @@
-# Design: ${TASK_NAME}
+# Design: ${SCOPE_NAME}
 
 <!--
-Design reasoning for ${TASK_NAME}.
+Design reasoning for ${SCOPE_NAME}.
 Structured analysis between deciding what to build and breaking it into tasks.
 All sections optional — include only what adds value.
 Code sketches belong in resources/implementation.md, not here.
+
+See reference/quality-model.md for quality patterns from exemplary docs.
 -->
 
 ---
@@ -88,14 +90,6 @@ Link test cases to invariant IDs above.
 |------|-----------|----------|
 | ${TEST_DESCRIPTION} | INV-1 | ${EXPECTED_OUTCOME} |
 | ${TEST_DESCRIPTION} | INV-2 | ${EXPECTED_OUTCOME} |
-
-### Benchmark Protocol
-
-${BENCHMARK_DESCRIPTION}
-
-### Migration Plan
-
-${MIGRATION_STEPS}
 
 ---
 

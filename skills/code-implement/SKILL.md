@@ -26,13 +26,13 @@ Language-specific patterns, anti-patterns, and best practices for writing code.
 
 When implementing from a spec:
 
-1. **Create a branch for the spec** (if not already on one):
+1. **Create a branch for the scope** (if not already on one):
    - Branch from main/master
-   - Name: `feat/<spec-name>`
-   - Example: `feat/user-auth` for `./specs/active/user-auth/`
+   - Name: `feat/<scope-name>`
+   - Example: `feat/user-auth` for `./scopes/user-auth/`
 
 2. **Verify before starting:**
-   - Confirm you're on the correct spec branch
+   - Confirm you're on the correct scope branch
    - Pull latest if branch already exists
 
 ---

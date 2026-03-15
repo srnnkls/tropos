@@ -5,7 +5,7 @@ description: Subagent-driven task execution with TDD workflow. Dispatches tester
 
 # Subagent-Driven Task Execution
 
-Execute specs with proper TDD: tester writes failing tests, implementer makes them pass, reviewers validate.
+Execute scopes with proper TDD: tester writes failing tests, implementer makes them pass, reviewers validate.
 
 **Core principle:** Three-phase batches with fresh subagents. No batch completes without review.
 
@@ -14,15 +14,15 @@ Execute specs with proper TDD: tester writes failing tests, implementer makes th
 ## When to Use
 
 **Use when:**
-- Executing an implementation spec (created with `spec-create`)
+- Executing an implementation scope (created with `scope`)
 - Tasks are mostly independent
 - Want TDD enforcement with quality gates
 
 **Don't use when:**
-- No spec exists yet (use `spec-validate` → `spec-create` first)
+- No scope exists yet (use `/scope` first)
 - Tasks are tightly coupled (manual execution better)
 - Single small task (just do it directly)
-- Initiative spec has failed gates (resolve first via /clarify)
+- Initiative scope has failed gates (resolve first via /clarify)
 
 ---
 
@@ -68,9 +68,9 @@ Each batch executes three phases. **A batch is NOT complete until all three phas
 
 ## Workflow
 
-### 1. Load Spec and Populate TodoWrite
+### 1. Load Scope and Populate TodoWrite
 
-1. Find most recent spec in `./specs/active/*/`
+1. Find most recent scope in `./scopes/*/`
 2. Read `tasks.yaml` from that directory
 3. Parse tasks with `status: pending` or `status: in_progress`
 4. Create TodoWrite with ALL uncompleted tasks:
@@ -81,8 +81,8 @@ Each batch executes three phases. **A batch is NOT complete until all three phas
 
 **CRITICAL:** Always populate TodoWrite before dispatching any subagents.
 
-5. **Create/checkout spec branch:**
-   - Branch name: `feat/<spec-directory-name>`
+5. **Create/checkout scope branch:**
+   - Branch name: `feat/<scope-directory-name>`
    - If branch exists, checkout and pull
    - If not, create from main/master
 
@@ -90,7 +90,7 @@ Each batch executes three phases. **A batch is NOT complete until all three phas
 
 Before dispatching any tasks, verify validation.yaml gates:
 
-1. Read `validation.yaml` from spec directory
+1. Read `validation.yaml` from scope directory
 2. Check `metadata.issue_type`
 3. **If Initiative:**
    - Check all gates in `gates` section
@@ -136,7 +136,7 @@ Each tester:
 - Reports: test paths, failure output
 
 **GATE:** Wait for ALL testers to complete before proceeding to Phase B.
-- If any tester reports `status: gap` → handle gap (consult spec, ask user, re-dispatch). Do NOT proceed to Phase B.
+- If any tester reports `status: gap` → handle gap (consult scope, ask user, re-dispatch). Do NOT proceed to Phase B.
 - If all testers report `status: success` → proceed to Phase B with their reports.
 
 #### Phase B: Dispatch Implementers
@@ -194,7 +194,7 @@ Dispatch (full cartesian product):
 
 **Reviewers receive pointers and load code themselves:**
 1. `{diff_cmd}` (e.g., `git diff <last_batch_commit>..HEAD`) — reviewer runs the command
-2. Spec directory path — reviewer reads `tasks.yaml` for requirements
+2. Scope directory path — reviewer reads `tasks.yaml` for requirements
 3. Workdir — reviewer runs all commands from this directory
 
 **Architecture role additionally runs:**
@@ -247,7 +247,7 @@ After ALL reviewers complete:
    - Critical by any reviewer = Critical overall
 4. **Write review.yaml** (append batch review):
    ```yaml
-   # ./specs/active/<spec>/review.yaml
+   # ./scopes/<scope>/review.yaml
    batch_reviews:
      - batch: <N>
        timestamp: <ISO_TIMESTAMP>
@@ -312,9 +312,9 @@ When batch completes successfully (all phases, review passed):
 3. **Write checkpoint.yaml** (enables session recovery):
    ```yaml
    checkpoint:
-     spec_name: <spec>
-     spec_path: ./specs/active/<spec>
-     branch: feat/<spec>
+     scope_name: <scope>
+     scope_path: ./scopes/<scope>
+     branch: feat/<scope>
      timestamp: <ISO_TIMESTAMP>
      last_batch: <N>
      last_commit: <SHA>
@@ -345,7 +345,7 @@ When batch completes successfully (all phases, review passed):
 After ALL batches complete, invoke `code-review` skill in **final mode**:
 
 ```
-/code.review --final <spec-name>
+/review --final <scope-name>
 ```
 
 Or dispatch all roles directly (full cartesian product):
@@ -361,7 +361,7 @@ Dispatch (in same message):
 ```
 
 **Final review checks:**
-- All spec requirements met (cross-reference spec.md)
+- All scope requirements met (cross-reference scope.md)
 - All tasks complete (verify tasks.yaml)
 - Acceptance criteria satisfied
 - Overall architecture sound
@@ -375,7 +375,7 @@ final_review:
   timestamp: <ISO_TIMESTAMP>
   reviewers: [general-claude-opus, general-opencode-gpt5.3-codex, architecture-claude-opus, architecture-opencode-gpt5.3-codex, compliance-claude-opus, compliance-opencode-gpt5.3-codex, ...]
   gates: { correctness: pass, style: pass, ... }
-  spec_compliance:
+  scope_compliance:
     all_tasks_complete: true
     acceptance_criteria_met: true
     edge_cases_handled: true
@@ -433,7 +433,7 @@ readiness:
 
 **If tester can't write tests:**
 - Don't skip to implementer
-- Handle the gap (consult spec, ask user)
+- Handle the gap (consult scope, ask user)
 - Re-dispatch tester with clarification
 
 **If reviewers timeout:**
@@ -446,7 +446,7 @@ readiness:
 ## Example Workflow
 
 ```
-[Load spec, create TodoWrite, checkout branch]
+[Load scope, create TodoWrite, checkout branch]
 
 Batch 1: Task 1 (single task)
 ├── Phase A: Dispatch tester
@@ -498,7 +498,7 @@ and `.result` fields — a platform bug). Mitigations:
 ## Integration
 
 **Use with:**
-- `spec-validate` → `spec-create` - Create spec before dispatch
+- `scope` - Create scope before dispatch
 - `clarify` - Resolve markers/gates before dispatch
 - `code-test` - Tester invokes for TDD methodology
 - `code-implement` - Implementer invokes for language guidelines

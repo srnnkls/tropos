@@ -62,7 +62,7 @@ Skills effectiveness depends on the underlying model:
 | Valid | Invalid |
 |-------|---------|
 | `code-debug` | `helper` (vague) |
-| `spec-create` | `utils` (generic) |
+| `scope` | `utils` (generic) |
 | `git-worktree-use` | `claude-tools` (reserved) |
 
 **Rules:**

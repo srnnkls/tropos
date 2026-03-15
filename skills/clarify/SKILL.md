@@ -1,11 +1,11 @@
 ---
 name: clarify
-description: Resolve ambiguities interactively with tracked changes. Works with spec-create, spec-review, code-review, and other skills.
+description: Resolve ambiguities interactively with tracked changes. Works with scope, code-review, and other skills.
 ---
 
 # Clarify Skill
 
-Resolve ambiguities by updating documents directly with tracked changes. Context-aware: adapts to specs, code reviews, or standalone use.
+Resolve ambiguities by updating documents directly with tracked changes. Context-aware: adapts to scopes, code reviews, or standalone use.
 
 ---
 
@@ -19,8 +19,8 @@ Resolve ambiguities by updating documents directly with tracked changes. Context
 - Any interactive clarification with audit trail
 
 **Don't use for:**
-- Initial validation (use spec-validate)
-- Changing fundamental scope (re-run spec-validate)
+- Initial validation (handled during `/scope` creation)
+- Changing fundamental scope (re-run `/scope`)
 
 ---
 
@@ -30,7 +30,7 @@ The skill auto-detects context based on what's available:
 
 | Context | Detection | Source |
 |---------|-----------|--------|
-| **Spec** | `./specs/active/*/validation.yaml` exists | ambiguity_scan + markers |
+| **Scope** | `./scopes/*/validation.yaml` exists | ambiguity_scan + markers |
 | **Code Review** | Recent `~/.claude/reviews/*.md` | Review issues/questions |
 | **Standalone** | Neither above | User-provided questions |
 
@@ -40,9 +40,9 @@ The skill auto-detects context based on what's available:
 
 ### Step 1: Load and Scan
 
-**Spec context:**
-1. Find active spec in `./specs/active/*/`
-2. Read `validation.yaml` from spec directory
+**Scope context:**
+1. Find scope in `./scopes/*/`
+2. Read `validation.yaml` from scope directory
 3. Run ambiguity scan:
    - Check `ambiguity_scan` section for areas with `status: partial` or `status: missing`
    - These become clarification candidates alongside open markers
@@ -80,13 +80,13 @@ When a clarification is resolved, update the relevant section in the source docu
 
 | Clarification Area | Target Document | Target Section |
 |--------------------|-----------------|----------------|
-| Scope | spec.md | Requirements, Scope |
-| Behavior | spec.md | Requirements, Behavior |
-| Data Model | context.md | Data Model |
-| Constraints | spec.md | Constraints |
-| Edge Cases | spec.md | Edge Cases |
-| Integration | context.md | Integration Points |
-| Terminology | context.md | Terminology |
+| Scope | scope.md | Requirements, Scope |
+| Behavior | scope.md | Requirements, Behavior |
+| Data Model | scope.md | Data Model |
+| Constraints | scope.md | Constraints |
+| Edge Cases | scope.md | Edge Cases |
+| Integration | scope.md | Integration Points |
+| Terminology | scope.md | Terminology |
 
 **Update approach:**
 1. Read the target section
@@ -101,14 +101,14 @@ Create a new session entry in `clarification_sessions`:
 clarification_sessions:
   - id: S00${N}
     timestamp: ${ISO_TIMESTAMP}
-    source: clarify  # or spec-review, code-review if invoked from there
+    source: clarify  # or scope-review, code-review if invoked from there
     questions:
       - id: Q001
         question: "${QUESTION}"
         answer: "${ANSWER}"
         area: ${TAXONOMY_AREA}
         doc_updates:
-          - file: spec.md
+          - file: scope.md
             section: Requirements
             action: modified
 ```
@@ -143,13 +143,13 @@ For Initiative specs:
 
 | Source | Target File | Target Section |
 |--------|-------------|----------------|
-| Scope gap | spec.md | ## Requirements or ## Scope |
-| Behavior gap | spec.md | ## Requirements / Behavior subsection |
-| Data Model gap | context.md | ## Data Model |
-| Constraints gap | spec.md | ## Constraints |
-| Edge Cases gap | spec.md | ## Edge Cases |
-| Integration gap | context.md | ## Integration Points |
-| Terminology gap | context.md | ## Terminology |
+| Scope gap | scope.md | ## Requirements or ## Scope |
+| Behavior gap | scope.md | ## Requirements / Behavior subsection |
+| Data Model gap | scope.md | ## Data Model |
+| Constraints gap | scope.md | ## Constraints |
+| Edge Cases gap | scope.md | ## Edge Cases |
+| Integration gap | scope.md | ## Integration Points |
+| Terminology gap | scope.md | ## Terminology |
 
 ---
 
@@ -180,7 +180,7 @@ Options:
 
 User selects: Admin/User
 
-[Update spec.md#requirements]
+[Update scope.md#requirements]
 Added: "Two-tier role system: Admin (full access), User (standard permissions)"
 
 [Record session]
@@ -194,7 +194,7 @@ clarification_sessions:
         answer: "Two-tier: Admin (full access), User (standard permissions)"
         area: scope
         doc_updates:
-          - file: spec.md
+          - file: scope.md
             section: Requirements
             action: modified
 
@@ -216,12 +216,10 @@ Question: Which authentication method should be used?
 **Command:** `/clarify [context]`
 
 **Invoked from:**
-- `spec-create` - Clarify during spec creation
-- `spec-review` - Resolve issues found during review
+- `scope` - Clarify during scope creation or review
 - `code-review` - Clarify code review findings
 - `task-dispatch` - Resolve blocking markers before dispatch
 
 **Related skills:**
-- `spec-validate` - Initial validation (creates ambiguity_scan and markers)
-- `spec-create` - Document creation (references markers)
+- `scope` - Creates scopes with ambiguity_scan and markers
 - `task-dispatch` - Checks for blocking markers before dispatch

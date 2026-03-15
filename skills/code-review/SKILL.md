@@ -48,7 +48,7 @@ Full cartesian product: every role can run on every harness.
 
 - Reviewing code changes locally before commit
 - Preparing review feedback for a PR
-- Final review of a spec implementation
+- Final review of a scope implementation
 - Analyzing code quality across multiple dimensions
 
 ---
@@ -57,7 +57,7 @@ Full cartesian product: every role can run on every harness.
 
 ```
 /code.review [target]
-/code.review --spec <name>
+/code.review --scope <name>
 /code.review --final <name>
 /code.review --rev <ref>
 /code.review --path <path>
@@ -72,8 +72,8 @@ Full cartesian product: every role can run on every harness.
 - **No argument** → Review staged/unstaged changes
 
 **Disambiguation flags (optional):**
-- `--spec` → Force spec mode, batch review (e.g., spec named "main")
-- `--final` → Force spec final review (full branch diff, all requirements)
+- `--scope` → Force scope mode, batch review (e.g., spec named "main")
+- `--final` → Force scope final review (full branch diff, all requirements)
 - `--rev` → Force git rev mode (e.g., path named "HEAD")
 - `--path` → Force path mode (e.g., directory named "v1.0")
 - `--diff` → Force diff mode (staged/unstaged changes)
@@ -87,7 +87,7 @@ Full cartesian product: every role can run on every harness.
 **If flag provided, use it directly:**
 
 ```
---spec auth-system  → Spec mode (no detection)
+--scope auth-system  → Scope mode (no detection)
 --rev main          → Git rev mode (no detection)
 --path ./main       → Path mode (no detection)
 ```
@@ -97,7 +97,7 @@ Full cartesian product: every role can run on every harness.
 ```
 Input                    | Detection                           | Mode
 -------------------------|-------------------------------------|-------------
-auth-system              | ./specs/active/auth-system/ exists  | Spec (batch)
+auth-system              | ./scopes/auth-system/ exists  | Spec (batch)
 HEAD~3                   | Valid git rev                       | Git rev
 main..feature            | Valid git range                     | Git range
 abc123f                  | Valid commit SHA                    | Git rev
@@ -107,8 +107,8 @@ src/auth/                | Path exists                         | Path
 
 **Auto-detection priority:**
 
-1. **Check for spec:** `test -d ./specs/active/{arg}/`
-   - If exists → **Spec mode** (batch review)
+1. **Check for scope:** `test -d ./scopes/{arg}/`
+   - If exists → **Scope mode** (batch review)
 2. **Check for git rev:** `git rev-parse --verify {arg} 2>/dev/null`
    - If valid → **Git rev mode**
 3. **Check for git range:** contains `..` and valid refs
@@ -122,9 +122,9 @@ src/auth/                | Path exists                         | Path
 
 **Ambiguity examples:**
 ```bash
-# "main" could be spec, branch, or directory
-/code.review main           # Auto-detect (spec first, then git, then path)
-/code.review --spec main    # Force: spec named "main"
+# "main" could be scope, branch, or directory
+/code.review main           # Auto-detect (scope first, then git, then path)
+/code.review --scope main    # Force: spec named "main"
 /code.review --rev main     # Force: git branch "main"
 /code.review --path main    # Force: directory named "main"
 ```
@@ -133,44 +133,44 @@ src/auth/                | Path exists                         | Path
 
 Resolve the detected input into a `review_target` — pointers that reviewers use to load code themselves. The orchestrator resolves pointers but does NOT load diff content.
 
-**Spec mode (batch review):**
+**Scope mode (batch review):**
 
-Spec reviews target the *last implementation batch*, not the entire spec.
+Scope reviews target the *last implementation batch*, not the entire scope.
 
 ```bash
 # 1. Read checkpoint to find last batch boundary and batch tasks
-cat ./specs/active/<spec>/checkpoint.yaml   # last_commit, next_batch.tasks
+cat ./scopes/<scope>/checkpoint.yaml   # last_commit, next_batch.tasks
 # 2. Read review history to find what's already reviewed
-cat ./specs/active/<spec>/review.yaml       # batch_reviews[-1].commit
+cat ./scopes/<scope>/review.yaml       # batch_reviews[-1].commit
 # 3. Read validation.yaml for review config
-cat ./specs/active/<spec>/validation.yaml   # review_config.harnesses, roles
+cat ./scopes/<scope>/validation.yaml   # review_config.harnesses, roles
 ```
 
 Diff range = `<last_reviewed_commit>..HEAD` (or `<last_batch_commit>..HEAD` if no prior reviews).
 Tasks = `checkpoint.yaml` → `next_batch.tasks` (current batch) or derive from `tasks.yaml` (tasks with `status: in_progress` or completed since last review).
 
-If `--final` flag: diff range = entire spec branch vs base (e.g., `main..feat/<spec>`).
+If `--final` flag: diff range = entire scope branch vs base (e.g., `main..feat/<scope>`).
 
 ```yaml
 review_target:
-  mode: spec
+  mode: scope
   diff_cmd: "git diff <last_reviewed_commit>..HEAD"
   range: "<last_reviewed_commit>..HEAD"     # for gestalt diff
   workdir: "."                              # or worktree root
-  context: "Batch N review for spec: <name>"
-  spec_dir: "./specs/active/<name>"
+  context: "Batch N review for scope: <name>"
+  scope_dir: "./scopes/<name>"
   tasks: [T001, T002]                       # from checkpoint.yaml next_batch.tasks
 ```
 
-**Spec mode (final review):** `/code.review --final <spec>`
+**Scope mode (final review):** `/code.review --final <scope>`
 ```yaml
 review_target:
-  mode: spec-final
-  diff_cmd: "git diff main..feat/<spec>"
-  range: "main..feat/<spec>"                # for gestalt diff
+  mode: scope-final
+  diff_cmd: "git diff main..feat/<scope>"
+  range: "main..feat/<scope>"                # for gestalt diff
   workdir: "."
-  context: "Final review of spec: <name>"
-  spec_dir: "./specs/active/<name>"
+  context: "Final review of scope: <name>"
+  scope_dir: "./scopes/<name>"
 ```
 
 **Git rev mode:**
@@ -220,7 +220,7 @@ review_target:
 
 ### Step 3: Select Reviewers
 
-**Spec mode:** Use config from `validation.yaml` (no prompt):
+**Scope mode:** Use config from `validation.yaml` (no prompt):
 
 ```yaml
 review_config:
@@ -338,7 +338,7 @@ All prompts use `review_target` variables resolved in Step 2. Reviewers load cod
 - `{diff_cmd}` — command to run (e.g., `git diff main..feat/cache`, `git show abc123f`)
 - `{range}` — git range for gestalt diff (e.g., `main..feat/cache`, `HEAD~3..HEAD`); null in path/diff modes
 - `{workdir}` — directory to run commands in (repo root or worktree path)
-- `{context}` — one-line description (commit message, spec batch, PR title)
+- `{context}` — one-line description (commit message, scope batch, PR title)
 - `{paths}` — (path mode only) file/directory paths to read directly
 
 **General Review Prompt:**
@@ -461,31 +461,31 @@ Compliance reviewer_report YAML - see reference/report.md
 
 **Spec Mode Appendix (appended to each reviewer's prompt):**
 
-For `mode: spec` (batch review), append:
+For `mode: scope-batch` (batch review), append:
 
 ```
 ## Batch Context
 
 Tasks in this batch: {task_ids}
-Spec directory: {spec_dir}
+Spec directory: {scope_dir}
 
-Read `{spec_dir}/tasks.yaml` for task requirements.
-Read `{spec_dir}/review.yaml` for prior batch review history.
+Read `{scope_dir}/tasks.yaml` for task requirements.
+Read `{scope_dir}/review.yaml` for prior batch review history.
 ```
 
-For `mode: spec-final` (final review), append:
+For `mode: scope-final` (final review), append:
 
 ```
 ## Final Review Context
 
 You are performing a FINAL REVIEW of a complete spec implementation.
 
-Spec directory: {spec_dir}
+Spec directory: {scope_dir}
 
 Read these files for full context:
-- `{spec_dir}/spec.md` — requirements and acceptance criteria
-- `{spec_dir}/tasks.yaml` — all tasks and their status
-- `{spec_dir}/review.yaml` — batch review history and deferred issues
+- `{scope_dir}/scope.md` — requirements and acceptance criteria
+- `{scope_dir}/tasks.yaml` — all tasks and their status
+- `{scope_dir}/review.yaml` — batch review history and deferred issues
 
 Additional focus:
 - Spec Compliance — All requirements met? Acceptance criteria satisfied?
@@ -514,7 +514,7 @@ After all reviewers complete:
 
 ### Step 6: Write Review Output
 
-**Spec batch mode** → append to `./specs/active/<spec>/review.yaml`:
+**Spec batch mode** → append to `./scopes/<scope>/review.yaml`:
 
 ```yaml
 batch_reviews:
@@ -554,7 +554,7 @@ issues:
 deferred_issues: [...]
 ```
 
-**Spec final mode** → write `final_review` section in `./specs/active/<spec>/review.yaml`:
+**Spec final mode** → write `final_review` section in `./scopes/<scope>/review.yaml`:
 
 ```yaml
 final_review:
@@ -562,7 +562,7 @@ final_review:
   timestamp: <ISO_TIMESTAMP>
   reviewers: [...]
   gates: { correctness: pass, style: pass, ... }
-  spec_compliance:
+  scope_compliance:
     all_tasks_complete: true
     acceptance_criteria_met: true
     edge_cases_handled: true
@@ -681,7 +681,7 @@ Violations: 1 (naming/5x-rule at src/utils.py:23)
 ...
 ```
 
-**Spec mode additional output:**
+**Scope mode additional output:**
 
 ```
 ### Spec Compliance
@@ -709,7 +709,7 @@ Critical: 1, High: 0, Medium: 2
 Recommendation: Address critical issues before proceeding
 ```
 
-**Spec mode (all pass):**
+**Scope mode (all pass):**
 ```
 Final review complete: auth-system
 Recommendation: Ready to merge ✓
@@ -759,9 +759,9 @@ Next: Create PR with /pr.create or merge directly
 /code.review                  # Diff → staged/unstaged
 
 # Disambiguation flags (when names collide)
-/code.review --spec main      # Spec named "main" (not git branch)
-/code.review --final main     # Final review of spec "main" (full branch diff)
-/code.review --rev main       # Git branch "main" (not spec/path)
+/code.review --scope main      # Scope named "main" (not git branch)
+/code.review --final main     # Final review of scope "main" (full branch diff)
+/code.review --rev main       # Git branch "main" (not scope/path)
 /code.review --path HEAD      # Directory named "HEAD" (not git ref)
 /code.review --rev v1.0       # Git tag "v1.0" (not path)
 /code.review --diff           # Staged/unstaged changes explicitly
@@ -773,7 +773,7 @@ Next: Create PR with /pr.create or merge directly
 
 | Mode | Location | Persistence |
 |------|----------|-------------|
-| Spec | `./specs/active/<spec>/review.yaml` | Committed with spec |
+| Scope | `./scopes/<scope>/review.yaml` | Committed with scope |
 | Other | `~/.claude/reviews/<name>.md` | Ephemeral (like plans) |
 
 **Naming convention for ephemeral reviews:**
@@ -787,7 +787,7 @@ Next: Create PR with /pr.create or merge directly
 ## Edge Cases
 
 **Spec not found:**
-- List available specs in `./specs/active/`
+- List available scopes in `./scopes/`
 - Suggest closest match if typo likely
 
 **Git rev invalid:**

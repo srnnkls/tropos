@@ -32,4 +32,4 @@ Domain-specific reference documents for non-code artifacts.
 ## Related Skills
 
 - **code-implement**: Language-specific coding guidelines
-- **spec-create**: Spec documents with validation
+- **scope**: Scope documents with validation

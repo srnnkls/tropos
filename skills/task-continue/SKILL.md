@@ -1,25 +1,25 @@
 ---
 name: task-continue
-description: Resume spec implementation from checkpoint. Use when continuing task-dispatch after context limit or session break.
+description: Resume scope implementation from checkpoint. Use when continuing task-dispatch after context limit or session break.
 user-invocable: continue
-argument-hint: "[spec-name]"
+argument-hint: "[scope-name]"
 ---
 
 ## Pre-loaded Context
 
 Available checkpoints:
-!`ls -t ./specs/active/*/checkpoint.yaml 2>/dev/null | head -5`
+!`ls -t ./scopes/*/checkpoint.yaml 2>/dev/null | head -5`
 
 # Task Continue Skill
 
-Resume spec implementation from the last checkpoint. Picks up where `task-dispatch` left off.
+Resume scope implementation from the last checkpoint. Picks up where `task-dispatch` left off.
 
 ---
 
 ## When to Use
 
 - After hitting context limit during `/implement`
-- Starting a new session to continue a spec
+- Starting a new session to continue a scope
 - Recovering from interruption mid-implementation
 
 ---
@@ -28,13 +28,13 @@ Resume spec implementation from the last checkpoint. Picks up where `task-dispat
 
 ### Step 1: Find Checkpoint
 
-1. Parse spec name from argument (e.g., `/continue auth-system`)
-2. If no argument: find most recent checkpoint in `./specs/active/*/checkpoint.yaml`
+1. Parse scope name from argument (e.g., `/continue auth-system`)
+2. If no argument: find most recent checkpoint in `./scopes/*/checkpoint.yaml`
 3. If no checkpoint found: suggest `/implement` instead
 
 ```bash
 # Find most recent checkpoint
-ls -t ./specs/active/*/checkpoint.yaml | head -1
+ls -t ./scopes/*/checkpoint.yaml | head -1
 ```
 
 ### Step 2: Load Context
@@ -42,17 +42,17 @@ ls -t ./specs/active/*/checkpoint.yaml | head -1
 Read these files (in parallel):
 
 ```
-./specs/active/<spec>/checkpoint.yaml  # Session state
-./specs/active/<spec>/spec.md          # Requirements
-./specs/active/<spec>/tasks.yaml       # Task definitions
-./specs/active/<spec>/dependencies.yaml # Batch structure
-./specs/active/<spec>/validation.yaml  # Review config
+./scopes/<scope>/checkpoint.yaml  # Session state
+./scopes/<scope>/scope.md         # Requirements
+./scopes/<scope>/tasks.yaml       # Task definitions
+./scopes/<scope>/dependencies.yaml # Batch structure
+./scopes/<scope>/validation.yaml  # Review config
 ```
 
 ### Step 3: Verify Branch State
 
 ```bash
-# Checkout spec branch
+# Checkout scope branch
 git checkout <checkpoint.branch>
 
 # Verify at expected commit
@@ -67,7 +67,7 @@ git log -1 --format="%H" | head -c 8
 Present concise status:
 
 ```
-## Resuming: <spec_name>
+## Resuming: <scope_name>
 
 **Progress:** Batch <last_batch>/<total_batches> complete
 **Completed:** <N> tasks
@@ -126,7 +126,7 @@ When resuming, use this condensed context for subagents:
 **For Tester:**
 ```
 Task: <task_id> - <task_name>
-From: <spec_name> (batch <N>)
+From: <scope_name> (batch <N>)
 Requirements: [from tasks.yaml]
 Test hints: [from tasks.yaml]
 
@@ -137,7 +137,7 @@ Report tester_report YAML.
 **For Implementer:**
 ```
 Task: <task_id> - <task_name>
-From: <spec_name> (batch <N>)
+From: <scope_name> (batch <N>)
 Tester report: [paste tester_report]
 
 Invoke `code-implement` skill. Make tests pass (GREEN).
@@ -146,7 +146,7 @@ Report implementer_report YAML.
 
 **For Reviewer:**
 ```
-Batch <N> review for <spec_name>
+Batch <N> review for <scope_name>
 Tasks: <task_ids>
 Implementer reports: [paste all]
 Spec requirements: [from tasks.yaml]
@@ -161,14 +161,14 @@ Report reviewer_report YAML.
 
 **Checkpoint not found:**
 ```
-No checkpoint found for <spec>.
-Run /implement <spec> to start fresh.
+No checkpoint found for <scope>.
+Run /implement <scope> to start fresh.
 ```
 
 **Branch mismatch:**
 ```
 Warning: Current branch differs from checkpoint.
-Expected: feat/<spec> at <sha>
+Expected: feat/<scope> at <sha>
 Actual: <current_branch> at <current_sha>
 
 Options:
@@ -187,7 +187,7 @@ Regenerating next batch from current state...
 
 **All tasks complete:**
 ```
-All tasks complete for <spec>.
+All tasks complete for <scope>.
 Run final review? [Y/n]
 ```
 
@@ -195,12 +195,12 @@ Run final review? [Y/n]
 
 ## Integration
 
-**Command:** `/continue [spec-name]`
+**Command:** `/continue [scope-name]`
 
 **Related skills:**
 - `task-dispatch` - Initial execution (writes checkpoints)
-- `spec-update` - Sync task status from git history
-- `spec-archive` - Archive completed spec
+- `scope update` - Sync task status via /scope update
+- `scope done` - Mark scope as done
 
 ---
 

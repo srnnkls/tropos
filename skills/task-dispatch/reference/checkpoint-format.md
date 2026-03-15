@@ -5,7 +5,7 @@ Checkpoints are written after each successful batch to enable session recovery.
 ## Location
 
 ```
-./specs/active/<spec-name>/checkpoint.yaml
+./scopes/<spec-name>/checkpoint.yaml
 ```
 
 ## Schema
@@ -13,8 +13,8 @@ Checkpoints are written after each successful batch to enable session recovery.
 ```yaml
 checkpoint:
   # Metadata
-  spec_name: auth-system
-  spec_path: ./specs/active/auth-system
+  scope_name: auth-system
+  scope_path: ./scopes/auth-system
   branch: feat/auth-system
   timestamp: 2026-01-22T14:30:00Z
 
@@ -84,7 +84,7 @@ The `task-continue` skill reads checkpoint.yaml to:
 
 | Aspect | tasks.yaml | checkpoint.yaml |
 |--------|------------|-----------------|
-| Purpose | Spec definition | Session state |
+| Purpose | Scope definition | Session state |
 | Updates | Status changes | After each batch |
 | Contains | All tasks | Progress + next batch |
 | Used by | task-dispatch | task-continue |

@@ -172,7 +172,7 @@ Reviewers receive pointers (diff command, file paths) and load code themselves. 
 - `{diff_cmd}` — full command, e.g., `git diff abc123f..HEAD`
 - `{range}` — git range for gestalt, e.g., `abc123f..HEAD`
 - `{workdir}` — repo root or worktree path
-- `{spec_dir}` — spec directory path (e.g., `./specs/active/cache`)
+- `{scope_dir}` — scope directory path (e.g., `./scopes/cache`)
 - `{task_ids}` — task IDs in this batch (e.g., `T001, T002`)
 - `{batch_n}` — batch number
 
@@ -194,7 +194,7 @@ Task:
 
     Context: Batch {batch_n} review — tasks {task_ids}
 
-    Read `{spec_dir}/tasks.yaml` for task requirements.
+    Read `{scope_dir}/tasks.yaml` for task requirements.
 
     ## Your Gates
 
@@ -536,7 +536,7 @@ Done
 If tester reports `status: gap`:
 
 1. Read `gap_reason` from tester's report
-2. Consult spec (tasks.yaml, spec.md) for clarification
+2. Consult scope (tasks.yaml, scope.md) for clarification
 3. If still unclear, use AskUserQuestion to clarify with user
 4. Re-dispatch tester with additional context:
 

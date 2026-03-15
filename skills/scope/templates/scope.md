@@ -1,11 +1,10 @@
 ---
-issue_type: ${ISSUE_TYPE}
 created: ${DATE}
-status: Active
-claude_plan: ${CLAUDE_PLAN_PATH}
+status: draft
+issue_type: ${ISSUE_TYPE}
 ---
 
-# ${SPEC_NAME}
+# ${SCOPE_NAME}
 
 ## Goal
 
@@ -33,13 +32,55 @@ ${GOAL_DESCRIPTION}
 
 <!-- End User Stories section -->
 
+## Context
+
+<!--
+Key files, architecture decisions, constraints, gotchas.
+What we know about the current state that shapes the approach.
+-->
+
+### Key Files
+
+| File | Lines | Description |
+|------|-------|-------------|
+| `${FILE_PATH}` | ${LINE_RANGE} | ${DESCRIPTION} |
+
+### Architecture Decisions
+
+#### AD-1: ${DECISION_TITLE}
+
+**Context:** ${CONTEXT}
+
+**Decision:** ${DECISION}
+
+**Alternatives:**
+- ${ALTERNATIVE_A}: ${TRADE_OFFS}
+- ${ALTERNATIVE_B}: ${TRADE_OFFS}
+
+### Constraints
+
+- ${CONSTRAINT}: ${RATIONALE}
+
+<!-- Include when: User opted in to "Tech Decisions" -->
+### Tech Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| ${DECISION_AREA} | ${CHOICE} | ${WHY} |
+
+<!-- Include when: User opted in to "Data Model" -->
+### Data Model
+
+| Entity | Purpose | Key Fields |
+|--------|---------|------------|
+| ${ENTITY} | ${PURPOSE} | ${FIELDS} |
+
 ## Requirements
 
 ### Functional Requirements
 
 - ${FUNCTIONAL_REQ_1}
 - ${FUNCTIONAL_REQ_2}
-- ${FUNCTIONAL_REQ_3}
 
 ### Technical Requirements
 
@@ -56,10 +97,6 @@ ${GOAL_DESCRIPTION}
   When ${ACTION_2}
   Then ${EXPECTED_RESULT_2}
 
-- [ ] Given ${PRECONDITION_3}
-  When ${ACTION_3}
-  Then ${EXPECTED_RESULT_3}
-
 <!-- API Contract section: Include when Feature/Initiative involves API changes -->
 ## API Contract
 
@@ -71,16 +108,6 @@ ${GOAL_DESCRIPTION}
 |--------|------|---------|
 | ${METHOD} | ${PATH} | ${PURPOSE} |
 
-### Request/Response
-
-```yaml
-# ${ENDPOINT_NAME}
-request:
-  ${REQUEST_SCHEMA}
-response:
-  ${RESPONSE_SCHEMA}
-```
-
 <!-- End API Contract section -->
 
 <!-- Implementation Strategy section: Include when Initiative issue type -->
@@ -90,17 +117,12 @@ response:
 
 ### Approach
 
-${APPROACH}  <!-- MVP First | Incremental | Parallel Team -->
+${APPROACH}
 
 ### Phases Overview
 
-- **Phase 1:** ${PHASE_1_GOAL} - MVP deliverable
-- **Phase 2:** ${PHASE_2_GOAL} - Incremental value
-- **Phase 3:** ${PHASE_3_GOAL} - Full feature
-
-### Rollout
-
-${ROLLOUT_STRATEGY}
+- **Phase 1:** ${PHASE_1_GOAL}
+- **Phase 2:** ${PHASE_2_GOAL}
 
 <!-- End Implementation Strategy section -->
 
@@ -112,16 +134,26 @@ ${ROLLOUT_STRATEGY}
 Phase 1 (${PHASE_1_NAME})
 ├── ${TASK_1}
 └── ${TASK_2}
-        │
-Phase 2 (${PHASE_2_NAME})
-├── ${TASK_3} ◄── ${TASK_1}
-└── ${TASK_4} ◄── ${TASK_2}
-        │
-Phase 3 (${PHASE_3_NAME})
-└── ${TASK_5} ◄── ${TASK_3}, ${TASK_4}
 ```
 
 ## Non-Goals
 
 - ${EXPLICIT_NON_GOAL_1}
 - ${EXPLICIT_NON_GOAL_2}
+
+## Verification
+
+<!--
+How to know it's done. Test commands, acceptance criteria, expected behavior.
+-->
+
+- ${VERIFICATION_STEP_1}
+- ${VERIFICATION_STEP_2}
+
+## Gotchas & Learnings
+
+- ${GOTCHA}
+
+## Open Questions
+
+- [ ] ${QUESTION}

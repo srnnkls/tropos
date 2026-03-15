@@ -55,7 +55,7 @@ description: |            # Max 1024 chars
 | `hooks` | Lifecycle hooks (PreToolUse, PostToolUse, Stop) | See reference.md |
 
 **Naming pattern:** `<namespace>[-<subnamespace>]-<action>`
-- `code-debug`, `spec-create`, `git-worktree-use`
+- `code-debug`, `scope`, `git-worktree-use`
 
 **Description format:** Third person, what + when.
 - "Generate GitHub issue drafts from spec directories. Use when converting specs to GitHub issues."
@@ -116,8 +116,8 @@ Do not modify flags.
 
 | Type | Characteristics | Examples |
 |------|-----------------|----------|
-| **Operational** | Multi-step workflow, state changes, document templates | `spec-create`, `spec-archive` |
-| **Generation** | Transform input → structured output, format templates | `spec-issues-create` |
+| **Operational** | Multi-step workflow, state changes, document templates | `scope` |
+| **Generation** | Transform input → structured output, format templates | `docs-implement` |
 | **Guidance** | Imperative instructions, code patterns | `code-implement`, `code-debug` |
 
 ---
