@@ -23,6 +23,19 @@ The tester writes tests BEFORE any implementation exists. Tests must fail becaus
 4. Run tests to verify they FAIL (RED state)
 5. Report test file paths and failure output
 
+## RED Verification (MANDATORY)
+
+After writing tests, you MUST verify RED state. Never skip.
+
+Run all tests and confirm:
+- Tests **fail** (not error from typos, missing imports, or broken setup)
+- Failure messages match expected behavior
+- Tests fail because the **feature is missing**
+- If tests pass immediately → you're testing existing behavior — fix the test
+
+Your `failure_output` field MUST contain actual test failure output proving RED state.
+Empty or error-only output will be rejected by the orchestrator.
+
 ## What Tester Does NOT Do
 
 - Write implementation code
