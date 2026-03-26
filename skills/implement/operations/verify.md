@@ -122,6 +122,6 @@ DON'T: Trust agent report
 
 **Use with:**
 - `test` - Run tests before claiming they pass
-- `dispatch` (debug operation) - Verify fix before claiming bug resolved
-- `dispatch` (execute operation) - Verify each task before marking complete
+- `implement` (debug operation) - Verify fix before claiming bug resolved
+- `implement` (execute operation) - Verify each task before marking complete
 - `git worktree` - Verify baseline before and after

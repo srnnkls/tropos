@@ -140,15 +140,15 @@ loqui_check:
     ${NOTES_ON_CODE_QUALITY}
 
 # Review configuration for implementation batch reviews.
-# Used by task-dispatch to determine which reviewers to use.
+# Used by implement to determine which reviewers to use.
 review_config:
   reasoning_effort: ${REASONING_EFFORT}
   reviewers:
     - type: claude
       model: ${CLAUDE_MODEL}
-    - type: opencode
+    - type: pi
       model: ${OPENCODE_MODEL_1}
-    - type: opencode
+    - type: pi
       model: ${OPENCODE_MODEL_2}
 
 notes: |

@@ -35,9 +35,9 @@ review_config:
   reviewers:
     - type: claude
       model: ${CLAUDE_MODEL}  # opus
-    - type: opencode
+    - type: pi
       model: ${OPENCODE_MODEL_1}
-    - type: opencode
+    - type: pi
       model: ${OPENCODE_MODEL_2}
 
 # Accumulated gate status across all batch reviews.
@@ -76,7 +76,7 @@ batch_reviews:
           performance: pass
           security: pass
           architecture: pass
-      - id: general-opencode-gpt5.3-codex
+      - id: general-pi-gpt5.3-codex
         status: completed
         gates:
           correctness: pass
@@ -84,7 +84,7 @@ batch_reviews:
           performance: pass
           security: pass
           architecture: pass
-      - id: general-opencode-gemini-3-pro
+      - id: general-pi-gemini-3-pro
         status: timeout  # or completed | failed
         gates: null
       - id: architecture-claude-opus
@@ -95,7 +95,7 @@ batch_reviews:
           performance: pass
           security: pass
           architecture: pass
-      - id: architecture-opencode-gpt5.3-codex
+      - id: architecture-pi-gpt5.3-codex
         status: completed
         gates:
           correctness: pass
@@ -103,7 +103,7 @@ batch_reviews:
           performance: pass
           security: pass
           architecture: pass
-      - id: architecture-opencode-gemini-3-pro
+      - id: architecture-pi-gemini-3-pro
         status: completed
         gates:
           correctness: pass
@@ -119,7 +119,7 @@ batch_reviews:
           performance: pass
           security: pass
           architecture: pass
-      - id: compliance-opencode-gpt5.3-codex
+      - id: compliance-pi-gpt5.3-codex
         status: completed
         gates:
           correctness: pass
@@ -127,7 +127,7 @@ batch_reviews:
           performance: pass
           security: pass
           architecture: pass
-      - id: compliance-opencode-gemini-3-pro
+      - id: compliance-pi-gemini-3-pro
         status: completed
         gates:
           correctness: pass
@@ -159,7 +159,7 @@ issues:
       location: "src/auth/login.py:45"
       description: "SQL injection via unsanitized input"
       suggestion: "Use parameterized queries"
-      found_by: [general-claude-opus, general-opencode-gemini-3-pro]
+      found_by: [general-claude-opus, general-pi-gemini-3-pro]
       status: resolved  # or open
       resolution:
         batch: 2
@@ -187,7 +187,7 @@ issues:
       location: "src/auth/auth.py:45"
       description: "Variable name 'x' is unclear"
       suggestion: "Rename to 'retry_count'"
-      found_by: [general-opencode-gpt5.3-codex]
+      found_by: [general-pi-gpt5.3-codex]
       status: deferred  # medium issues can be deferred
       resolution: null
 

@@ -46,6 +46,7 @@ Task:
     You are writing failing tests for Task N from [spec-file].
 
     ## TDD Methodology
+    Read `./skills/test/SKILL.md` for TDD methodology — follow the Iron Law.
     Follow RED-GREEN-REFACTOR: write failing tests first, then minimal code to pass.
 
     ## Language Conventions

@@ -27,7 +27,7 @@ Write the test first. Watch it fail. Write minimal code to pass.
 - Configuration files
 
 **Workflow Integration:**
-- **Multiple independent tasks from a scope?** → Use `dispatch` skill (it routes to the right execution workflow)
+- **Multiple independent tasks from a scope?** → Use `implement` skill (it runs the scope execution pipeline)
 - **Single implementation task?** → Use this skill directly for TDD workflow
 
 ---
@@ -168,6 +168,6 @@ When invoked via a domain skill, follow the domain-specific test guidance provid
 ## Integration
 
 **Use with:**
-- `dispatch` (debug operation) - Write failing test to reproduce bug before fixing
-- `dispatch` (execute operation) - Subagents follow TDD for each task
-- `dispatch` (verify operation) - Run tests before claiming completion
+- `implement` (debug operation) - Write failing test to reproduce bug before fixing
+- `implement` (execute operation) - Subagents follow TDD for each task
+- `implement` (verify operation) - Run tests before claiming completion

@@ -6,7 +6,7 @@ Edge case handling and decision trees for review scenarios.
 
 ## Timeout Handling
 
-### OpenCode Timeout (> 5 minutes)
+### Pi Timeout (> 5 minutes)
 
 **Symptom:** `timeout` command exits with code 124
 
@@ -63,14 +63,14 @@ Edge case handling and decision trees for review scenarios.
 1. Default to general-claude-opus only
 2. Warn: "No reviewers selected, defaulting to Claude. Consider external reviewer for fresh perspective."
 
-### OpenCode Not Available
+### Pi Not Available
 
-**Symptom:** `opencode` command not found
+**Symptom:** `pi` command not found
 
 **Response:**
-1. Warn: "OpenCode not installed, using Claude only"
+1. Warn: "Pi not installed, using Claude only"
 2. Proceed with Claude reviewer
-3. Suggest: `go install github.com/opencode-ai/opencode@latest`
+3. Suggest: `npm install -g @mariozechner/pi-coding-agent`
 
 ---
 

@@ -47,7 +47,7 @@ The `{role_review_prompt}` is the role-specific prompt from the domain skill (e.
 
 ---
 
-## OpenCode Harness (External Subprocess)
+## Pi Harness (External Subprocess)
 
 ### Characteristics
 
@@ -74,10 +74,10 @@ The `{role_review_prompt}` is the role-specific prompt from the domain skill (e.
 ### Dispatch
 
 ```bash
-timeout 1200 opencode run --model "{MODEL}" --variant {reasoning}-medium "{role_review_prompt}"
+timeout 1200 pi -p --model {MODEL} --thinking {reasoning} "{role_review_prompt}"
 ```
 
-See [models.md](models.md) for available models and variant format.
+See [models.md](models.md) for available models and thinking levels.
 
 ### Expected Behavior
 
@@ -94,7 +94,7 @@ See [models.md](models.md) for available models and variant format.
 | Harness | Tool | Template |
 |---------|------|----------|
 | Claude | Task | `Task(subagent_type="general", prompt={role_prompt})` |
-| OpenCode | Bash | `timeout 1200 opencode run --model "{model}" --variant {reasoning}-medium "{role_prompt}"` |
+| Pi | Bash | `timeout 1200 pi -p --model {model} --thinking {reasoning} "{role_prompt}"` |
 
 Roles provide the prompt content (gates, focus, report schema). Harnesses provide the transport.
 
@@ -115,24 +115,24 @@ Task(
   prompt={role_review_prompt}
 )
 
-# {Role} — OpenCode harnesses [0-N from config, for each role]
+# {Role} — Pi harnesses [0-N from config, for each role]
 Bash(run_in_background=true):
-  timeout 1200 opencode run --model "{model_1}" --variant {reasoning}-medium "{role_review_prompt}"
+  timeout 1200 pi -p --model {model_1} --thinking {reasoning} "{role_review_prompt}"
 Bash(run_in_background=true):
-  timeout 1200 opencode run --model "{model_2}" --variant {reasoning}-medium "{role_review_prompt}"
+  timeout 1200 pi -p --model {model_2} --thinking {reasoning} "{role_review_prompt}"
 ```
 
 ---
 
 ## Timeout/Error Handling
 
-**OpenCode timeout (> 20 minutes):**
+**Pi timeout (> 20 minutes):**
 1. Continue with completed reviews
 2. Add warning: "[Reviewer] timed out, partial results"
 3. Proceed with synthesis using available data
 
 **Claude subagent timeout:**
-1. If OpenCode succeeded: use OpenCode results only
+1. If Pi succeeded: use Pi results only
 2. If both failed: report failure, suggest retry
 3. Never proceed with zero reviews
 

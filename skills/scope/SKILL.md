@@ -278,6 +278,6 @@ Located in `templates/` directory:
 
 **Related skills:**
 - `clarify` — Resolve ambiguities in scope context
-- `dispatch` — Execute tasks from scope
+- `implement` — Execute tasks from scope
 - `continue` — Resume from checkpoint
 - `review` — Routes to `/scope review` for scope targets

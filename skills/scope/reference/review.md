@@ -8,7 +8,7 @@ Multi-perspective scope review using parallel subagent dispatch.
 
 - After creation to validate before implementation
 - When scope feels incomplete or ambiguous
-- Before `dispatch` for Initiatives
+- Before `implement` for Initiatives
 - Standalone review of existing scopes
 
 ---
@@ -91,7 +91,7 @@ All gates pass → "Ready for implementation." Issues found → "Address critica
 **Strengths:** Deep project context, can verify feasibility against actual codebase, catches integration issues.
 **Limitations:** Single model perspective, may be anchored by prior context.
 
-### OpenCode Reviewer (Fresh Perspective)
+### Pi Reviewer (Fresh Perspective)
 
 - Evaluates what's missing that a newcomer would need
 - Checks terms and concepts for self-consistency
@@ -108,7 +108,7 @@ All gates pass → "Ready for implementation." Issues found → "Address critica
 
 See `/review` for harness details, models, and dispatch templates:
 - [reference/harnesses.md](../../review/reference/harnesses.md) — dispatch configuration
-- [reference/models.md](../../review/reference/models.md) — available models and variant format
+- [reference/models.md](../../review/reference/models.md) — available models and thinking levels
 
 ---
 
@@ -122,7 +122,7 @@ Scope reviews use domain-specific gates and areas instead of the code review gat
 
 ```yaml
 reviewer_report:
-  reviewer: claude-opus | opencode-gpt5.4
+  reviewer: claude-opus | pi-gpt5.4
   gates:
     completeness:
       status: pass | fail
@@ -156,7 +156,7 @@ reviewer_report:
 
 ```yaml
 synthesized_report:
-  reviewers: [claude-opus, opencode-gpt5.4]
+  reviewers: [claude-opus, pi-gpt5.4]
   gates:
     completeness:
       status: pass | fail
@@ -168,7 +168,7 @@ synthesized_report:
       area: edge_cases
       description: "Missing error handling"
       suggestion: "Add error case"
-      found_by: [claude-opus, opencode-gpt5.4]
+      found_by: [claude-opus, pi-gpt5.4]
   recommendation: ready_to_implement | address_issues
 ```
 
@@ -211,13 +211,13 @@ synthesized_report:
 
 ### Timeout Handling
 
-**OpenCode timeout (> 20 minutes):**
+**Pi timeout (> 20 minutes):**
 1. Continue with completed reviews
 2. Add warning: "[Reviewer] timed out, partial results"
 3. Proceed with synthesis using available data
 
 **Claude subagent timeout:**
-1. If OpenCode succeeded: use OpenCode results only
+1. If Pi succeeded: use Pi results only
 2. If both failed: report failure, suggest retry
 3. Never proceed with zero reviews
 

@@ -332,7 +332,7 @@ Additional focus:
 - `test` - Generic TDD methodology
 - `gestalt` - Architecture reviewer uses for structural analysis
 - `loqui` - Compliance reviewer uses for language guidelines
-- `dispatch` - Execution orchestration
+- `implement` - Scope execution pipeline
 
 ---
 

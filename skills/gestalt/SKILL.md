@@ -10,6 +10,15 @@ metadata:
 
 Rust binary, embedded CozoDB, tree-sitter indexing with optional SCIP overlay. Supports Rust, Python, Go, TypeScript/JavaScript. Auto-indexes on first run.
 
+## Auto-Detect Rules
+
+Parse `$ARGUMENTS` in order:
+
+| Pattern | Route | Action |
+|---|---|---|
+| `review [target]` | Structural review | Read and follow `operations/review.md` |
+| No argument / other | Query mode | Continue with gestalt commands below |
+
 ## Subagent orientation
 
 All subagents (implementers, testers, reviewers) should orient before starting work:
@@ -78,6 +87,36 @@ gestalt analyze --no-entry-points       # Hide entry points
 ```
 
 Study when the graph reveals a problem — refactoring targets, coupling hotspots, architectural seams.
+
+## Diff and history
+
+```bash
+gestalt diff <base> [target]            # Definition-level changes between revisions
+gestalt diff main..HEAD                 # Changed symbols with impact markers
+gestalt diff main..HEAD --format json   # Machine-readable change set
+gestalt diff main..HEAD --verbose       # Impact propagation layers
+gestalt diff main..HEAD --depth 3       # Custom impact depth (implies --verbose)
+gestalt diff main..HEAD --include-tests # Include test symbols
+
+gestalt blame <symbol>                  # Git blame for symbol's definition
+gestalt blame <symbol> --format json    # Machine-readable
+
+gestalt log <symbol>                    # Git log for symbol's line range
+gestalt log <symbol> --limit 5          # Limit entries
+gestalt log <symbol> --format json      # Machine-readable
+```
+
+Output markers for diff:
+- `↑N` — N sites reference this symbol
+- `⊤ root` — entry point: calls others, not called by others
+- `⊥ leaf` — foundation: called by others, calls nothing
+- `⇔` — bridge: high betweenness centrality
+
+## Structural review
+
+Gestalt provides enough structural data to drive a review protocol — see [operations/review.md](operations/review.md).
+
+The protocol uses `gestalt diff --format json` for triage, `callers`/`callees`/`blame`/`log` for deep investigation, and `analyze`/`rank` for structural context. The agent identifies where to look and generates targeted questions; the human provides semantic judgment.
 
 ## Call graph
 
