@@ -22,7 +22,7 @@ See `/review` [reference/harnesses.md](../../../review/reference/harnesses.md) f
 
 Full cartesian product: every role dispatches on every harness.
 
-| Role | Claude | OpenCode |
+| Role | Claude | Pi |
 |------|--------|----------|
 | General | 1 (required) | 0-N (from validation.yaml) |
 | Architecture | 1 (required) | 0-N (from validation.yaml) |
@@ -96,7 +96,7 @@ implementer_report:
 
 Dispatch per `/review` infrastructure. See `/review` [reference/harnesses.md](../../../review/reference/harnesses.md) for dispatch templates.
 
-All OpenCode models and reasoning effort configured in `validation.yaml` under `review_config`.
+All Pi models and reasoning effort configured in `validation.yaml` under `review_config`.
 Review prompts per role: see `code` review skill Step 4.
 
 ## When Reviewers Run
@@ -109,11 +109,11 @@ Batch N:
 ├── Phase B: Implementers (parallel)
 └── Phase C: Reviewers (roles × harnesses in parallel) ← this role
     ├── General × Claude [required]
-    ├── General × OpenCode (0-N from validation.yaml)
+    ├── General × Pi (0-N from validation.yaml)
     ├── Architecture × Claude [required]
-    ├── Architecture × OpenCode (0-N from validation.yaml)
+    ├── Architecture × Pi (0-N from validation.yaml)
     ├── Compliance × Claude [required]
-    └── Compliance × OpenCode (0-N from validation.yaml)
+    └── Compliance × Pi (0-N from validation.yaml)
 ```
 
 ## Report Format
@@ -126,7 +126,7 @@ Each reviewer produces a YAML report with gates:
 
 ```yaml
 reviewer_report:
-  reviewer: general-claude-opus  # or general-opencode-gpt5.4, general-opencode-gemini-3-pro, architecture-claude-opus, compliance-claude-opus
+  reviewer: general-claude-opus  # or general-pi-gpt5.4, general-pi-gemini-3-pro, architecture-claude-opus, compliance-claude-opus
   gates:
     correctness:
       status: pass | fail
@@ -214,7 +214,7 @@ Languages: python | Rules: 12 | Violations: 1
 
 ## Handling Timeouts
 
-If OpenCode reviewer times out (> 5 minutes):
+If Pi reviewer times out (> 5 minutes):
 
 1. Continue with completed reviews (minimum 1 Claude required)
 2. Note: "[Reviewer] timed out, partial results"
@@ -241,14 +241,14 @@ Review is good when it:
 Task(general): "General review: batch T002-T004" ...
 Task(general): "Architecture review: batch T002-T004" ...
 Task(general): "Compliance review: batch T002-T004" ...
-# 3 roles × OpenCode model 1
-Bash(background): opencode run --model "openai/gpt-5.4" --variant {reasoning_effort}-medium "General review: ..."
-Bash(background): opencode run --model "openai/gpt-5.4" --variant {reasoning_effort}-medium "Architecture review: ..."
-Bash(background): opencode run --model "openai/gpt-5.4" --variant {reasoning_effort}-medium "Compliance review: ..."
-# 3 roles × OpenCode model 2
-Bash(background): opencode run --model "google/gemini-3.1-pro-preview" --variant {reasoning_effort}-medium "General review: ..."
-Bash(background): opencode run --model "google/gemini-3.1-pro-preview" --variant {reasoning_effort}-medium "Architecture review: ..."
-Bash(background): opencode run --model "google/gemini-3.1-pro-preview" --variant {reasoning_effort}-medium "Compliance review: ..."
+# 3 roles × Pi model 1
+Bash(background): pi -p --model openai-codex/gpt-5.4 --thinking {reasoning_effort} "General review: ..."
+Bash(background): pi -p --model openai-codex/gpt-5.4 --thinking {reasoning_effort} "Architecture review: ..."
+Bash(background): pi -p --model openai-codex/gpt-5.4 --thinking {reasoning_effort} "Compliance review: ..."
+# 3 roles × Pi model 2
+Bash(background): pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking {reasoning_effort} "General review: ..."
+Bash(background): pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking {reasoning_effort} "Architecture review: ..."
+Bash(background): pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking {reasoning_effort} "Compliance review: ..."
 ```
 
 **Individual Outputs:**
@@ -272,10 +272,10 @@ reviewer_report:
       suggestion: "Use parameterized queries"
 ```
 
-OpenCode Gemini (General):
+Pi Gemini (General):
 ```yaml
 reviewer_report:
-  reviewer: general-opencode-gemini-3-pro
+  reviewer: general-pi-gemini-3-pro
   gates:
     correctness: { status: pass, issues: [] }
     style: { status: pass, issues: [] }
@@ -304,7 +304,7 @@ reviewer_report:
 
 ## Critical (2 reviewers agree)
 - [C1] SQL injection at src/db/query.py:45
-  Found by: general-claude-opus, general-opencode-gemini-3-pro
+  Found by: general-claude-opus, general-pi-gemini-3-pro
   Fix: Use parameterized queries + input validation
 
 Action: Dispatch fix subagent before proceeding

@@ -1,5 +1,8 @@
 # Git Worktrees
 
+Existing worktrees:
+!`git worktree list 2>/dev/null`
+
 Git worktrees create isolated workspaces sharing the same repository.
 
 **Core principle:** Systematic directory selection + safety verification = reliable isolation.
@@ -161,5 +164,5 @@ Ready to implement <feature-name>
 
 **Use with:**
 - `brainstorm` - After design approval, set up workspace
-- `dispatch` - Work happens in this worktree
+- `implement` - Work happens in this worktree
 - `completion-verify` - Verify baseline before and after

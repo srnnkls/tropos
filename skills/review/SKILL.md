@@ -40,6 +40,7 @@ Apply these rules to `$ARGUMENTS` in order:
 | 7+ hex chars (commit SHA) | Commit review | `Skill(code, review --rev $ARGUMENTS)` |
 | `--final <name>` | Final scope review | `Skill(code, review --final $NAME)` |
 | Matches `scopes/*/scope.md` or scope name | Scope review | `Skill(scope, review $SCOPE_NAME)` |
+| `gestalt` or `--structural` | Structural review | `Skill(gestalt, review $REST)` |
 | File path that exists | Path review | `Skill(code, review --path $ARGUMENTS)` |
 | No argument | Menu fallback | See below |
 
@@ -58,6 +59,7 @@ Options:
 - Commit: Review changes in a specific commit
 - Branch diff: Review all changes since diverging from base branch
 - Uncommitted: Review staged and unstaged modifications
+- Structural: Gestalt-driven structural review — topology, blast radius, targeted questions
 ```
 
 With "Other" covering: scope review, path review, or custom target.
@@ -70,6 +72,7 @@ With "Other" covering: scope review, path review, or custom target.
 | Commit | `Skill(code, review --rev ...)` — ask for SHA first |
 | Branch diff | `Skill(code, review --diff <base>..HEAD)` — ask for base branch first |
 | Uncommitted | `Skill(code, review)` — auto-detects staged/unstaged |
+| Structural | `Skill(gestalt, review)` — ask for base..target range first |
 | Other: scope | `Skill(scope, review)` — scope skill asks for name |
 
 > **Protocol:** [dispatch/protocol.md](../dispatch/protocol.md)
@@ -90,7 +93,7 @@ Canonical configuration for multi-agent review. Domain skills compose on this.
 | Harness | Models |
 |---|---|
 | Claude | opus, sonnet |
-| OpenCode | openai/gpt-5.4, google/gemini-3-flash-preview, google/gemini-3.1-pro-preview |
+| Pi | openai-codex/gpt-5.4, google-gemini-cli/gemini-3-flash-preview, google-gemini-cli/gemini-3.1-pro-preview |
 
 Full details: [reference/models.md](reference/models.md)
 
@@ -99,7 +102,7 @@ Full details: [reference/models.md](reference/models.md)
 | Harness | Type | Dispatch |
 |---|---|---|
 | Claude | Native subagent | `Task(subagent_type="general")` |
-| OpenCode | External subprocess | `opencode run --model --variant` |
+| Pi | External subprocess | `pi -p --model --thinking` |
 
 Full details: [reference/harnesses.md](reference/harnesses.md)
 
@@ -115,18 +118,18 @@ Domain skill defines roles. This skill defines harnesses.
 
 **Default:** claude-opus, openai-gpt5.4, gemini-3.1-pro
 
-**Question 2:** Provider (if OpenCode selected): native (Recommended) or github-copilot
+**Question 2:** Provider (if Pi selected): native (Recommended) or github-copilot
 
-**Question 3:** Reasoning effort (if OpenCode selected): low, medium, high (Recommended), xhigh
+**Question 3:** Thinking level (if Pi selected): low, medium, high (Recommended), xhigh
 
 **Model mapping:**
 - `claude-opus` → `{type: claude, model: opus}`
 - `claude-sonnet` → `{type: claude, model: sonnet}`
-- `openai-gpt5.4` → `{type: opencode, model: openai/gpt-5.4}`
-- `gemini-3-flash` → `{type: opencode, model: google/gemini-3-flash-preview}`
-- `gemini-3.1-pro` → `{type: opencode, model: google/gemini-3.1-pro-preview}`
+- `openai-gpt5.4` → `{type: pi, model: openai-codex/gpt-5.4}`
+- `gemini-3-flash` → `{type: pi, model: google-gemini-cli/gemini-3-flash-preview}`
+- `gemini-3.1-pro` → `{type: pi, model: google-gemini-cli/gemini-3.1-pro-preview}`
 
-Store selections in `validation.yaml` under `review_config`. Variant format: `{reasoning}-{verbosity}` (e.g., `high-medium`).
+Store selections in `validation.yaml` under `review_config`.
 
 ### Report Schema
 

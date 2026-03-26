@@ -10,7 +10,7 @@ Each reviewer outputs this structure:
 
 ```yaml
 reviewer_report:
-  reviewer: {role}-{harness}-{model}  # e.g., general-claude-opus, architecture-opencode-gpt5.4, compliance-opencode-gemini-3.1-pro
+  reviewer: {role}-{harness}-{model}  # e.g., general-claude-opus, architecture-pi-gpt5.4, compliance-pi-gemini-3.1-pro
 
   gates:
     correctness:
@@ -55,7 +55,7 @@ Main agent produces this after merging reviewer reports:
 
 ```yaml
 synthesized_report:
-  reviewers: [general-claude-opus, general-opencode-gpt5.4, architecture-claude-opus, architecture-opencode-gpt5.4, compliance-claude-opus, compliance-opencode-gpt5.4]
+  reviewers: [general-claude-opus, general-pi-gpt5.4, architecture-claude-opus, architecture-pi-gpt5.4, compliance-claude-opus, compliance-pi-gpt5.4]
 
   gates:
     correctness:
@@ -69,7 +69,7 @@ synthesized_report:
       failed_by: []
     security:
       status: pass | fail
-      failed_by: [general-claude-opus, general-opencode-gemini-3.1-pro]
+      failed_by: [general-claude-opus, general-pi-gemini-3.1-pro]
     architecture:
       status: pass | fail
       failed_by: []
@@ -82,7 +82,7 @@ synthesized_report:
       location: "src/db/query.py:45"
       description: "SQL injection via unsanitized user input"
       suggestion: "Use parameterized queries"
-      found_by: [general-claude-opus, general-opencode-gemini-3.1-pro]
+      found_by: [general-claude-opus, general-pi-gemini-3.1-pro]
 
   strengths:
     - "Clear separation of concerns"

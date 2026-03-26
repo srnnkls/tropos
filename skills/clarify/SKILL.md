@@ -14,7 +14,7 @@ Resolve ambiguities by updating documents directly with tracked changes. Context
 ## When to Use
 
 **Use for:**
-- Resolving markers before dispatch (especially for Initiatives)
+- Resolving markers before implementation (especially for Initiatives)
 - Clarifying ambiguous requirements discovered post-validation
 - Addressing gaps identified in ambiguity_scan
 - Resolving questions from code review findings
@@ -220,8 +220,8 @@ Question: Which authentication method should be used?
 **Invoked from:**
 - `scope` - Clarify during scope creation or review
 - `code review` - Clarify code review findings
-- `dispatch` - Resolve blocking markers before dispatch
+- `implement` - Resolve blocking markers before execution
 
 **Related skills:**
 - `scope` - Creates scopes with ambiguity_scan and markers
-- `dispatch` - Checks for blocking markers before dispatch
+- `implement` - Checks for blocking markers before execution

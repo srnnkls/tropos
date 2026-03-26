@@ -1,6 +1,6 @@
 ---
 name: validate
-description: Unified validation dispatcher. Auto-detects validation type from argument or presents selection menu. Routes to test, dispatch (verify), or hooks-test.
+description: Unified validation dispatcher. Auto-detects validation type from argument or presents selection menu. Routes to test, implement (verify), or hooks-test.
 argument-hint: "[target]"
 allowed-tools: Bash(find *), Bash(git status *)
 metadata:
@@ -25,7 +25,7 @@ Apply these rules to `$ARGUMENTS` in order:
 | Pattern | Route | Action |
 |---|---|---|
 | Contains "hook" or path to hooks file | Hooks | `Skill(hooks-test, $ARGUMENTS)` |
-| Contains "completion", "done", or "verify" | Completion | `Skill(dispatch, verify)` |
+| Contains "completion", "done", or "verify" | Completion | `Skill(implement, verify)` |
 | Contains "test" or "tdd" | TDD | `Skill(test)` |
 | No argument | Menu fallback | See below |
 
@@ -50,7 +50,7 @@ Options:
 | Selection | Action |
 |---|---|
 | TDD | `Skill(test)` |
-| Completion | `Skill(dispatch, verify)` |
+| Completion | `Skill(implement, verify)` |
 | Hooks | `Skill(hooks-test)` |
 
 > **Protocol:** [dispatch/protocol.md](../dispatch/protocol.md)

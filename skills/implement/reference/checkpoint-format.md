@@ -87,4 +87,4 @@ The `continue` skill reads checkpoint.yaml to:
 | Purpose | Scope definition | Session state |
 | Updates | Status changes | After each batch |
 | Contains | All tasks | Progress + next batch |
-| Used by | dispatch (execute) | continue |
+| Used by | implement (execute) | continue |

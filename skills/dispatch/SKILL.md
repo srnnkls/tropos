@@ -1,6 +1,6 @@
 ---
 name: dispatch
-description: Unified execution dispatcher. Auto-detects execution mode from context or presents selection menu. Routes to execute, continue, implement, test, verify, or debug operations.
+description: Intent router. Auto-detects execution mode from context and routes to the appropriate skill.
 argument-hint: "[target]"
 allowed-tools: Bash(find *), Bash(git status *), Bash(git branch *)
 metadata:
@@ -21,9 +21,9 @@ Git status:
 Current branch:
 !`git branch --show-current 2>/dev/null`
 
-# Execution Dispatcher
+# Intent Router
 
-Routes to the appropriate execution operation or skill based on argument or context.
+Routes user intent to the appropriate execution skill.
 
 ---
 
@@ -34,12 +34,12 @@ Apply these rules to `$ARGUMENTS` in order:
 | Pattern | Route | Action |
 |---|---|---|
 | "continue" or "resume" | Resume | `Skill(continue, $ARGUMENTS)` |
-| "debug" or "trace" | Debug | Read and follow `operations/debug.md` |
+| "debug" or "trace" | Debug | `Skill(implement, debug $ARGUMENTS)` |
 | "test" or "tdd" | TDD | `Skill(test, $ARGUMENTS)` |
-| "verify" or "done" | Verify | Read and follow `operations/verify.md` |
-| Matches `./scopes/*/` path | Execute | Read and follow `operations/execute.md` |
+| "verify" or "done" | Verify | `Skill(implement, verify $ARGUMENTS)` |
+| Matches `./scopes/*/` path | Execute | `Skill(implement, $ARGUMENTS)` |
 | Checkpoint in pre-loaded context | Resume | `Skill(continue)` |
-| Exactly one active scope (no checkpoint) | Execute | Read and follow `operations/execute.md` |
+| Exactly one active scope (no checkpoint) | Execute | `Skill(implement)` |
 | File path or task description | Implement | `Skill(implement, $ARGUMENTS)` |
 | No argument | Menu | See fallback |
 
@@ -67,11 +67,11 @@ With "Other" covering: debug (root cause tracing).
 
 | Selection | Action |
 |---|---|
-| Scope execution | Read and follow `operations/execute.md` |
-| Continue | `Skill(continue)` — target skill finds checkpoint |
-| Implement | `Skill(implement)` — target skill handles directly |
-| TDD | `Skill(test)` — target skill handles directly |
-| Verify | Read and follow `operations/verify.md` |
-| Other: debug | Read and follow `operations/debug.md` |
+| Scope execution | `Skill(implement)` |
+| Continue | `Skill(continue)` |
+| Implement | `Skill(implement)` |
+| TDD | `Skill(test)` |
+| Verify | `Skill(implement, verify)` |
+| Other: debug | `Skill(implement, debug)` |
 
 > **Protocol:** [dispatch/protocol.md](protocol.md)

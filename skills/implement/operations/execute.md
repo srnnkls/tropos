@@ -42,11 +42,11 @@ Each batch executes three phases. **A batch is NOT complete until all three phas
 │                          ↓                                      │
 │  Phase C: REVIEWERS (all roles × harnesses in parallel)          │
 │  ├── General × Claude (opus) [required]                         │
-│  ├── General × OpenCode (0-N from validation.yaml)              │
+│  ├── General × Pi (0-N from validation.yaml)              │
 │  ├── Architecture × Claude (opus, gestalt) [required]           │
-│  ├── Architecture × OpenCode (0-N from validation.yaml)         │
+│  ├── Architecture × Pi (0-N from validation.yaml)         │
 │  ├── Compliance × Claude (opus, loqui) [required]               │
-│  ├── Compliance × OpenCode (0-N from validation.yaml)           │
+│  ├── Compliance × Pi (0-N from validation.yaml)           │
 │  ├── Each role reviews own gates only                            │
 │  ├── Wait for ALL                                                │
 │  └── Synthesize by role, then aggregate                          │
@@ -132,7 +132,14 @@ Each tester:
 
 **GATE:** Wait for ALL testers to complete before proceeding to Phase B.
 - If any tester reports `status: gap` → handle gap (consult scope, ask user, re-dispatch). Do NOT proceed to Phase B.
-- If all testers report `status: success` → proceed to Phase B with their reports.
+- If all testers report `status: success` → verify RED state, then proceed to Phase B with their reports.
+
+**RED verification (MANDATORY — never skip):**
+For each tester report, verify:
+- `failure_output` is non-empty (not null, not blank)
+- Output shows test **failures**, not compilation errors or import errors
+- Tests fail because the **feature is missing**, not due to typos or broken test setup
+- If `failure_output` is empty, shows only errors (not failures), or tests passed → re-dispatch that tester
 
 #### Phase B: Dispatch Implementers
 
@@ -171,11 +178,11 @@ Each implementer:
 ```
 Dispatch (full cartesian product):
   - General × Claude [required]
-  - General × OpenCode (0-N from validation.yaml)
+  - General × Pi (0-N from validation.yaml)
   - Architecture × Claude [required]
-  - Architecture × OpenCode (0-N from validation.yaml)
+  - Architecture × Pi (0-N from validation.yaml)
   - Compliance × Claude [required]
-  - Compliance × OpenCode (0-N from validation.yaml)
+  - Compliance × Pi (0-N from validation.yaml)
 → Wait for ALL
 ```
 
@@ -183,9 +190,9 @@ Dispatch (full cartesian product):
 
 | Role | Primary Gates | Skill | Harnesses |
 |------|---------------|-------|-----------|
-| General | Correctness, Security, Performance | `code review` | Claude + OpenCode (0-N) |
-| Architecture | Architecture | `gestalt` | Claude + OpenCode (0-N) |
-| Compliance | Style | `loqui` | Claude + OpenCode (0-N) |
+| General | Correctness, Security, Performance | `code review` | Claude + Pi (0-N) |
+| Architecture | Architecture | `gestalt` | Claude + Pi (0-N) |
+| Compliance | Style | `loqui` | Claude + Pi (0-N) |
 
 **Reviewers receive pointers and load code themselves:**
 1. `{diff_cmd}` (e.g., `git diff <last_batch_commit>..HEAD`) — reviewer runs the command
@@ -231,7 +238,7 @@ After ALL reviewers complete:
           - id: general-claude-opus
             status: completed
             gates: { correctness: pass, style: pass, ... }
-          - id: general-opencode-gpt5.4
+          - id: general-pi-gpt5.4
             status: completed | timeout | failed
             gates: { ... }
        synthesized:
@@ -327,11 +334,11 @@ Or dispatch all roles directly (full cartesian product):
 ```
 Dispatch (in same message):
   - General × Claude [required]
-  - General × OpenCode (0-N from validation.yaml)
+  - General × Pi (0-N from validation.yaml)
   - Architecture × Claude [required]
-  - Architecture × OpenCode (0-N from validation.yaml)
+  - Architecture × Pi (0-N from validation.yaml)
   - Compliance × Claude [required]
-  - Compliance × OpenCode (0-N from validation.yaml)
+  - Compliance × Pi (0-N from validation.yaml)
 ```
 
 **Final review checks:**
@@ -347,7 +354,7 @@ Dispatch (in same message):
 final_review:
   status: completed
   timestamp: <ISO_TIMESTAMP>
-  reviewers: [general-claude-opus, general-opencode-gpt5.4, architecture-claude-opus, architecture-opencode-gpt5.4, compliance-claude-opus, compliance-opencode-gpt5.4, ...]
+  reviewers: [general-claude-opus, general-pi-gpt5.4, architecture-claude-opus, architecture-pi-gpt5.4, compliance-claude-opus, compliance-pi-gpt5.4, ...]
   gates: { correctness: pass, style: pass, ... }
   scope_compliance:
     all_tasks_complete: true
@@ -377,7 +384,7 @@ readiness:
 | Architecture Reviewer | general | gestalt |
 | Compliance Reviewer | general | loqui |
 
-**CRITICAL:** Always use `subagent_type: "general"` for all subagents. OpenCode's Task tool only supports `"general"` and `"explore"`.
+**CRITICAL:** Always use `subagent_type: "general"` for all subagents. Pi's Task tool only supports `"general"` and `"explore"`.
 
 ---
 
@@ -386,8 +393,8 @@ readiness:
 | Gate | When | Action if Failed |
 |------|------|------------------|
 | Pre-impl gate | Before any dispatch | Block if Initiative gates failed |
-| RED verification | After tester | Verify tests actually fail |
-| GREEN verification | After implementer | Verify tests pass |
+| RED verification | After tester | `failure_output` non-empty, shows failures (not errors), fails because feature missing |
+| GREEN verification | After implementer | `test_output` non-empty, all tests pass, no errors/warnings |
 | **Batch review** | **After all implementers** | **Fix before next batch** |
 | Final review | After all batches | Address gaps |
 
@@ -472,14 +479,14 @@ and `.result` fields — a platform bug). Mitigations:
 ## Integration
 
 **Use with:**
-- `scope` - Create scope before dispatch
-- `clarify` - Resolve markers/gates before dispatch
+- `scope` - Create scope before execution
+- `clarify` - Resolve markers/gates before execution
 - `test` - Tester invokes for TDD methodology
 - `implement` - Implementer invokes for language guidelines
 - `code review` - General reviewer invokes for review methodology
 - `gestalt` - Architecture reviewer invokes for structural analysis
 - `loqui` - Compliance reviewer invokes for language guidelines
-- `dispatch` (verify operation) - Verify before claiming done
+- `implement` (verify operation) - Verify before claiming done
 
 ---
 

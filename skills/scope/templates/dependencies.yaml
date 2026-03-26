@@ -41,7 +41,7 @@ phases:
 
 # ------------------------------------------------------------------------------
 # Computed parallel batches (derived from DAG)
-# task-dispatch uses this to maximize parallelism
+# implement uses this to maximize parallelism
 #
 # Batching rules:
 # - Tasks with no dependencies go in batch 1

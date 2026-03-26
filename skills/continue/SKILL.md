@@ -22,13 +22,13 @@ Current branch:
 
 # Continue Skill
 
-Resume interrupted work from context. Picks up where `dispatch` (execute operation) left off.
+Resume interrupted work from context. Picks up where `implement` (execute operation) left off.
 
 ---
 
 ## When to Use
 
-- After hitting context limit during `/dispatch`
+- After hitting context limit during `/implement`
 - Starting a new session to continue a scope
 - Recovering from interruption mid-implementation
 
@@ -40,7 +40,7 @@ Resume interrupted work from context. Picks up where `dispatch` (execute operati
 
 1. Parse scope name from argument (e.g., `/continue auth-system`)
 2. If no argument: find most recent checkpoint in `./scopes/*/checkpoint.yaml`
-3. If no checkpoint found: suggest `/dispatch` instead
+3. If no checkpoint found: suggest `/implement` instead
 
 ```bash
 # Find most recent checkpoint
@@ -96,7 +96,7 @@ Continuing with three-phase pipeline...
 
 ### Step 5: Resume Three-Phase Pipeline
 
-Execute the next batch using the same pipeline as `dispatch` (execute operation):
+Execute the next batch using the same pipeline as `implement` (execute operation):
 
 ```
 Phase A: TESTERS
@@ -112,7 +112,7 @@ Phase C: REVIEWERS
 └── Wait for completion + synthesize
 ```
 
-**CRITICAL:** Follow all `dispatch` execute operation rules:
+**CRITICAL:** Follow all `implement` execute operation rules:
 - Always use `subagent_type: "general"` for subagents
 - Dispatch parallel subagents in single message
 - Never skip reviewer phase
@@ -172,7 +172,7 @@ Report reviewer_report YAML.
 **Checkpoint not found:**
 ```
 No checkpoint found for <scope>.
-Run /dispatch <scope> to start fresh.
+Run /implement <scope> to start fresh.
 ```
 
 **Branch mismatch:**
@@ -208,7 +208,7 @@ Run final review? [Y/n]
 **Command:** `/continue [scope-name]`
 
 **Related skills:**
-- `dispatch` (execute operation) - Initial execution (writes checkpoints)
+- `implement` (execute operation) - Initial execution (writes checkpoints)
 - `scope update` - Sync task status via /scope update
 - `scope done` - Mark scope as done
 

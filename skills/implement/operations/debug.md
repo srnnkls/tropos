@@ -158,7 +158,7 @@ log("DEBUG operation:", {
 
 **Use with:**
 - `test` - Write failing test to reproduce bug before fixing
-- `dispatch` (verify operation) - Verify fix actually worked before claiming done
+- `implement` (verify operation) - Verify fix actually worked before claiming done
 
 ---
 
