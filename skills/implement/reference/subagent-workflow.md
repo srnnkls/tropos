@@ -59,7 +59,12 @@ Task:
     1. Read the task requirements and test_hints
     2. Write tests that cover all specified behaviors
     3. Tests must FAIL (features not implemented yet)
-    4. Run tests to verify RED state
+    4. Run tests — verify RED state (MANDATORY, never skip):
+       - Tests fail (not error from typos or missing imports)
+       - Failure message matches expected behavior
+       - Tests fail because the feature is missing
+       - If tests pass immediately → you're testing existing behavior, fix the test
+    5. `failure_output` MUST contain actual test failure output proving RED state
 
     **Work from:** [directory]
 
