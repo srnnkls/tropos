@@ -16,7 +16,6 @@ Execute scopes with proper TDD: tester writes failing tests, implementer makes t
 **Don't use when:**
 - No scope exists yet (use `/scope` first)
 - Tasks are tightly coupled (manual execution better)
-- Single small task (just do it directly)
 - Initiative scope has failed gates (resolve first via /clarify)
 
 ---
@@ -135,11 +134,22 @@ Each tester:
 - If all testers report `status: success` → verify RED state, then proceed to Phase B with their reports.
 
 **RED verification (MANDATORY — never skip):**
-For each tester report, verify:
+
+**Structural checks** — verify the tests actually fail:
 - `failure_output` is non-empty (not null, not blank)
 - Output shows test **failures**, not compilation errors or import errors
 - Tests fail because the **feature is missing**, not due to typos or broken test setup
 - If `failure_output` is empty, shows only errors (not failures), or tests passed → re-dispatch that tester
+
+**Failure mode checks** — read the test code and verify it is not:
+- **Oracle mirroring:** Tests that assert what the current code does rather than what it should do. If the tests describe existing behavior with different names, they will pass immediately once wired up — not because the feature works, but because the test mirrors the implementation.
+- **Mock tautologies:** Tests where everything is mocked, leaving nothing real under test. The test checks that the mock's return value came back — proving only that the test setup works.
+- **Testing dependencies:** Tests that exercise framework or library behavior rather than application logic. Ask: if this test passes, does it prove OUR code works, or just that a dependency works?
+- **Assertion-free coverage:** Tests that execute code paths but verify nothing meaningful — no assertions, or assertions on trivial properties.
+
+**Verification technique:** Pick one test. Trace what it would do if a key behavior were wrong (e.g., wrong field mapping, wrong transformation). If it would still pass, the test is not testing intent — re-dispatch the tester with specific feedback about what the test must actually verify.
+
+If any failure mode is detected → re-dispatch the tester with feedback identifying the specific problem. Do NOT proceed to Phase B with contaminated tests.
 
 #### Phase B: Dispatch Implementers
 
@@ -393,7 +403,7 @@ readiness:
 | Gate | When | Action if Failed |
 |------|------|------------------|
 | Pre-impl gate | Before any dispatch | Block if Initiative gates failed |
-| RED verification | After tester | `failure_output` non-empty, shows failures (not errors), fails because feature missing |
+| RED verification | After tester | Structural: `failure_output` non-empty, shows failures (not errors), fails because feature missing. Failure modes: no oracle mirroring, no mock tautologies, no dependency testing, no assertion-free coverage. |
 | GREEN verification | After implementer | `test_output` non-empty, all tests pass, no errors/warnings |
 | **Batch review** | **After all implementers** | **Fix before next batch** |
 | Final review | After all batches | Address gaps |

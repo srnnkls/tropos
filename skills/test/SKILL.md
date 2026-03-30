@@ -28,7 +28,8 @@ Write the test first. Watch it fail. Write minimal code to pass.
 
 **Workflow Integration:**
 - **Multiple independent tasks from a scope?** → Use `implement` skill (it runs the scope execution pipeline)
-- **Single implementation task?** → Use this skill directly for TDD workflow
+- **Single implementation task?** → Use `implement` skill (it dispatches tester + implementer subagents)
+- **This skill is for subagents** — tester subagents invoke this skill to follow TDD methodology. The orchestrator never invokes this skill directly to write tests.
 
 ---
 
