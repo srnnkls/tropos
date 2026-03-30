@@ -22,7 +22,9 @@ Current branch:
 
 # Implementation & Scope Execution
 
-Executes scopes via three-phase TDD pipeline (tester → implementer → reviewer), or implements single tasks directly.
+Executes scopes and tasks via three-phase TDD pipeline (tester → implementer → reviewer).
+
+**INVARIANT: The orchestrator NEVER writes code or tests.** All code authoring — including test code — MUST be delegated to fresh subagents. This applies to ALL routes: scope execution, single tasks, file paths, and task descriptions. No exceptions.
 
 ---
 
@@ -93,31 +95,41 @@ When implementing from a spec:
 
 ---
 
-## Process
+## Process (Single-Task Pipeline)
 
-### 1. Understand Requirements
+**The orchestrator NEVER writes code or tests.** All code authoring is delegated to subagents.
 
-- Read the spec/task description
-- Identify acceptance criteria
-- Note edge cases and constraints
+Even for a single task, the three-phase pipeline applies:
 
-### 2. Plan Approach
+### Phase A: Dispatch Tester Subagent
 
-- Identify affected files and modules
-- Choose patterns appropriate to the domain
-- Consider dependencies and ordering
+Dispatch a **fresh tester subagent** (`subagent_type: "general"`) to write failing tests.
 
-### 3. Build Incrementally
+- Tester reads task requirements and discovers expected behavior independently
+- Tester writes tests and verifies RED state
+- Orchestrator verifies RED (see Quality Gates in `operations/execute.md`)
 
-- Start with the simplest working version
-- Add complexity only as needed
-- Verify each step before moving on
+**Why a separate subagent?** The orchestrator's understanding of the task leaks into hand-written tests, causing oracle mirroring (tests that mirror implementation logic) and mock tautologies (mocks that assume the answer). A fresh subagent discovers behavior from code and specs independently.
 
-### 4. Verify
+### Phase B: Dispatch Implementer Subagent
 
-- Run relevant tests
-- Check against acceptance criteria
-- Ensure no regressions
+Dispatch a **fresh implementer subagent** (`subagent_type: "general"`) with the tester's report.
+
+- Implementer makes tests pass (GREEN)
+- Implementer refactors while staying green
+
+### Phase C: Review
+
+For single tasks, review can be done inline or via reviewer subagent(s) depending on scope.
+
+### Dispatch Templates
+
+Use the tester and implementer dispatch templates from `reference/subagent-workflow.md`.
+
+### Red Flags
+
+**If you catch yourself writing test code or implementation code directly: STOP.**
+You are the orchestrator. You dispatch. You verify. You do not author.
 
 ---
 

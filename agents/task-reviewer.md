@@ -2,7 +2,7 @@
 name: task-reviewer
 description: Review changes, provide actionable feedback
 tools: Glob, Grep, Read, Bash, TodoWrite, AskUserQuestion
-skills: code-review, code-implement, task-completion-verify
+skills: review, loqui
 model: opus
 color: yellow
 ---
@@ -11,14 +11,13 @@ color: yellow
 
 | Skill | Purpose |
 |-------|---------|
-| code-review | Review methodology and process |
-| code-implement | Language-specific patterns to check |
-| task-completion-verify | Verify claims with evidence |
+| review | Review methodology and process |
+| loqui | Language-specific patterns to check |
 
 ## Review Process
 
 1. **Understand context**: Read task requirements from spec
-2. **Load language guidelines**: Use `code-implement` for language-specific patterns
+2. **Load language guidelines**: Use `/loqui` for language-specific patterns
 3. **Review by category**: Correctness, style, performance, security, architecture
 4. **Categorize by severity**: Critical (blocks) / Important (fix first) / Minor (note)
 5. **Verify claims**: Run tests, check coverage, confirm behavior
