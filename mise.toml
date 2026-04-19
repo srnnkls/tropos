@@ -4,7 +4,7 @@ includes = ["mise/tasks"]
 [tasks.loqui-link]
 description = "Symlink skills/loqui/reference/loqui to a local loqui checkout"
 usage = '''
-flag "-p --path <path>" help="Path to local loqui checkout (default: $HOME/projects/loqui)"
+flag "-p --path <path>" help="Path to local loqui checkout (default: cache dir, cloned if missing)"
 '''
 run = """
 #!/usr/bin/env bash
@@ -12,11 +12,19 @@ set -euo pipefail
 
 GIT_ROOT="$(git rev-parse --show-toplevel)"
 LINK_PATH="skills/loqui/reference/loqui"
-DEFAULT_PATH="$HOME/projects/loqui"
+
+if [[ -n "${XDG_CACHE_HOME:-}" ]]; then
+  CACHE_BASE="$XDG_CACHE_HOME"
+elif [[ "$(uname -s)" == "Darwin" ]]; then
+  CACHE_BASE="$HOME/Library/Caches"
+else
+  CACHE_BASE="$HOME/.cache"
+fi
+DEFAULT_PATH="$CACHE_BASE/tropos/loqui"
 LOQUI_LOCAL="${usage_path:-$DEFAULT_PATH}"
 
 if [[ ! -d "$LOQUI_LOCAL" ]]; then
-  if [[ "$LOQUI_LOCAL" == "$DEFAULT_PATH" ]]; then
+  if [[ -z "${usage_path:-}" ]]; then
     mkdir -p "$(dirname "$LOQUI_LOCAL")"
     git clone -q https://github.com/srnnkls/loqui.git "$LOQUI_LOCAL"
   else
