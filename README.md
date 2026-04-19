@@ -67,3 +67,15 @@ Or reference from your own marketplace:
   }
 }
 ```
+
+## Development
+
+Swap the `loqui` submodule for a symlink to a local checkout to edit both repos live:
+
+```bash
+mise run loqui-link               # symlinks skills/loqui/reference/loqui -> $HOME/projects/loqui
+mise run loqui-link --path ./foo  # custom path
+mise run loqui-unlink             # restore submodule checkout
+```
+
+`loqui-link` sets `git update-index --skip-worktree` on the submodule path so the symlink does not show up in `git status`. `loqui-unlink` clears the flag and re-initializes the submodule.
