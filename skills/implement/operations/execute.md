@@ -20,9 +20,9 @@ Execute scopes with proper TDD: tester writes failing tests, implementer makes t
 
 ---
 
-## The Three-Phase Pipeline
+## The Four-Phase Pipeline
 
-Each batch executes three phases. **A batch is NOT complete until all three phases finish.**
+Each batch executes four phases. **A batch is NOT complete until all four phases finish.**
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -32,6 +32,11 @@ Each batch executes three phases. **A batch is NOT complete until all three phas
 │  ├── Dispatch N tester subagents                                 │
 │  ├── Each writes failing tests (RED)                            │
 │  └── Wait for ALL testers                                       │
+│                          ↓                                      │
+│  Phase A.5: TEST REVIEW                                         │
+│  ├── Dispatch test reviewer on all Phase A test files           │
+│  ├── Check: oracle mirroring, mock tautologies, assertion-free  │
+│  └── Gate: clean → Phase B | issues → re-dispatch tester(s)     │
 │                          ↓                                      │
 │  Phase B: IMPLEMENTERS (parallel)                               │
 │  ├── Dispatch N implementer subagents                            │
@@ -56,7 +61,7 @@ Each batch executes three phases. **A batch is NOT complete until all three phas
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**CRITICAL:** All three phases are mandatory. Reviewers are not optional.
+**CRITICAL:** All four phases are mandatory. Test review and code reviewers are not optional.
 
 ---
 
@@ -108,9 +113,9 @@ Parse `dependencies.yaml` to identify execution batches:
 - Tasks with same file path must run sequentially
 - Phase boundaries force batch breaks
 
-### 4. Execute Batches (Three-Phase Pipeline)
+### 4. Execute Batches (Four-Phase Pipeline)
 
-**For each batch, execute ALL THREE phases:**
+**For each batch, execute ALL FOUR phases:**
 
 #### Phase A: Dispatch Testers
 
@@ -149,7 +154,33 @@ Each tester:
 
 **Verification technique:** Pick one test. Trace what it would do if a key behavior were wrong (e.g., wrong field mapping, wrong transformation). If it would still pass, the test is not testing intent — re-dispatch the tester with specific feedback about what the test must actually verify.
 
-If any failure mode is detected → re-dispatch the tester with feedback identifying the specific problem. Do NOT proceed to Phase B with contaminated tests.
+If any failure mode is detected → re-dispatch the tester with feedback identifying the specific problem. Do NOT proceed to Phase A.5 with contaminated tests.
+
+#### Phase A.5: Test Review Gate
+
+**PRECONDITION:** All Phase A testers completed with `status: success` and RED verified.
+
+Dispatch a **fresh test reviewer subagent** using the `review --test-audit` operation on all test files from the batch.
+
+**Collect inputs:**
+- All `test_files[*].path` from all `tester_report`s in this batch
+- Tester task descriptions (what behavior each test should verify)
+
+**Dispatch template:** See `reference/subagent-workflow.md` — Test Review Dispatch Template.
+
+**Gate outcome:**
+
+| Result | Action |
+|--------|--------|
+| Clean (no issues found) | Proceed to Phase B |
+| Oracle mirroring | Re-dispatch affected tester(s) with specific finding |
+| Mock tautologies | Re-dispatch affected tester(s) with specific finding |
+| Framework tests | Re-dispatch affected tester(s) with specific finding |
+| Trivial assertions | Re-dispatch affected tester(s) with specific finding |
+
+After re-dispatch, tester output must pass Phase A.5 again before Phase B.
+
+**INVARIANT:** Implementers NEVER receive tests that failed the test review gate.
 
 #### Phase B: Dispatch Implementers
 
@@ -403,9 +434,10 @@ readiness:
 | Gate | When | Action if Failed |
 |------|------|------------------|
 | Pre-impl gate | Before any dispatch | Block if Initiative gates failed |
-| RED verification | After tester | Structural: `failure_output` non-empty, shows failures (not errors), fails because feature missing. Failure modes: no oracle mirroring, no mock tautologies, no dependency testing, no assertion-free coverage. |
-| GREEN verification | After implementer | `test_output` non-empty, all tests pass, no errors/warnings |
-| **Batch review** | **After all implementers** | **Fix before next batch** |
+| RED verification | After Phase A | Structural: `failure_output` non-empty, shows failures (not errors), fails because feature missing |
+| **Test review** | **After Phase A, before Phase B** | **Re-dispatch tester(s) with finding; repeat until clean** |
+| GREEN verification | After Phase B | `test_output` non-empty, all tests pass, no errors/warnings |
+| **Batch review** | **After Phase B (all implementers)** | **Fix before next batch** |
 | Final review | After all batches | Address gaps |
 
 ---
@@ -414,7 +446,9 @@ readiness:
 
 **Never:**
 - Skip the tester phase (implementer must receive failing tests)
-- **Skip the reviewer phase (every batch must be reviewed)**
+- **Skip the test review gate (Phase A.5 — every batch's tests must be reviewed)**
+- **Skip the code reviewer phase (Phase C — every batch must be reviewed)**
+- Pass tests to the implementer without first clearing Phase A.5
 - Use sonnet/explore for task subagents (always general)
 - Dispatch parallel subagents on same file
 - Let implementer write tests (tester's job)
@@ -442,6 +476,8 @@ readiness:
 Batch 1: Task 1 (single task)
 ├── Phase A: Dispatch tester
 │   └── Tester: Wrote 3 tests, all failing (RED)
+├── Phase A.5: Dispatch test reviewer
+│   └── Reviewer: Clean — no oracle mirroring or tautologies
 ├── Phase B: Dispatch implementer + tester report
 │   └── Implementer: Made tests pass (GREEN)
 ├── Phase C: Dispatch reviewers (3 in parallel)
@@ -454,6 +490,10 @@ Batch 1: Task 1 (single task)
 Batch 2: Tasks 2, 3, 4 ([P] parallel batch)
 ├── Phase A: Dispatch 3 testers (single message)
 │   └── All testers complete with failing tests
+├── Phase A.5: Dispatch test reviewer (all 3 test files)
+│   ├── Reviewer: Task 2 tests — oracle mirroring detected
+│   ├── Re-dispatch Task 2 tester with finding
+│   └── Task 2 re-tester: Clean on second attempt
 ├── Phase B: Dispatch 3 implementers (single message)
 │   └── All implementers complete, tests passing
 ├── Phase C: Dispatch reviewers (3 in parallel)

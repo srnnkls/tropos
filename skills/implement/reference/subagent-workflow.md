@@ -10,9 +10,9 @@ Before dispatching, analyze `dependencies.yaml` for execution batches:
 4. Non-`[P]` tasks form single-task batches
 5. Phase boundaries force batch breaks
 
-## Three-Phase Pipeline
+## Four-Phase Pipeline
 
-**Each batch executes three mandatory phases:**
+**Each batch executes four mandatory phases:**
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -20,8 +20,14 @@ Before dispatching, analyze `dependencies.yaml` for execution batches:
 │  ├── Writes failing tests (RED)                                 │
 │  └── Reports test paths + failure output                        │
 │                          ↓                                      │
+│  Phase A.5: TEST REVIEW                                         │
+│  ├── Reviews all Phase A test files                             │
+│  ├── Checks: oracle mirroring, mock tautologies,                │
+│  │   framework tests, trivial assertions                        │
+│  └── Gate: clean → Phase B | issues → re-dispatch tester(s)     │
+│                          ↓                                      │
 │  Phase B: IMPLEMENTERS                                          │
-│  ├── Receives tester's report                                   │
+│  ├── Receives tester's report (test-review-cleared)             │
 │  ├── Makes tests pass (GREEN)                                   │
 │  └── Reports impl files + pass output                           │
 │                          ↓                                      │
@@ -32,7 +38,7 @@ Before dispatching, analyze `dependencies.yaml` for execution batches:
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**CRITICAL:** All three phases are mandatory. A batch is not complete until reviewers finish.
+**CRITICAL:** All four phases are mandatory. A batch is not complete until all phases finish.
 
 ---
 
@@ -95,13 +101,69 @@ Task (general): "Write tests for Task N2" ...
 Task (general): "Write tests for Task N3" ...
 ```
 
-Wait for ALL testers to complete before dispatching implementers.
+Wait for ALL testers to complete before dispatching Phase A.5.
+
+---
+
+## Test Review Dispatch Template (Phase A.5)
+
+**PRECONDITION:** All Phase A testers completed with `status: success` and RED verified.
+
+Collect all test file paths from every `tester_report` in the batch, then dispatch a single reviewer:
+
+```yaml
+Task:
+  subagent_type: general
+  description: "Test quality review for batch [N] tests"
+  prompt: |
+    Review these test files for quality issues before implementation proceeds.
+
+    Read `./skills/review/operations/test-audit.md` for the four anti-patterns to check.
+
+    **Test files to review:**
+    [list each path from tester_reports[*].test_files[*].path]
+
+    **Expected behavior each test suite verifies:**
+    [paste task description for each corresponding tester]
+
+    **Your job:**
+    1. Read each test file
+    2. Apply the four anti-pattern checks from test-audit.md
+    3. For each issue found: name the test, name the anti-pattern, one-line reason
+
+    **OUTPUT CONSTRAINT:** Your ENTIRE final message must be ONLY the YAML report below.
+
+    **Report in YAML format:**
+    ```yaml
+    test_review_report:
+      status: clean  # or "issues_found"
+      findings:
+        - test_file: [path]
+          test_name: [function name]
+          anti_pattern: oracle_mirroring | mock_tautology | framework_test | trivial_assertion
+          reason: "[one-line reason]"
+          fix_direction: "[what the tester should do instead]"
+      summary: "[one sentence — or 'No issues found']"
+    ```
+```
+
+**Gate logic after test_review_report arrives:**
+
+- `status: clean` → proceed to Phase B
+- `status: issues_found` → for each affected test file:
+  1. Re-dispatch its tester with the `findings` for that file as explicit feedback
+  2. Wait for re-dispatched tester(s) to complete
+  3. Run Phase A.5 again on the re-written tests
+  4. Repeat until all test files are clean
+- Only dispatch Phase B once ALL test files pass the gate
+
+**INVARIANT:** Never dispatch an implementer with tests that have `status: issues_found` in their test review.
 
 ---
 
 ## Implementer Dispatch Template
 
-**PRECONDITION:** Tester for this task completed with `status: success`. The tester_report YAML below is REQUIRED — if missing, dispatch the tester first.
+**PRECONDITION:** Tester for this task completed with `status: success` AND the batch's `test_review_report` is `status: clean`. If either is missing, complete Phase A and Phase A.5 first.
 
 ```yaml
 Task:
@@ -229,14 +291,16 @@ Build Execution Batches
     |
     +--> Single task?
     |         |
-    |    YES: Phase A: Dispatch 1 tester (opus)
-    |         Phase B: Dispatch 1 implementer (opus)
-    |         Phase C: Dispatch reviewers (see /review)
+    |    YES: Phase A:   Dispatch 1 tester (opus)
+    |         Phase A.5: Dispatch test reviewer → gate
+    |         Phase B:   Dispatch 1 implementer (opus)
+    |         Phase C:   Dispatch reviewers (see /review)
     |         |
     |    NO (parallel [P] tasks):
-    |         Phase A: Dispatch N testers (single message)
-    |         Phase B: Dispatch N implementers (single message)
-    |         Phase C: Dispatch reviewers (see /review)
+    |         Phase A:   Dispatch N testers (single message)
+    |         Phase A.5: Dispatch test reviewer (all N test files) → gate
+    |         Phase B:   Dispatch N implementers (single message)
+    |         Phase C:   Dispatch reviewers (see /review)
     |         |
     |         v
     +--> Synthesize Reviews (see /review reference/synthesis.md)
@@ -305,10 +369,11 @@ If OpenCode reviewer times out (> 5 minutes):
 
 1. **subagent_type: general** - Use `general` for all task subagents
 2. **Tester first** - Implementer must receive failing tests
-3. **All three roles mandatory** - Every batch gets General + Architecture + Compliance review
-4. **YAML reports** - Structured handoff between phases
-5. **Single message dispatch** - All role × harness combinations in one message
-6. **Fresh context** - Each subagent starts clean
-7. **Track progress** - Update TodoWrite after each phase
-8. **Configure harnesses** - Set OpenCode models in validation.yaml (applied to ALL roles)
-9. **Minimize subagent output** - Subagent final messages get embedded into parent context (duplicated in `.output` and `.result`). Every extra token directly inflates parent context. Subagents must return ONLY the YAML report — no prose, no explanation.
+3. **Test review gate** - Every batch's tests pass Phase A.5 before implementers are dispatched
+4. **All three code-review roles mandatory** - Every batch gets General + Architecture + Compliance review
+5. **YAML reports** - Structured handoff between phases
+6. **Single message dispatch** - All role × harness combinations in one message
+7. **Fresh context** - Each subagent starts clean
+8. **Track progress** - Update TodoWrite after each phase
+9. **Configure harnesses** - Set OpenCode models in validation.yaml (applied to ALL roles)
+10. **Minimize subagent output** - Subagent final messages get embedded into parent context (duplicated in `.output` and `.result`). Every extra token directly inflates parent context. Subagents must return ONLY the YAML report — no prose, no explanation.

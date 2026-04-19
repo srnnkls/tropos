@@ -14,7 +14,24 @@ color: yellow
 | review | Review methodology and process |
 | loqui | Language-specific patterns to check |
 
-## Review Process
+## Review Modes
+
+This agent handles two distinct review phases in the pipeline:
+
+### Phase A.5: Test Quality Review
+
+When dispatched as a **test reviewer** (before implementers), check test files for failure modes:
+
+1. Read `./skills/review/operations/test-audit.md` for the four anti-patterns
+2. Read each test file provided
+3. Apply anti-pattern checks: oracle mirroring, mock tautologies, framework tests, trivial assertions
+4. Output `test_review_report` YAML (see subagent-workflow.md dispatch template)
+
+### Phase C: Code Review
+
+When dispatched as a **code reviewer** (after implementers), follow the process below.
+
+## Review Process (Phase C)
 
 1. **Understand context**: Read task requirements from spec
 2. **Load language guidelines**: Use `/loqui` for language-specific patterns

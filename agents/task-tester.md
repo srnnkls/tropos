@@ -46,3 +46,5 @@ The single biggest failure mode is **oracle mirroring**: reading current source 
    - Tests fail because the **feature is missing**
    - If tests pass immediately → delete and rewrite, you are mirroring
 6. Report test files and failure output
+
+**Note:** After you complete, the orchestrator runs a test review gate (Phase A.5) before dispatching the implementer. If your tests are flagged for oracle mirroring, mock tautologies, framework tests, or trivial assertions, you will be re-dispatched with specific feedback. The implementer never sees tests that failed the review gate.
