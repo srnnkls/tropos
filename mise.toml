@@ -1,0 +1,119 @@
+[task_config]
+includes = ["mise/tasks"]
+
+[tasks.loqui-link]
+description = "Replace the loqui submodule with a symlink to a local checkout for live development"
+usage = '''
+flag "-p --path <path>" help="Path to local loqui checkout (default: $HOME/projects/loqui)"
+'''
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+GIT_ROOT="$(git rev-parse --show-toplevel)"
+SUBMODULE_PATH="skills/loqui/reference/loqui"
+LOQUI_LOCAL="${usage_path:-$HOME/projects/loqui}"
+
+if [[ ! -d "$LOQUI_LOCAL" ]]; then
+  echo "error: $LOQUI_LOCAL does not exist" >&2
+  exit 1
+fi
+
+cd "$GIT_ROOT"
+
+if [[ -L "$SUBMODULE_PATH" && "$(readlink "$SUBMODULE_PATH")" == "$LOQUI_LOCAL" ]]; then
+  git update-index --skip-worktree "$SUBMODULE_PATH" 2>/dev/null || true
+  echo "already linked: $SUBMODULE_PATH -> $LOQUI_LOCAL"
+  exit 0
+fi
+
+git submodule deinit -f "$SUBMODULE_PATH" 2>/dev/null || true
+rm -rf "$SUBMODULE_PATH"
+ln -s "$LOQUI_LOCAL" "$SUBMODULE_PATH"
+git update-index --skip-worktree "$SUBMODULE_PATH"
+
+echo "linked: $SUBMODULE_PATH -> $LOQUI_LOCAL"
+"""
+
+[tasks.loqui-unlink]
+description = "Restore the loqui submodule checkout, undoing loqui-link"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+GIT_ROOT="$(git rev-parse --show-toplevel)"
+SUBMODULE_PATH="skills/loqui/reference/loqui"
+
+cd "$GIT_ROOT"
+
+git update-index --no-skip-worktree "$SUBMODULE_PATH" 2>/dev/null || true
+
+if [[ -L "$SUBMODULE_PATH" ]]; then
+  rm "$SUBMODULE_PATH"
+fi
+
+git submodule update --init "$SUBMODULE_PATH"
+
+echo "restored submodule checkout at $SUBMODULE_PATH"
+"""
+
+[tasks.bootstrap]
+description = "Create worktree for a branch, build image, and install tools"
+usage = '''
+arg "<branch>" help="Git branch to checkout in a worktree"
+'''
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+BRANCH="${usage_branch}"
+GIT_ROOT="$(git rev-parse --show-toplevel)"
+WORKTREE="${GIT_ROOT}/.worktrees/${BRANCH}"
+COMPOSE_FILE="${GIT_ROOT}/docker/compose.yml"
+
+if [[ ! -d "$WORKTREE" ]]; then
+  git worktree add "$WORKTREE" "$BRANCH"
+fi
+
+docker compose --file "$COMPOSE_FILE" build
+docker compose --file "$COMPOSE_FILE" run --rm bootstrap
+"""
+
+[tasks.claude]
+description = "Run claude in an isolated container (one-shot by default, --loop for autonomous mode)"
+usage = '''
+flag "-l --loop" help="Prefix prompt with /loop to run the autonomous loop skill"
+flag "-H --headless" help="Run detached (no output stream)"
+flag "-b --branch <branch>" help="Use worktree for this branch (requires prior bootstrap)"
+arg "<prompt>" help="Prompt to pass to claude" var
+'''
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+GIT_ROOT="$(git rev-parse --show-toplevel)"
+
+if [[ -n "${usage_branch:-}" ]]; then
+  WORKSPACE="${GIT_ROOT}/.worktrees/${usage_branch}"
+  if [[ ! -d "$WORKSPACE" ]]; then
+    git worktree add "$WORKSPACE" "${usage_branch}"
+  fi
+else
+  WORKSPACE="$(pwd)"
+fi
+
+if [[ "${usage_loop:-false}" == "true" ]]; then
+  PROMPT="/loop ${usage_prompt}"
+else
+  PROMPT="${usage_prompt}"
+fi
+
+COMPOSE=(docker compose --file "${GIT_ROOT}/docker/compose.yml" run --rm)
+
+if [[ "${usage_headless:-false}" == "true" ]]; then
+  COMPOSE+=(--detach)
+  WORKSPACE="$WORKSPACE" "${COMPOSE[@]}" claude --print "${PROMPT}"
+else
+  WORKSPACE="$WORKSPACE" "${COMPOSE[@]}" claude "${PROMPT}"
+fi
+"""
