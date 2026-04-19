@@ -99,7 +99,7 @@ When implementing from a spec:
 
 **The orchestrator NEVER writes code or tests.** All code authoring is delegated to subagents.
 
-Even for a single task, the three-phase pipeline applies:
+Even for a single task, the four-phase pipeline applies:
 
 ### Phase A: Dispatch Tester Subagent
 
@@ -111,9 +111,19 @@ Dispatch a **fresh tester subagent** (`subagent_type: "general"`) to write faili
 
 **Why a separate subagent?** The orchestrator's understanding of the task leaks into hand-written tests, causing oracle mirroring (tests that mirror implementation logic) and mock tautologies (mocks that assume the answer). A fresh subagent discovers behavior from code and specs independently.
 
+### Phase A.5: Test Review Gate
+
+Dispatch a **fresh test reviewer subagent** on the test files from Phase A.
+
+- Reviewer checks for oracle mirroring, mock tautologies, framework tests, trivial assertions
+- If issues found → re-dispatch tester with specific feedback; repeat until clean
+- **Gate:** Implementer NEVER receives tests that failed this review
+
+See dispatch template in `reference/subagent-workflow.md`.
+
 ### Phase B: Dispatch Implementer Subagent
 
-Dispatch a **fresh implementer subagent** (`subagent_type: "general"`) with the tester's report.
+Dispatch a **fresh implementer subagent** (`subagent_type: "general"`) with the test-review-cleared tester report.
 
 - Implementer makes tests pass (GREEN)
 - Implementer refactors while staying green
