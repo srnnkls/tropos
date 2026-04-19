@@ -73,9 +73,9 @@ Or reference from your own marketplace:
 The `loqui` reference is not bundled with tropos. Point `skills/loqui/reference/loqui` at a local [loqui](https://github.com/srnnkls/loqui) checkout to activate the `loqui` skill:
 
 ```bash
-mise run loqui-link               # symlinks to $HOME/projects/loqui (clones there if missing)
+mise run loqui-link               # symlinks to a cache dir, cloning from github if missing
 mise run loqui-link --path ./foo  # custom path (must exist)
 mise run loqui-unlink             # remove the symlink
 ```
 
-The symlink path is gitignored.
+The default cache location is `$XDG_CACHE_HOME/tropos/loqui` if set, else `~/Library/Caches/tropos/loqui` on macOS, else `~/.cache/tropos/loqui`. The symlink path is gitignored.
