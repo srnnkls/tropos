@@ -41,6 +41,7 @@ Apply these rules to `$ARGUMENTS` in order:
 | `--final <name>` | Final scope review | `Skill(code, review --final $NAME)` |
 | Matches `scopes/*/scope.md` or scope name | Scope review | `Skill(scope, review $SCOPE_NAME)` |
 | `gestalt` or `--structural` | Structural review | `Skill(gestalt, review $REST)` |
+| `--test-audit [path]` or path whose first component is `test` or `tests` | Test quality audit | Read and follow `operations/test-audit.md` with `$TARGET` = path or `tests` |
 | File path that exists | Path review | `Skill(code, review --path $ARGUMENTS)` |
 | No argument | Menu fallback | See below |
 
@@ -60,6 +61,7 @@ Options:
 - Branch diff: Review all changes since diverging from base branch
 - Uncommitted: Review staged and unstaged modifications
 - Structural: Gestalt-driven structural review — topology, blast radius, targeted questions
+- Test quality: Audit tests for oracle mirroring, mock tautologies, framework tests, trivial assertions
 ```
 
 With "Other" covering: scope review, path review, or custom target.
@@ -74,6 +76,7 @@ With "Other" covering: scope review, path review, or custom target.
 | Uncommitted | `Skill(code, review)` — auto-detects staged/unstaged |
 | Structural | `Skill(gestalt, review)` — ask for base..target range first |
 | Other: scope | `Skill(scope, review)` — scope skill asks for name |
+| Test quality | Read and follow `operations/test-audit.md` — ask for path (default: `tests`) |
 
 > **Protocol:** [dispatch/protocol.md](../dispatch/protocol.md)
 
