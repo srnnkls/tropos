@@ -70,12 +70,12 @@ Or reference from your own marketplace:
 
 ## Development
 
-Swap the `loqui` submodule for a symlink to a local checkout to edit both repos live:
+The `loqui` reference is not bundled with tropos. Point `skills/loqui/reference/loqui` at a local [loqui](https://github.com/srnnkls/loqui) checkout to activate the `loqui` skill:
 
 ```bash
-mise run loqui-link               # symlinks skills/loqui/reference/loqui -> $HOME/projects/loqui
-mise run loqui-link --path ./foo  # custom path
-mise run loqui-unlink             # restore submodule checkout
+mise run loqui-link               # symlinks to $HOME/projects/loqui (clones there if missing)
+mise run loqui-link --path ./foo  # custom path (must exist)
+mise run loqui-unlink             # remove the symlink
 ```
 
-`loqui-link` sets `git update-index --skip-worktree` on the submodule path so the symlink does not show up in `git status`. `loqui-unlink` clears the flag and re-initializes the submodule.
+The symlink path is gitignored.

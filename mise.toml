@@ -2,7 +2,7 @@
 includes = ["mise/tasks"]
 
 [tasks.loqui-link]
-description = "Replace the loqui submodule with a symlink to a local checkout for live development"
+description = "Symlink skills/loqui/reference/loqui to a local loqui checkout"
 usage = '''
 flag "-p --path <path>" help="Path to local loqui checkout (default: $HOME/projects/loqui)"
 '''
@@ -11,50 +11,53 @@ run = """
 set -euo pipefail
 
 GIT_ROOT="$(git rev-parse --show-toplevel)"
-SUBMODULE_PATH="skills/loqui/reference/loqui"
-LOQUI_LOCAL="${usage_path:-$HOME/projects/loqui}"
+LINK_PATH="skills/loqui/reference/loqui"
+DEFAULT_PATH="$HOME/projects/loqui"
+LOQUI_LOCAL="${usage_path:-$DEFAULT_PATH}"
 
 if [[ ! -d "$LOQUI_LOCAL" ]]; then
-  echo "error: $LOQUI_LOCAL does not exist" >&2
-  exit 1
+  if [[ "$LOQUI_LOCAL" == "$DEFAULT_PATH" ]]; then
+    mkdir -p "$(dirname "$LOQUI_LOCAL")"
+    git clone -q https://github.com/srnnkls/loqui.git "$LOQUI_LOCAL"
+  else
+    echo "error: $LOQUI_LOCAL does not exist" >&2
+    exit 1
+  fi
 fi
 
 cd "$GIT_ROOT"
 
-if [[ -L "$SUBMODULE_PATH" && "$(readlink "$SUBMODULE_PATH")" == "$LOQUI_LOCAL" ]]; then
-  git update-index --skip-worktree "$SUBMODULE_PATH" 2>/dev/null || true
-  echo "already linked: $SUBMODULE_PATH -> $LOQUI_LOCAL"
+if [[ -L "$LINK_PATH" && "$(readlink "$LINK_PATH")" == "$LOQUI_LOCAL" ]]; then
+  echo "already linked: $LINK_PATH -> $LOQUI_LOCAL"
   exit 0
 fi
 
-git submodule deinit -f "$SUBMODULE_PATH" 2>/dev/null || true
-rm -rf "$SUBMODULE_PATH"
-ln -s "$LOQUI_LOCAL" "$SUBMODULE_PATH"
-git update-index --skip-worktree "$SUBMODULE_PATH"
+mkdir -p "$(dirname "$LINK_PATH")"
+if [[ -e "$LINK_PATH" || -L "$LINK_PATH" ]]; then
+  rm -rf "$LINK_PATH"
+fi
+ln -s "$LOQUI_LOCAL" "$LINK_PATH"
 
-echo "linked: $SUBMODULE_PATH -> $LOQUI_LOCAL"
+echo "linked: $LINK_PATH -> $LOQUI_LOCAL"
 """
 
 [tasks.loqui-unlink]
-description = "Restore the loqui submodule checkout, undoing loqui-link"
+description = "Remove the loqui symlink"
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
 
 GIT_ROOT="$(git rev-parse --show-toplevel)"
-SUBMODULE_PATH="skills/loqui/reference/loqui"
+LINK_PATH="skills/loqui/reference/loqui"
 
 cd "$GIT_ROOT"
 
-git update-index --no-skip-worktree "$SUBMODULE_PATH" 2>/dev/null || true
-
-if [[ -L "$SUBMODULE_PATH" ]]; then
-  rm "$SUBMODULE_PATH"
+if [[ -L "$LINK_PATH" ]]; then
+  rm "$LINK_PATH"
+  echo "removed: $LINK_PATH"
+else
+  echo "nothing to remove at $LINK_PATH"
 fi
-
-git submodule update --init "$SUBMODULE_PATH"
-
-echo "restored submodule checkout at $SUBMODULE_PATH"
 """
 
 [tasks.bootstrap]
