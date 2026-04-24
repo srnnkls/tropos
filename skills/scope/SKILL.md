@@ -211,7 +211,11 @@ Options:
 
 ### Step 3.7: Configure Implementation Reviewers
 
-Configure reviewers per `/review` infrastructure. Use the reviewer selection prompts from `/review` SKILL.md "Reviewer Selection (Interactive)". Store selections in `validation.yaml` under `review_config`.
+Configure reviewers per `/review` infrastructure (see `/review` SKILL.md "Reviewer Selection"). Resolution order:
+1. `--reviewers` flag passed to `/scope` — comma-separated aliases from `{opus, sonnet, gpt, gemini, gemini-pro, gemini-flash}`
+2. Interactive AskUserQuestion prompt (fallback)
+
+Store resolved selections in `validation.yaml` under `review_config`.
 
 **All issue types** (Initiative, Feature, Task) require reviewer config — Task scopes also run batch reviews and need Pi harnesses configured.
 

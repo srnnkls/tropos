@@ -32,7 +32,9 @@ Routes to the appropriate review skill based on argument type.
 
 ## Auto-Detect Rules
 
-Apply these rules to `$ARGUMENTS` in order:
+**Pre-parse:** Extract `--reviewers <aliases>` from `$ARGUMENTS` before pattern matching. Value is a comma-separated list from `{opus, sonnet, gpt, gemini, gemini-pro, gemini-flash}`. Resolve to models per the Reviewer Selection section. Unknown alias → ask user to pick from the table. Flag is inherited by all downstream routes (Skill/code, Skill/scope, Skill/gestalt).
+
+Apply these rules to remaining `$ARGUMENTS` in order:
 
 | Pattern | Route | Action |
 |---|---|---|
@@ -114,7 +116,34 @@ Full details: [reference/harnesses.md](reference/harnesses.md)
 Cartesian product: roles × harnesses, all in single message.
 Domain skill defines roles. This skill defines harnesses.
 
-### Reviewer Selection (Interactive)
+### Reviewer Selection
+
+Reviewers can be specified three ways, resolved in this order:
+
+1. **`--reviewers` flag** (non-interactive) — comma-separated aliases
+2. **`validation.yaml` `review_config`** — persisted per-scope selection
+3. **AskUserQuestion** — interactive fallback when neither is present
+
+#### `--reviewers` Flag
+
+Accepts a comma-separated list of short aliases:
+
+| Alias | Harness | Model |
+|---|---|---|
+| `opus` | claude | claude-opus |
+| `sonnet` | claude | claude-sonnet |
+| `gpt` | pi | openai-codex/gpt-5.4 |
+| `gemini` / `gemini-pro` | pi | google-gemini-cli/gemini-3.1-pro-preview |
+| `gemini-flash` | pi | google-gemini-cli/gemini-3-flash-preview |
+
+**Examples:**
+- `/review --reviewers opus,gpt` → claude-opus + pi-gpt5.4
+- `/review --reviewers opus,gpt,gemini` → claude-opus + pi-gpt5.4 + pi-gemini-3.1-pro
+- `/implement execute --reviewers opus,gpt` → same two reviewers used for Phase A.5 + Phase C
+
+**Invalid alias:** Report unknown alias and ask user to pick from the table.
+
+#### Interactive Fallback (no flag, no review_config)
 
 **Question 1:** Select reviewers (multiSelect):
 - claude-opus (Recommended), claude-sonnet, openai-gpt5.4 (Recommended), gemini-3-flash, gemini-3.1-pro (Recommended)
@@ -125,14 +154,15 @@ Domain skill defines roles. This skill defines harnesses.
 
 **Question 3:** Thinking level (if Pi selected): low, medium, high (Recommended), xhigh
 
-**Model mapping:**
+#### Full Model Mapping
+
 - `claude-opus` → `{type: claude, model: opus}`
 - `claude-sonnet` → `{type: claude, model: sonnet}`
 - `openai-gpt5.4` → `{type: pi, model: openai-codex/gpt-5.4}`
 - `gemini-3-flash` → `{type: pi, model: google-gemini-cli/gemini-3-flash-preview}`
 - `gemini-3.1-pro` → `{type: pi, model: google-gemini-cli/gemini-3.1-pro-preview}`
 
-Store selections in `validation.yaml` under `review_config`.
+Store resolved selections in `validation.yaml` under `review_config` (whether from flag, prior config, or interactive prompt).
 
 ### Report Schema
 

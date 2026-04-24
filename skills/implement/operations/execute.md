@@ -46,11 +46,11 @@ Each batch executes four phases. **A batch is NOT complete until all four phases
 │                          ↓                                      │
 │  Phase C: REVIEWERS (all roles × harnesses in parallel)          │
 │  ├── General × Claude (opus) [required]                         │
-│  ├── General × Pi (0-N from validation.yaml)              │
+│  ├── General × Pi (review_config or defaults)              │
 │  ├── Architecture × Claude (opus, gestalt) [required]           │
-│  ├── Architecture × Pi (0-N from validation.yaml)         │
+│  ├── Architecture × Pi (review_config or defaults)         │
 │  ├── Compliance × Claude (opus, loqui) [required]               │
-│  ├── Compliance × Pi (0-N from validation.yaml)           │
+│  ├── Compliance × Pi (review_config or defaults)           │
 │  ├── Each role reviews own gates only                            │
 │  ├── Wait for ALL                                                │
 │  └── Synthesize by role, then aggregate                          │
@@ -160,13 +160,15 @@ If any failure mode is detected → re-dispatch the tester with feedback identif
 
 **PRECONDITION:** All Phase A testers completed with `status: success` and RED verified.
 
-Dispatch a **fresh test reviewer subagent** using the `review --test-audit` operation on all test files from the batch.
+Dispatch **all configured reviewers in parallel** (Claude native + Pi shell-outs) on all test files from the batch — same cartesian pattern as Phase C. Pi shell-outs are mandatory whenever Pi is available: Phase A.5 is not single-harness.
 
 **Collect inputs:**
 - All `test_files[*].path` from all `tester_report`s in this batch
 - Tester task descriptions (what behavior each test should verify)
 
-**Dispatch template:** See `reference/subagent-workflow.md` — Test Review Dispatch Template.
+**Resolve reviewer config (in order):** `--reviewers` flag → `validation.yaml` `review_config` → defaults (`opus,gpt,gemini`).
+
+**Dispatch template:** See `reference/subagent-workflow.md` — Test Review Dispatch Template (cartesian: Claude Task + Pi Bash per configured model).
 
 **Gate outcome:**
 
@@ -219,11 +221,11 @@ Each implementer:
 ```
 Dispatch (full cartesian product):
   - General × Claude [required]
-  - General × Pi (0-N from validation.yaml)
+  - General × Pi (review_config or defaults)
   - Architecture × Claude [required]
-  - Architecture × Pi (0-N from validation.yaml)
+  - Architecture × Pi (review_config or defaults)
   - Compliance × Claude [required]
-  - Compliance × Pi (0-N from validation.yaml)
+  - Compliance × Pi (review_config or defaults)
 → Wait for ALL
 ```
 
@@ -231,9 +233,9 @@ Dispatch (full cartesian product):
 
 | Role | Primary Gates | Skill | Harnesses |
 |------|---------------|-------|-----------|
-| General | Correctness, Security, Performance | `code review` | Claude + Pi (0-N) |
-| Architecture | Architecture | `gestalt` | Claude + Pi (0-N) |
-| Compliance | Style | `loqui` | Claude + Pi (0-N) |
+| General | Correctness, Security, Performance | `code review` | Claude + Pi (≥1) |
+| Architecture | Architecture | `gestalt` | Claude + Pi (≥1) |
+| Compliance | Style | `loqui` | Claude + Pi (≥1) |
 
 **Reviewers receive pointers and load code themselves:**
 1. `{diff_cmd}` (e.g., `git diff <last_batch_commit>..HEAD`) — reviewer runs the command
@@ -250,7 +252,15 @@ Dispatch (full cartesian product):
 
 **Dispatch configuration:**
 
-Dispatch reviewers per `/review` infrastructure and `code review` role definitions. Read `validation.yaml` `review_config` for selected harnesses and reasoning effort.
+Dispatch reviewers per `/review` infrastructure and `code review` role definitions.
+
+**Resolve harness config (in order):**
+1. Explicit `--reviewers` flag passed to `/implement execute` (aliases: `opus, sonnet, gpt, gemini, gemini-pro, gemini-flash` — see `/review` SKILL.md "Reviewer Selection")
+2. `validation.yaml` `review_config` for the active scope → use those reviewers and reasoning effort
+3. Defaults: `claude-opus` + `openai-gpt5.4` + `gemini-3.1-pro`, thinking level `high`
+4. Never proceed with zero Pi reviewers when Pi is installed — Pi harnesses are mandatory for cross-model coverage
+
+Apply the resolved config to all three roles (General, Architecture, Compliance).
 
 See `/review` [reference/harnesses.md](../../review/reference/harnesses.md) for dispatch templates.
 Review prompts per role: see `code review` skill Step 4.
@@ -375,11 +385,11 @@ Or dispatch all roles directly (full cartesian product):
 ```
 Dispatch (in same message):
   - General × Claude [required]
-  - General × Pi (0-N from validation.yaml)
+  - General × Pi (review_config or defaults)
   - Architecture × Claude [required]
-  - Architecture × Pi (0-N from validation.yaml)
+  - Architecture × Pi (review_config or defaults)
   - Compliance × Claude [required]
-  - Compliance × Pi (0-N from validation.yaml)
+  - Compliance × Pi (review_config or defaults)
 ```
 
 **Final review checks:**

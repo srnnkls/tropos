@@ -30,7 +30,9 @@ Executes scopes and tasks via three-phase TDD pipeline (tester â†’ implementer â
 
 ## Auto-Detect Rules
 
-Apply these rules to `$ARGUMENTS` in order:
+**Pre-parse:** Extract `--reviewers <aliases>` from `$ARGUMENTS` before pattern matching. Value is a comma-separated list from `{opus, sonnet, gpt, gemini, gemini-pro, gemini-flash}`. Resolution and alias table: `/review` SKILL.md "Reviewer Selection". Resolved list is passed to Phase A.5 + Phase C dispatch. If the flag is absent and `validation.yaml.review_config` is also absent, fall back to the interactive AskUserQuestion prompt (same as `/review`).
+
+Apply these rules to remaining `$ARGUMENTS` in order:
 
 | Pattern | Route | Action |
 |---|---|---|
