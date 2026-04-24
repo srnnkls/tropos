@@ -34,9 +34,9 @@ Parse `$ARGUMENTS` in order:
 | `update [name]` | Update | Sync tasks.yaml status from git history |
 | `done [name]` | Complete | Set status to done |
 | `list` | List | Show all scopes with status |
-| `<name>` matching existing scope | Resume | Show scope, offer operations |
+| `<name>` matching existing scope | Resume | Show scope, offer operations; promote `draft`→`active` if work has started |
 | `<name>` not matching existing | Create | Create new scope |
-| No argument, branch-associated scope exists | Resume | Show it |
+| No argument, branch-associated scope exists | Resume | Show it; promote `draft`→`active` if work has started |
 | No argument, no scope | Create | Ask what to scope |
 
 ---
@@ -65,6 +65,19 @@ Options:
 
 ---
 
+# Resume Workflow
+
+When resuming a scope:
+
+1. Read `scope.md` frontmatter and `tasks.yaml`
+2. **Promote `draft` → `active`** if any of the following are true:
+   - Any task has `status: in_progress` or `status: completed`
+   - Git log shows commits referencing this scope since creation
+   - User selects "implement" or "continue" from the operations menu
+3. Show scope summary and offer operations
+
+---
+
 # Creation Workflow
 
 Creates structured tracking documents for complex development tasks.
@@ -72,9 +85,27 @@ Creates structured tracking documents for complex development tasks.
 **DO use for:** Complex multi-step tasks (3+ phases), non-trivial features, after ExitPlanMode.
 **DON'T use for:** Single-file changes, trivial refactorings, tasks completable in < 30 minutes.
 
+> **Reference:**
+> - [reference/issue-types.md](reference/issue-types.md) — Initiative/Feature/Task/Exploratory definitions, taxonomy allocation, SDD integration
+> - [reference/question-taxonomy.md](reference/question-taxonomy.md) — Question templates per taxonomy area with options
+> - [reference/sdd-gates.md](reference/sdd-gates.md) — Pre-implementation gates for Initiatives (Simplicity, Anti-Abstraction, Integration-First)
+
 ---
 
 ## Steps
+
+### Step 0: Native Plan Context
+
+Before research, check for existing context from Claude's native `/plan`:
+
+1. **Check for context:** If `/plan` was used earlier in the session, or the user references a plan, pull those findings in.
+2. **If present:** Extract and seed taxonomy areas:
+   - Goal/objective → **Scope**
+   - Approach/strategy → **Integration** / **Architecture**
+   - Open questions → priority clarification targets in Step 3
+3. **If absent:** Proceed to Step 1.
+
+This step bridges native planning with structured validation so the user isn't asked to re-state what `/plan` already established.
 
 ### Step 1: Research
 
@@ -109,9 +140,31 @@ Present findings and ask focused questions. Every question must:
 - **Make tradeoffs explicit:** "We could do A (faster) or B (cleaner). A fits because X, but B if Y."
 - **Never ask without context:** Always "Based on [findings], I recommend [X] over [Y] because [Z]. Does this match your intent?"
 
-**Ambiguity scan:** For each taxonomy area, evaluate status (clear/partial/missing). If all clear, skip validation loop.
+**Ambiguity scan:** For each taxonomy area (based on issue type), evaluate status and record in `validation.yaml` under `ambiguity_scan`:
 
-**Validation loop:** Ask clarifying questions in taxonomy-based batches:
+- **clear** — Fully specified, no questions needed
+- **partial** — Some information present, gaps remain
+- **missing** — Not addressed at all
+
+Per-area evaluation criteria:
+
+| Area | Clear | Partial | Missing |
+|------|-------|---------|---------|
+| Scope | Goals, boundaries, success criteria defined | Some elements unclear | No scope information |
+| Behavior | User flows, system responses specified | Some paths undefined | No behavior described |
+| Data Model | Entities, relationships, formats clear | Schema gaps exist | No data model |
+| Constraints | Performance, security, compatibility stated | Some constraints unclear | No constraints |
+| Edge Cases | Error handling, limits documented | Some cases unaddressed | No edge cases |
+| Integration | Dependencies, APIs, interfaces identified | Some touchpoints unclear | No integration info |
+| Terminology | Domain terms defined consistently | Some ambiguous terms | No definitions |
+
+Routing:
+- **All clear:** Skip the validation loop, proceed silently to Step 3.5.
+- **Gaps found:** Areas with `partial` or `missing` status become priority candidates, ordered by (Impact × Uncertainty).
+
+**Constitution check (Initiatives only):** Read `.claude/constitution.md`; flag conflicts and ask user to resolve or document exception. Skip for Features/Tasks.
+
+**Validation loop:** Ask clarifying questions in taxonomy-based batches (see [reference/question-taxonomy.md](reference/question-taxonomy.md) for templates per area):
 1. Identify uncovered areas
 2. Prioritize by (Impact x Uncertainty)
 3. Group questions by taxonomy area
@@ -158,9 +211,9 @@ Options:
 
 ### Step 3.7: Configure Implementation Reviewers
 
-**Only for Initiative/Feature** (skip for Task).
-
 Configure reviewers per `/review` infrastructure. Use the reviewer selection prompts from `/review` SKILL.md "Reviewer Selection (Interactive)". Store selections in `validation.yaml` under `review_config`.
+
+**All issue types** (Initiative, Feature, Task) require reviewer config — Task scopes also run batch reviews and need Pi harnesses configured.
 
 ### Step 4: Create Directory and Documents
 

@@ -35,9 +35,9 @@ For each task:
 2. Determine status: `completed`, `in_progress`, `pending`, `blocked`
 3. Collect evidence notes (commits, files, test results)
 
-### Step 4: Update tasks.yaml
+### Step 4: Update tasks.yaml and Promote Status
 
-Update task statuses and add evidence:
+Update task statuses and add evidence.
 
 ```yaml
 tasks:
@@ -49,6 +49,8 @@ tasks:
       commits: [c228fea, 2f069d7]
       files: [src/feature.py, tests/test_feature.py]
 ```
+
+**Status promotion:** After updating tasks, if any task is `in_progress` or `completed` and the scope.md frontmatter has `status: draft`, promote it to `status: active`.
 
 ### Step 5: Present Summary
 
