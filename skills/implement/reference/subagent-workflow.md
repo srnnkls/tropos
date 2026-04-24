@@ -109,45 +109,74 @@ Wait for ALL testers to complete before dispatching Phase A.5.
 
 **PRECONDITION:** All Phase A testers completed with `status: success` and RED verified.
 
-Collect all test file paths from every `tester_report` in the batch, then dispatch a single reviewer:
+Collect all test file paths from every `tester_report` in the batch, then dispatch **all configured reviewers in parallel** (Claude native + Pi shell-outs — same cartesian dispatch pattern as Phase C). Test review must be multi-harness for the same reason code review is: fresh-perspective models catch quality issues a single harness misses.
 
+**Resolve reviewer config (in order):**
+1. `validation.yaml` `review_config` for the active scope
+2. Defaults from `/review` SKILL.md — `claude-opus` + `openai-gpt5.4` + `gemini-3.1-pro`, thinking `high`
+3. Never dispatch Claude alone — Pi shell-outs are mandatory whenever Pi is installed
+
+**Shared prompt (reused across all harnesses):**
+
+```
+Review these test files for quality issues before implementation proceeds.
+
+Read `./skills/review/operations/test-audit.md` for the four anti-patterns to check.
+
+**Test files to review:**
+[list each path from tester_reports[*].test_files[*].path]
+
+**Expected behavior each test suite verifies:**
+[paste task description for each corresponding tester]
+
+**Your job:**
+1. Read each test file
+2. Apply the four anti-pattern checks from test-audit.md
+3. For each issue found: name the test, name the anti-pattern, one-line reason
+
+**OUTPUT CONSTRAINT:** Your ENTIRE final message must be ONLY the YAML report below.
+
+**Report in YAML format:**
 ```yaml
-Task:
-  subagent_type: general
-  description: "Test quality review for batch [N] tests"
-  prompt: |
-    Review these test files for quality issues before implementation proceeds.
-
-    Read `./skills/review/operations/test-audit.md` for the four anti-patterns to check.
-
-    **Test files to review:**
-    [list each path from tester_reports[*].test_files[*].path]
-
-    **Expected behavior each test suite verifies:**
-    [paste task description for each corresponding tester]
-
-    **Your job:**
-    1. Read each test file
-    2. Apply the four anti-pattern checks from test-audit.md
-    3. For each issue found: name the test, name the anti-pattern, one-line reason
-
-    **OUTPUT CONSTRAINT:** Your ENTIRE final message must be ONLY the YAML report below.
-
-    **Report in YAML format:**
-    ```yaml
-    test_review_report:
-      status: clean  # or "issues_found"
-      findings:
-        - test_file: [path]
-          test_name: [function name]
-          anti_pattern: oracle_mirroring | mock_tautology | framework_test | trivial_assertion
-          reason: "[one-line reason]"
-          fix_direction: "[what the tester should do instead]"
-      summary: "[one sentence — or 'No issues found']"
-    ```
+test_review_report:
+  reviewer_id: [e.g. claude-opus | pi-gpt5.4 | pi-gemini-3.1-pro]
+  status: clean  # or "issues_found"
+  findings:
+    - test_file: [path]
+      test_name: [function name]
+      anti_pattern: oracle_mirroring | mock_tautology | framework_test | trivial_assertion
+      reason: "[one-line reason]"
+      fix_direction: "[what the tester should do instead]"
+  summary: "[one sentence — or 'No issues found']"
+```
 ```
 
-**Gate logic after test_review_report arrives:**
+**Dispatch (single message, full cartesian product):**
+
+```
+# Claude harness (required)
+Task(
+  subagent_type="general",
+  description="Test quality review — claude-opus",
+  prompt={shared_prompt with reviewer_id: claude-opus}
+)
+
+# Pi harnesses (one per configured Pi model)
+Bash(run_in_background=true):
+  timeout 1200 pi -p --model openai-codex/gpt-5.4 --thinking high "{shared_prompt with reviewer_id: pi-gpt5.4}"
+Bash(run_in_background=true):
+  timeout 1200 pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{shared_prompt with reviewer_id: pi-gemini-3.1-pro}"
+```
+
+Wait for ALL harnesses to complete (Claude via Task result, Pi via BashOutput on completion).
+
+**Synthesis for Phase A.5:**
+- Merge `findings` across all harnesses by `(test_file, test_name)`
+- A test is flagged if **any** harness reports `issues_found` for it
+- Dedup findings that describe the same anti-pattern on the same test
+- Timeout handling: continue with completed reviews; note partial results; never proceed with zero reviews
+
+**Gate logic after test_review_reports merged:**
 
 - `status: clean` → proceed to Phase B
 - `status: issues_found` → for each affected test file:
@@ -221,15 +250,50 @@ Wait for ALL implementers to complete before dispatching reviewers.
 
 ---
 
-## Reviewer Dispatch
+## Reviewer Dispatch (Phase C)
 
-**CRITICAL:** Reviewers are mandatory. Every batch gets reviewed. Three roles, multiple harnesses.
+**CRITICAL:** Reviewers are mandatory. Every batch gets reviewed. Three roles × all configured harnesses, all in a SINGLE message.
 
-For reviewer dispatch templates, see `code` review SKILL.md Step 4 (role prompts) and `/review` reference (harness dispatch):
-- `/review` [reference/harnesses.md](../../review/reference/harnesses.md) — dispatch templates
-- `/review` [reference/models.md](../../review/reference/models.md) — available models
+**Resolve reviewer config (in order):**
+1. Explicit `--reviewers` flag if caller passed one (see `/review` SKILL.md "Reviewer Selection")
+2. `validation.yaml` `review_config` for the active scope
+3. Defaults: `claude-opus` + `openai-gpt5.4` + `gemini-3.1-pro`, thinking `high`
+4. Never dispatch with zero Pi reviewers when Pi is installed — Pi shell-outs are mandatory for cross-model coverage
 
-Configuration from `validation.yaml` `review_config`.
+**Dispatch (single message, full cartesian product — roles × harnesses):**
+
+```
+# General role
+Task(subagent_type="general",
+     description="General review — claude-opus",
+     prompt={general_prompt with reviewer_id: general-claude-opus})
+Bash(run_in_background=true):
+  timeout 1200 pi -p --model openai-codex/gpt-5.4 --thinking high "{general_prompt with reviewer_id: general-pi-gpt5.4}"
+Bash(run_in_background=true):
+  timeout 1200 pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{general_prompt with reviewer_id: general-pi-gemini-3.1-pro}"
+
+# Architecture role
+Task(subagent_type="general",
+     description="Architecture review — claude-opus",
+     prompt={architecture_prompt with reviewer_id: architecture-claude-opus})
+Bash(run_in_background=true):
+  timeout 1200 pi -p --model openai-codex/gpt-5.4 --thinking high "{architecture_prompt with reviewer_id: architecture-pi-gpt5.4}"
+Bash(run_in_background=true):
+  timeout 1200 pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{architecture_prompt with reviewer_id: architecture-pi-gemini-3.1-pro}"
+
+# Compliance role
+Task(subagent_type="general",
+     description="Compliance review — claude-opus",
+     prompt={compliance_prompt with reviewer_id: compliance-claude-opus})
+Bash(run_in_background=true):
+  timeout 1200 pi -p --model openai-codex/gpt-5.4 --thinking high "{compliance_prompt with reviewer_id: compliance-pi-gpt5.4}"
+Bash(run_in_background=true):
+  timeout 1200 pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{compliance_prompt with reviewer_id: compliance-pi-gemini-3.1-pro}"
+```
+
+Role prompts live in `code` review SKILL.md Step 4 (General / Architecture / Compliance). Harness details live in `/review` [reference/harnesses.md](../../review/reference/harnesses.md).
+
+Wait for ALL harnesses to complete (Claude via Task result, Pi via BashOutput). Then synthesize per `/review` [reference/synthesis.md](../../review/reference/synthesis.md).
 
 ---
 
