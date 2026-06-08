@@ -1,6 +1,6 @@
 # SDD Pre-Implementation Gates
 
-Reference for gates applied to Initiative-type specs before implementation.
+Reference for gates applied to Initiative-type scopes before implementation.
 
 ## Applicability
 
@@ -36,7 +36,7 @@ Ensures integration points are defined before implementation.
 
 Checklist:
 - [ ] API contracts defined (if applicable)
-- [ ] Integration points identified in spec
+- [ ] Integration points identified in scope.md
 - [ ] Contract tests planned (if applicable)
 
 ## Gate Status
@@ -46,25 +46,25 @@ Gates are tracked in `validation.yaml` under the `gates` section:
 ```yaml
 gates:
   simplicity:
-    status: passed|failed|n/a
+    status: pass|fail|n/a
     reason: "[explanation if failed or n/a]"
   anti_abstraction:
-    status: passed|failed|n/a
+    status: pass|fail|n/a
     reason: "[explanation]"
   integration_first:
-    status: passed|failed|n/a
+    status: pass|fail|n/a
     reason: "[explanation]"
 ```
 
 ## Blocking Behavior
 
 When gates are checked by task-dispatch:
-1. Read validation.yaml from spec directory
-2. If issue_type is Initiative and any gate status is "failed":
+1. Read validation.yaml from scope directory
+2. If issue_type is Initiative and any gate status is "fail":
    - Block dispatch
    - Report which gates failed
    - Prompt user to resolve via /clarify or manual edit
-3. If all gates passed or issue_type is not Initiative: proceed
+3. If all gates pass or issue_type is not Initiative: proceed
 
 ## Resolution
 

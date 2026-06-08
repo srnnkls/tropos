@@ -50,7 +50,7 @@ hooks:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `context` | `fork` | Run skill in forked sub-agent context |
+| `context` | `fork` | Run skill in forked subagent context |
 | `agent` | `haiku` \| `sonnet` \| `opus` | Specify agent type for execution |
 | `user-invocable` | `boolean` | Show in slash command menu (default: true) |
 | `allowed-tools` | `list` | Restrict tools available during skill execution |

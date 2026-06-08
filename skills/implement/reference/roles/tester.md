@@ -128,7 +128,7 @@ tester_report:
     - [question 2]
 ```
 
-Main agent will handle gaps by consulting spec or asking user.
+Main agent will handle gaps by consulting scope or asking user.
 
 ## Quality Criteria
 

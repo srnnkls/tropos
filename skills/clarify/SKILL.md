@@ -32,7 +32,7 @@ The skill auto-detects context based on what's available:
 
 | Context | Detection | Source |
 |---------|-----------|--------|
-| **Scope** | `./scopes/*/validation.yaml` exists | ambiguity_scan + markers |
+| **Scope** | `./scopes/*/*/validation.yaml` exists | ambiguity_scan + markers |
 | **Code Review** | Recent `~/.claude/reviews/*.md` | Review issues/questions |
 | **Standalone** | Neither above | User-provided questions |
 
@@ -43,7 +43,7 @@ The skill auto-detects context based on what's available:
 ### Step 1: Load and Scan
 
 **Scope context:**
-1. Find scope in `./scopes/*/`
+1. Find scope in `./scopes/*/*/` (lifecycle dirs: `draft`, `active`, `done`)
 2. Read `validation.yaml` from scope directory
 3. Run ambiguity scan:
    - Check `ambiguity_scan` section for areas with `status: partial` or `status: missing`
@@ -133,7 +133,7 @@ For each resolved marker:
 
 ### Step 7: Re-check Gates (Initiatives Only)
 
-For Initiative specs:
+For Initiative scopes:
 
 1. Re-evaluate gates in validation.yaml
 2. Update gate status if resolution changes assessment

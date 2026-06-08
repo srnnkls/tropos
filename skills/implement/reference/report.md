@@ -56,7 +56,7 @@ tester_report:
 | Status | Meaning | Next Step |
 |--------|---------|-----------|
 | `success` | Tests written and failing | Dispatch implementer |
-| `gap` | Cannot write meaningful tests | Consult spec, ask user, re-dispatch |
+| `gap` | Cannot write meaningful tests | Consult scope, ask user, re-dispatch |
 
 ---
 
@@ -201,7 +201,7 @@ TESTER
     │                           │
     │                           └─ status: blocked ──► Investigate, re-dispatch
     │
-    └─ status: gap ──► Consult spec, ask user, re-dispatch tester
+    └─ status: gap ──► Consult scope, ask user, re-dispatch tester
 ```
 
 ---
