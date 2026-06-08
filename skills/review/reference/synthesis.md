@@ -90,7 +90,7 @@ Languages: python | Rules: 12 | Violations: 1
 
 ## High
 - [H1] Missing null check at src/api/handler.ts:112
-  Role: General | Found by: GPT-5.4
+  Role: General | Found by: GPT-5.5
   Suggestion: Add guard clause
 
 ## Medium

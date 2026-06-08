@@ -18,7 +18,7 @@ Multi-perspective scope review using parallel subagent dispatch.
 ### Step 1: Identify Scope
 
 1. Parse scope name from argument (e.g., `/scope review auth-system`)
-2. If no argument: find most recent in `./scopes/`
+2. **Locate scope:** If name provided, search `scopes/{draft,active,done}/<name>/`. If no argument: find most recent `scope.md` under `scopes/*/*/`.
 3. Read scope documents: `scope.md`, `tasks.yaml`, `validation.yaml`, and `design.md` (if present)
 
 ### Step 2: Select Reviewers
@@ -122,7 +122,7 @@ Scope reviews use domain-specific gates and areas instead of the code review gat
 
 ```yaml
 reviewer_report:
-  reviewer: claude-opus | pi-gpt5.4
+  reviewer: claude-opus | pi-gpt5.5
   gates:
     completeness:
       status: pass | fail
@@ -156,7 +156,7 @@ reviewer_report:
 
 ```yaml
 synthesized_report:
-  reviewers: [claude-opus, pi-gpt5.4]
+  reviewers: [claude-opus, pi-gpt5.5]
   gates:
     completeness:
       status: pass | fail
@@ -168,7 +168,7 @@ synthesized_report:
       area: edge_cases
       description: "Missing error handling"
       suggestion: "Add error case"
-      found_by: [claude-opus, pi-gpt5.4]
+      found_by: [claude-opus, pi-gpt5.5]
   recommendation: ready_to_implement | address_issues
 ```
 
