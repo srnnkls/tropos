@@ -10,7 +10,7 @@ metadata:
 ## Pre-loaded Context
 
 Active scopes:
-!`find scopes -maxdepth 2 -name scope.md 2>/dev/null`
+!`find scopes -maxdepth 3 -name scope.md 2>/dev/null`
 
 Current branch:
 !`git branch --show-current 2>/dev/null`
@@ -32,10 +32,10 @@ Parse `$ARGUMENTS` in order:
 |---|---|---|
 | `review [name]` | Review | Multi-agent review, produce review.yaml |
 | `update [name]` | Update | Sync tasks.yaml status from git history |
-| `done [name]` | Complete | Set status to done |
+| `done [name]` | Complete | Set status to `done` |
 | `list` | List | Show all scopes with status |
-| `<name>` matching existing scope | Resume | Show scope, offer operations; promote `draft`→`active` if work has started |
-| `<name>` not matching existing | Create | Create new scope |
+| `<name>` matching existing scope (search `scopes/{draft,active,done}/<name>`) | Resume | Show scope, offer operations; promote `draft`→`active` if work has started |
+| `<name>` not matching existing | Create | Create new scope under `scopes/draft/<name>/` |
 | No argument, branch-associated scope exists | Resume | Show it; promote `draft`→`active` if work has started |
 | No argument, no scope | Create | Ask what to scope |
 
@@ -69,12 +69,17 @@ Options:
 
 When resuming a scope:
 
-1. Read `scope.md` frontmatter and `tasks.yaml`
-2. **Promote `draft` → `active`** if any of the following are true:
-   - Any task has `status: in_progress` or `status: completed`
+1. **Locate scope:** Search across lifecycle dirs — `scopes/{draft,active,done}/<name>/`. A scope name is unique across states.
+2. Read `scope.md` frontmatter and `tasks.yaml`
+3. **Promote `draft` → `active`** if any of the following are true:
+   - Any task has `status: in_progress` or `status: done`
    - Git log shows commits referencing this scope since creation
    - User selects "implement" or "continue" from the operations menu
-3. Show scope summary and offer operations
+
+   Promotion has two steps — both must run together:
+   - Update `status: active` in `scope.md` frontmatter
+   - `git mv scopes/draft/<name> scopes/active/<name>` (or `mv` if the scope is untracked)
+4. Show scope summary and offer operations
 
 ---
 
@@ -207,7 +212,7 @@ Options:
 
 ### Step 3.6: Detect and Extract Code Artifacts
 
-**If input contains code blocks:** Extract, stage, ask user which resources to create via multiSelect (implementation, schemas, config, patterns, assets, none). Create selected in `scopes/<name>/resources/`.
+**If input contains code blocks:** Extract, stage, ask user which resources to create via multiSelect (implementation, schemas, config, patterns, assets, none). Create selected in `scopes/draft/<name>/resources/`.
 
 ### Step 3.7: Configure Implementation Reviewers
 
@@ -221,9 +226,22 @@ Store resolved selections in `validation.yaml` under `review_config`.
 
 ### Step 4: Create Directory and Documents
 
+New scopes are created under the `draft` lifecycle directory. They are moved to `active` on first work (see Resume Workflow / `update`) and to `done` via `/scope done`.
+
 ```bash
-mkdir -p ./scopes/[scope-name]/
+mkdir -p ./scopes/draft/[scope-name]/
 ```
+
+**Lifecycle layout:**
+
+```
+scopes/
+├── draft/<name>/   # newly created, no work started
+├── active/<name>/  # promoted on first task progress or commit
+└── done/<name>/    # marked complete via /scope done
+```
+
+A scope name is unique across lifecycle states — it lives in exactly one of `draft/`, `active/`, or `done/` at a time.
 
 Generate these files:
 
@@ -302,7 +320,7 @@ If "Yes": Run review sub-operation with the just-created scope name.
 
 **For humans (review these):**
 ```
-scopes/<name>/
+scopes/<state>/<name>/   # <state> ∈ {draft, active, done}
 ├── scope.md     # WHY & WHAT & CONTEXT - Goal, requirements, key files, decisions
 ├── design.md    # WHY THIS WAY - Alternatives, invariants, complexity (opt-in)
 └── resources/   # HOW TO BUILD - Implementation details (when provided)
@@ -310,7 +328,7 @@ scopes/<name>/
 
 **For tooling (infrastructure):**
 ```
-scopes/<name>/
+scopes/<state>/<name>/
 ├── tasks.yaml        # Progress tracking, TodoWrite sync
 ├── dependencies.yaml # Parallel dispatch DAG
 └── validation.yaml   # Audit trail, gate checks, reviewer config, loqui validation

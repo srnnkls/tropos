@@ -10,10 +10,10 @@ metadata:
 ## Pre-loaded Context
 
 Active scopes:
-!`find scopes -maxdepth 2 -name scope.md 2>/dev/null`
+!`find scopes -maxdepth 3 -name scope.md 2>/dev/null`
 
 Checkpoints:
-!`find scopes -name checkpoint.yaml -maxdepth 2 2>/dev/null`
+!`find scopes -name checkpoint.yaml -maxdepth 3 2>/dev/null`
 
 Git status:
 !`git status --short 2>/dev/null`
@@ -37,7 +37,7 @@ Apply these rules to `$ARGUMENTS` in order:
 | "debug" or "trace" | Debug | `Skill(implement, debug $ARGUMENTS)` |
 | "test" or "tdd" | TDD | `Skill(test, $ARGUMENTS)` |
 | "verify" or "done" | Verify | `Skill(implement, verify $ARGUMENTS)` |
-| Matches `./scopes/*/` path | Execute | `Skill(implement, $ARGUMENTS)` |
+| Matches `./scopes/*/*/` path | Execute | `Skill(implement, $ARGUMENTS)` |
 | Checkpoint in pre-loaded context | Resume | `Skill(continue)` |
 | Exactly one active scope (no checkpoint) | Execute | `Skill(implement)` |
 | File path or task description | Implement | `Skill(implement, $ARGUMENTS)` |

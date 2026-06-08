@@ -9,10 +9,10 @@ metadata:
 ## Pre-loaded Context
 
 Active scopes:
-!`find scopes -maxdepth 2 -name scope.md 2>/dev/null`
+!`find scopes -maxdepth 3 -name scope.md 2>/dev/null`
 
 Checkpoints:
-!`find scopes -name checkpoint.yaml -maxdepth 2 2>/dev/null`
+!`find scopes -name checkpoint.yaml -maxdepth 3 2>/dev/null`
 
 Git status:
 !`git status --short 2>/dev/null`
@@ -39,12 +39,12 @@ Resume interrupted work from context. Picks up where `implement` (execute operat
 ### Step 1: Find Checkpoint
 
 1. Parse scope name from argument (e.g., `/continue auth-system`)
-2. If no argument: find most recent checkpoint in `./scopes/*/checkpoint.yaml`
+2. If no argument: find most recent checkpoint in `./scopes/*/*/checkpoint.yaml` (lifecycle dirs: `draft`, `active`, `done`)
 3. If no checkpoint found: suggest `/implement` instead
 
 ```bash
-# Find most recent checkpoint
-ls -t ./scopes/*/checkpoint.yaml | head -1
+# Find most recent checkpoint across all lifecycle states
+ls -t ./scopes/*/*/checkpoint.yaml | head -1
 ```
 
 ### Step 2: Load Context
@@ -52,12 +52,14 @@ ls -t ./scopes/*/checkpoint.yaml | head -1
 Read these files (in parallel):
 
 ```
-./scopes/<scope>/checkpoint.yaml  # Session state
-./scopes/<scope>/scope.md         # Requirements
-./scopes/<scope>/tasks.yaml       # Task definitions
-./scopes/<scope>/dependencies.yaml # Batch structure
-./scopes/<scope>/validation.yaml  # Review config
+./scopes/<state>/<scope>/checkpoint.yaml   # Session state
+./scopes/<state>/<scope>/scope.md          # Requirements
+./scopes/<state>/<scope>/tasks.yaml        # Task definitions
+./scopes/<state>/<scope>/dependencies.yaml # Batch structure
+./scopes/<state>/<scope>/validation.yaml   # Review config
 ```
+
+`<state>` ∈ `{draft, active, done}` — typically `active` for in-flight work.
 
 ### Step 3: Verify Branch State
 
@@ -159,7 +161,7 @@ Report implementer_report YAML.
 Batch <N> review for <scope_name>
 Tasks: <task_ids>
 Implementer reports: [paste all]
-Spec requirements: [from tasks.yaml]
+Scope requirements: [from tasks.yaml]
 
 Invoke `code` review. Evaluate gates.
 Report reviewer_report YAML.
