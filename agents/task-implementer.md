@@ -1,7 +1,7 @@
 ---
 name: task-implementer
 description: Implement task requirements following TDD
-skills: test, implement, loqui
+skills: test, implement, loqui,
 model: opus
 color: green
 ---
