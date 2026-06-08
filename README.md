@@ -33,41 +33,6 @@ Supporting principles:
 - *[commands](commands/)* — Shortcuts for common workflows
 - *[agents](agents/)* — Implementer, reviewer, tester
 
-## Usage
-
-Add as a marketplace:
-
-```bash
-/plugin marketplace add srnnkls/tropos
-/plugin install skills@tropos
-/plugin install commands@tropos
-/plugin install agents@tropos
-```
-
-Or reference from your own marketplace:
-
-```json
-{
-  "name": "skills",
-  "source": {"source": "github", "repo": "srnnkls/tropos", "path": "skills"}
-}
-```
-
-## Auto-Update
-
-```json
-{
-  "extraKnownMarketplaces": {
-    "tropos": {
-      "source": {"source": "github", "repo": "srnnkls/tropos"}
-    }
-  },
-  "pluginMarketplaceAutoUpdate": {
-    "tropos": true
-  }
-}
-```
-
 ## Development
 
 The `loqui` reference is not bundled with tropos. Point `skills/loqui/reference/loqui` at a local [loqui](https://github.com/srnnkls/loqui) checkout to activate the `loqui` skill:
