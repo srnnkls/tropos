@@ -2,22 +2,22 @@
   "name": "tropos",
   "owner": {"name": "srnnkls"},
   "metadata": {
-    "description": "Spec-driven development workflow plugins",
+    "description": "Agentic development workflow plugins",
     "version": "1.0.0"
   },
   "plugins": [
     {
       "name": "skills",
       "source": "./skills",
-      "description": "24 skills: spec pipeline, code quality, task execution",
+      "description": "Scope pipeline, code quality, task execution",
       "version": "1.0.0",
       "category": "workflow",
-      "keywords": ["spec", "tdd", "review", "dispatch"]
+      "keywords": ["scope", "tdd", "review", "dispatch"]
     },
     {
       "name": "commands",
       "source": "./commands",
-      "description": "Slash commands for specs, reviews, implementation",
+      "description": "Slash commands for scopes, reviews, implementation",
       "version": "1.0.0",
       "category": "commands"
     },

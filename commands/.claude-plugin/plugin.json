@@ -1,7 +1,7 @@
 {
   "name": "commands",
   "version": "1.0.0",
-  "description": "Slash commands for specs, reviews, implementation",
+  "description": "Slash commands for scopes, reviews, implementation",
   "author": {"name": "srnnkls"},
   "commands": "./"
 }
