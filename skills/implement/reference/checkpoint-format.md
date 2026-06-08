@@ -5,8 +5,10 @@ Checkpoints are written after each successful batch to enable session recovery.
 ## Location
 
 ```
-./scopes/<spec-name>/checkpoint.yaml
+./scopes/<state>/<scope-name>/checkpoint.yaml
 ```
+
+Where `<state>` is the scope's lifecycle dir: `draft`, `active`, or `done`. Most checkpoints live under `active/` since checkpoints are written when work is in progress.
 
 ## Schema
 
@@ -14,7 +16,7 @@ Checkpoints are written after each successful batch to enable session recovery.
 checkpoint:
   # Metadata
   scope_name: auth-system
-  scope_path: ./scopes/auth-system
+  scope_path: ./scopes/active/auth-system
   branch: feat/auth-system
   timestamp: 2026-01-22T14:30:00Z
 
@@ -24,7 +26,7 @@ checkpoint:
 
   # Task status summary (mirrors tasks.yaml)
   tasks:
-    completed:
+    done:
       - id: T001
         name: "Add user model"
       - id: T002
@@ -55,9 +57,9 @@ checkpoint:
   # Review config for resumption
   # Variant format: {reasoning_effort}-medium (verbosity fixed at medium)
   review_config:
-    reasoning_effort: medium  # low | medium | high | xhigh (xhigh GPT-5.2 only)
+    reasoning_effort: medium  # low | medium | high | xhigh 
     reviewers:
-      - openai/gpt-5.3-codex
+      - openai/gpt-5.5
       - google/gemini-3-pro-preview
 ```
 

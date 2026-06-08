@@ -21,7 +21,7 @@ phases: []
 # tasks:
 #   - id: AUT-001
 #     content: Create auth middleware
-#     status: completed
+#     status: done
 #     active_form: Creating auth middleware
 #     evidence:
 #       commits: [abc123, def456]
