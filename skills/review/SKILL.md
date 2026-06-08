@@ -19,7 +19,7 @@ Current branch:
 !`git branch --show-current 2>/dev/null`
 
 Active scopes:
-!`find scopes -maxdepth 2 -name scope.md 2>/dev/null`
+!`find scopes -maxdepth 3 -name scope.md 2>/dev/null`
 
 Open PRs:
 !`gh pr list --limit 5 --json number,title,headRefName --jq '.[] | "#\(.number) \(.title) (\(.headRefName))"' 2>/dev/null`
@@ -41,7 +41,7 @@ Apply these rules to remaining `$ARGUMENTS` in order:
 | Numeric, `#N`, or GitHub PR URL | PR review | Read and follow `operations/pr.md` |
 | 7+ hex chars (commit SHA) | Commit review | `Skill(code, review --rev $ARGUMENTS)` |
 | `--final <name>` | Final scope review | `Skill(code, review --final $NAME)` |
-| Matches `scopes/*/scope.md` or scope name | Scope review | `Skill(scope, review $SCOPE_NAME)` |
+| Matches `scopes/*/*/scope.md` or scope name | Scope review | `Skill(scope, review $SCOPE_NAME)` |
 | `gestalt` or `--structural` | Structural review | `Skill(gestalt, review $REST)` |
 | `--test-audit [path]` or path whose first component is `test` or `tests` | Test quality audit | Read and follow `operations/test-audit.md` with `$TARGET` = path or `tests` |
 | File path that exists | Path review | `Skill(code, review --path $ARGUMENTS)` |
@@ -98,7 +98,7 @@ Canonical configuration for multi-agent review. Domain skills compose on this.
 | Harness | Models |
 |---|---|
 | Claude | opus, sonnet |
-| Pi | openai-codex/gpt-5.4, google-gemini-cli/gemini-3-flash-preview, google-gemini-cli/gemini-3.1-pro-preview |
+| Pi | openai-codex/gpt-5.5, google-gemini-cli/gemini-3-flash-preview, google-gemini-cli/gemini-3.1-pro-preview |
 
 Full details: [reference/models.md](reference/models.md)
 
@@ -107,7 +107,7 @@ Full details: [reference/models.md](reference/models.md)
 | Harness | Type | Dispatch |
 |---|---|---|
 | Claude | Native subagent | `Task(subagent_type="general")` |
-| Pi | External subprocess | `pi -p --model --thinking` |
+| Pi | External subprocess | `pi --fast -p --model --thinking` |
 
 Full details: [reference/harnesses.md](reference/harnesses.md)
 
@@ -132,13 +132,13 @@ Accepts a comma-separated list of short aliases:
 |---|---|---|
 | `opus` | claude | claude-opus |
 | `sonnet` | claude | claude-sonnet |
-| `gpt` | pi | openai-codex/gpt-5.4 |
+| `gpt` | pi | openai-codex/gpt-5.5 |
 | `gemini` / `gemini-pro` | pi | google-gemini-cli/gemini-3.1-pro-preview |
 | `gemini-flash` | pi | google-gemini-cli/gemini-3-flash-preview |
 
 **Examples:**
-- `/review --reviewers opus,gpt` → claude-opus + pi-gpt5.4
-- `/review --reviewers opus,gpt,gemini` → claude-opus + pi-gpt5.4 + pi-gemini-3.1-pro
+- `/review --reviewers opus,gpt` → claude-opus + pi-gpt5.5
+- `/review --reviewers opus,gpt,gemini` → claude-opus + pi-gpt5.5 + pi-gemini-3.1-pro
 - `/implement execute --reviewers opus,gpt` → same two reviewers used for Phase A.5 + Phase C
 
 **Invalid alias:** Report unknown alias and ask user to pick from the table.
@@ -146,9 +146,9 @@ Accepts a comma-separated list of short aliases:
 #### Interactive Fallback (no flag, no review_config)
 
 **Question 1:** Select reviewers (multiSelect):
-- claude-opus (Recommended), claude-sonnet, openai-gpt5.4 (Recommended), gemini-3-flash, gemini-3.1-pro (Recommended)
+- claude-opus (Recommended), claude-sonnet, openai-gpt5.5 (Recommended), gemini-3-flash, gemini-3.1-pro (Recommended)
 
-**Default:** claude-opus, openai-gpt5.4, gemini-3.1-pro
+**Default:** claude-opus, openai-gpt5.5, gemini-3.1-pro
 
 **Question 2:** Provider (if Pi selected): native (Recommended) or github-copilot
 
@@ -158,7 +158,7 @@ Accepts a comma-separated list of short aliases:
 
 - `claude-opus` → `{type: claude, model: opus}`
 - `claude-sonnet` → `{type: claude, model: sonnet}`
-- `openai-gpt5.4` → `{type: pi, model: openai-codex/gpt-5.4}`
+- `openai-gpt5.5` → `{type: pi, model: openai-codex/gpt-5.5}`
 - `gemini-3-flash` → `{type: pi, model: google-gemini-cli/gemini-3-flash-preview}`
 - `gemini-3.1-pro` → `{type: pi, model: google-gemini-cli/gemini-3.1-pro-preview}`
 

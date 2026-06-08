@@ -23,7 +23,7 @@ Task(subagent_type="general", model="sonnet", prompt="{prompt}")
 
 | Display Name | Model Path | Provider |
 |---|---|---|
-| openai-gpt5.4 | openai-codex/gpt-5.4 | OpenAI |
+| openai-gpt5.5 | openai-codex/gpt-5.5 | OpenAI |
 | gemini-3-flash | google-gemini-cli/gemini-3-flash-preview | Google |
 | gemini-3.1-pro | google-gemini-cli/gemini-3.1-pro-preview | Google |
 
@@ -31,14 +31,14 @@ Task(subagent_type="general", model="sonnet", prompt="{prompt}")
 
 | Display Name | Model Path |
 |---|---|
-| gpt5.4-copilot | github-copilot/gpt-5.4 |
+| gpt5.5-copilot | github-copilot/gpt-5.5 |
 | gemini-3.1-pro-copilot | github-copilot/gemini-3.1-pro-preview |
 
 ### Invocation
 ```bash
-timeout 1200 pi -p --model openai-codex/gpt-5.4 --thinking {reasoning} "{prompt}"
-timeout 1200 pi -p --model google-gemini-cli/gemini-3-flash-preview --thinking {reasoning} "{prompt}"
-timeout 1200 pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking {reasoning} "{prompt}"
+timeout 1200 pi --fast -p --model openai-codex/gpt-5.5 --thinking {reasoning} "{prompt}"
+timeout 1200 pi --fast -p --model google-gemini-cli/gemini-3-flash-preview --thinking {reasoning} "{prompt}"
+timeout 1200 pi --fast -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking {reasoning} "{prompt}"
 ```
 
 ---
