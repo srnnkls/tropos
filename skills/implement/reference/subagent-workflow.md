@@ -20,7 +20,7 @@ Before dispatching, analyze `dependencies.yaml` for execution batches:
 │  ├── Writes failing tests (RED)                                 │
 │  └── Reports test paths + failure output                        │
 │                          ↓                                      │
-│  Phase A.5: TEST REVIEW                                         │
+│  Phase A.5: TEST REVIEW (Claude + Pi × N in parallel)           │
 │  ├── Reviews all Phase A test files                             │
 │  ├── Checks: oracle mirroring, mock tautologies,                │
 │  │   framework tests, trivial assertions                        │
@@ -33,7 +33,7 @@ Before dispatching, analyze `dependencies.yaml` for execution batches:
 │                          ↓                                      │
 │  Phase C: REVIEWERS                                             │
 │  ├── Reviews ALL changes from batch                             │
-│  ├── Checks against spec requirements                           │
+│  ├── Checks against scope requirements                          │
 │  └── Reports issues by severity                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -49,7 +49,7 @@ Task:
   subagent_type: general
   description: "Write tests for Task N: [task name]"
   prompt: |
-    You are writing failing tests for Task N from [spec-file].
+    You are writing failing tests for Task N from [scope-file].
 
     ## TDD Methodology
     Read `./skills/test/SKILL.md` for TDD methodology — follow the Iron Law.
@@ -113,7 +113,7 @@ Collect all test file paths from every `tester_report` in the batch, then dispat
 
 **Resolve reviewer config (in order):**
 1. `validation.yaml` `review_config` for the active scope
-2. Defaults from `/review` SKILL.md — `claude-opus` + `openai-gpt5.4` + `gemini-3.1-pro`, thinking `high`
+2. Defaults from `/review` SKILL.md — `claude-opus` + `openai-gpt5.5` + `gemini-3.1-pro`, thinking `high`
 3. Never dispatch Claude alone — Pi shell-outs are mandatory whenever Pi is installed
 
 **Shared prompt (reused across all harnesses):**
@@ -139,7 +139,7 @@ Read `./skills/review/operations/test-audit.md` for the four anti-patterns to ch
 **Report in YAML format:**
 ```yaml
 test_review_report:
-  reviewer_id: [e.g. claude-opus | pi-gpt5.4 | pi-gemini-3.1-pro]
+  reviewer_id: [e.g. claude-opus | pi-gpt5.5 | pi-gemini-3.1-pro]
   status: clean  # or "issues_found"
   findings:
     - test_file: [path]
@@ -163,9 +163,9 @@ Task(
 
 # Pi harnesses (one per configured Pi model)
 Bash(run_in_background=true):
-  timeout 1200 pi -p --model openai-codex/gpt-5.4 --thinking high "{shared_prompt with reviewer_id: pi-gpt5.4}"
+  timeout 1200 pi --fast -p --model openai-codex/gpt-5.5 --thinking high "{shared_prompt with reviewer_id: pi-gpt5.5}"
 Bash(run_in_background=true):
-  timeout 1200 pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{shared_prompt with reviewer_id: pi-gemini-3.1-pro}"
+  timeout 1200 pi --fast -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{shared_prompt with reviewer_id: pi-gemini-3.1-pro}"
 ```
 
 Wait for ALL harnesses to complete (Claude via Task result, Pi via BashOutput on completion).
@@ -199,7 +199,7 @@ Task:
   subagent_type: general
   description: "Implement Task N: [task name]"
   prompt: |
-    You are implementing Task N from [spec-file].
+    You are implementing Task N from [scope-file].
 
     ## Language Guidelines
     Read `./skills/loqui/reference/loqui/languages/{lang}/README.md` for language-specific conventions.
@@ -257,7 +257,7 @@ Wait for ALL implementers to complete before dispatching reviewers.
 **Resolve reviewer config (in order):**
 1. Explicit `--reviewers` flag if caller passed one (see `/review` SKILL.md "Reviewer Selection")
 2. `validation.yaml` `review_config` for the active scope
-3. Defaults: `claude-opus` + `openai-gpt5.4` + `gemini-3.1-pro`, thinking `high`
+3. Defaults: `claude-opus` + `openai-gpt5.5` + `gemini-3.1-pro`, thinking `high`
 4. Never dispatch with zero Pi reviewers when Pi is installed — Pi shell-outs are mandatory for cross-model coverage
 
 **Dispatch (single message, full cartesian product — roles × harnesses):**
@@ -268,27 +268,27 @@ Task(subagent_type="general",
      description="General review — claude-opus",
      prompt={general_prompt with reviewer_id: general-claude-opus})
 Bash(run_in_background=true):
-  timeout 1200 pi -p --model openai-codex/gpt-5.4 --thinking high "{general_prompt with reviewer_id: general-pi-gpt5.4}"
+  timeout 1200 pi --fast -p --model openai-codex/gpt-5.5 --thinking high "{general_prompt with reviewer_id: general-pi-gpt5.5}"
 Bash(run_in_background=true):
-  timeout 1200 pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{general_prompt with reviewer_id: general-pi-gemini-3.1-pro}"
+  timeout 1200 pi --fast -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{general_prompt with reviewer_id: general-pi-gemini-3.1-pro}"
 
 # Architecture role
 Task(subagent_type="general",
      description="Architecture review — claude-opus",
      prompt={architecture_prompt with reviewer_id: architecture-claude-opus})
 Bash(run_in_background=true):
-  timeout 1200 pi -p --model openai-codex/gpt-5.4 --thinking high "{architecture_prompt with reviewer_id: architecture-pi-gpt5.4}"
+  timeout 1200 pi --fast -p --model openai-codex/gpt-5.5 --thinking high "{architecture_prompt with reviewer_id: architecture-pi-gpt5.5}"
 Bash(run_in_background=true):
-  timeout 1200 pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{architecture_prompt with reviewer_id: architecture-pi-gemini-3.1-pro}"
+  timeout 1200 pi --fast -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{architecture_prompt with reviewer_id: architecture-pi-gemini-3.1-pro}"
 
 # Compliance role
 Task(subagent_type="general",
      description="Compliance review — claude-opus",
      prompt={compliance_prompt with reviewer_id: compliance-claude-opus})
 Bash(run_in_background=true):
-  timeout 1200 pi -p --model openai-codex/gpt-5.4 --thinking high "{compliance_prompt with reviewer_id: compliance-pi-gpt5.4}"
+  timeout 1200 pi --fast -p --model openai-codex/gpt-5.5 --thinking high "{compliance_prompt with reviewer_id: compliance-pi-gpt5.5}"
 Bash(run_in_background=true):
-  timeout 1200 pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{compliance_prompt with reviewer_id: compliance-pi-gemini-3.1-pro}"
+  timeout 1200 pi --fast -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{compliance_prompt with reviewer_id: compliance-pi-gemini-3.1-pro}"
 ```
 
 Role prompts live in `code` review SKILL.md Step 4 (General / Architecture / Compliance). Harness details live in `/review` [reference/harnesses.md](../../review/reference/harnesses.md).
@@ -345,7 +345,7 @@ After fixes, dispatch targeted review (can be single Claude reviewer for speed).
 ## Workflow Diagram (Three-Phase Pipeline)
 
 ```
-Load Spec + dependencies.yaml
+Load Scope + dependencies.yaml
     |
     v
 Build Execution Batches
@@ -356,15 +356,15 @@ Build Execution Batches
     +--> Single task?
     |         |
     |    YES: Phase A:   Dispatch 1 tester (opus)
-    |         Phase A.5: Dispatch test reviewer → gate
+    |         Phase A.5: Dispatch reviewers (Claude + Pi × N) → gate
     |         Phase B:   Dispatch 1 implementer (opus)
-    |         Phase C:   Dispatch reviewers (see /review)
+    |         Phase C:   Dispatch reviewers (Claude + Pi × N, see /review)
     |         |
     |    NO (parallel [P] tasks):
     |         Phase A:   Dispatch N testers (single message)
-    |         Phase A.5: Dispatch test reviewer (all N test files) → gate
+    |         Phase A.5: Dispatch reviewers (Claude + Pi × N, all test files) → gate
     |         Phase B:   Dispatch N implementers (single message)
-    |         Phase C:   Dispatch reviewers (see /review)
+    |         Phase C:   Dispatch reviewers (Claude + Pi × N, see /review)
     |         |
     |         v
     +--> Synthesize Reviews (see /review reference/synthesis.md)
