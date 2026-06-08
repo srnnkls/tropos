@@ -75,6 +75,17 @@ git rebase --onto <new-base> <old-base> [<branch>]
 
 The command means: take commits between `<old-base>` and `<branch>`, replay them onto `<new-base>`.
 
+#### Direction trap
+
+`<branch>` becomes a descendant of `<new-base>`. The branch you check out is the one that *moves*. Read every rebase as: "I am moving X to sit on top of Y." If the user wants work to live *on* branch B (PR target, feature head), the corrective action is usually one of:
+
+- Commit directly on B (no rebase needed).
+- `git switch <downstream> && git rebase --onto B <old-tip>` — moves the downstream onto B, leaves B in place.
+
+Rebasing B onto a downstream is almost never what's wanted: it makes B a child of work that was supposed to depend on it, and if B then gets squash-merged anywhere, the downstream's commits travel with it.
+
+After any `--onto` rebase, run `git log --oneline --graph <expected-base>..HEAD` and confirm the parent chain matches intent before doing anything else.
+
 ### Magit
 
 1. Checkout the branch to rebase

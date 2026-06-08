@@ -1,8 +1,57 @@
 ---
 name: git
-description: Modern git workflows and best practices. Use when managing branches, structuring commits, or choosing development strategies.
+description: Modern git workflows plus dispatched operations (rebase strategy analysis). Use when managing branches, structuring commits, choosing development strategies, or planning a rebase.
+argument-hint: "[operation] [args]"
+allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(git rev-parse *)
 metadata:
   type: domain
+---
+
+## Pre-loaded Context
+
+Current branch:
+!`git branch --show-current 2>/dev/null`
+
+Status:
+!`git status --short 2>/dev/null | head -10`
+
+# Git Skill
+
+Dispatches operations and provides reference knowledge for modern git workflows.
+
+---
+
+## Auto-Detect Rules
+
+Apply these rules to `$ARGUMENTS` in order:
+
+| Pattern | Route | Action |
+|---|---|---|
+| `rebase` (with or without args) | Rebase strategy | Read and follow [operations/rebase.md](operations/rebase.md) |
+| No argument | Knowledge | Use sections below as reference |
+
+> **Protocol:** [../dispatch/protocol.md](../dispatch/protocol.md)
+
+---
+
+## Menu Fallback
+
+When no argument and the user wants an operation rather than reference, use **AskUserQuestion**:
+
+```
+Header: Git
+Question: What would you like to do?
+multiSelect: false
+Options:
+- Rebase: Analyze branch state and recommend a rebase strategy (--onto, autosquash, etc.)
+- Reference: Show modern git workflow knowledge below
+```
+
+| Selection | Action |
+|---|---|
+| Rebase | Read and follow [operations/rebase.md](operations/rebase.md) |
+| Reference | Continue with sections below |
+
 ---
 
 # Modern Git Workflows
@@ -127,14 +176,21 @@ See [reference/commands.md](reference/commands.md) and [reference/history.md](re
 - Using `checkout` for both branch switching and file restoration
 - Manual fixup of past commits (use `--fixup` + `--autosquash`)
 - Deleting upstream branch before rebasing downstream branches
+- Inverting `rebase --onto` direction — the checked-out branch becomes a descendant of `<new-base>`, not the other way around. State intent in one sentence ("X will sit on top of Y") before running.
+- Committing, force-pushing, or squash-merging on top of a rebase without first verifying topology (`git log --oneline --graph <base>..HEAD`). A misrouted rebase is recoverable; a squash-merge of a misrouted branch into an integration ref is not.
 
 ---
 
 ## Related Skills
 
 - **bash**: Shell command patterns
+- **issue**: GitHub issue operations (create PRs, link issues to branches)
 
 ---
+
+## Operations
+
+- [operations/rebase.md](operations/rebase.md) - Branch state analysis and rebase strategy recommendation
 
 ## Reference
 
