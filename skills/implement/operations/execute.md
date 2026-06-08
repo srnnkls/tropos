@@ -33,8 +33,9 @@ Each batch executes four phases. **A batch is NOT complete until all four phases
 │  ├── Each writes failing tests (RED)                            │
 │  └── Wait for ALL testers                                       │
 │                          ↓                                      │
-│  Phase A.5: TEST REVIEW                                         │
-│  ├── Dispatch test reviewer on all Phase A test files           │
+│  Phase A.5: TEST REVIEW (all roles × harnesses in parallel)     │
+│  ├── Claude Task (opus) [required]                              │
+│  ├── Pi Bash × N (review_config or defaults) [required]         │
 │  ├── Check: oracle mirroring, mock tautologies, assertion-free  │
 │  └── Gate: clean → Phase B | issues → re-dispatch tester(s)     │
 │                          ↓                                      │
@@ -46,11 +47,11 @@ Each batch executes four phases. **A batch is NOT complete until all four phases
 │                          ↓                                      │
 │  Phase C: REVIEWERS (all roles × harnesses in parallel)          │
 │  ├── General × Claude (opus) [required]                         │
-│  ├── General × Pi (review_config or defaults)              │
+│  ├── General × Pi (review_config or defaults) [required]        │
 │  ├── Architecture × Claude (opus, gestalt) [required]           │
-│  ├── Architecture × Pi (review_config or defaults)         │
+│  ├── Architecture × Pi (review_config or defaults) [required]   │
 │  ├── Compliance × Claude (opus, loqui) [required]               │
-│  ├── Compliance × Pi (review_config or defaults)           │
+│  ├── Compliance × Pi (review_config or defaults) [required]     │
 │  ├── Each role reviews own gates only                            │
 │  ├── Wait for ALL                                                │
 │  └── Synthesize by role, then aggregate                          │
@@ -61,7 +62,7 @@ Each batch executes four phases. **A batch is NOT complete until all four phases
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**CRITICAL:** All four phases are mandatory. Test review and code reviewers are not optional.
+**CRITICAL:** All four phases are mandatory. Test review (Phase A.5) and code review (Phase C) each dispatch the full harnesses cartesian product. Pi shell-outs are always required — never dispatch Claude alone. Before synthesizing any phase's results, verify that ≥2 harnesses reported; if fewer than 2 reported, treat the phase as failed and do not proceed.
 
 ---
 
@@ -69,7 +70,7 @@ Each batch executes four phases. **A batch is NOT complete until all four phases
 
 ### 1. Load Scope and Populate TodoWrite
 
-1. Find most recent scope in `./scopes/*/`
+1. Find most recent scope in `./scopes/*/*/` (lifecycle dirs: `draft`, `active`, `done` — prefer `active` for in-flight work)
 2. Read `tasks.yaml` from that directory
 3. Parse tasks with `status: pending` or `status: in_progress`
 4. Create TodoWrite with ALL uncompleted tasks:
@@ -80,10 +81,16 @@ Each batch executes four phases. **A batch is NOT complete until all four phases
 
 **CRITICAL:** Always populate TodoWrite before dispatching any subagents.
 
-5. **Create/checkout scope branch:**
-   - Branch name: `feat/<scope-directory-name>`
-   - If branch exists, checkout and pull
-   - If not, create from main/master
+5. **Create/checkout branch** per SKILL.md "Git Workflow" → "Branch Determination":
+   - Scope-driven execution → `feat/<scope-directory-name>`
+   - GitHub issue (if `$ARGUMENTS` carries `gh:<n>`, `#<n>`, or an issue URL) → `<issue#>-<issue-title-in-kebab-case>`
+   - Ambiguous → AskUserQuestion (see SKILL.md procedure)
+   - MANDATORY: verify current branch matches before Phase A. Never dispatch on `main`/`master`.
+
+6. **Promote scope status `draft` → `active`:**
+   - Read `scope.md` frontmatter
+   - If `status: draft`, edit frontmatter to `status: active`
+   - Skip if already `active` or `done`
 
 ### 2. Pre-Implementation Gate Check
 
@@ -93,7 +100,7 @@ Before dispatching any tasks, verify validation.yaml gates:
 2. Check `metadata.issue_type`
 3. **If Initiative:**
    - Check all gates in `gates` section
-   - If any gate has `status: failed`:
+   - If any gate has `status: fail`:
      - Report which gates failed with reasons
      - Prompt: "Resolve via /clarify or proceed anyway?"
      - If user chooses to proceed: document override in validation.yaml
@@ -160,7 +167,7 @@ If any failure mode is detected → re-dispatch the tester with feedback identif
 
 **PRECONDITION:** All Phase A testers completed with `status: success` and RED verified.
 
-Dispatch **all configured reviewers in parallel** (Claude native + Pi shell-outs) on all test files from the batch — same cartesian pattern as Phase C. Pi shell-outs are mandatory whenever Pi is available: Phase A.5 is not single-harness.
+Dispatch **all configured reviewers in parallel** (Claude native + Pi shell-outs) on all test files from the batch — same cartesian pattern as Phase C. Pi shell-outs are always required: Phase A.5 is not single-harness. Before synthesizing, verify ≥2 harnesses reported; if fewer, treat as failed — do not proceed to Phase B.
 
 **Collect inputs:**
 - All `test_files[*].path` from all `tester_report`s in this batch
@@ -257,8 +264,8 @@ Dispatch reviewers per `/review` infrastructure and `code review` role definitio
 **Resolve harness config (in order):**
 1. Explicit `--reviewers` flag passed to `/implement execute` (aliases: `opus, sonnet, gpt, gemini, gemini-pro, gemini-flash` — see `/review` SKILL.md "Reviewer Selection")
 2. `validation.yaml` `review_config` for the active scope → use those reviewers and reasoning effort
-3. Defaults: `claude-opus` + `openai-gpt5.4` + `gemini-3.1-pro`, thinking level `high`
-4. Never proceed with zero Pi reviewers when Pi is installed — Pi harnesses are mandatory for cross-model coverage
+3. Defaults: `claude-opus` + `openai-gpt5.5` + `gemini-3.1-pro`, thinking level `high`
+4. Pi harnesses are always mandatory — never proceed with zero Pi reviewers. Before synthesizing Phase C, verify ≥2 harnesses reported; if fewer, treat the batch review as failed.
 
 Apply the resolved config to all three roles (General, Architecture, Compliance).
 
@@ -279,7 +286,7 @@ After ALL reviewers complete:
    - Critical by any reviewer = Critical overall
 4. **Write review.yaml** (append batch review):
    ```yaml
-   # ./scopes/<scope>/review.yaml
+   # ./scopes/<state>/<scope>/review.yaml  (<state> ∈ {draft, active, done})
    batch_reviews:
      - batch: <N>
        timestamp: <ISO_TIMESTAMP>
@@ -287,10 +294,10 @@ After ALL reviewers complete:
        tasks: [T001, T002]
         reviewers:
           - id: general-claude-opus
-            status: completed
+            status: success
             gates: { correctness: pass, style: pass, ... }
-          - id: general-pi-gpt5.4
-            status: completed | timeout | failed
+          - id: general-pi-gpt5.5
+            status: success | timeout | failed
             gates: { ... }
        synthesized:
          gates: { correctness: pass, style: fail, ... }
@@ -340,18 +347,18 @@ After ALL reviewers complete:
 When batch completes successfully (all phases, review passed):
 
 1. Update TodoWrite (mark tasks as "completed")
-2. Edit tasks.yaml: Change `status: in_progress` to `status: completed`
+2. Edit tasks.yaml: Change `status: in_progress` to `status: done`
 3. **Write checkpoint.yaml** (enables session recovery):
    ```yaml
    checkpoint:
      scope_name: <scope>
-     scope_path: ./scopes/<scope>
+     scope_path: ./scopes/<state>/<scope>
      branch: feat/<scope>
      timestamp: <ISO_TIMESTAMP>
      last_batch: <N>
      last_commit: <SHA>
      tasks:
-       completed: [...]
+       done: [...]
        pending: [...]
      next_batch:
        number: <N+1>
@@ -405,7 +412,7 @@ Dispatch (in same message):
 final_review:
   status: completed
   timestamp: <ISO_TIMESTAMP>
-  reviewers: [general-claude-opus, general-pi-gpt5.4, architecture-claude-opus, architecture-pi-gpt5.4, compliance-claude-opus, compliance-pi-gpt5.4, ...]
+  reviewers: [general-claude-opus, general-pi-gpt5.5, architecture-claude-opus, architecture-pi-gpt5.5, compliance-claude-opus, compliance-pi-gpt5.5, ...]
   gates: { correctness: pass, style: pass, ... }
   scope_compliance:
     all_tasks_complete: true
@@ -422,6 +429,46 @@ readiness:
   final_review_passed: true
   tests_passing: true
 ```
+
+### 9. Prompt to Mark Scope Done
+
+After final review passes (recommendation: `ready_to_merge`), prompt the user via **AskUserQuestion**:
+
+```
+Header: Scope complete
+Question: All tasks finished and final review passed. Mark scope as done?
+multiSelect: false
+Options:
+- Yes: Run `/scope done <name>` — sets status to done
+- No: Leave status as active (you can run `/scope done` later)
+```
+
+If user selects Yes, invoke the `scope` skill with `done <name>`. Do NOT set `status: done` directly — that is the `done` operation's job (it also runs final validation).
+
+Skip this prompt if final review recommendation is `changes_requested` — the scope is not ready.
+
+### 10. Auto-Create PR (issue-sourced runs only)
+
+**Trigger:** `$ARGUMENTS` contained a GitHub issue reference (`gh:<n>`, `#<n>`, or a GitHub issue URL) when `/implement` was first invoked.
+
+**When:** After Step 9 scope-done prompt (regardless of the user's answer), once final review recommendation is `ready_to_merge`.
+
+**Action:**
+
+```
+Skill(issue, pr --state <STATE> --issue <ISSUE_NUM>)
+```
+
+Where:
+- `<ISSUE_NUM>` — the issue number extracted during pre-parse
+- `<STATE>` — value of `--state` flag from pre-parse (default: `draft`)
+
+The `issue pr` operation handles pushing the branch, building the PR title/body from the issue, and calling `gh pr create`. No additional push or title logic is needed here.
+
+**Do not create a PR** if:
+- No issue reference was present in the original `$ARGUMENTS`
+- Final review recommendation is `changes_requested`
+- A PR already exists for this branch (the `issue pr` operation handles this gracefully)
 
 ---
 
@@ -486,8 +533,10 @@ readiness:
 Batch 1: Task 1 (single task)
 ├── Phase A: Dispatch tester
 │   └── Tester: Wrote 3 tests, all failing (RED)
-├── Phase A.5: Dispatch test reviewer
-│   └── Reviewer: Clean — no oracle mirroring or tautologies
+├── Phase A.5: Dispatch reviewers (Claude opus + Pi gpt + Pi gemini in parallel)
+│   ├── Claude opus: Clean
+│   ├── Pi gpt: Clean
+│   └── Pi gemini: Clean — no oracle mirroring or tautologies
 ├── Phase B: Dispatch implementer + tester report
 │   └── Implementer: Made tests pass (GREEN)
 ├── Phase C: Dispatch reviewers (3 in parallel)
@@ -500,8 +549,8 @@ Batch 1: Task 1 (single task)
 Batch 2: Tasks 2, 3, 4 ([P] parallel batch)
 ├── Phase A: Dispatch 3 testers (single message)
 │   └── All testers complete with failing tests
-├── Phase A.5: Dispatch test reviewer (all 3 test files)
-│   ├── Reviewer: Task 2 tests — oracle mirroring detected
+├── Phase A.5: Dispatch reviewers (Claude opus + Pi gpt + Pi gemini in parallel, all 3 test files)
+│   ├── Synthesized: Task 2 tests — oracle mirroring detected (flagged by Pi gpt)
 │   ├── Re-dispatch Task 2 tester with finding
 │   └── Task 2 re-tester: Clean on second attempt
 ├── Phase B: Dispatch 3 implementers (single message)

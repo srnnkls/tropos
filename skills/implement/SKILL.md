@@ -9,10 +9,10 @@ metadata:
 ## Pre-loaded Context
 
 Active scopes:
-!`find scopes -maxdepth 2 -name scope.md 2>/dev/null`
+!`find scopes -maxdepth 3 -name scope.md 2>/dev/null`
 
 Checkpoints:
-!`find scopes -name checkpoint.yaml -maxdepth 2 2>/dev/null`
+!`find scopes -name checkpoint.yaml -maxdepth 3 2>/dev/null`
 
 Git status:
 !`git status --short 2>/dev/null`
@@ -30,7 +30,12 @@ Executes scopes and tasks via three-phase TDD pipeline (tester → implementer �
 
 ## Auto-Detect Rules
 
-**Pre-parse:** Extract `--reviewers <aliases>` from `$ARGUMENTS` before pattern matching. Value is a comma-separated list from `{opus, sonnet, gpt, gemini, gemini-pro, gemini-flash}`. Resolution and alias table: `/review` SKILL.md "Reviewer Selection". Resolved list is passed to Phase A.5 + Phase C dispatch. If the flag is absent and `validation.yaml.review_config` is also absent, fall back to the interactive AskUserQuestion prompt (same as `/review`).
+**Pre-parse:** Extract these directives from `$ARGUMENTS` before pattern matching:
+- `--reviewers <aliases>` — comma-separated list from `{opus, sonnet, gpt, gemini, gemini-pro, gemini-flash}`. Resolution and alias table: `/review` SKILL.md "Reviewer Selection". Resolved list is passed to Phase A.5 + Phase C dispatch. If absent and `validation.yaml.review_config` is also absent, fall back to the interactive AskUserQuestion prompt (same as `/review`).
+- `--worktree` (or bare `worktree`) — checkout the determined branch as a `git worktree add ...` instead of in-place `git switch`. See "Git Workflow" → "Procedure" step 4.
+- `--base <branch>` — base branch for new-branch creation. If absent and the branch doesn't exist, AskUserQuestion. See "Git Workflow" → "Procedure" step 3.
+- `--state <draft|open>` — PR state when auto-creating a pull request at the end of execution (default: `draft`). Only used when `$ARGUMENTS` contains an issue reference.
+- `gh:<n>`, `#<n>`, or a GitHub issue URL — flags GitHub-issue branch naming AND enables auto-PR creation after final review. See "Git Workflow" → "Branch Determination" and `operations/execute.md` Step 10.
 
 Apply these rules to remaining `$ARGUMENTS` in order:
 
@@ -38,7 +43,7 @@ Apply these rules to remaining `$ARGUMENTS` in order:
 |---|---|---|
 | "verify" or "done" | Verify | Read and follow `operations/verify.md` |
 | "debug" or "trace" | Debug | Read and follow `operations/debug.md` |
-| Matches `./scopes/*/` path | Execute | Read and follow `operations/execute.md` |
+| Matches `./scopes/*/*/` path | Execute | Read and follow `operations/execute.md` |
 | Exactly one active scope | Execute | Read and follow `operations/execute.md` |
 | File path or task description | Direct | Use methodology below |
 | No argument | Menu | See fallback |
@@ -84,16 +89,56 @@ Options:
 
 ## Git Workflow
 
-When implementing from a spec:
+**MANDATORY:** The dispatcher MUST ensure a dedicated branch is checked out before dispatching any phase. Never run implementation phases on `main`/`master` or on an unrelated branch.
 
-1. **Create a branch for the scope** (if not already on one):
-   - Branch from main/master
-   - Name: `feat/<scope-name>`
-   - Example: `feat/user-auth` for `./scopes/user-auth/`
+### Branch Determination
 
-2. **Verify before starting:**
-   - Confirm you're on the correct scope branch
-   - Pull latest if branch already exists
+Detect the branch source from `$ARGUMENTS` and apply the matching naming convention:
+
+| Source | Detection | Branch Name | Example |
+|---|---|---|---|
+| GitHub issue | `gh:<n>`, `#<n>`, or `github.com/<owner>/<repo>/issues/<n>` | `<issue#>-<issue-title-in-kebab-case>` | `142-add-user-auth` |
+| Scope | `./scopes/<state>/<name>/` path or active scope | `feat/<scope-name>` | `feat/user-auth` |
+| Direct task | File path or task description, no scope/issue | **AskUserQuestion** (see below) | — |
+
+**For GitHub issues:** Fetch the title with `gh issue view <n> --json title -q .title`, kebab-case it (lowercase, spaces/punctuation → `-`, collapse repeats, trim), then prefix with the issue number. Do NOT add a `feat/` prefix — match GitHub's own branch convention.
+
+### Procedure
+
+1. **Determine branch name** per the table above.
+2. **If source is unclear or ambiguous** (no scope, no issue ref, multiple candidates) → **AskUserQuestion**:
+   ```
+   Header: Branch
+   Question: No branch detected for this work. How should I proceed?
+   multiSelect: false
+   Options:
+   - Use current branch: <current-branch>
+   - Create new branch: provide name
+   - GitHub issue: provide issue number
+   ```
+3. **Resolve base branch** (only needed when creating a new branch):
+   - Skip if branch already exists locally or on remote.
+   - If `--base <branch>` was passed in `$ARGUMENTS` → use it.
+   - Else → **AskUserQuestion**:
+     ```
+     Header: Base branch
+     Question: New branch <name> needs a base. Which branch should it fork from?
+     multiSelect: false
+     Options:
+     - main (default trunk)
+     - <current-branch> (current — pick if cascading)
+     - Other: provide branch name
+     ```
+   - Verify the base exists (`git rev-parse --verify <base>`) before proceeding.
+4. **Checkout mode** — pre-parse `--worktree` (or `worktree`) from `$ARGUMENTS`:
+   - **Worktree directive present** → follow `skills/git/reference/worktree.md` end-to-end with `BRANCH_NAME=<branch>` from step 1 and the resolved base from step 3. All subsequent phases run from the reported worktree path.
+   - **No worktree directive** → in-place checkout:
+     - Branch exists locally → `git switch <name>` and pull latest
+     - Branch exists on remote → `git switch <name>` (tracks remote)
+     - Otherwise → `git switch -c <name> <base>` using the resolved base from step 3
+5. **Verify** current working tree is on the determined branch before dispatching Phase A.
+
+**Never** dispatch testers/implementers/reviewers while still on `main`, `master`, or a stale unrelated branch.
 
 ---
 
@@ -115,13 +160,14 @@ Dispatch a **fresh tester subagent** (`subagent_type: "general"`) to write faili
 
 ### Phase A.5: Test Review Gate
 
-Dispatch a **fresh test reviewer subagent** on the test files from Phase A.
+Dispatch **all configured reviewers in parallel** (Claude `Task` + Pi `Bash` × N per `/review` config) on the test files from Phase A. Same cartesian dispatch pattern as Phase C — Pi shell-outs are mandatory whenever Pi is installed.
 
-- Reviewer checks for oracle mirroring, mock tautologies, framework tests, trivial assertions
+- Reviewers check for oracle mirroring, mock tautologies, framework tests, trivial assertions
+- Synthesize findings: a test is flagged if any harness reports `issues_found`
 - If issues found → re-dispatch tester with specific feedback; repeat until clean
 - **Gate:** Implementer NEVER receives tests that failed this review
 
-See dispatch template in `reference/subagent-workflow.md`.
+See dispatch template in `reference/subagent-workflow.md` — Test Review Dispatch Template.
 
 ### Phase B: Dispatch Implementer Subagent
 

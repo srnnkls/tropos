@@ -5,13 +5,15 @@ Implementation review tracking in `review.yaml`. Mirrors validation.yaml structu
 ## Location
 
 ```
-./scopes/<spec-name>/review.yaml
+./scopes/<state>/<scope-name>/review.yaml
 ```
+
+`<state>` is the lifecycle dir (`draft`, `active`, `done`).
 
 ## Schema
 
 ```yaml
-# Review: ${SPEC_NAME}
+# Review: ${SCOPE_NAME}
 # Machine + human readable implementation review tracking
 #
 # This file tracks batch reviews, accumulated issues, gate results, and
@@ -19,9 +21,9 @@ Implementation review tracking in `review.yaml`. Mirrors validation.yaml structu
 # continue) and human review.
 
 metadata:
-  scope_name: ${SPEC_NAME}
-  scope_path: ./scopes/${SPEC_NAME}
-  branch: feat/${SPEC_NAME}
+  scope_name: ${SCOPE_NAME}
+  scope_path: ./scopes/${STATE}/${SCOPE_NAME}  # ${STATE} ∈ {draft, active, done}
+  branch: feat/${SCOPE_NAME}
   created: ${DATE}
   last_updated: ${TIMESTAMP}
   total_batches: ${N}
@@ -29,7 +31,7 @@ metadata:
 
 # Review configuration (copied from validation.yaml)
 # Variant format: {reasoning_effort}-medium (verbosity fixed at medium)
-# Reasoning options: low | medium | high | xhigh (xhigh GPT-5.2 only)
+# Reasoning options: low | medium | high | xhigh 
 review_config:
   reasoning_effort: ${REASONING_EFFORT}  # low | medium | high | xhigh
   reviewers:
@@ -69,15 +71,15 @@ batch_reviews:
     tasks: [T001, T002]
     reviewers:
       - id: general-claude-opus
-        status: completed
+        status: success
         gates:
           correctness: pass
           style: pass
           performance: pass
           security: pass
           architecture: pass
-      - id: general-pi-gpt5.3-codex
-        status: completed
+      - id: general-pi-gpt5.5
+        status: success
         gates:
           correctness: pass
           style: fail
@@ -85,18 +87,18 @@ batch_reviews:
           security: pass
           architecture: pass
       - id: general-pi-gemini-3-pro
-        status: timeout  # or completed | failed
+        status: timeout  # or success | failed
         gates: null
       - id: architecture-claude-opus
-        status: completed
+        status: success
         gates:
           correctness: pass
           style: pass
           performance: pass
           security: pass
           architecture: pass
-      - id: architecture-pi-gpt5.3-codex
-        status: completed
+      - id: architecture-pi-gpt5.5
+        status: success
         gates:
           correctness: pass
           style: pass
@@ -104,7 +106,7 @@ batch_reviews:
           security: pass
           architecture: pass
       - id: architecture-pi-gemini-3-pro
-        status: completed
+        status: success
         gates:
           correctness: pass
           style: pass
@@ -112,15 +114,15 @@ batch_reviews:
           security: pass
           architecture: pass
       - id: compliance-claude-opus
-        status: completed
+        status: success
         gates:
           correctness: pass
           style: pass
           performance: pass
           security: pass
           architecture: pass
-      - id: compliance-pi-gpt5.3-codex
-        status: completed
+      - id: compliance-pi-gpt5.5
+        status: success
         gates:
           correctness: pass
           style: pass
@@ -128,7 +130,7 @@ batch_reviews:
           security: pass
           architecture: pass
       - id: compliance-pi-gemini-3-pro
-        status: completed
+        status: success
         gates:
           correctness: pass
           style: pass
@@ -187,7 +189,7 @@ issues:
       location: "src/auth/auth.py:45"
       description: "Variable name 'x' is unclear"
       suggestion: "Rename to 'retry_count'"
-      found_by: [general-pi-gpt5.3-codex]
+      found_by: [general-pi-gpt5.5]
       status: deferred  # medium issues can be deferred
       resolution: null
 
@@ -272,7 +274,7 @@ notes: |
 
 | File | Purpose |
 |------|---------|
-| validation.yaml | Pre-implementation: spec quality, gates, markers |
+| validation.yaml | Pre-implementation: scope quality, gates, markers |
 | review.yaml | Post-implementation: code quality, batch reviews |
 | checkpoint.yaml | Session state: progress, next batch |
 | tasks.yaml | Task definitions and status |
