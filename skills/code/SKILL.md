@@ -242,7 +242,7 @@ into the parent session context — every extra token costs budget.
 Compliance reviewer_report YAML - see reference/report.md
 ```
 
-**Spec Mode Appendix (appended to each reviewer's prompt):**
+**Scope Mode Appendix (appended to each reviewer's prompt):**
 
 For `mode: scope-batch` (batch review), append:
 
@@ -250,7 +250,7 @@ For `mode: scope-batch` (batch review), append:
 ## Batch Context
 
 Tasks in this batch: {task_ids}
-Spec directory: {scope_dir}
+Scope directory: {scope_dir}
 
 Read `{scope_dir}/tasks.yaml` for task requirements.
 Read `{scope_dir}/review.yaml` for prior batch review history.
@@ -261,9 +261,9 @@ For `mode: scope-final` (final review), append:
 ```
 ## Final Review Context
 
-You are performing a FINAL REVIEW of a complete spec implementation.
+You are performing a FINAL REVIEW of a complete scope implementation.
 
-Spec directory: {scope_dir}
+Scope directory: {scope_dir}
 
 Read these files for full context:
 - `{scope_dir}/scope.md` — requirements and acceptance criteria
@@ -271,7 +271,7 @@ Read these files for full context:
 - `{scope_dir}/review.yaml` — batch review history and deferred issues
 
 Additional focus:
-- Spec Compliance — All requirements met? Acceptance criteria satisfied?
+- Scope Compliance — All requirements met? Acceptance criteria satisfied?
 - Deferred Issues — Address or document remaining issues
 - Integration — Components work together? No regressions?
 - Test Coverage — All behaviors tested?

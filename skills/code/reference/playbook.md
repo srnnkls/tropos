@@ -82,14 +82,14 @@ Flags override auto-detection:
 
 | Flag | Forces |
 |------|--------|
-| `--spec` | Spec mode (batch review) |
+| `--scope` | Scope mode (batch review) |
 | `--rev` | Git rev/range mode |
 | `--path` | Path mode |
 | `--diff` | Diff mode (staged/unstaged) |
 
 ### Auto-Detection Priority (no flag)
 
-1. **Spec** - `test -d ./scopes/{arg}/`
+1. **Scope** - `find ./scopes -maxdepth 2 -type d -name {arg}` matches one of `./scopes/{draft,active,done}/{arg}/`
 2. **Git rev** - `git rev-parse --verify {arg}`
 3. **Git range** - contains `..` or valid range syntax
 4. **Path** - `test -e {arg}`
@@ -97,24 +97,24 @@ Flags override auto-detection:
 
 ### Ambiguous Input
 
-**Symptom:** Input could match multiple types (e.g., "main" is both a branch and could be a spec)
+**Symptom:** Input could match multiple types (e.g., "main" is both a branch and could be a scope)
 
 **Response:**
 1. If flag provided → use flag, skip detection
-2. Otherwise, follow priority order (spec → git → path)
+2. Otherwise, follow priority order (scope → git → path)
 3. Suggest flag if detection seems wrong:
    ```
-   Detected "main" as spec. Use --rev main for git branch.
+   Detected "main" as scope. Use --rev main for git branch.
    ```
 
 ---
 
 ## Review Storage
 
-### Spec Mode
+### Scope Mode
 
-**Location:** `./scopes/<spec>/review.yaml`
-**Persistence:** Committed with spec, part of audit trail
+**Location:** `./scopes/<state>/<scope>/review.yaml` (`<state>` ∈ `{draft, active, done}`)
+**Persistence:** Committed with scope, part of audit trail
 
 ### Other Modes (Ephemeral)
 
@@ -223,20 +223,20 @@ review-staged-<timestamp>.md          # Staged changes
 Start
   │
   ├─ Detect input type
-  │   ├─ Spec exists? → Spec mode (batch review)
+  │   ├─ Scope exists? → Scope mode (batch review)
   │   ├─ Valid git rev? → Git rev mode
   │   ├─ Contains '..'? → Git range mode
   │   ├─ Path exists? → Path mode
   │   └─ No argument? → Diff mode (staged/unstaged)
   │
   ├─ Load review context
-  │   ├─ Spec → Read scope.md, tasks.yaml, review.yaml, validation.yaml
+  │   ├─ Scope → Read scope.md, tasks.yaml, review.yaml, validation.yaml
   │   ├─ Git → git show/diff, commit messages
   │   ├─ Path → Read files
   │   └─ Diff → git diff --cached or git diff
   │
   ├─ Select reviewers
-  │   ├─ Spec → Use validation.yaml config (no prompt)
+  │   ├─ Scope → Use validation.yaml config (no prompt)
   │   └─ Other → Prompt user with AskUserQuestion
   │
   ├─ Dispatch reviewers (parallel)
@@ -254,13 +254,13 @@ Start
   │   └─ Prioritize by severity
   │
   ├─ Write review output
-  │   ├─ Spec → ./scopes/<spec>/review.yaml
+  │   ├─ Scope → ./scopes/<state>/<scope>/review.yaml
   │   └─ Other → ~/.claude/reviews/<name>.md (ephemeral)
   │
   ├─ Present results
   │   ├─ Gate summary table
   │   ├─ Issues by severity
-  │   └─ Spec: spec compliance + deferred issues
+  │   └─ Scope: scope compliance + deferred issues
   │
   ├─ Recommend action
   │   ├─ All pass → Ready to merge/commit

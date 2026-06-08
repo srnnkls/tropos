@@ -50,7 +50,7 @@ description: |            # Max 1024 chars
 
 | Field | Purpose | Example |
 |-------|---------|---------|
-| `context` | Run in forked sub-agent | `context: fork` |
+| `context` | Run in forked subagent | `context: fork` |
 | `agent` | Specify agent type | `agent: haiku` |
 | `user-invocable` | Hide from slash menu | `user-invocable: false` |
 | `allowed-tools` | Restrict available tools | See reference.md |
