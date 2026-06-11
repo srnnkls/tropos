@@ -36,9 +36,9 @@ Task(subagent_type="general", model="sonnet", prompt="{prompt}")
 
 ### Invocation
 ```bash
-timeout 1200 pi --fast -p --model openai-codex/gpt-5.5 --thinking {reasoning} "{prompt}"
-timeout 1200 pi --fast -p --model google-gemini-cli/gemini-3-flash-preview --thinking {reasoning} "{prompt}"
-timeout 1200 pi --fast -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking {reasoning} "{prompt}"
+timeout 1200 pi -p --model openai-codex/gpt-5.5 --thinking {reasoning} "{prompt}"
+timeout 1200 pi -p --model google-gemini-cli/gemini-3-flash-preview --thinking {reasoning} "{prompt}"
+timeout 1200 pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking {reasoning} "{prompt}"
 ```
 
 ---

@@ -74,7 +74,7 @@ The `{role_review_prompt}` is the role-specific prompt from the domain skill (e.
 ### Dispatch
 
 ```bash
-timeout 1200 pi --fast -p --model {MODEL} --thinking {reasoning} "{role_review_prompt}"
+timeout 1200 pi -p --model {MODEL} --thinking {reasoning} "{role_review_prompt}"
 ```
 
 See [models.md](models.md) for available models and thinking levels.
@@ -94,7 +94,7 @@ See [models.md](models.md) for available models and thinking levels.
 | Harness | Tool | Template |
 |---------|------|----------|
 | Claude | Task | `Task(subagent_type="general", prompt={role_prompt})` |
-| Pi | Bash | `timeout 1200 pi --fast -p --model {model} --thinking {reasoning} "{role_prompt}"` |
+| Pi | Bash | `timeout 1200 pi -p --model {model} --thinking {reasoning} "{role_prompt}"` |
 
 Roles provide the prompt content (gates, focus, report schema). Harnesses provide the transport.
 
@@ -117,9 +117,9 @@ Task(
 
 # {Role} — Pi harnesses [0-N from config, for each role]
 Bash(run_in_background=true):
-  timeout 1200 pi --fast -p --model {model_1} --thinking {reasoning} "{role_review_prompt}"
+  timeout 1200 pi -p --model {model_1} --thinking {reasoning} "{role_review_prompt}"
 Bash(run_in_background=true):
-  timeout 1200 pi --fast -p --model {model_2} --thinking {reasoning} "{role_review_prompt}"
+  timeout 1200 pi -p --model {model_2} --thinking {reasoning} "{role_review_prompt}"
 ```
 
 ---

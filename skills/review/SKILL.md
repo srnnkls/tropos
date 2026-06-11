@@ -107,7 +107,7 @@ Full details: [reference/models.md](reference/models.md)
 | Harness | Type | Dispatch |
 |---|---|---|
 | Claude | Native subagent | `Task(subagent_type="general")` |
-| Pi | External subprocess | `pi --fast -p --model --thinking` |
+| Pi | External subprocess | `pi -p --model --thinking` |
 
 Full details: [reference/harnesses.md](reference/harnesses.md)
 

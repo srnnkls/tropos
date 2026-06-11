@@ -242,13 +242,13 @@ Task(general): "General review: batch T002-T004" ...
 Task(general): "Architecture review: batch T002-T004" ...
 Task(general): "Compliance review: batch T002-T004" ...
 # 3 roles × Pi model 1
-Bash(background): pi --fast -p --model openai-codex/gpt-5.5 --thinking {reasoning_effort} "General review: ..."
-Bash(background): pi --fast -p --model openai-codex/gpt-5.5 --thinking {reasoning_effort} "Architecture review: ..."
-Bash(background): pi --fast -p --model openai-codex/gpt-5.5 --thinking {reasoning_effort} "Compliance review: ..."
+Bash(background): pi -p --model openai-codex/gpt-5.5 --thinking {reasoning_effort} "General review: ..."
+Bash(background): pi -p --model openai-codex/gpt-5.5 --thinking {reasoning_effort} "Architecture review: ..."
+Bash(background): pi -p --model openai-codex/gpt-5.5 --thinking {reasoning_effort} "Compliance review: ..."
 # 3 roles × Pi model 2
-Bash(background): pi --fast -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking {reasoning_effort} "General review: ..."
-Bash(background): pi --fast -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking {reasoning_effort} "Architecture review: ..."
-Bash(background): pi --fast -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking {reasoning_effort} "Compliance review: ..."
+Bash(background): pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking {reasoning_effort} "General review: ..."
+Bash(background): pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking {reasoning_effort} "Architecture review: ..."
+Bash(background): pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking {reasoning_effort} "Compliance review: ..."
 ```
 
 **Individual Outputs:**

@@ -163,9 +163,9 @@ Task(
 
 # Pi harnesses (one per configured Pi model)
 Bash(run_in_background=true):
-  timeout 1200 pi --fast -p --model openai-codex/gpt-5.5 --thinking high "{shared_prompt with reviewer_id: pi-gpt5.5}"
+  timeout 1200 pi -p --model openai-codex/gpt-5.5 --thinking high "{shared_prompt with reviewer_id: pi-gpt5.5}"
 Bash(run_in_background=true):
-  timeout 1200 pi --fast -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{shared_prompt with reviewer_id: pi-gemini-3.1-pro}"
+  timeout 1200 pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{shared_prompt with reviewer_id: pi-gemini-3.1-pro}"
 ```
 
 Wait for ALL harnesses to complete (Claude via Task result, Pi via BashOutput on completion).
@@ -268,27 +268,27 @@ Task(subagent_type="general",
      description="General review — claude-opus",
      prompt={general_prompt with reviewer_id: general-claude-opus})
 Bash(run_in_background=true):
-  timeout 1200 pi --fast -p --model openai-codex/gpt-5.5 --thinking high "{general_prompt with reviewer_id: general-pi-gpt5.5}"
+  timeout 1200 pi -p --model openai-codex/gpt-5.5 --thinking high "{general_prompt with reviewer_id: general-pi-gpt5.5}"
 Bash(run_in_background=true):
-  timeout 1200 pi --fast -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{general_prompt with reviewer_id: general-pi-gemini-3.1-pro}"
+  timeout 1200 pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{general_prompt with reviewer_id: general-pi-gemini-3.1-pro}"
 
 # Architecture role
 Task(subagent_type="general",
      description="Architecture review — claude-opus",
      prompt={architecture_prompt with reviewer_id: architecture-claude-opus})
 Bash(run_in_background=true):
-  timeout 1200 pi --fast -p --model openai-codex/gpt-5.5 --thinking high "{architecture_prompt with reviewer_id: architecture-pi-gpt5.5}"
+  timeout 1200 pi -p --model openai-codex/gpt-5.5 --thinking high "{architecture_prompt with reviewer_id: architecture-pi-gpt5.5}"
 Bash(run_in_background=true):
-  timeout 1200 pi --fast -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{architecture_prompt with reviewer_id: architecture-pi-gemini-3.1-pro}"
+  timeout 1200 pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{architecture_prompt with reviewer_id: architecture-pi-gemini-3.1-pro}"
 
 # Compliance role
 Task(subagent_type="general",
      description="Compliance review — claude-opus",
      prompt={compliance_prompt with reviewer_id: compliance-claude-opus})
 Bash(run_in_background=true):
-  timeout 1200 pi --fast -p --model openai-codex/gpt-5.5 --thinking high "{compliance_prompt with reviewer_id: compliance-pi-gpt5.5}"
+  timeout 1200 pi -p --model openai-codex/gpt-5.5 --thinking high "{compliance_prompt with reviewer_id: compliance-pi-gpt5.5}"
 Bash(run_in_background=true):
-  timeout 1200 pi --fast -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{compliance_prompt with reviewer_id: compliance-pi-gemini-3.1-pro}"
+  timeout 1200 pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{compliance_prompt with reviewer_id: compliance-pi-gemini-3.1-pro}"
 ```
 
 Role prompts live in `code` review SKILL.md Step 4 (General / Architecture / Compliance). Harness details live in `/review` [reference/harnesses.md](../../review/reference/harnesses.md).
