@@ -20,6 +20,9 @@ Git status:
 Current branch:
 !`git branch --show-current 2>/dev/null`
 
+Base drift (behind-count + overlapping files vs trunk):
+!`b=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@.*/@@'); b=${b:-main}; git fetch origin "$b" --quiet 2>/dev/null; mb=$(git merge-base "origin/$b" HEAD 2>/dev/null); behind=$(git rev-list --count "HEAD..origin/$b" 2>/dev/null); echo "base=$b behind=${behind:-?}"; if [ "${behind:-0}" -gt 0 ]; then echo "-- base changed since fork --"; git diff --name-only "HEAD...origin/$b" 2>/dev/null; echo "-- this branch changed --"; git diff --name-only "$mb" HEAD 2>/dev/null; fi`
+
 # Continue Skill
 
 Resume interrupted work from context. Picks up where `implement` (execute operation) left off.
@@ -73,6 +76,8 @@ git log -1 --format="%H" | head -c 8
 
 # If mismatch, warn user and ask to proceed or abort
 ```
+
+**Base-drift preflight (MANDATORY):** Read the `Base drift` block in Pre-loaded Context. If `behind > 0`, follow `../implement/reference/base-drift-preflight.md`: intersect the base's changed files with this branch's changes and the next batch's target files, then gate. **Do not resume the pipeline (Step 5) past a non-empty overlap without a user decision** — the base may already ship what the next batch would build.
 
 ### Step 4: Report Progress
 

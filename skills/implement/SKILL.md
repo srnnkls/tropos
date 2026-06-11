@@ -20,6 +20,9 @@ Git status:
 Current branch:
 !`git branch --show-current 2>/dev/null`
 
+Base drift (behind-count + overlapping files vs trunk):
+!`b=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@.*/@@'); b=${b:-main}; git fetch origin "$b" --quiet 2>/dev/null; mb=$(git merge-base "origin/$b" HEAD 2>/dev/null); behind=$(git rev-list --count "HEAD..origin/$b" 2>/dev/null); echo "base=$b behind=${behind:-?}"; if [ "${behind:-0}" -gt 0 ]; then echo "-- base changed since fork --"; git diff --name-only "HEAD...origin/$b" 2>/dev/null; echo "-- this branch changed --"; git diff --name-only "$mb" HEAD 2>/dev/null; fi`
+
 # Implementation & Scope Execution
 
 Executes scopes and tasks via three-phase TDD pipeline (tester → implementer → reviewer).
@@ -137,8 +140,9 @@ Detect the branch source from `$ARGUMENTS` and apply the matching naming convent
      - Branch exists on remote → `git switch <name>` (tracks remote)
      - Otherwise → `git switch -c <name> <base>` using the resolved base from step 3
 5. **Verify** current working tree is on the determined branch before dispatching Phase A.
+6. **Base-drift preflight** (existing-branch and worktree routes only — skip when the branch was just created from its base in step 4): read the `Base drift` block in Pre-loaded Context. If `behind > 0`, follow `reference/base-drift-preflight.md` to detect overlap and gate. **Do not dispatch Phase A past a non-empty overlap without a user decision.**
 
-**Never** dispatch testers/implementers/reviewers while still on `main`, `master`, or a stale unrelated branch.
+**Never** dispatch testers/implementers/reviewers while still on `main`, `master`, a stale unrelated branch, or a branch whose base drifted with unresolved overlapping changes.
 
 ---
 
@@ -219,6 +223,7 @@ When invoked via a domain skill, follow the domain-specific guidance provided.
 - [reference/review.md](reference/review.md) — Review workflow
 - [reference/checkpoint-format.md](reference/checkpoint-format.md) — Checkpoint format
 - [reference/subagent-workflow.md](reference/subagent-workflow.md) — Subagent workflow
+- [reference/base-drift-preflight.md](reference/base-drift-preflight.md) — Base-drift / overlap gate before dispatch
 - [reference/parallel-detection.md](reference/parallel-detection.md) — Parallel detection
 - [reference/defense-in-depth.md](reference/defense-in-depth.md) — Defense in depth
 - [reference/root-cause-tracing.md](reference/root-cause-tracing.md) — Root cause tracing
