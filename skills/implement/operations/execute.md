@@ -377,9 +377,25 @@ When batch completes successfully (all phases, review passed):
      Batch: <N>/<total>
      ```
    - Example: `feat(cache): add TTL expiry\n\nTasks: PH2-003, PH2-004\nBatch: 2/5`
-5. Move to next batch (or use `/continue` in new session)
+5. **Base-drift re-check (per batch).** Fetch the trunk and measure drift before starting the next batch — the remote may have advanced since the last batch:
+   ```bash
+   git fetch origin <trunk> --quiet
+   git rev-list --count "HEAD..origin/<trunk>"   # behind-count
+   ```
+   If `behind > 0`, follow `reference/base-drift-preflight.md` (overlap detection + gate). Rebasing a small drift now prevents a giant conflict at PR time. Record the post-rebase SHA in the next checkpoint's `last_commit`.
+6. Move to next batch (or use `/continue` in new session)
 
 ### 8. Final Review
+
+**PRECONDITION — sync with trunk first.** Before final review, the branch MUST be rebased current on a freshly fetched `origin/<trunk>` so the review runs on the tree that will actually merge:
+
+```bash
+git fetch origin <trunk> --quiet
+behind=$(git rev-list --count "HEAD..origin/<trunk>")
+[ "$behind" -eq 0 ] || git rebase "origin/<trunk>"   # resolve conflicts; re-run tests GREEN
+```
+
+See `reference/base-drift-preflight.md` → "Pre-PR / pre-merge sync". Do not proceed to final review while `behind > 0`.
 
 After ALL batches complete, invoke `code review` skill in **final mode**:
 
@@ -454,6 +470,8 @@ Skip this prompt if final review recommendation is `changes_requested` — the s
 **When:** After Step 9 scope-done prompt (regardless of the user's answer), once final review recommendation is `ready_to_merge`.
 
 **Action:**
+
+**First, re-confirm trunk sync.** Step 8 rebased current, but time may have passed during review. Re-fetch and verify `behind == 0` before pushing; rebase again if the remote moved. A PR pushed while behind is born `CONFLICTING`/`DIRTY`. See `reference/base-drift-preflight.md` → "Pre-PR / pre-merge sync".
 
 ```
 Skill(issue, pr --state <STATE> --issue <ISSUE_NUM>)

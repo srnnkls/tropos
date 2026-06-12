@@ -90,10 +90,20 @@ project=$(basename "$(git rev-parse --show-toplevel)")
 
 ### 2. Create Worktree
 
+`BASE` is the resolved base from the caller (e.g. `implement` Git Workflow step 3). When the base is the trunk, fetch and use the remote ref — a worktree created from local `main` or bare HEAD forks from whatever stale state the checkout happens to be in.
+
 ```bash
-git worktree add "$path" -b "$BRANCH_NAME"
+trunk=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@origin/@@')
+case "$BASE" in
+  origin/*) git fetch origin "${BASE#origin/}" ;;
+  "${trunk:-main}"|main|master) git fetch origin "$BASE" && BASE="origin/$BASE" ;;
+  *) ;;  # non-trunk local base (cascading) — local may be ahead of remote; keep as-is
+esac
+git worktree add "$path" -b "$BRANCH_NAME" "$BASE"
 cd "$path"
 ```
+
+If the branch already exists, omit `-b`/`$BASE` and run the base-drift preflight after entering the worktree.
 
 ### 3. Run Project Setup
 

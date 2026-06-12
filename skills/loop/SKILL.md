@@ -27,6 +27,9 @@ Current branch:
 Recent commits:
 !`git log --oneline -5 2>/dev/null`
 
+Base drift (behind-count vs trunk — loop re-checks every iteration):
+!`b=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@.*/@@'); b=${b:-main}; git fetch origin "$b" --quiet 2>/dev/null; behind=$(git rev-list --count "HEAD..origin/$b" 2>/dev/null); echo "base=$b behind=${behind:-?}"`
+
 # Autonomous Implementation Loop
 
 Focus: $ARGUMENTS

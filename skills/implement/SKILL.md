@@ -128,10 +128,11 @@ Detect the branch source from `$ARGUMENTS` and apply the matching naming convent
      Question: New branch <name> needs a base. Which branch should it fork from?
      multiSelect: false
      Options:
-     - main (default trunk)
+     - origin/<trunk> (freshly fetched trunk — default)
      - <current-branch> (current — pick if cascading)
      - Other: provide branch name
      ```
+   - **Never fork from local `main`/`master`** — it may be stale (this is how branches are born already behind). When the base is the trunk, `git fetch origin <trunk>` and use `origin/<trunk>`.
    - Verify the base exists (`git rev-parse --verify <base>`) before proceeding.
 4. **Checkout mode** — pre-parse `--worktree` (or `worktree`) from `$ARGUMENTS`:
    - **Worktree directive present** → follow `skills/git/reference/worktree.md` end-to-end with `BRANCH_NAME=<branch>` from step 1 and the resolved base from step 3. All subsequent phases run from the reported worktree path.
@@ -140,7 +141,7 @@ Detect the branch source from `$ARGUMENTS` and apply the matching naming convent
      - Branch exists on remote → `git switch <name>` (tracks remote)
      - Otherwise → `git switch -c <name> <base>` using the resolved base from step 3
 5. **Verify** current working tree is on the determined branch before dispatching Phase A.
-6. **Base-drift preflight** (existing-branch and worktree routes only — skip when the branch was just created from its base in step 4): read the `Base drift` block in Pre-loaded Context. If `behind > 0`, follow `reference/base-drift-preflight.md` to detect overlap and gate. **Do not dispatch Phase A past a non-empty overlap without a user decision.**
+6. **Base-drift preflight** — skip ONLY when step 4 just created the branch from a **freshly fetched remote ref** (`origin/<trunk>`); a branch created from any local ref, or created earlier by an outside tool (`workon`, `gh issue develop`, manual checkout), can already be behind — run the check. Read the `Base drift` block in Pre-loaded Context. If `behind > 0`, follow `reference/base-drift-preflight.md` to detect overlap and gate. **Do not dispatch Phase A past a non-empty overlap without a user decision.**
 
 **Never** dispatch testers/implementers/reviewers while still on `main`, `master`, a stale unrelated branch, or a branch whose base drifted with unresolved overlapping changes.
 
