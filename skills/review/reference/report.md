@@ -10,7 +10,7 @@ Each reviewer outputs this structure:
 
 ```yaml
 reviewer_report:
-  reviewer: {role}-{harness}-{model}  # e.g., general-claude-opus, architecture-codex-gpt5.5, compliance-agy-gemini-3.5-flash
+  reviewer: {role}-{harness}-{model}  # e.g., general-claude-opus, architecture-codex-gpt5.5, compliance-gemini-3.5-flash
 
   gates:
     correctness:
@@ -69,7 +69,7 @@ synthesized_report:
       failed_by: []
     security:
       status: pass | fail
-      failed_by: [general-claude-opus, general-agy-gemini-3.5-flash]
+      failed_by: [general-claude-opus, general-gemini-3.5-flash]
     architecture:
       status: pass | fail
       failed_by: []
@@ -82,7 +82,7 @@ synthesized_report:
       location: "src/db/query.py:45"
       description: "SQL injection via unsanitized user input"
       suggestion: "Use parameterized queries"
-      found_by: [general-claude-opus, general-agy-gemini-3.5-flash]
+      found_by: [general-claude-opus, general-gemini-3.5-flash]
 
   strengths:
     - "Clear separation of concerns"

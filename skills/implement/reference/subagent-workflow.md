@@ -109,12 +109,12 @@ Wait for ALL testers to complete before dispatching Phase A.5.
 
 **PRECONDITION:** All Phase A testers completed with `status: success` and RED verified.
 
-Collect all test file paths from every `tester_report` in the batch, then dispatch **all configured reviewers in parallel** (Claude native + Codex/Agy shell-outs — same cartesian dispatch pattern as Phase C). Test review must be multi-harness for the same reason code review is: fresh-perspective models catch quality issues a single harness misses.
+Collect all test file paths from every `tester_report` in the batch, then dispatch **all configured reviewers in parallel** (Claude native + Codex/Gemini shell-outs — same cartesian dispatch pattern as Phase C). Test review must be multi-harness for the same reason code review is: fresh-perspective models catch quality issues a single harness misses.
 
 **Resolve reviewer config (in order):**
 1. `validation.yaml` `review_config` for the active scope
-2. Defaults from `/review` SKILL.md — `claude-opus` + `codex-gpt5.5` + `agy-gemini-3.5-flash`
-3. Never dispatch Claude alone — external shell-outs (Codex/Agy) are mandatory whenever installed
+2. Defaults from `/review` SKILL.md — `claude-opus` + `codex-gpt5.5` + `gemini-3.5-flash`
+3. Never dispatch Claude alone — external shell-outs (Codex/Gemini) are mandatory whenever installed
 
 **Shared prompt (reused across all harnesses):**
 
@@ -139,7 +139,7 @@ Read `./skills/review/operations/test-audit.md` for the four anti-patterns to ch
 **Report in YAML format:**
 ```yaml
 test_review_report:
-  reviewer_id: [e.g. claude-opus | codex-gpt5.5 | agy-gemini-3.5-flash]
+  reviewer_id: [e.g. claude-opus | codex-gpt5.5 | gemini-3.5-flash]
   status: clean  # or "issues_found"
   findings:
     - test_file: [path]
@@ -253,8 +253,8 @@ Wait for ALL implementers to complete before dispatching reviewers.
 **Resolve reviewer config (in order):**
 1. Explicit `--reviewers` flag if caller passed one (see `/review` SKILL.md "Reviewer Selection")
 2. `validation.yaml` `review_config` for the active scope
-3. Defaults: `claude-opus` + `codex-gpt5.5` (codex, reasoning effort `high`) + `agy-gemini-3.5-flash` (agy)
-4. Never dispatch with zero external reviewers when Codex/Agy are installed — external shell-outs are mandatory for cross-model coverage
+3. Defaults: `claude-opus` + `codex-gpt5.5` (codex, reasoning effort `high`) + `gemini-3.5-flash` (gemini)
+4. Never dispatch with zero external reviewers when Codex/Gemini are installed — external shell-outs are mandatory for cross-model coverage
 
 **Dispatch (single message):** per role, a Claude `Task` + one `peer run` that fans the
 role prompt out to every configured external reviewer.
@@ -414,5 +414,5 @@ external harness.
 6. **Single message dispatch** - All role × harness combinations in one message
 7. **Fresh context** - Each subagent starts clean
 8. **Track progress** - Update TodoWrite after each phase
-9. **Configure harnesses** - Set external reviewers (codex/agy) in validation.yaml `review_config` (applied to ALL roles); models per `peer list`
+9. **Configure harnesses** - Set external reviewers (codex/gemini) in validation.yaml `review_config` (applied to ALL roles); models per `peer list`
 10. **Minimize subagent output** - Subagent final messages get embedded into parent context (duplicated in `.output` and `.result`). Every extra token directly inflates parent context. Subagents must return ONLY the YAML report — no prose, no explanation.

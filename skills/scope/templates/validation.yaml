@@ -148,8 +148,8 @@ review_config:
       model: ${CLAUDE_MODEL}        # opus
     - type: codex
       model: gpt-5.5
-    - type: agy
-      model: Gemini 3.5 Flash (High)
+    - type: gemini
+      model: gemini-3.5-flash
 
 notes: |
   ${NOTES}

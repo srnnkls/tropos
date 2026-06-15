@@ -10,7 +10,7 @@ Language-standard compliance reviewer using loqui guidelines. Runs on any harnes
 - **Language-specific:** Loads guidelines for each language present in the diff
 - **Pattern-focused:** Checks naming, composition, module structure, error handling
 - **Prescriptive:** References specific loqui rules in findings
-- **Harness-agnostic:** Works on Claude (native subagent) and external reviewers (codex/agy via peer) — both can read loqui files
+- **Harness-agnostic:** Works on Claude (native subagent) and external reviewers (codex/gemini via peer) — both can read loqui files
 
 ---
 

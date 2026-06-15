@@ -2,33 +2,37 @@
 # peer - external code-review harness with a canonical model registry, idle-stall
 # detection, and self-parallelising fan-out.
 #
-# The shared ChatGPT/Codex backend (and agy) stalls mid-request: the client then sits
-# at ~0 CPU emitting NOTHING until some fixed cap fires. `timeout` waits that out every
-# time. peer instead watches the live output stream and kills a run after --idle seconds
-# of silence (default 60s; a healthy run streams an event every few seconds), retries
-# once, then skips. `peer run` fans out to several harnesses concurrently with that same
-# watchdog each, so the caller issues ONE command instead of juggling N background jobs.
+# Harnesses:
+#   codex  - OpenAI Codex CLI (agentic, streams). The shared ChatGPT/Codex backend stalls
+#            mid-request: the client then sits at ~0 CPU emitting NOTHING until a fixed cap.
+#            peer watches the live stream and kills after --idle seconds of silence
+#            (default 60s; a healthy run streams every few seconds), retries once, skips.
+#   gemini - pi + the @ssweens/pi-vertex provider → Gemini on Vertex AI (ADC auth). Fully
+#            agentic (explores the diff with tools), `--mode json` streams events so the
+#            same idle-watchdog applies. Project/location default to a billed Vertex
+#            project (override via PEER_GEMINI_PROJECT / PEER_GEMINI_LOCATION); needs
+#            `gcloud auth application-default login`.
 #
-# The Claude harness is an in-process subagent (Task) and can only be dispatched by the
-# agent itself; peer covers the external harnesses (codex, agy). `peer list` shows both.
+# The Claude harness is an in-process subagent (Task), dispatchable only by the agent
+# itself; peer covers the external harnesses. `peer list` shows all of them.
 #
 # Subcommands:
 #   peer list
 #   peer run -d OUTDIR [--reviewers id|alias,...] [--effort L] [--idle S] [--cap S] PROMPT
-#   peer <codex|agy> -o OUTFILE [--model M] [--effort L] [--idle S] [--cap S] PROMPT
+#   peer <codex|gemini> -o OUTFILE [--model M] [--effort L] [--idle S] [--cap S] PROMPT
 #
-# Exit (single harness): 0 report in OUTFILE · 2 usage · 3 auth/missing · 124 stalled twice
+# Exit (single harness): 0 report in OUTFILE · 2 usage · 3 auth/missing · 124 failed twice
 # Exit (run):            0 at least one report produced · 1 none · 2 usage
 emulate -L zsh
 setopt localoptions no_monitor no_notify
 
 # --- canonical model registry: the single source of truth for reviewer identity ------
-local -a IDS=( codex-gpt5.5 agy-gemini-3.5-flash claude-opus claude-sonnet )
+local -a IDS=( codex-gpt5.5 gemini-3.5-flash claude-opus claude-sonnet )
 local -A HARNESS MODEL ALIAS EFFORT NATIVE
-HARNESS[codex-gpt5.5]=codex;          MODEL[codex-gpt5.5]='gpt-5.5';                         ALIAS[codex-gpt5.5]=gpt;           EFFORT[codex-gpt5.5]=high; NATIVE[codex-gpt5.5]=no
-HARNESS[agy-gemini-3.5-flash]=agy;    MODEL[agy-gemini-3.5-flash]='Gemini 3.5 Flash (High)'; ALIAS[agy-gemini-3.5-flash]=gemini; EFFORT[agy-gemini-3.5-flash]=-; NATIVE[agy-gemini-3.5-flash]=no
-HARNESS[claude-opus]=claude;          MODEL[claude-opus]='opus';                             ALIAS[claude-opus]=opus;           EFFORT[claude-opus]=-;     NATIVE[claude-opus]=yes
-HARNESS[claude-sonnet]=claude;        MODEL[claude-sonnet]='sonnet';                         ALIAS[claude-sonnet]=sonnet;       EFFORT[claude-sonnet]=-;   NATIVE[claude-sonnet]=yes
+HARNESS[codex-gpt5.5]=codex;       MODEL[codex-gpt5.5]='gpt-5.5';            ALIAS[codex-gpt5.5]=gpt;        EFFORT[codex-gpt5.5]=high; NATIVE[codex-gpt5.5]=no
+HARNESS[gemini-3.5-flash]=gemini;  MODEL[gemini-3.5-flash]='gemini-3.5-flash'; ALIAS[gemini-3.5-flash]=gemini; EFFORT[gemini-3.5-flash]=-;  NATIVE[gemini-3.5-flash]=no
+HARNESS[claude-opus]=claude;     MODEL[claude-opus]='opus';            ALIAS[claude-opus]=opus;      EFFORT[claude-opus]=-;     NATIVE[claude-opus]=yes
+HARNESS[claude-sonnet]=claude;   MODEL[claude-sonnet]='sonnet';        ALIAS[claude-sonnet]=sonnet;  EFFORT[claude-sonnet]=-;   NATIVE[claude-sonnet]=yes
 
 # resolve an id-or-alias token to a canonical reviewer-id (nonzero if unknown)
 _peer_resolve() {
@@ -126,16 +130,19 @@ while (( $# )); do
 done
 local prompt="$*"
 [[ -n "$harness" && -n "$outfile" && -n "$prompt" ]] || {
-  print -u2 "usage: peer <codex|agy> -o OUTFILE [--model M] [--effort L] [--idle S] [--cap S] PROMPT"
+  print -u2 "usage: peer <codex|gemini> -o OUTFILE [--model M] [--effort L] [--idle S] [--cap S] PROMPT"
   print -u2 "       peer list | peer run -d OUTDIR [--reviewers ...] PROMPT"
   return 2
 }
 
+# Vertex config for the gemini harness (pi + @ssweens/pi-vertex, ADC auth; override via env).
+local gproj="${PEER_GEMINI_PROJECT:-code17-main}"
+local gloc="${PEER_GEMINI_LOCATION:-global}"   # 3.x flash lives on the global endpoint, not regional
 local bin
 case "$harness" in
-  codex) bin=codex ;;
-  agy)   bin=agy; : ${model:='Gemini 3.5 Flash (High)'} ;;
-  *) print -u2 "peer: unknown harness '$harness' (use codex|agy, or 'list'/'run')"; return 2 ;;
+  codex)  bin=codex ;;
+  gemini) bin=pi; : ${model:='gemini-3.5-flash'} ;;   # pi-vertex provider → Vertex AI
+  *) print -u2 "peer: unknown harness '$harness' (use codex|gemini, or 'list'/'run')"; return 2 ;;
 esac
 command -v "$bin" >/dev/null 2>&1 || { print -u2 "peer: $bin not found"; return 3; }
 
@@ -143,41 +150,44 @@ command -v "$bin" >/dev/null 2>&1 || { print -u2 "peer: $bin not found"; return 
 # contract. Scope fd1 to /dev/null for the run so no harness/job chatter leaks into a
 # caller that captures our stdout. (A block redirect, not `exec` - `exec` would persist
 # into the calling shell.)
-local attempt
+local attempt fifo log line hpid capper stalled
+local -a a
 {
 for attempt in 1 2; do
   : >| "$outfile"
-  local fifo="${TMPDIR:-/tmp}/peer.$$.${outfile:t}.$attempt.$RANDOM"
+  fifo="${TMPDIR:-/tmp}/peer.$$.${outfile:t}.$attempt.$RANDOM"
   mkfifo "$fifo" 2>/dev/null || { print -u2 "peer: cannot create fifo"; return 1; }
 
-  # All live output -> fifo. codex writes its report via -o; agy's report IS its stdout,
-  # which we recover from the captured stream below.
-  # </dev/null is load-bearing: codex (and agy) read stdin for "additional input" and
-  # block forever when stdin isn't EOF'd (e.g. backgrounded under a non-EOF tool pipe),
-  # emitting nothing — which the idle watchdog would then misread as a stall.
+  # Both harnesses are agentic and STREAM into the fifo so the idle watchdog applies.
+  # </dev/null is load-bearing: these CLIs read stdin and block forever when it isn't
+  # EOF'd (backgrounded under a non-EOF tool pipe), emitting nothing the watchdog would
+  # then misread as a stall.
   if [[ "$harness" == codex ]]; then
-    local -a a=( exec -s read-only --json -o "$outfile" -c "model_reasoning_effort=$effort" )
+    a=( exec -s read-only --json -o "$outfile" -c "model_reasoning_effort=$effort" )
     [[ -n "$model" ]] && a+=( -m "$model" )
     codex "${a[@]}" "$prompt" </dev/null >"$fifo" 2>&1 &
   else
-    agy -p --print-timeout "${cap}s" --model "$model" "$prompt" </dev/null >"$fifo" 2>&1 &
+    # gemini via pi + pi-vertex provider (Vertex AI, ADC). --mode json streams events
+    # (liveness for the watchdog); the report is recovered from the stream below.
+    GOOGLE_CLOUD_PROJECT="$gproj" GOOGLE_CLOUD_LOCATION="$gloc" \
+      pi -p --mode json --provider vertex --model "$model" "$prompt" </dev/null >"$fifo" 2>&1 &
   fi
-  local hpid=$!
+  hpid=$!
 
   # Coarse backstop: kill if the run exceeds --cap even while dribbling output.
   ( sleep "$cap"; kill -TERM "$hpid" 2>/dev/null ) &
-  local capper=$!
+  capper=$!
 
   # Idle watchdog: read blocks at most --idle seconds. A line resets it; silence past
   # --idle leaves the loop with the harness still alive -> stall.
-  local log="" line
+  log=""
   exec 3<"$fifo"
   while IFS= read -t "$idle" -r -u 3 line; do
     log+="$line"$'\n'
   done
   exec 3<&-
 
-  local stalled=0
+  stalled=0
   if kill -0 "$hpid" 2>/dev/null; then
     stalled=1
     kill -TERM "$hpid" 2>/dev/null; sleep 1; kill -KILL "$hpid" 2>/dev/null
@@ -186,20 +196,38 @@ for attempt in 1 2; do
   kill "$capper" 2>/dev/null; wait "$capper" 2>/dev/null
   rm -f "$fifo" 2>/dev/null
 
-  if print -r -- "$log" | grep -qiE 'refresh_token_invalidated|could not be refreshed|401 Unauthorized|not authenticated|unauthorized'; then
-    print -u2 "peer: $harness auth/availability error - re-authenticate ($bin)"
+  # auth/availability (codex OAuth; pi-vertex ADC) — not a transient stall, don't retry.
+  if print -r -- "$log" | grep -qiE 'refresh_token_invalidated|could not be refreshed|invalid_grant|401 Unauthorized|UNAUTHENTICATED|PERMISSION_DENIED|not authenticated'; then
+    print -u2 "peer: $harness auth/availability error - re-authenticate (codex login / gcloud auth application-default login)"
     return 3
   fi
 
-  # agy emits the report on stdout; materialize it only on a clean (non-stalled) run.
-  [[ "$harness" == agy && $stalled -eq 0 ]] && print -r -- "$log" >| "$outfile"
+  # codex writes the report via -o; gemini (pi --mode json) emits it as the last
+  # assistant message's text parts — recover that from the captured stream.
+  if [[ "$harness" == gemini && $stalled -eq 0 ]]; then
+    print -r -- "$log" | OUTFILE="$outfile" python3 -c '
+import os,sys,json
+last=None
+for ln in sys.stdin:
+    ln=ln.strip()
+    if not ln: continue
+    try: d=json.loads(ln)
+    except Exception: continue
+    m=d.get("message")
+    if isinstance(m,dict) and m.get("role")=="assistant" and m.get("content"):
+        last=m
+if last:
+    text="".join(p.get("text","") for p in last["content"] if isinstance(p,dict) and p.get("type")=="text")
+    if text.strip(): open(os.environ["OUTFILE"],"w").write(text)
+'
+  fi
 
   if (( stalled == 0 )) && [[ -s "$outfile" ]]; then
     return 0
   fi
-  (( attempt == 1 )) && print -u2 "peer: $harness stalled (no output for ${idle}s) - retrying once"
+  (( attempt == 1 )) && print -u2 "peer: $harness stalled/failed (no clean report) - retrying once"
 done
 
-print -u2 "peer: $harness stalled twice - skip this reviewer"
+print -u2 "peer: $harness failed twice - skip this reviewer"
 return 124
 } >/dev/null

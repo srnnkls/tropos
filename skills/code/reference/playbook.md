@@ -6,7 +6,7 @@ Edge case handling and decision trees for review scenarios.
 
 ## Timeout Handling
 
-### External Harness (Codex / Agy) Stall
+### External Harness (Codex / Gemini) Stall
 
 `peer` owns the idle-stall watchdog, retry-once, and skip. Read `peer run`'s manifest
 status per reviewer; on a skipped/stalled reviewer, warn "[Reviewer] stalled, skipped.
@@ -171,7 +171,7 @@ review-staged-<timestamp>.md          # Staged changes
 
 ### Reviewers Disagree on Gate
 
-**Symptom:** Claude passes, an external reviewer (codex/agy) fails (or vice versa)
+**Symptom:** Claude passes, an external reviewer (codex/gemini) fails (or vice versa)
 
 **Response:**
 1. Gate status = FAIL (conservative)

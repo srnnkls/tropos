@@ -13,13 +13,13 @@ Extract YAML from all reviewer outputs, including role-specific extensions (`str
 ### 2. Group by Role
 
 Aggregate harness results within each role first:
-- General: Claude + external (codex/agy) harnesses
-- Architecture: Claude + external (codex/agy) harnesses
-- Compliance: Claude + external (codex/agy) harnesses
+- General: Claude + external (codex/gemini) harnesses
+- Architecture: Claude + external (codex/gemini) harnesses
+- Compliance: Claude + external (codex/gemini) harnesses
 
 ### 3. Merge Issues Within Role
 
-- Deduplicate across Claude + external (codex/agy) harnesses within each role
+- Deduplicate across Claude + external (codex/gemini) harnesses within each role
 - Issues flagged by multiple harnesses = higher confidence
 
 ### 4. Merge Issues Across Roles

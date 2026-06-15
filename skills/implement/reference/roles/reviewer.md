@@ -22,7 +22,7 @@ See `/review` [reference/harnesses.md](../../../review/reference/harnesses.md) f
 
 Full cartesian product: every role dispatches on every harness.
 
-| Role | Claude | Codex | Agy |
+| Role | Claude | Codex | Gemini |
 |------|--------|----------|----------|
 | General | 1 (required) | 0-N (from validation.yaml) | 0-N (from validation.yaml) |
 | Architecture | 1 (required) | 0-N (from validation.yaml) | 0-N (from validation.yaml) |
@@ -126,7 +126,7 @@ Each reviewer produces a YAML report with gates:
 
 ```yaml
 reviewer_report:
-  reviewer: general-claude-opus  # or general-codex-gpt5.5, general-agy-gemini-3.5-flash, architecture-claude-opus, compliance-claude-opus
+  reviewer: general-claude-opus  # or general-codex-gpt5.5, general-gemini-3.5-flash, architecture-claude-opus, compliance-claude-opus
   gates:
     correctness:
       status: pass | fail
@@ -262,10 +262,10 @@ reviewer_report:
       suggestion: "Use parameterized queries"
 ```
 
-Agy Gemini (General):
+Gemini Gemini (General):
 ```yaml
 reviewer_report:
-  reviewer: general-agy-gemini-3.5-flash
+  reviewer: general-gemini-3.5-flash
   gates:
     correctness: { status: pass, issues: [] }
     style: { status: pass, issues: [] }
@@ -294,7 +294,7 @@ reviewer_report:
 
 ## Critical (2 reviewers agree)
 - [C1] SQL injection at src/db/query.py:45
-  Found by: general-claude-opus, general-agy-gemini-3.5-flash
+  Found by: general-claude-opus, general-gemini-3.5-flash
   Fix: Use parameterized queries + input validation
 
 Action: Dispatch fix subagent before proceeding

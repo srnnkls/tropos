@@ -60,7 +60,7 @@ checkpoint:
     reasoning_effort: medium  # low | medium | high
     reviewers:
       - gpt-5.5                       # codex
-      - Gemini 3.5 Flash (High)       # agy
+      - gemini-3.5-flash       # gemini
 ```
 
 ## Writing Checkpoints

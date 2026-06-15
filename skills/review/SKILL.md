@@ -96,7 +96,7 @@ Canonical configuration for multi-agent review. Domain skills compose on this.
 ### Models & Harnesses
 
 - **Claude** (native subagent): `opus`, `sonnet` — dispatched by the agent via `Task`.
-- **External** (codex, agy): defined and dispatched by the **[peer skill](../peer/SKILL.md)**
+- **External** (codex, gemini): defined and dispatched by the **[peer skill](../peer/SKILL.md)**
   — run `peer list` for the canonical registry (id ↔ harness ↔ model ↔ alias). Don't
   restate model strings here.
 
@@ -124,13 +124,13 @@ Accepts a comma-separated list of short aliases:
 | `opus` | claude | claude-opus |
 | `sonnet` | claude | claude-sonnet |
 | `gpt` | codex | codex-gpt5.5 |
-| `gemini` | agy | agy-gemini-3.5-flash |
+| `gemini` | gemini | gemini-3.5-flash |
 
 (Model per reviewer-id: `peer list`.)
 
 **Examples:**
 - `/review --reviewers opus,gpt` → claude-opus + codex-gpt5.5
-- `/review --reviewers opus,gpt,gemini` → claude-opus + codex-gpt5.5 + agy-gemini-3.5-flash
+- `/review --reviewers opus,gpt,gemini` → claude-opus + codex-gpt5.5 + gemini-3.5-flash
 - `/implement execute --reviewers opus,gpt` → same two reviewers used for Phase A.5 + Phase C
 
 **Invalid alias:** Report unknown alias and ask user to pick from the table.
@@ -138,9 +138,9 @@ Accepts a comma-separated list of short aliases:
 #### Interactive Fallback (no flag, no review_config)
 
 **Question 1:** Select reviewers (multiSelect):
-- claude-opus (Recommended), claude-sonnet, codex-gpt5.5 (Recommended), agy-gemini-3.5-flash (Recommended)
+- claude-opus (Recommended), claude-sonnet, codex-gpt5.5 (Recommended), gemini-3.5-flash (Recommended)
 
-**Default:** claude-opus, codex-gpt5.5, agy-gemini-3.5-flash
+**Default:** claude-opus, codex-gpt5.5, gemini-3.5-flash
 
 **Question 2:** Reasoning effort (if Codex selected): low, medium, high (Recommended)
 
@@ -148,7 +148,7 @@ Accepts a comma-separated list of short aliases:
 
 Reviewer-id ↔ harness ↔ model is the **[peer skill](../peer/SKILL.md)** registry (`peer list`).
 `claude-opus`/`claude-sonnet` map to the Claude `Task` harness; `codex-gpt5.5`/
-`agy-gemini-3.5-flash` to the external harnesses peer dispatches.
+`gemini-3.5-flash` to the external harnesses peer dispatches.
 
 Store resolved selections in `validation.yaml` under `review_config` (whether from flag, prior config, or interactive prompt).
 

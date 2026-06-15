@@ -11,7 +11,7 @@ to `peer` and let it supply the model.
 $ peer list
 REVIEWER-ID            HARNESS MODEL                      ALIAS   RUN-BY-PEER
 codex-gpt5.5           codex   gpt-5.5                    gpt     yes
-agy-gemini-3.5-flash   agy     Gemini 3.5 Flash (High)    gemini  yes
+gemini-3.5-flash       gemini  gemini-3.5-flash           gemini  yes
 claude-opus            claude  opus                       opus    no (agent Task)
 claude-sonnet          claude  sonnet                     sonnet  no (agent Task)
 ```
@@ -33,9 +33,9 @@ Task(subagent_type="general", model="sonnet", prompt="{prompt}")
 
 ---
 
-## Codex, Agy (external subprocess)
+## Codex, Gemini (external subprocess)
 
 Defined and dispatched by the **[`peer` skill](../../peer/SKILL.md)** — its registry is
 canonical (`peer list`), and it owns invocation, model strings, reasoning effort, and the
 stall watchdog. Don't restate them here. Codex reasoning effort is `low|medium|high`
-(default `high`); agy bakes reasoning into the model name.
+(default `high`); gemini bakes reasoning into the model name.

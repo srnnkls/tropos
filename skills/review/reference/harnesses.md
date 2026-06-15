@@ -47,10 +47,10 @@ The `{role_review_prompt}` is the role-specific prompt from the domain skill (e.
 
 ---
 
-## External Harnesses (Codex, Agy)
+## External Harnesses (Codex, Gemini)
 
 External reviewers are dispatched **exclusively** through the **[`peer` skill](../../peer/SKILL.md)** —
-never `codex exec` / `agy` directly. `peer` owns the canonical model registry (`peer list`),
+never `codex exec` / `gemini` directly. `peer` owns the canonical model registry (`peer list`),
 the idle-stall watchdog (kills a hung backend in ~1 min instead of waiting a fixed cap),
 retry-once, graceful skip, and parallel fan-out (`peer run`). Harness flags, exit codes,
 and model strings live in that skill — this doc does not duplicate them, so they can't drift.
@@ -69,7 +69,7 @@ the role prompt out to every configured external reviewer concurrently.
 
 ```
 Task(subagent_type="general", prompt={role_review_prompt})          # Claude — agent-native
-Bash(run_in_background=true):                                        # codex + agy via peer
+Bash(run_in_background=true):                                        # codex + gemini via peer
   peer run -d {role_outdir} --reviewers {external_aliases} --effort {reasoning} "{role_review_prompt}"
 ```
 
@@ -86,7 +86,7 @@ caller only reads `peer run`'s manifest status per reviewer and synthesises what
 see the **[peer skill](../../peer/SKILL.md)**. Never block the pipeline on an external harness.
 
 **Claude subagent timeout:**
-1. If an external harness (Codex/Agy) succeeded: use those results
+1. If an external harness (Codex/Gemini) succeeded: use those results
 2. If all failed: report failure, suggest retry
 3. Never proceed with zero reviews
 
