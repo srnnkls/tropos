@@ -6,7 +6,9 @@
 #   codex  - OpenAI Codex CLI (agentic, streams). The shared ChatGPT/Codex backend stalls
 #            mid-request: the client then sits at ~0 CPU emitting NOTHING until a fixed cap.
 #            peer watches the live stream and kills after --idle seconds of silence
-#            (default 60s; a healthy run streams every few seconds), retries once, skips.
+#            (default 120s; a healthy agentic run at high reasoning effort goes quiet for
+#            60-90s during a long tool/reasoning step, so a tighter idle false-kills it -
+#            a true stall is unbounded silence the cap still catches), retries once, skips.
 #   gemini - pi + the @ssweens/pi-vertex provider → Gemini on Vertex AI (ADC auth). Fully
 #            agentic (explores the diff with tools), `--mode json` streams events so the
 #            same idle-watchdog applies. Project/location default to a billed Vertex
@@ -57,7 +59,7 @@ fi
 
 # --- peer run: parallel fan-out over external harnesses ------------------------------
 if [[ "$cmd" == run ]]; then
-  local outdir="" reviewers="" effort="" idle=60 cap=600
+  local outdir="" reviewers="" effort="" idle=120 cap=600
   while (( $# )); do
     case "$1" in
       -d|--out-dir)  outdir="$2"; shift 2 ;;
@@ -115,7 +117,7 @@ fi
 
 # --- single harness (also the unit peer run fans out to) -----------------------------
 local harness="$cmd"
-local effort=high model="" outfile="" idle=60 cap=600
+local effort=high model="" outfile="" idle=120 cap=600
 while (( $# )); do
   case "$1" in
     -o|--out)   outfile="$2"; shift 2 ;;

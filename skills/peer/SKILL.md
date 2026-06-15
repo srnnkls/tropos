@@ -23,8 +23,10 @@ non-interactive shells, so skill `Bash` shell-outs resolve `peer`. A future comp
   The shared ChatGPT/Codex backend intermittently **stalls mid-request**: the client sits
   at ~0 CPU emitting nothing, and `codex exec` does **not** self-abort. A plain `timeout`
   waits out its whole cap on every stall; `peer` instead watches the live stream and kills
-  after `--idle` seconds of **silence** (default 60s — a healthy run streams every few
-  seconds), retries once, then skips. So a stall is caught in ~1 min, never a long hang.
+  after `--idle` seconds of **silence** (default 120s — a healthy agentic run at high
+  reasoning effort legitimately goes quiet for 60-90s during a long tool/reasoning step,
+  so a tighter idle false-kills it; a true stall is unbounded silence the `--cap` still
+  catches), retries once, then skips. So a stall is caught in ~2 min, never a long hang.
 - **gemini** — `pi` + the **`@ssweens/pi-vertex`** provider → Gemini on **Vertex AI**, a
   *fully agentic* reviewer (explores the diff with tools, like codex). `pi --mode json`
   streams events, so the same fifo + idle-watchdog applies; the report is the final
@@ -65,7 +67,7 @@ peer run -d {outdir} --reviewers {ids-or-aliases} --effort {reasoning} "{review_
   Omit to use every peer-runnable reviewer. `claude-*` entries are skipped with a notice
   (dispatch those as `Task` from the agent).
 - `--effort` (optional): `low|medium|high` for codex (gemini ignores it). Defaults per registry.
-- `--idle {s}` / `--cap {s}` (optional): codex silence timeout (default 60) / hard cap (default 600).
+- `--idle {s}` / `--cap {s}` (optional): codex silence timeout (default 120) / hard cap (default 600).
 
 **Output:** a TSV manifest on stdout, one row per reviewer:
 
