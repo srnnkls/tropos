@@ -46,7 +46,7 @@ Before dispatching, analyze `dependencies.yaml` for execution batches:
 
 ```yaml
 Task:
-  subagent_type: general
+  subagent_type: task-tester
   description: "Write tests for Task N: [task name]"
   prompt: |
     You are writing failing tests for Task N from [scope-file].
@@ -96,9 +96,9 @@ Dispatch ALL testers in a SINGLE message:
 
 ```yaml
 # Single message with multiple Task tool calls
-Task (general): "Write tests for Task N1" ...
-Task (general): "Write tests for Task N2" ...
-Task (general): "Write tests for Task N3" ...
+Task (task-tester): "Write tests for Task N1" ...
+Task (task-tester): "Write tests for Task N2" ...
+Task (task-tester): "Write tests for Task N3" ...
 ```
 
 Wait for ALL testers to complete before dispatching Phase A.5.
@@ -109,12 +109,12 @@ Wait for ALL testers to complete before dispatching Phase A.5.
 
 **PRECONDITION:** All Phase A testers completed with `status: success` and RED verified.
 
-Collect all test file paths from every `tester_report` in the batch, then dispatch **all configured reviewers in parallel** (Claude native + Pi shell-outs — same cartesian dispatch pattern as Phase C). Test review must be multi-harness for the same reason code review is: fresh-perspective models catch quality issues a single harness misses.
+Collect all test file paths from every `tester_report` in the batch, then dispatch **all configured reviewers in parallel** (Claude native + Pi/Agy shell-outs — same cartesian dispatch pattern as Phase C). Test review must be multi-harness for the same reason code review is: fresh-perspective models catch quality issues a single harness misses.
 
 **Resolve reviewer config (in order):**
 1. `validation.yaml` `review_config` for the active scope
-2. Defaults from `/review` SKILL.md — `claude-opus` + `openai-gpt5.5` + `gemini-3.1-pro`, thinking `high`
-3. Never dispatch Claude alone — Pi shell-outs are mandatory whenever Pi is installed
+2. Defaults from `/review` SKILL.md — `claude-opus` + `openai-gpt5.5` + `agy-gemini-3.5-flash`
+3. Never dispatch Claude alone — external shell-outs (Pi/Agy) are mandatory whenever installed
 
 **Shared prompt (reused across all harnesses):**
 
@@ -139,7 +139,7 @@ Read `./skills/review/operations/test-audit.md` for the four anti-patterns to ch
 **Report in YAML format:**
 ```yaml
 test_review_report:
-  reviewer_id: [e.g. claude-opus | pi-gpt5.5 | pi-gemini-3.1-pro]
+  reviewer_id: [e.g. claude-opus | pi-gpt5.5 | agy-gemini-3.5-flash]
   status: clean  # or "issues_found"
   findings:
     - test_file: [path]
@@ -156,19 +156,19 @@ test_review_report:
 ```
 # Claude harness (required)
 Task(
-  subagent_type="general",
+  subagent_type="task-reviewer",
   description="Test quality review — claude-opus",
   prompt={shared_prompt with reviewer_id: claude-opus}
 )
 
-# Pi harnesses (one per configured Pi model)
+# External harnesses (one per configured external reviewer)
 Bash(run_in_background=true):
   timeout 1200 pi -p --model openai-codex/gpt-5.5 --thinking high "{shared_prompt with reviewer_id: pi-gpt5.5}"
 Bash(run_in_background=true):
-  timeout 1200 pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{shared_prompt with reviewer_id: pi-gemini-3.1-pro}"
+  timeout 1200 agy -p --print-timeout 20m --model "Gemini 3.5 Flash (High)" "{shared_prompt with reviewer_id: agy-gemini-3.5-flash}"
 ```
 
-Wait for ALL harnesses to complete (Claude via Task result, Pi via BashOutput on completion).
+Wait for ALL harnesses to complete (Claude via Task result, Pi/Agy via BashOutput on completion).
 
 **Synthesis for Phase A.5:**
 - Merge `findings` across all harnesses by `(test_file, test_name)`
@@ -196,7 +196,7 @@ Wait for ALL harnesses to complete (Claude via Task result, Pi via BashOutput on
 
 ```yaml
 Task:
-  subagent_type: general
+  subagent_type: task-implementer
   description: "Implement Task N: [task name]"
   prompt: |
     You are implementing Task N from [scope-file].
@@ -241,9 +241,9 @@ Dispatch ALL implementers in a SINGLE message, each with its corresponding teste
 
 ```yaml
 # Single message with multiple Task tool calls
-Task (general): "Implement Task N1" + tester_1_report
-Task (general): "Implement Task N2" + tester_2_report
-Task (general): "Implement Task N3" + tester_3_report
+Task (task-implementer): "Implement Task N1" + tester_1_report
+Task (task-implementer): "Implement Task N2" + tester_2_report
+Task (task-implementer): "Implement Task N3" + tester_3_report
 ```
 
 Wait for ALL implementers to complete before dispatching reviewers.
@@ -257,43 +257,43 @@ Wait for ALL implementers to complete before dispatching reviewers.
 **Resolve reviewer config (in order):**
 1. Explicit `--reviewers` flag if caller passed one (see `/review` SKILL.md "Reviewer Selection")
 2. `validation.yaml` `review_config` for the active scope
-3. Defaults: `claude-opus` + `openai-gpt5.5` + `gemini-3.1-pro`, thinking `high`
-4. Never dispatch with zero Pi reviewers when Pi is installed — Pi shell-outs are mandatory for cross-model coverage
+3. Defaults: `claude-opus` + `openai-gpt5.5` (pi, thinking `high`) + `agy-gemini-3.5-flash` (agy)
+4. Never dispatch with zero external reviewers when Pi/Agy are installed — external shell-outs are mandatory for cross-model coverage
 
 **Dispatch (single message, full cartesian product — roles × harnesses):**
 
 ```
 # General role
-Task(subagent_type="general",
+Task(subagent_type="task-reviewer",
      description="General review — claude-opus",
      prompt={general_prompt with reviewer_id: general-claude-opus})
 Bash(run_in_background=true):
   timeout 1200 pi -p --model openai-codex/gpt-5.5 --thinking high "{general_prompt with reviewer_id: general-pi-gpt5.5}"
 Bash(run_in_background=true):
-  timeout 1200 pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{general_prompt with reviewer_id: general-pi-gemini-3.1-pro}"
+  timeout 1200 agy -p --print-timeout 20m --model "Gemini 3.5 Flash (High)" "{general_prompt with reviewer_id: general-agy-gemini-3.5-flash}"
 
 # Architecture role
-Task(subagent_type="general",
+Task(subagent_type="task-reviewer",
      description="Architecture review — claude-opus",
      prompt={architecture_prompt with reviewer_id: architecture-claude-opus})
 Bash(run_in_background=true):
   timeout 1200 pi -p --model openai-codex/gpt-5.5 --thinking high "{architecture_prompt with reviewer_id: architecture-pi-gpt5.5}"
 Bash(run_in_background=true):
-  timeout 1200 pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{architecture_prompt with reviewer_id: architecture-pi-gemini-3.1-pro}"
+  timeout 1200 agy -p --print-timeout 20m --model "Gemini 3.5 Flash (High)" "{architecture_prompt with reviewer_id: architecture-agy-gemini-3.5-flash}"
 
 # Compliance role
-Task(subagent_type="general",
+Task(subagent_type="task-reviewer",
      description="Compliance review — claude-opus",
      prompt={compliance_prompt with reviewer_id: compliance-claude-opus})
 Bash(run_in_background=true):
   timeout 1200 pi -p --model openai-codex/gpt-5.5 --thinking high "{compliance_prompt with reviewer_id: compliance-pi-gpt5.5}"
 Bash(run_in_background=true):
-  timeout 1200 pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking high "{compliance_prompt with reviewer_id: compliance-pi-gemini-3.1-pro}"
+  timeout 1200 agy -p --print-timeout 20m --model "Gemini 3.5 Flash (High)" "{compliance_prompt with reviewer_id: compliance-agy-gemini-3.5-flash}"
 ```
 
 Role prompts live in `code` review SKILL.md Step 4 (General / Architecture / Compliance). Harness details live in `/review` [reference/harnesses.md](../../review/reference/harnesses.md).
 
-Wait for ALL harnesses to complete (Claude via Task result, Pi via BashOutput). Then synthesize per `/review` [reference/synthesis.md](../../review/reference/synthesis.md).
+Wait for ALL harnesses to complete (Claude via Task result, Pi/Agy via BashOutput). Then synthesize per `/review` [reference/synthesis.md](../../review/reference/synthesis.md).
 
 ---
 
@@ -309,7 +309,7 @@ When review finds Critical/High issues:
 
 ```yaml
 Task:
-  subagent_type: general
+  subagent_type: task-implementer
   description: "Fix issues from batch review"
   prompt: |
     Fix these issues from code review:
@@ -431,7 +431,7 @@ If OpenCode reviewer times out (> 5 minutes):
 
 ## Best Practices
 
-1. **subagent_type: general** - Use `general` for all task subagents
+1. **Specialized subagent types** - Use `task-tester`, `task-implementer`, `task-reviewer` for Claude native Task calls; Pi Bash shell-outs use Pi's own task system
 2. **Tester first** - Implementer must receive failing tests
 3. **Test review gate** - Every batch's tests pass Phase A.5 before implementers are dispatched
 4. **All three code-review roles mandatory** - Every batch gets General + Architecture + Compliance review

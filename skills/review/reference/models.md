@@ -23,29 +23,35 @@ Task(subagent_type="general", model="sonnet", prompt="{prompt}")
 
 | Display Name | Model Path | Provider |
 |---|---|---|
-| openai-gpt5.5 | openai-codex/gpt-5.5 | OpenAI |
-| gemini-3-flash | google-gemini-cli/gemini-3-flash-preview | Google |
-| gemini-3.1-pro | google-gemini-cli/gemini-3.1-pro-preview | Google |
-
-### GitHub Copilot Alternatives
-
-| Display Name | Model Path |
-|---|---|
-| gpt5.5-copilot | github-copilot/gpt-5.5 |
-| gemini-3.1-pro-copilot | github-copilot/gemini-3.1-pro-preview |
+| openai-gpt5.5 | openai-codex/gpt-5.5 | OpenAI Codex |
 
 ### Invocation
 ```bash
 timeout 1200 pi -p --model openai-codex/gpt-5.5 --thinking {reasoning} "{prompt}"
-timeout 1200 pi -p --model google-gemini-cli/gemini-3-flash-preview --thinking {reasoning} "{prompt}"
-timeout 1200 pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking {reasoning} "{prompt}"
+```
+
+---
+
+## Agy (external subprocess)
+
+| Display Name | Model | Provider |
+|---|---|---|
+| agy-gemini-3.5-flash | Gemini 3.5 Flash (High) | Agy |
+
+Thinking level is baked into the agy model name — there is no `--thinking` flag.
+`--print-timeout 20m` is set so agy's internal cap (default 5m) matches the 20m outer `timeout`.
+Run `agy models` for the full list. `Gemini 3.5 Flash (High)` is the default.
+
+### Invocation
+```bash
+timeout 1200 agy -p --print-timeout 20m --model "Gemini 3.5 Flash (High)" "{prompt}"
 ```
 
 ---
 
 ## Thinking Level Format
 
-`--thinking {level}` (e.g., `high`)
+Pi only. `--thinking {level}` (e.g., `high`)
 
 | Level | Use for |
 |---|---|
@@ -53,6 +59,3 @@ timeout 1200 pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking {
 | medium | Balanced (default) |
 | high | Deep analysis (recommended) |
 | xhigh | Maximum reasoning |
-
-**Note:** Google native models (`google-gemini-cli/`) use `thinkingLevel` internally.
-Use `github-copilot/` Gemini models for thinking level control.

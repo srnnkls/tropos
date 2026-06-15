@@ -59,8 +59,8 @@ checkpoint:
   review_config:
     reasoning_effort: medium  # low | medium | high | xhigh 
     reviewers:
-      - openai/gpt-5.5
-      - google/gemini-3-pro-preview
+      - openai-codex/gpt-5.5          # pi
+      - Gemini 3.5 Flash (High)       # agy
 ```
 
 ## Writing Checkpoints

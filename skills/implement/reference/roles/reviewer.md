@@ -22,11 +22,11 @@ See `/review` [reference/harnesses.md](../../../review/reference/harnesses.md) f
 
 Full cartesian product: every role dispatches on every harness.
 
-| Role | Claude | Pi |
-|------|--------|----------|
-| General | 1 (required) | 0-N (from validation.yaml) |
-| Architecture | 1 (required) | 0-N (from validation.yaml) |
-| Compliance | 1 (required) | 0-N (from validation.yaml) |
+| Role | Claude | Pi | Agy |
+|------|--------|----------|----------|
+| General | 1 (required) | 0-N (from validation.yaml) | 0-N (from validation.yaml) |
+| Architecture | 1 (required) | 0-N (from validation.yaml) | 0-N (from validation.yaml) |
+| Compliance | 1 (required) | 0-N (from validation.yaml) | 0-N (from validation.yaml) |
 
 **Available models:** See `/review` [reference/models.md](../../../review/reference/models.md).
 
@@ -126,7 +126,7 @@ Each reviewer produces a YAML report with gates:
 
 ```yaml
 reviewer_report:
-  reviewer: general-claude-opus  # or general-pi-gpt5.5, general-pi-gemini-3-pro, architecture-claude-opus, compliance-claude-opus
+  reviewer: general-claude-opus  # or general-pi-gpt5.5, general-agy-gemini-3.5-flash, architecture-claude-opus, compliance-claude-opus
   gates:
     correctness:
       status: pass | fail
@@ -241,14 +241,14 @@ Review is good when it:
 Task(general): "General review: batch T002-T004" ...
 Task(general): "Architecture review: batch T002-T004" ...
 Task(general): "Compliance review: batch T002-T004" ...
-# 3 roles × Pi model 1
+# 3 roles × Pi (openai-codex/gpt-5.5)
 Bash(background): pi -p --model openai-codex/gpt-5.5 --thinking {reasoning_effort} "General review: ..."
 Bash(background): pi -p --model openai-codex/gpt-5.5 --thinking {reasoning_effort} "Architecture review: ..."
 Bash(background): pi -p --model openai-codex/gpt-5.5 --thinking {reasoning_effort} "Compliance review: ..."
-# 3 roles × Pi model 2
-Bash(background): pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking {reasoning_effort} "General review: ..."
-Bash(background): pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking {reasoning_effort} "Architecture review: ..."
-Bash(background): pi -p --model google-gemini-cli/gemini-3.1-pro-preview --thinking {reasoning_effort} "Compliance review: ..."
+# 3 roles × Agy (Gemini 3.5 Flash (High))
+Bash(background): agy -p --print-timeout 20m --model "Gemini 3.5 Flash (High)" "General review: ..."
+Bash(background): agy -p --print-timeout 20m --model "Gemini 3.5 Flash (High)" "Architecture review: ..."
+Bash(background): agy -p --print-timeout 20m --model "Gemini 3.5 Flash (High)" "Compliance review: ..."
 ```
 
 **Individual Outputs:**
@@ -272,10 +272,10 @@ reviewer_report:
       suggestion: "Use parameterized queries"
 ```
 
-Pi Gemini (General):
+Agy Gemini (General):
 ```yaml
 reviewer_report:
-  reviewer: general-pi-gemini-3-pro
+  reviewer: general-agy-gemini-3.5-flash
   gates:
     correctness: { status: pass, issues: [] }
     style: { status: pass, issues: [] }
@@ -304,7 +304,7 @@ reviewer_report:
 
 ## Critical (2 reviewers agree)
 - [C1] SQL injection at src/db/query.py:45
-  Found by: general-claude-opus, general-pi-gemini-3-pro
+  Found by: general-claude-opus, general-agy-gemini-3.5-flash
   Fix: Use parameterized queries + input validation
 
 Action: Dispatch fix subagent before proceeding

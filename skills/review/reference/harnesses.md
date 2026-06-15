@@ -89,12 +89,51 @@ See [models.md](models.md) for available models and thinking levels.
 
 ---
 
+## Agy Harness (External Subprocess)
+
+### Characteristics
+
+- **Fresh perspective:** No prior context, sees code as newcomer would
+- **Independent:** Separate process, no shared state
+- **Full tool access:** Can run gestalt, read loqui files, execute git commands
+
+### Strengths
+
+- Cross-model coverage distinct from Claude and Pi
+- Catches assumptions insiders miss
+- Simulates new team member perspective
+
+### Limitations
+
+- No prior session context (fresh perspective — also a strength)
+- May flag "issues" that are project conventions
+- Depends on external service availability
+- Thinking level is fixed in the model name — no `--thinking` flag
+
+### Dispatch
+
+```bash
+timeout 1200 agy -p --print-timeout 20m --model "{MODEL}" "{role_review_prompt}"
+```
+
+Default model: `Gemini 3.5 Flash (High)`. Run `agy models` for the full list. See [models.md](models.md).
+`--print-timeout 20m` keeps agy's internal cap (default 5m) aligned with the outer `timeout`.
+
+### Expected Behavior
+
+- Runs `{diff_cmd}` or reads files as directed by the role prompt
+- Runs gestalt commands (Architecture role) or reads loqui files (Compliance role) as directed
+- Outputs structured YAML report
+
+---
+
 ## Dispatch Mapping
 
 | Harness | Tool | Template |
 |---------|------|----------|
 | Claude | Task | `Task(subagent_type="general", prompt={role_prompt})` |
 | Pi | Bash | `timeout 1200 pi -p --model {model} --thinking {reasoning} "{role_prompt}"` |
+| Agy | Bash | `timeout 1200 agy -p --print-timeout 20m --model "{model}" "{role_prompt}"` |
 
 Roles provide the prompt content (gates, focus, report schema). Harnesses provide the transport.
 
@@ -115,25 +154,27 @@ Task(
   prompt={role_review_prompt}
 )
 
-# {Role} — Pi harnesses [0-N from config, for each role]
+# {Role} — Pi harness [from config, for each role]
 Bash(run_in_background=true):
-  timeout 1200 pi -p --model {model_1} --thinking {reasoning} "{role_review_prompt}"
+  timeout 1200 pi -p --model openai-codex/gpt-5.5 --thinking {reasoning} "{role_review_prompt}"
+
+# {Role} — Agy harness [from config, for each role]
 Bash(run_in_background=true):
-  timeout 1200 pi -p --model {model_2} --thinking {reasoning} "{role_review_prompt}"
+  timeout 1200 agy -p --print-timeout 20m --model "Gemini 3.5 Flash (High)" "{role_review_prompt}"
 ```
 
 ---
 
 ## Timeout/Error Handling
 
-**Pi timeout (> 20 minutes):**
+**Pi or Agy timeout (> 20 minutes):**
 1. Continue with completed reviews
 2. Add warning: "[Reviewer] timed out, partial results"
 3. Proceed with synthesis using available data
 
 **Claude subagent timeout:**
-1. If Pi succeeded: use Pi results only
-2. If both failed: report failure, suggest retry
+1. If an external harness (Pi/Agy) succeeded: use those results
+2. If all failed: report failure, suggest retry
 3. Never proceed with zero reviews
 
 **Parse failures:**

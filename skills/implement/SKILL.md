@@ -34,7 +34,7 @@ Executes scopes and tasks via three-phase TDD pipeline (tester → implementer �
 ## Auto-Detect Rules
 
 **Pre-parse:** Extract these directives from `$ARGUMENTS` before pattern matching:
-- `--reviewers <aliases>` — comma-separated list from `{opus, sonnet, gpt, gemini, gemini-pro, gemini-flash}`. Resolution and alias table: `/review` SKILL.md "Reviewer Selection". Resolved list is passed to Phase A.5 + Phase C dispatch. If absent and `validation.yaml.review_config` is also absent, fall back to the interactive AskUserQuestion prompt (same as `/review`).
+- `--reviewers <aliases>` — comma-separated list from `{opus, sonnet, gpt, gemini}`. Resolution and alias table: `/review` SKILL.md "Reviewer Selection". Resolved list is passed to Phase A.5 + Phase C dispatch. If absent and `validation.yaml.review_config` is also absent, fall back to the interactive AskUserQuestion prompt (same as `/review`).
 - `--worktree` (or bare `worktree`) — checkout the determined branch as a `git worktree add ...` instead of in-place `git switch`. See "Git Workflow" → "Procedure" step 4.
 - `--base <branch>` — base branch for new-branch creation. If absent and the branch doesn't exist, AskUserQuestion. See "Git Workflow" → "Procedure" step 3.
 - `--state <draft|open>` — PR state when auto-creating a pull request at the end of execution (default: `draft`). Only used when `$ARGUMENTS` contains an issue reference.

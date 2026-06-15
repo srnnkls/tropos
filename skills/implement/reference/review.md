@@ -38,9 +38,9 @@ review_config:
     - type: claude
       model: ${CLAUDE_MODEL}  # opus
     - type: pi
-      model: ${OPENCODE_MODEL_1}
-    - type: pi
-      model: ${OPENCODE_MODEL_2}
+      model: openai-codex/gpt-5.5
+    - type: agy
+      model: Gemini 3.5 Flash (High)
 
 # Accumulated gate status across all batch reviews.
 # Gate fails if ANY batch review failed it.
@@ -86,7 +86,7 @@ batch_reviews:
           performance: pass
           security: pass
           architecture: pass
-      - id: general-pi-gemini-3-pro
+      - id: general-agy-gemini-3.5-flash
         status: timeout  # or success | failed
         gates: null
       - id: architecture-claude-opus
@@ -105,7 +105,7 @@ batch_reviews:
           performance: pass
           security: pass
           architecture: pass
-      - id: architecture-pi-gemini-3-pro
+      - id: architecture-agy-gemini-3.5-flash
         status: success
         gates:
           correctness: pass
@@ -129,7 +129,7 @@ batch_reviews:
           performance: pass
           security: pass
           architecture: pass
-      - id: compliance-pi-gemini-3-pro
+      - id: compliance-agy-gemini-3.5-flash
         status: success
         gates:
           correctness: pass
@@ -161,7 +161,7 @@ issues:
       location: "src/auth/login.py:45"
       description: "SQL injection via unsanitized input"
       suggestion: "Use parameterized queries"
-      found_by: [general-claude-opus, general-pi-gemini-3-pro]
+      found_by: [general-claude-opus, general-agy-gemini-3.5-flash]
       status: resolved  # or open
       resolution:
         batch: 2

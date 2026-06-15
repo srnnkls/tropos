@@ -62,7 +62,7 @@ Each batch executes four phases. **A batch is NOT complete until all four phases
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**CRITICAL:** All four phases are mandatory. Test review (Phase A.5) and code review (Phase C) each dispatch the full harnesses cartesian product. Pi shell-outs are always required — never dispatch Claude alone. Before synthesizing any phase's results, verify that ≥2 harnesses reported; if fewer than 2 reported, treat the phase as failed and do not proceed.
+**CRITICAL:** All four phases are mandatory. Test review (Phase A.5) and code review (Phase C) each dispatch the full harnesses cartesian product. External shell-outs (Pi + Agy) are always required — never dispatch Claude alone. Before synthesizing any phase's results, verify that ≥2 harnesses reported; if fewer than 2 reported, treat the phase as failed and do not proceed.
 
 ---
 
@@ -167,13 +167,13 @@ If any failure mode is detected → re-dispatch the tester with feedback identif
 
 **PRECONDITION:** All Phase A testers completed with `status: success` and RED verified.
 
-Dispatch **all configured reviewers in parallel** (Claude native + Pi shell-outs) on all test files from the batch — same cartesian pattern as Phase C. Pi shell-outs are always required: Phase A.5 is not single-harness. Before synthesizing, verify ≥2 harnesses reported; if fewer, treat as failed — do not proceed to Phase B.
+Dispatch **all configured reviewers in parallel** (Claude native + Pi/Agy shell-outs) on all test files from the batch — same cartesian pattern as Phase C. External shell-outs are always required: Phase A.5 is not single-harness. Before synthesizing, verify ≥2 harnesses reported; if fewer, treat as failed — do not proceed to Phase B.
 
 **Collect inputs:**
 - All `test_files[*].path` from all `tester_report`s in this batch
 - Tester task descriptions (what behavior each test should verify)
 
-**Resolve reviewer config (in order):** `--reviewers` flag → `validation.yaml` `review_config` → defaults (`opus,gpt,gemini`).
+**Resolve reviewer config (in order):** `--reviewers` flag → `validation.yaml` `review_config` → defaults (`opus,gpt,gemini` → claude-opus + pi-gpt5.5 + agy-gemini-3.5-flash).
 
 **Dispatch template:** See `reference/subagent-workflow.md` — Test Review Dispatch Template (cartesian: Claude Task + Pi Bash per configured model).
 
@@ -262,10 +262,10 @@ Dispatch (full cartesian product):
 Dispatch reviewers per `/review` infrastructure and `code review` role definitions.
 
 **Resolve harness config (in order):**
-1. Explicit `--reviewers` flag passed to `/implement execute` (aliases: `opus, sonnet, gpt, gemini, gemini-pro, gemini-flash` — see `/review` SKILL.md "Reviewer Selection")
+1. Explicit `--reviewers` flag passed to `/implement execute` (aliases: `opus, sonnet, gpt, gemini` — see `/review` SKILL.md "Reviewer Selection")
 2. `validation.yaml` `review_config` for the active scope → use those reviewers and reasoning effort
-3. Defaults: `claude-opus` + `openai-gpt5.5` + `gemini-3.1-pro`, thinking level `high`
-4. Pi harnesses are always mandatory — never proceed with zero Pi reviewers. Before synthesizing Phase C, verify ≥2 harnesses reported; if fewer, treat the batch review as failed.
+3. Defaults: `claude-opus` + `openai-gpt5.5` (pi, thinking `high`) + `agy-gemini-3.5-flash` (agy)
+4. External harnesses (Pi/Agy) are always mandatory — never proceed with zero external reviewers. Before synthesizing Phase C, verify ≥2 harnesses reported; if fewer, treat the batch review as failed.
 
 Apply the resolved config to all three roles (General, Architecture, Compliance).
 
@@ -492,15 +492,15 @@ The `issue pr` operation handles pushing the branch, building the PR title/body 
 
 ## Subagent Configuration
 
-| Role | Subagent Type | Skill |
-|------|---------------|-------|
-| Tester | general | test |
-| Implementer | general | implement |
-| General Reviewer | general | code review |
-| Architecture Reviewer | general | gestalt |
-| Compliance Reviewer | general | loqui |
+| Role | Claude Task subagent_type | Skill |
+|------|--------------------------|-------|
+| Tester | task-tester | test |
+| Implementer | task-implementer | implement |
+| General Reviewer | task-reviewer | code review |
+| Architecture Reviewer | task-reviewer | gestalt |
+| Compliance Reviewer | task-reviewer | loqui |
 
-**CRITICAL:** Always use `subagent_type: "general"` for all subagents. Pi's Task tool only supports `"general"` and `"explore"`.
+**Pi Bash calls:** Pi's Task tool only supports `"general"` and `"explore"` — the `subagent_type` constraint applies to Pi shell-outs only, not to Claude native Task calls.
 
 ---
 
@@ -551,10 +551,10 @@ The `issue pr` operation handles pushing the branch, building the PR title/body 
 Batch 1: Task 1 (single task)
 ├── Phase A: Dispatch tester
 │   └── Tester: Wrote 3 tests, all failing (RED)
-├── Phase A.5: Dispatch reviewers (Claude opus + Pi gpt + Pi gemini in parallel)
+├── Phase A.5: Dispatch reviewers (Claude opus + Pi gpt + Agy gemini in parallel)
 │   ├── Claude opus: Clean
 │   ├── Pi gpt: Clean
-│   └── Pi gemini: Clean — no oracle mirroring or tautologies
+│   └── Agy gemini: Clean — no oracle mirroring or tautologies
 ├── Phase B: Dispatch implementer + tester report
 │   └── Implementer: Made tests pass (GREEN)
 ├── Phase C: Dispatch reviewers (3 in parallel)
@@ -567,7 +567,7 @@ Batch 1: Task 1 (single task)
 Batch 2: Tasks 2, 3, 4 ([P] parallel batch)
 ├── Phase A: Dispatch 3 testers (single message)
 │   └── All testers complete with failing tests
-├── Phase A.5: Dispatch reviewers (Claude opus + Pi gpt + Pi gemini in parallel, all 3 test files)
+├── Phase A.5: Dispatch reviewers (Claude opus + Pi gpt + Agy gemini in parallel, all 3 test files)
 │   ├── Synthesized: Task 2 tests — oracle mirroring detected (flagged by Pi gpt)
 │   ├── Re-dispatch Task 2 tester with finding
 │   └── Task 2 re-tester: Clean on second attempt

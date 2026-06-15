@@ -217,7 +217,7 @@ Options:
 ### Step 3.7: Configure Implementation Reviewers
 
 Configure reviewers per `/review` infrastructure (see `/review` SKILL.md "Reviewer Selection"). Resolution order:
-1. `--reviewers` flag passed to `/scope` — comma-separated aliases from `{opus, sonnet, gpt, gemini, gemini-pro, gemini-flash}`
+1. `--reviewers` flag passed to `/scope` — comma-separated aliases from `{opus, sonnet, gpt, gemini}`
 2. Interactive AskUserQuestion prompt (fallback)
 
 Store resolved selections in `validation.yaml` under `review_config`.

@@ -32,7 +32,7 @@ Routes to the appropriate review skill based on argument type.
 
 ## Auto-Detect Rules
 
-**Pre-parse:** Extract `--reviewers <aliases>` from `$ARGUMENTS` before pattern matching. Value is a comma-separated list from `{opus, sonnet, gpt, gemini, gemini-pro, gemini-flash}`. Resolve to models per the Reviewer Selection section. Unknown alias → ask user to pick from the table. Flag is inherited by all downstream routes (Skill/code, Skill/scope, Skill/gestalt).
+**Pre-parse:** Extract `--reviewers <aliases>` from `$ARGUMENTS` before pattern matching. Value is a comma-separated list from `{opus, sonnet, gpt, gemini}`. Resolve to models per the Reviewer Selection section. Unknown alias → ask user to pick from the table. Flag is inherited by all downstream routes (Skill/code, Skill/scope, Skill/gestalt).
 
 Apply these rules to remaining `$ARGUMENTS` in order:
 
@@ -98,7 +98,8 @@ Canonical configuration for multi-agent review. Domain skills compose on this.
 | Harness | Models |
 |---|---|
 | Claude | opus, sonnet |
-| Pi | openai-codex/gpt-5.5, google-gemini-cli/gemini-3-flash-preview, google-gemini-cli/gemini-3.1-pro-preview |
+| Pi | openai-codex/gpt-5.5 |
+| Agy | Gemini 3.5 Flash (High) |
 
 Full details: [reference/models.md](reference/models.md)
 
@@ -108,6 +109,7 @@ Full details: [reference/models.md](reference/models.md)
 |---|---|---|
 | Claude | Native subagent | `Task(subagent_type="general")` |
 | Pi | External subprocess | `pi -p --model --thinking` |
+| Agy | External subprocess | `agy -p --model` (thinking in model name) |
 
 Full details: [reference/harnesses.md](reference/harnesses.md)
 
@@ -133,12 +135,11 @@ Accepts a comma-separated list of short aliases:
 | `opus` | claude | claude-opus |
 | `sonnet` | claude | claude-sonnet |
 | `gpt` | pi | openai-codex/gpt-5.5 |
-| `gemini` / `gemini-pro` | pi | google-gemini-cli/gemini-3.1-pro-preview |
-| `gemini-flash` | pi | google-gemini-cli/gemini-3-flash-preview |
+| `gemini` | agy | Gemini 3.5 Flash (High) |
 
 **Examples:**
 - `/review --reviewers opus,gpt` → claude-opus + pi-gpt5.5
-- `/review --reviewers opus,gpt,gemini` → claude-opus + pi-gpt5.5 + pi-gemini-3.1-pro
+- `/review --reviewers opus,gpt,gemini` → claude-opus + pi-gpt5.5 + agy-gemini-3.5-flash
 - `/implement execute --reviewers opus,gpt` → same two reviewers used for Phase A.5 + Phase C
 
 **Invalid alias:** Report unknown alias and ask user to pick from the table.
@@ -146,21 +147,18 @@ Accepts a comma-separated list of short aliases:
 #### Interactive Fallback (no flag, no review_config)
 
 **Question 1:** Select reviewers (multiSelect):
-- claude-opus (Recommended), claude-sonnet, openai-gpt5.5 (Recommended), gemini-3-flash, gemini-3.1-pro (Recommended)
+- claude-opus (Recommended), claude-sonnet, openai-gpt5.5 (Recommended), agy-gemini-3.5-flash (Recommended)
 
-**Default:** claude-opus, openai-gpt5.5, gemini-3.1-pro
+**Default:** claude-opus, openai-gpt5.5, agy-gemini-3.5-flash
 
-**Question 2:** Provider (if Pi selected): native (Recommended) or github-copilot
-
-**Question 3:** Thinking level (if Pi selected): low, medium, high (Recommended), xhigh
+**Question 2:** Thinking level (if Pi selected): low, medium, high (Recommended), xhigh
 
 #### Full Model Mapping
 
 - `claude-opus` → `{type: claude, model: opus}`
 - `claude-sonnet` → `{type: claude, model: sonnet}`
 - `openai-gpt5.5` → `{type: pi, model: openai-codex/gpt-5.5}`
-- `gemini-3-flash` → `{type: pi, model: google-gemini-cli/gemini-3-flash-preview}`
-- `gemini-3.1-pro` → `{type: pi, model: google-gemini-cli/gemini-3.1-pro-preview}`
+- `agy-gemini-3.5-flash` → `{type: agy, model: Gemini 3.5 Flash (High)}`
 
 Store resolved selections in `validation.yaml` under `review_config` (whether from flag, prior config, or interactive prompt).
 
