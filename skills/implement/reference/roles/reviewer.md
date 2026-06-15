@@ -22,7 +22,7 @@ See `/review` [reference/harnesses.md](../../../review/reference/harnesses.md) f
 
 Full cartesian product: every role dispatches on every harness.
 
-| Role | Claude | Pi | Agy |
+| Role | Claude | Codex | Agy |
 |------|--------|----------|----------|
 | General | 1 (required) | 0-N (from validation.yaml) | 0-N (from validation.yaml) |
 | Architecture | 1 (required) | 0-N (from validation.yaml) | 0-N (from validation.yaml) |
@@ -96,7 +96,7 @@ implementer_report:
 
 Dispatch per `/review` infrastructure. See `/review` [reference/harnesses.md](../../../review/reference/harnesses.md) for dispatch templates.
 
-All Pi models and reasoning effort configured in `validation.yaml` under `review_config`.
+All Codex models and reasoning effort configured in `validation.yaml` under `review_config`.
 Review prompts per role: see `code` review skill Step 4.
 
 ## When Reviewers Run
@@ -109,11 +109,11 @@ Batch N:
 ├── Phase B: Implementers (parallel)
 └── Phase C: Reviewers (roles × harnesses in parallel) ← this role
     ├── General × Claude [required]
-    ├── General × Pi (0-N from validation.yaml)
+    ├── General × Codex (0-N from validation.yaml)
     ├── Architecture × Claude [required]
-    ├── Architecture × Pi (0-N from validation.yaml)
+    ├── Architecture × Codex (0-N from validation.yaml)
     ├── Compliance × Claude [required]
-    └── Compliance × Pi (0-N from validation.yaml)
+    └── Compliance × Codex (0-N from validation.yaml)
 ```
 
 ## Report Format
@@ -126,7 +126,7 @@ Each reviewer produces a YAML report with gates:
 
 ```yaml
 reviewer_report:
-  reviewer: general-claude-opus  # or general-pi-gpt5.5, general-agy-gemini-3.5-flash, architecture-claude-opus, compliance-claude-opus
+  reviewer: general-claude-opus  # or general-codex-gpt5.5, general-agy-gemini-3.5-flash, architecture-claude-opus, compliance-claude-opus
   gates:
     correctness:
       status: pass | fail
@@ -214,12 +214,10 @@ Languages: python | Rules: 12 | Violations: 1
 
 ## Handling Timeouts
 
-If Pi reviewer times out (> 5 minutes):
-
-1. Continue with completed reviews (minimum 1 Claude required)
-2. Note: "[Reviewer] timed out, partial results"
-3. Proceed with available data
-4. Consider re-running if critical issues suspected
+`peer` owns the idle-stall watchdog, retry-once, and skip; the caller reads `peer run`'s
+per-reviewer manifest status and synthesizes what landed (minimum 1 Claude required),
+noting any skipped reviewer as partial results. Exit codes and details:
+**[peer skill](../../../peer/SKILL.md)**. Never block the pipeline on an external harness.
 
 ## Quality Criteria
 
@@ -235,20 +233,12 @@ Review is good when it:
 
 **Batch:** Tasks T002, T003, T004 (parallel)
 
-**Dispatch (single message, full cartesian product):**
+**Dispatch (single message):** per role, a Claude `Task` + one `peer run` (peer fans the
+role prompt out to every configured external harness). See **[peer skill](../../../peer/SKILL.md)**.
 ```
-# 3 roles × Claude
-Task(general): "General review: batch T002-T004" ...
-Task(general): "Architecture review: batch T002-T004" ...
-Task(general): "Compliance review: batch T002-T004" ...
-# 3 roles × Pi (openai-codex/gpt-5.5)
-Bash(background): pi -p --model openai-codex/gpt-5.5 --thinking {reasoning_effort} "General review: ..."
-Bash(background): pi -p --model openai-codex/gpt-5.5 --thinking {reasoning_effort} "Architecture review: ..."
-Bash(background): pi -p --model openai-codex/gpt-5.5 --thinking {reasoning_effort} "Compliance review: ..."
-# 3 roles × Agy (Gemini 3.5 Flash (High))
-Bash(background): agy -p --print-timeout 20m --model "Gemini 3.5 Flash (High)" "General review: ..."
-Bash(background): agy -p --print-timeout 20m --model "Gemini 3.5 Flash (High)" "Architecture review: ..."
-Bash(background): agy -p --print-timeout 20m --model "Gemini 3.5 Flash (High)" "Compliance review: ..."
+# Per role (General / Architecture / Compliance):
+Task(general): "{role} review: batch T002-T004" ...
+Bash(background): peer run -d {role_outdir} --effort {reasoning_effort} "{role} review: ..."
 ```
 
 **Individual Outputs:**

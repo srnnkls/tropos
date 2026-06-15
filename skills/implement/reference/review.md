@@ -31,14 +31,14 @@ metadata:
 
 # Review configuration (copied from validation.yaml)
 # Variant format: {reasoning_effort}-medium (verbosity fixed at medium)
-# Reasoning options: low | medium | high | xhigh 
+# Reasoning options: low | medium | high
 review_config:
-  reasoning_effort: ${REASONING_EFFORT}  # low | medium | high | xhigh
+  reasoning_effort: ${REASONING_EFFORT}  # low | medium | high
   reviewers:
     - type: claude
       model: ${CLAUDE_MODEL}  # opus
-    - type: pi
-      model: openai-codex/gpt-5.5
+    - type: codex
+      model: gpt-5.5
     - type: agy
       model: Gemini 3.5 Flash (High)
 
@@ -78,7 +78,7 @@ batch_reviews:
           performance: pass
           security: pass
           architecture: pass
-      - id: general-pi-gpt5.5
+      - id: general-codex-gpt5.5
         status: success
         gates:
           correctness: pass
@@ -97,7 +97,7 @@ batch_reviews:
           performance: pass
           security: pass
           architecture: pass
-      - id: architecture-pi-gpt5.5
+      - id: architecture-codex-gpt5.5
         status: success
         gates:
           correctness: pass
@@ -121,7 +121,7 @@ batch_reviews:
           performance: pass
           security: pass
           architecture: pass
-      - id: compliance-pi-gpt5.5
+      - id: compliance-codex-gpt5.5
         status: success
         gates:
           correctness: pass
@@ -189,7 +189,7 @@ issues:
       location: "src/auth/auth.py:45"
       description: "Variable name 'x' is unclear"
       suggestion: "Rename to 'retry_count'"
-      found_by: [general-pi-gpt5.5]
+      found_by: [general-codex-gpt5.5]
       status: deferred  # medium issues can be deferred
       resolution: null
 

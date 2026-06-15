@@ -165,7 +165,7 @@ Dispatch a **fresh tester subagent** (`subagent_type: "task-tester"`) to write f
 
 ### Phase A.5: Test Review Gate
 
-Dispatch **all configured reviewers in parallel** (Claude `Task` + Pi `Bash` × N per `/review` config) on the test files from Phase A. Same cartesian dispatch pattern as Phase C — Pi shell-outs are mandatory whenever Pi is installed.
+Dispatch **all configured reviewers in parallel** (Claude `Task` + Codex `Bash` × N per `/review` config) on the test files from Phase A. Same cartesian dispatch pattern as Phase C — Codex shell-outs are mandatory whenever Codex is installed.
 
 - Reviewers check for oracle mirroring, mock tautologies, framework tests, trivial assertions
 - Synthesize findings: a test is flagged if any harness reports `issues_found`

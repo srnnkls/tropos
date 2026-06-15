@@ -20,7 +20,7 @@ Before dispatching, analyze `dependencies.yaml` for execution batches:
 │  ├── Writes failing tests (RED)                                 │
 │  └── Reports test paths + failure output                        │
 │                          ↓                                      │
-│  Phase A.5: TEST REVIEW (Claude + Pi × N in parallel)           │
+│  Phase A.5: TEST REVIEW (Claude + Codex × N in parallel)        │
 │  ├── Reviews all Phase A test files                             │
 │  ├── Checks: oracle mirroring, mock tautologies,                │
 │  │   framework tests, trivial assertions                        │
@@ -109,12 +109,12 @@ Wait for ALL testers to complete before dispatching Phase A.5.
 
 **PRECONDITION:** All Phase A testers completed with `status: success` and RED verified.
 
-Collect all test file paths from every `tester_report` in the batch, then dispatch **all configured reviewers in parallel** (Claude native + Pi/Agy shell-outs — same cartesian dispatch pattern as Phase C). Test review must be multi-harness for the same reason code review is: fresh-perspective models catch quality issues a single harness misses.
+Collect all test file paths from every `tester_report` in the batch, then dispatch **all configured reviewers in parallel** (Claude native + Codex/Agy shell-outs — same cartesian dispatch pattern as Phase C). Test review must be multi-harness for the same reason code review is: fresh-perspective models catch quality issues a single harness misses.
 
 **Resolve reviewer config (in order):**
 1. `validation.yaml` `review_config` for the active scope
-2. Defaults from `/review` SKILL.md — `claude-opus` + `openai-gpt5.5` + `agy-gemini-3.5-flash`
-3. Never dispatch Claude alone — external shell-outs (Pi/Agy) are mandatory whenever installed
+2. Defaults from `/review` SKILL.md — `claude-opus` + `codex-gpt5.5` + `agy-gemini-3.5-flash`
+3. Never dispatch Claude alone — external shell-outs (Codex/Agy) are mandatory whenever installed
 
 **Shared prompt (reused across all harnesses):**
 
@@ -139,7 +139,7 @@ Read `./skills/review/operations/test-audit.md` for the four anti-patterns to ch
 **Report in YAML format:**
 ```yaml
 test_review_report:
-  reviewer_id: [e.g. claude-opus | pi-gpt5.5 | agy-gemini-3.5-flash]
+  reviewer_id: [e.g. claude-opus | codex-gpt5.5 | agy-gemini-3.5-flash]
   status: clean  # or "issues_found"
   findings:
     - test_file: [path]
@@ -151,24 +151,20 @@ test_review_report:
 ```
 ```
 
-**Dispatch (single message, full cartesian product):**
+**Dispatch (single message):** Claude `Task` + one `peer run` for the external harnesses.
 
 ```
-# Claude harness (required)
-Task(
-  subagent_type="task-reviewer",
-  description="Test quality review — claude-opus",
-  prompt={shared_prompt with reviewer_id: claude-opus}
-)
+# Claude harness (required) — agent-native
+Task(subagent_type="task-reviewer", description="Test quality review — claude-opus",
+     prompt={shared_prompt with reviewer_id: claude-opus})
 
-# External harnesses (one per configured external reviewer)
+# External harnesses — peer fans out + watches; see the `peer` skill
 Bash(run_in_background=true):
-  timeout 1200 pi -p --model openai-codex/gpt-5.5 --thinking high "{shared_prompt with reviewer_id: pi-gpt5.5}"
-Bash(run_in_background=true):
-  timeout 1200 agy -p --print-timeout 20m --model "Gemini 3.5 Flash (High)" "{shared_prompt with reviewer_id: agy-gemini-3.5-flash}"
+  peer run -d {outdir} --effort high "{shared_prompt}"
 ```
 
-Wait for ALL harnesses to complete (Claude via Task result, Pi/Agy via BashOutput on completion).
+Wait for the Claude Task and `peer run`; read each `ok` row of `peer run`'s manifest.
+Dispatch contract, flags, exit codes: **[peer skill](../../peer/SKILL.md)**.
 
 **Synthesis for Phase A.5:**
 - Merge `findings` across all harnesses by `(test_file, test_name)`
@@ -257,43 +253,27 @@ Wait for ALL implementers to complete before dispatching reviewers.
 **Resolve reviewer config (in order):**
 1. Explicit `--reviewers` flag if caller passed one (see `/review` SKILL.md "Reviewer Selection")
 2. `validation.yaml` `review_config` for the active scope
-3. Defaults: `claude-opus` + `openai-gpt5.5` (pi, thinking `high`) + `agy-gemini-3.5-flash` (agy)
-4. Never dispatch with zero external reviewers when Pi/Agy are installed — external shell-outs are mandatory for cross-model coverage
+3. Defaults: `claude-opus` + `codex-gpt5.5` (codex, reasoning effort `high`) + `agy-gemini-3.5-flash` (agy)
+4. Never dispatch with zero external reviewers when Codex/Agy are installed — external shell-outs are mandatory for cross-model coverage
 
-**Dispatch (single message, full cartesian product — roles × harnesses):**
+**Dispatch (single message):** per role, a Claude `Task` + one `peer run` that fans the
+role prompt out to every configured external reviewer.
 
 ```
-# General role
-Task(subagent_type="task-reviewer",
-     description="General review — claude-opus",
-     prompt={general_prompt with reviewer_id: general-claude-opus})
+# Per role (General / Architecture / Compliance):
+Task(subagent_type="task-reviewer", description="{role} review — claude-opus",
+     prompt={role_prompt with reviewer_id: {role}-claude-opus})
 Bash(run_in_background=true):
-  timeout 1200 pi -p --model openai-codex/gpt-5.5 --thinking high "{general_prompt with reviewer_id: general-pi-gpt5.5}"
-Bash(run_in_background=true):
-  timeout 1200 agy -p --print-timeout 20m --model "Gemini 3.5 Flash (High)" "{general_prompt with reviewer_id: general-agy-gemini-3.5-flash}"
-
-# Architecture role
-Task(subagent_type="task-reviewer",
-     description="Architecture review — claude-opus",
-     prompt={architecture_prompt with reviewer_id: architecture-claude-opus})
-Bash(run_in_background=true):
-  timeout 1200 pi -p --model openai-codex/gpt-5.5 --thinking high "{architecture_prompt with reviewer_id: architecture-pi-gpt5.5}"
-Bash(run_in_background=true):
-  timeout 1200 agy -p --print-timeout 20m --model "Gemini 3.5 Flash (High)" "{architecture_prompt with reviewer_id: architecture-agy-gemini-3.5-flash}"
-
-# Compliance role
-Task(subagent_type="task-reviewer",
-     description="Compliance review — claude-opus",
-     prompt={compliance_prompt with reviewer_id: compliance-claude-opus})
-Bash(run_in_background=true):
-  timeout 1200 pi -p --model openai-codex/gpt-5.5 --thinking high "{compliance_prompt with reviewer_id: compliance-pi-gpt5.5}"
-Bash(run_in_background=true):
-  timeout 1200 agy -p --print-timeout 20m --model "Gemini 3.5 Flash (High)" "{compliance_prompt with reviewer_id: compliance-agy-gemini-3.5-flash}"
+  peer run -d {role_outdir} --reviewers {external_aliases} --effort high "{role_prompt}"
 ```
 
-Role prompts live in `code` review SKILL.md Step 4 (General / Architecture / Compliance). Harness details live in `/review` [reference/harnesses.md](../../review/reference/harnesses.md).
+`peer run` parallelises the external harnesses itself (one report file per reviewer,
+each with its own idle-stall watchdog) and prints a manifest — the agent no longer
+manages N background jobs. Read each `ok` row's report; skip stalled/error rows.
+Dispatch contract, flags, exit codes, `peer list`: **[peer skill](../../peer/SKILL.md)**.
 
-Wait for ALL harnesses to complete (Claude via Task result, Pi/Agy via BashOutput). Then synthesize per `/review` [reference/synthesis.md](../../review/reference/synthesis.md).
+Role prompts live in `code` review SKILL.md Step 4 (General / Architecture / Compliance).
+Then synthesize per `/review` [reference/synthesis.md](../../review/reference/synthesis.md).
 
 ---
 
@@ -356,15 +336,15 @@ Build Execution Batches
     +--> Single task?
     |         |
     |    YES: Phase A:   Dispatch 1 tester (opus)
-    |         Phase A.5: Dispatch reviewers (Claude + Pi × N) → gate
+    |         Phase A.5: Dispatch reviewers (Claude + Codex × N) → gate
     |         Phase B:   Dispatch 1 implementer (opus)
-    |         Phase C:   Dispatch reviewers (Claude + Pi × N, see /review)
+    |         Phase C:   Dispatch reviewers (Claude + Codex × N, see /review)
     |         |
     |    NO (parallel [P] tasks):
     |         Phase A:   Dispatch N testers (single message)
-    |         Phase A.5: Dispatch reviewers (Claude + Pi × N, all test files) → gate
+    |         Phase A.5: Dispatch reviewers (Claude + Codex × N, all test files) → gate
     |         Phase B:   Dispatch N implementers (single message)
-    |         Phase C:   Dispatch reviewers (Claude + Pi × N, see /review)
+    |         Phase C:   Dispatch reviewers (Claude + Codex × N, see /review)
     |         |
     |         v
     +--> Synthesize Reviews (see /review reference/synthesis.md)
@@ -416,22 +396,17 @@ Task:
 
 ## Handling Reviewer Timeouts
 
-If OpenCode reviewer times out (> 5 minutes):
-
-1. Continue with completed reviews (minimum 1 required)
-2. Add warning to output:
-   ```
-   Note: [Reviewer] timed out after 5 minutes.
-   Results are from available reviewers only.
-   ```
-3. Proceed with synthesis using available data
-4. Consider re-running batch if only 1 reviewer completed
+External reviewers run through `peer`, which owns the idle-stall watchdog, retry-once,
+and skip. Read `peer run`'s per-reviewer manifest status; continue with completed reviews
+(minimum 1 Claude required), note any skipped reviewer as partial results, and synthesize
+what landed. Details: **[peer skill](../../peer/SKILL.md)**. Never block the pipeline on an
+external harness.
 
 ---
 
 ## Best Practices
 
-1. **Specialized subagent types** - Use `task-tester`, `task-implementer`, `task-reviewer` for Claude native Task calls; Pi Bash shell-outs use Pi's own task system
+1. **Specialized subagent types** - Use `task-tester`, `task-implementer`, `task-reviewer` for Claude native Task calls; Codex Bash shell-outs run the `peer` wrapper with the role in the prompt
 2. **Tester first** - Implementer must receive failing tests
 3. **Test review gate** - Every batch's tests pass Phase A.5 before implementers are dispatched
 4. **All three code-review roles mandatory** - Every batch gets General + Architecture + Compliance review
@@ -439,5 +414,5 @@ If OpenCode reviewer times out (> 5 minutes):
 6. **Single message dispatch** - All role × harness combinations in one message
 7. **Fresh context** - Each subagent starts clean
 8. **Track progress** - Update TodoWrite after each phase
-9. **Configure harnesses** - Set OpenCode models in validation.yaml (applied to ALL roles)
+9. **Configure harnesses** - Set external reviewers (codex/agy) in validation.yaml `review_config` (applied to ALL roles); models per `peer list`
 10. **Minimize subagent output** - Subagent final messages get embedded into parent context (duplicated in `.output` and `.result`). Every extra token directly inflates parent context. Subagents must return ONLY the YAML report — no prose, no explanation.

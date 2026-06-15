@@ -35,7 +35,7 @@ Each batch executes four phases. **A batch is NOT complete until all four phases
 │                          ↓                                      │
 │  Phase A.5: TEST REVIEW (all roles × harnesses in parallel)     │
 │  ├── Claude Task (opus) [required]                              │
-│  ├── Pi Bash × N (review_config or defaults) [required]         │
+│  ├── Codex Bash × N (review_config or defaults) [required]      │
 │  ├── Check: oracle mirroring, mock tautologies, assertion-free  │
 │  └── Gate: clean → Phase B | issues → re-dispatch tester(s)     │
 │                          ↓                                      │
@@ -47,11 +47,11 @@ Each batch executes four phases. **A batch is NOT complete until all four phases
 │                          ↓                                      │
 │  Phase C: REVIEWERS (all roles × harnesses in parallel)          │
 │  ├── General × Claude (opus) [required]                         │
-│  ├── General × Pi (review_config or defaults) [required]        │
+│  ├── General × Codex (review_config or defaults) [required]     │
 │  ├── Architecture × Claude (opus, gestalt) [required]           │
-│  ├── Architecture × Pi (review_config or defaults) [required]   │
+│  ├── Architecture × Codex (review_config or defaults) [required]│
 │  ├── Compliance × Claude (opus, loqui) [required]               │
-│  ├── Compliance × Pi (review_config or defaults) [required]     │
+│  ├── Compliance × Codex (review_config or defaults) [required]  │
 │  ├── Each role reviews own gates only                            │
 │  ├── Wait for ALL                                                │
 │  └── Synthesize by role, then aggregate                          │
@@ -62,7 +62,7 @@ Each batch executes four phases. **A batch is NOT complete until all four phases
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**CRITICAL:** All four phases are mandatory. Test review (Phase A.5) and code review (Phase C) each dispatch the full harnesses cartesian product. External shell-outs (Pi + Agy) are always required — never dispatch Claude alone. Before synthesizing any phase's results, verify that ≥2 harnesses reported; if fewer than 2 reported, treat the phase as failed and do not proceed.
+**CRITICAL:** All four phases are mandatory. Test review (Phase A.5) and code review (Phase C) each dispatch the full harnesses cartesian product. External shell-outs (Codex + Agy) are always required — never dispatch Claude alone. Before synthesizing any phase's results, verify that ≥2 harnesses reported; if fewer than 2 reported, treat the phase as failed and do not proceed.
 
 ---
 
@@ -167,15 +167,15 @@ If any failure mode is detected → re-dispatch the tester with feedback identif
 
 **PRECONDITION:** All Phase A testers completed with `status: success` and RED verified.
 
-Dispatch **all configured reviewers in parallel** (Claude native + Pi/Agy shell-outs) on all test files from the batch — same cartesian pattern as Phase C. External shell-outs are always required: Phase A.5 is not single-harness. Before synthesizing, verify ≥2 harnesses reported; if fewer, treat as failed — do not proceed to Phase B.
+Dispatch **all configured reviewers in parallel** (Claude native + Codex/Agy shell-outs) on all test files from the batch — same cartesian pattern as Phase C. External shell-outs are always required: Phase A.5 is not single-harness. Before synthesizing, verify ≥2 harnesses reported; if fewer, treat as failed — do not proceed to Phase B.
 
 **Collect inputs:**
 - All `test_files[*].path` from all `tester_report`s in this batch
 - Tester task descriptions (what behavior each test should verify)
 
-**Resolve reviewer config (in order):** `--reviewers` flag → `validation.yaml` `review_config` → defaults (`opus,gpt,gemini` → claude-opus + pi-gpt5.5 + agy-gemini-3.5-flash).
+**Resolve reviewer config (in order):** `--reviewers` flag → `validation.yaml` `review_config` → defaults (`opus,gpt,gemini` → claude-opus + codex-gpt5.5 + agy-gemini-3.5-flash).
 
-**Dispatch template:** See `reference/subagent-workflow.md` — Test Review Dispatch Template (cartesian: Claude Task + Pi Bash per configured model).
+**Dispatch template:** See `reference/subagent-workflow.md` — Test Review Dispatch Template (cartesian: Claude Task + Codex Bash per configured model).
 
 **Gate outcome:**
 
@@ -228,11 +228,11 @@ Each implementer:
 ```
 Dispatch (full cartesian product):
   - General × Claude [required]
-  - General × Pi (review_config or defaults)
+  - General × Codex (review_config or defaults)
   - Architecture × Claude [required]
-  - Architecture × Pi (review_config or defaults)
+  - Architecture × Codex (review_config or defaults)
   - Compliance × Claude [required]
-  - Compliance × Pi (review_config or defaults)
+  - Compliance × Codex (review_config or defaults)
 → Wait for ALL
 ```
 
@@ -240,9 +240,9 @@ Dispatch (full cartesian product):
 
 | Role | Primary Gates | Skill | Harnesses |
 |------|---------------|-------|-----------|
-| General | Correctness, Security, Performance | `code review` | Claude + Pi (≥1) |
-| Architecture | Architecture | `gestalt` | Claude + Pi (≥1) |
-| Compliance | Style | `loqui` | Claude + Pi (≥1) |
+| General | Correctness, Security, Performance | `code review` | Claude + Codex (≥1) |
+| Architecture | Architecture | `gestalt` | Claude + Codex (≥1) |
+| Compliance | Style | `loqui` | Claude + Codex (≥1) |
 
 **Reviewers receive pointers and load code themselves:**
 1. `{diff_cmd}` (e.g., `git diff <last_batch_commit>..HEAD`) — reviewer runs the command
@@ -264,8 +264,8 @@ Dispatch reviewers per `/review` infrastructure and `code review` role definitio
 **Resolve harness config (in order):**
 1. Explicit `--reviewers` flag passed to `/implement execute` (aliases: `opus, sonnet, gpt, gemini` — see `/review` SKILL.md "Reviewer Selection")
 2. `validation.yaml` `review_config` for the active scope → use those reviewers and reasoning effort
-3. Defaults: `claude-opus` + `openai-gpt5.5` (pi, thinking `high`) + `agy-gemini-3.5-flash` (agy)
-4. External harnesses (Pi/Agy) are always mandatory — never proceed with zero external reviewers. Before synthesizing Phase C, verify ≥2 harnesses reported; if fewer, treat the batch review as failed.
+3. Defaults: `claude-opus` + `codex-gpt5.5` (codex, reasoning effort `high`) + `agy-gemini-3.5-flash` (agy)
+4. External harnesses (Codex/Agy) are always mandatory — never proceed with zero external reviewers. Before synthesizing Phase C, verify ≥2 harnesses reported; if fewer, treat the batch review as failed.
 
 Apply the resolved config to all three roles (General, Architecture, Compliance).
 
@@ -296,7 +296,7 @@ After ALL reviewers complete:
           - id: general-claude-opus
             status: success
             gates: { correctness: pass, style: pass, ... }
-          - id: general-pi-gpt5.5
+          - id: general-codex-gpt5.5
             status: success | timeout | failed
             gates: { ... }
        synthesized:
@@ -408,11 +408,11 @@ Or dispatch all roles directly (full cartesian product):
 ```
 Dispatch (in same message):
   - General × Claude [required]
-  - General × Pi (review_config or defaults)
+  - General × Codex (review_config or defaults)
   - Architecture × Claude [required]
-  - Architecture × Pi (review_config or defaults)
+  - Architecture × Codex (review_config or defaults)
   - Compliance × Claude [required]
-  - Compliance × Pi (review_config or defaults)
+  - Compliance × Codex (review_config or defaults)
 ```
 
 **Final review checks:**
@@ -428,7 +428,7 @@ Dispatch (in same message):
 final_review:
   status: completed
   timestamp: <ISO_TIMESTAMP>
-  reviewers: [general-claude-opus, general-pi-gpt5.5, architecture-claude-opus, architecture-pi-gpt5.5, compliance-claude-opus, compliance-pi-gpt5.5, ...]
+  reviewers: [general-claude-opus, general-codex-gpt5.5, architecture-claude-opus, architecture-codex-gpt5.5, compliance-claude-opus, compliance-codex-gpt5.5, ...]
   gates: { correctness: pass, style: pass, ... }
   scope_compliance:
     all_tasks_complete: true
@@ -500,7 +500,7 @@ The `issue pr` operation handles pushing the branch, building the PR title/body 
 | Architecture Reviewer | task-reviewer | gestalt |
 | Compliance Reviewer | task-reviewer | loqui |
 
-**Pi Bash calls:** Pi's Task tool only supports `"general"` and `"explore"` — the `subagent_type` constraint applies to Pi shell-outs only, not to Claude native Task calls.
+**Codex Bash calls:** the `subagent_type` column applies to Claude native Task calls only. Codex shell-outs run the `peer` wrapper (no subagent type) and carry the role via the prompt.
 
 ---
 
@@ -551,9 +551,9 @@ The `issue pr` operation handles pushing the branch, building the PR title/body 
 Batch 1: Task 1 (single task)
 ├── Phase A: Dispatch tester
 │   └── Tester: Wrote 3 tests, all failing (RED)
-├── Phase A.5: Dispatch reviewers (Claude opus + Pi gpt + Agy gemini in parallel)
+├── Phase A.5: Dispatch reviewers (Claude opus + Codex gpt + Agy gemini in parallel)
 │   ├── Claude opus: Clean
-│   ├── Pi gpt: Clean
+│   ├── Codex gpt: Clean
 │   └── Agy gemini: Clean — no oracle mirroring or tautologies
 ├── Phase B: Dispatch implementer + tester report
 │   └── Implementer: Made tests pass (GREEN)
@@ -567,8 +567,8 @@ Batch 1: Task 1 (single task)
 Batch 2: Tasks 2, 3, 4 ([P] parallel batch)
 ├── Phase A: Dispatch 3 testers (single message)
 │   └── All testers complete with failing tests
-├── Phase A.5: Dispatch reviewers (Claude opus + Pi gpt + Agy gemini in parallel, all 3 test files)
-│   ├── Synthesized: Task 2 tests — oracle mirroring detected (flagged by Pi gpt)
+├── Phase A.5: Dispatch reviewers (Claude opus + Codex gpt + Agy gemini in parallel, all 3 test files)
+│   ├── Synthesized: Task 2 tests — oracle mirroring detected (flagged by Codex gpt)
 │   ├── Re-dispatch Task 2 tester with finding
 │   └── Task 2 re-tester: Clean on second attempt
 ├── Phase B: Dispatch 3 implementers (single message)

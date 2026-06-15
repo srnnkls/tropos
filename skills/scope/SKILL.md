@@ -222,7 +222,7 @@ Configure reviewers per `/review` infrastructure (see `/review` SKILL.md "Review
 
 Store resolved selections in `validation.yaml` under `review_config`.
 
-**All issue types** (Initiative, Feature, Task) require reviewer config — Task scopes also run batch reviews and need Pi harnesses configured.
+**All issue types** (Initiative, Feature, Task) require reviewer config — Task scopes also run batch reviews and need Codex harnesses configured.
 
 ### Step 4: Create Directory and Documents
 
@@ -307,7 +307,7 @@ Header: Review
 Question: Would you like a comprehensive scope review before implementation?
 multiSelect: false
 Options:
-- Yes: Run multi-agent review (Claude + OpenCode)
+- Yes: Run multi-agent review (Claude + external reviewers via peer)
 - Later: Skip for now, use /scope review when ready
 - Skip: Proceed without review
 ```

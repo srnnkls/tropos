@@ -10,7 +10,7 @@ Each reviewer outputs this structure:
 
 ```yaml
 reviewer_report:
-  reviewer: {role}-{harness}-{model}  # e.g., general-claude-opus, architecture-pi-gpt5.5, compliance-agy-gemini-3.5-flash
+  reviewer: {role}-{harness}-{model}  # e.g., general-claude-opus, architecture-codex-gpt5.5, compliance-agy-gemini-3.5-flash
 
   gates:
     correctness:
@@ -55,7 +55,7 @@ Main agent produces this after merging reviewer reports:
 
 ```yaml
 synthesized_report:
-  reviewers: [general-claude-opus, general-pi-gpt5.5, architecture-claude-opus, architecture-pi-gpt5.5, compliance-claude-opus, compliance-pi-gpt5.5]
+  reviewers: [general-claude-opus, general-codex-gpt5.5, architecture-claude-opus, architecture-codex-gpt5.5, compliance-claude-opus, compliance-codex-gpt5.5]
 
   gates:
     correctness:

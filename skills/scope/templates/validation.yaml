@@ -146,8 +146,8 @@ review_config:
   reviewers:
     - type: claude
       model: ${CLAUDE_MODEL}        # opus
-    - type: pi
-      model: openai-codex/gpt-5.5
+    - type: codex
+      model: gpt-5.5
     - type: agy
       model: Gemini 3.5 Flash (High)
 

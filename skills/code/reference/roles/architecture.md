@@ -1,6 +1,6 @@
 # Architecture Reviewer Role
 
-Structural analysis reviewer using gestalt code intelligence. Runs on any harness (Claude or OpenCode).
+Structural analysis reviewer using gestalt code intelligence. Runs on any harness (Claude, or an external reviewer via the peer skill).
 
 ---
 
@@ -10,7 +10,7 @@ Structural analysis reviewer using gestalt code intelligence. Runs on any harnes
 - **Impact-focused:** Evaluates how changes propagate through the dependency graph
 - **Metric-driven:** Reports on coupling, centrality, cycle introduction, seam violations
 - **Tool-intensive:** Runs multiple gestalt commands to build a structural picture
-- **Harness-agnostic:** Works on Claude (native subagent) and OpenCode (external subprocess) — both have full tool access
+- **Harness-agnostic:** Works on Claude (native subagent) and external reviewers (codex/agy via peer) — both have full tool access
 
 ---
 

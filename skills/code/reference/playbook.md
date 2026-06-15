@@ -6,18 +6,12 @@ Edge case handling and decision trees for review scenarios.
 
 ## Timeout Handling
 
-### Pi Timeout (> 5 minutes)
+### External Harness (Codex / Agy) Stall
 
-**Symptom:** `timeout` command exits with code 124
-
-**Response:**
-1. Continue with completed reviews
-2. Add warning to output:
-   ```
-   Note: [Reviewer] timed out after 5 minutes.
-   Results are partial. Consider re-running with fewer reviewers.
-   ```
-3. Proceed with synthesis using available data
+`peer` owns the idle-stall watchdog, retry-once, and skip. Read `peer run`'s manifest
+status per reviewer; on a skipped/stalled reviewer, warn "[Reviewer] stalled, skipped.
+Partial results." and synthesize with the rest. Exit codes and rationale:
+**[peer skill](../../peer/SKILL.md)**. Never block the pipeline on an external harness.
 
 ### Claude Subagent Timeout
 
@@ -63,14 +57,14 @@ Edge case handling and decision trees for review scenarios.
 1. Default to general-claude-opus only
 2. Warn: "No reviewers selected, defaulting to Claude. Consider external reviewer for fresh perspective."
 
-### Pi Not Available
+### Codex Not Available
 
-**Symptom:** `pi` command not found
+**Symptom:** `codex` command not found, or `codex login` not completed (401 / `refresh_token_invalidated`)
 
 **Response:**
-1. Warn: "Pi not installed, using Claude only"
+1. Warn: "Codex not available, using Claude only"
 2. Proceed with Claude reviewer
-3. Suggest: `npm install -g @mariozechner/pi-coding-agent`
+3. Suggest: `npm install -g @openai/codex` then `codex login`
 
 ---
 
@@ -177,7 +171,7 @@ review-staged-<timestamp>.md          # Staged changes
 
 ### Reviewers Disagree on Gate
 
-**Symptom:** Claude passes, OpenCode fails (or vice versa)
+**Symptom:** Claude passes, an external reviewer (codex/agy) fails (or vice versa)
 
 **Response:**
 1. Gate status = FAIL (conservative)

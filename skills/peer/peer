@@ -1,0 +1,205 @@
+#!/usr/bin/env zsh
+# peer - external code-review harness with a canonical model registry, idle-stall
+# detection, and self-parallelising fan-out.
+#
+# The shared ChatGPT/Codex backend (and agy) stalls mid-request: the client then sits
+# at ~0 CPU emitting NOTHING until some fixed cap fires. `timeout` waits that out every
+# time. peer instead watches the live output stream and kills a run after --idle seconds
+# of silence (default 60s; a healthy run streams an event every few seconds), retries
+# once, then skips. `peer run` fans out to several harnesses concurrently with that same
+# watchdog each, so the caller issues ONE command instead of juggling N background jobs.
+#
+# The Claude harness is an in-process subagent (Task) and can only be dispatched by the
+# agent itself; peer covers the external harnesses (codex, agy). `peer list` shows both.
+#
+# Subcommands:
+#   peer list
+#   peer run -d OUTDIR [--reviewers id|alias,...] [--effort L] [--idle S] [--cap S] PROMPT
+#   peer <codex|agy> -o OUTFILE [--model M] [--effort L] [--idle S] [--cap S] PROMPT
+#
+# Exit (single harness): 0 report in OUTFILE · 2 usage · 3 auth/missing · 124 stalled twice
+# Exit (run):            0 at least one report produced · 1 none · 2 usage
+emulate -L zsh
+setopt localoptions no_monitor no_notify
+
+# --- canonical model registry: the single source of truth for reviewer identity ------
+local -a IDS=( codex-gpt5.5 agy-gemini-3.5-flash claude-opus claude-sonnet )
+local -A HARNESS MODEL ALIAS EFFORT NATIVE
+HARNESS[codex-gpt5.5]=codex;          MODEL[codex-gpt5.5]='gpt-5.5';                         ALIAS[codex-gpt5.5]=gpt;           EFFORT[codex-gpt5.5]=high; NATIVE[codex-gpt5.5]=no
+HARNESS[agy-gemini-3.5-flash]=agy;    MODEL[agy-gemini-3.5-flash]='Gemini 3.5 Flash (High)'; ALIAS[agy-gemini-3.5-flash]=gemini; EFFORT[agy-gemini-3.5-flash]=-; NATIVE[agy-gemini-3.5-flash]=no
+HARNESS[claude-opus]=claude;          MODEL[claude-opus]='opus';                             ALIAS[claude-opus]=opus;           EFFORT[claude-opus]=-;     NATIVE[claude-opus]=yes
+HARNESS[claude-sonnet]=claude;        MODEL[claude-sonnet]='sonnet';                         ALIAS[claude-sonnet]=sonnet;       EFFORT[claude-sonnet]=-;   NATIVE[claude-sonnet]=yes
+
+# resolve an id-or-alias token to a canonical reviewer-id (nonzero if unknown)
+_peer_resolve() {
+  local t=$1 id
+  [[ -n ${HARNESS[$t]:-} ]] && { print -r -- "$t"; return 0; }
+  for id in $IDS; do [[ ${ALIAS[$id]} == "$t" ]] && { print -r -- "$id"; return 0; }; done
+  return 1
+}
+
+local cmd="${1:-}"; (( $# )) && shift
+
+# --- peer list -----------------------------------------------------------------------
+if [[ "$cmd" == list ]]; then
+  printf '%-22s %-7s %-26s %-7s %s\n' REVIEWER-ID HARNESS MODEL ALIAS RUN-BY-PEER
+  local id runnable
+  for id in $IDS; do
+    [[ ${NATIVE[$id]} == yes ]] && runnable='no (agent Task)' || runnable=yes
+    printf '%-22s %-7s %-26s %-7s %s\n' "$id" "${HARNESS[$id]}" "${MODEL[$id]}" "${ALIAS[$id]}" "$runnable"
+  done
+  return 0
+fi
+
+# --- peer run: parallel fan-out over external harnesses ------------------------------
+if [[ "$cmd" == run ]]; then
+  local outdir="" reviewers="" effort="" idle=60 cap=600
+  while (( $# )); do
+    case "$1" in
+      -d|--out-dir)  outdir="$2"; shift 2 ;;
+      --reviewers)   reviewers="$2"; shift 2 ;;
+      --effort)      effort="$2"; shift 2 ;;
+      --idle)        idle="$2"; shift 2 ;;
+      --cap)         cap="$2"; shift 2 ;;
+      --) shift; break ;;
+      -*) print -u2 "peer run: unknown flag $1"; return 2 ;;
+      *) break ;;
+    esac
+  done
+  local prompt="$*"
+  [[ -n "$outdir" && -n "$prompt" ]] || {
+    print -u2 "usage: peer run -d OUTDIR [--reviewers id|alias,...] [--effort L] [--idle S] [--cap S] PROMPT"
+    return 2
+  }
+  mkdir -p "$outdir" || return 2
+
+  # Declare every loop-local ONCE. A bare `local x` that re-declares an
+  # already-local var prints `x=value` to stdout in zsh — which would corrupt the
+  # manifest below; so no `local` appears inside the loops.
+  local -a want=() ran=()
+  local -A PID
+  local id tok e pid rc st ok=0
+
+  # default to every external (peer-runnable) reviewer
+  if [[ -n "$reviewers" ]]; then
+    want=( ${(s:,:)reviewers} )
+  else
+    for id in $IDS; do [[ ${NATIVE[$id]} == no ]] && want+=( "$id" ); done
+  fi
+
+  for tok in $want; do
+    id=$(_peer_resolve "$tok") || { print -u2 "peer run: unknown reviewer '$tok'"; continue; }
+    if [[ ${NATIVE[$id]} == yes ]]; then
+      print -u2 "peer run: '$id' is agent-native (Claude Task) — dispatch from the agent, skipping here"
+      continue
+    fi
+    e="${effort:-${EFFORT[$id]}}"; [[ "$e" == - ]] && e=high
+    peer "${HARNESS[$id]}" --model "${MODEL[$id]}" --effort "$e" \
+         --idle "$idle" --cap "$cap" -o "$outdir/$id.yaml" "$prompt" &
+    pid=$!                # $! does not expand directly into an assoc element in zsh
+    PID[$id]=$pid
+    ran+=( "$id" )
+  done
+
+  for id in $ran; do
+    wait "${PID[$id]}"; rc=$?
+    case $rc in 0) st=ok; (( ok++ )) ;; 124) st=stalled ;; 3) st=auth ;; *) st=error ;; esac
+    printf '%s\t%s\t%s\n' "$id" "$st" "$outdir/$id.yaml"
+  done
+  (( ok > 0 )) && return 0 || return 1
+fi
+
+# --- single harness (also the unit peer run fans out to) -----------------------------
+local harness="$cmd"
+local effort=high model="" outfile="" idle=60 cap=600
+while (( $# )); do
+  case "$1" in
+    -o|--out)   outfile="$2"; shift 2 ;;
+    --effort)   effort="$2"; shift 2 ;;
+    --model)    model="$2"; shift 2 ;;
+    --idle)     idle="$2"; shift 2 ;;
+    --cap)      cap="$2"; shift 2 ;;
+    --) shift; break ;;
+    -*) print -u2 "peer: unknown flag $1"; return 2 ;;
+    *) break ;;
+  esac
+done
+local prompt="$*"
+[[ -n "$harness" && -n "$outfile" && -n "$prompt" ]] || {
+  print -u2 "usage: peer <codex|agy> -o OUTFILE [--model M] [--effort L] [--idle S] [--cap S] PROMPT"
+  print -u2 "       peer list | peer run -d OUTDIR [--reviewers ...] PROMPT"
+  return 2
+}
+
+local bin
+case "$harness" in
+  codex) bin=codex ;;
+  agy)   bin=agy; : ${model:='Gemini 3.5 Flash (High)'} ;;
+  *) print -u2 "peer: unknown harness '$harness' (use codex|agy, or 'list'/'run')"; return 2 ;;
+esac
+command -v "$bin" >/dev/null 2>&1 || { print -u2 "peer: $bin not found"; return 3; }
+
+# peer communicates via OUTFILE + exit code + stderr; its stdout is not part of the
+# contract. Scope fd1 to /dev/null for the run so no harness/job chatter leaks into a
+# caller that captures our stdout. (A block redirect, not `exec` - `exec` would persist
+# into the calling shell.)
+local attempt
+{
+for attempt in 1 2; do
+  : >| "$outfile"
+  local fifo="${TMPDIR:-/tmp}/peer.$$.${outfile:t}.$attempt.$RANDOM"
+  mkfifo "$fifo" 2>/dev/null || { print -u2 "peer: cannot create fifo"; return 1; }
+
+  # All live output -> fifo. codex writes its report via -o; agy's report IS its stdout,
+  # which we recover from the captured stream below.
+  # </dev/null is load-bearing: codex (and agy) read stdin for "additional input" and
+  # block forever when stdin isn't EOF'd (e.g. backgrounded under a non-EOF tool pipe),
+  # emitting nothing — which the idle watchdog would then misread as a stall.
+  if [[ "$harness" == codex ]]; then
+    local -a a=( exec -s read-only --json -o "$outfile" -c "model_reasoning_effort=$effort" )
+    [[ -n "$model" ]] && a+=( -m "$model" )
+    codex "${a[@]}" "$prompt" </dev/null >"$fifo" 2>&1 &
+  else
+    agy -p --print-timeout "${cap}s" --model "$model" "$prompt" </dev/null >"$fifo" 2>&1 &
+  fi
+  local hpid=$!
+
+  # Coarse backstop: kill if the run exceeds --cap even while dribbling output.
+  ( sleep "$cap"; kill -TERM "$hpid" 2>/dev/null ) &
+  local capper=$!
+
+  # Idle watchdog: read blocks at most --idle seconds. A line resets it; silence past
+  # --idle leaves the loop with the harness still alive -> stall.
+  local log="" line
+  exec 3<"$fifo"
+  while IFS= read -t "$idle" -r -u 3 line; do
+    log+="$line"$'\n'
+  done
+  exec 3<&-
+
+  local stalled=0
+  if kill -0 "$hpid" 2>/dev/null; then
+    stalled=1
+    kill -TERM "$hpid" 2>/dev/null; sleep 1; kill -KILL "$hpid" 2>/dev/null
+  fi
+  wait "$hpid" 2>/dev/null
+  kill "$capper" 2>/dev/null; wait "$capper" 2>/dev/null
+  rm -f "$fifo" 2>/dev/null
+
+  if print -r -- "$log" | grep -qiE 'refresh_token_invalidated|could not be refreshed|401 Unauthorized|not authenticated|unauthorized'; then
+    print -u2 "peer: $harness auth/availability error - re-authenticate ($bin)"
+    return 3
+  fi
+
+  # agy emits the report on stdout; materialize it only on a clean (non-stalled) run.
+  [[ "$harness" == agy && $stalled -eq 0 ]] && print -r -- "$log" >| "$outfile"
+
+  if (( stalled == 0 )) && [[ -s "$outfile" ]]; then
+    return 0
+  fi
+  (( attempt == 1 )) && print -u2 "peer: $harness stalled (no output for ${idle}s) - retrying once"
+done
+
+print -u2 "peer: $harness stalled twice - skip this reviewer"
+return 124
+} >/dev/null

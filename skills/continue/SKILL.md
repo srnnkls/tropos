@@ -115,7 +115,7 @@ Phase B: IMPLEMENTERS
 └── Wait for completion
 
 Phase C: REVIEWERS
-├── Dispatch 1 Claude + N OpenCode reviewers (from review_config)
+├── Dispatch 1 Claude + N external reviewers (via peer) (from review_config)
 └── Wait for completion + synthesize
 ```
 
@@ -246,7 +246,7 @@ Continuing with three-phase pipeline...
 
 [Dispatches 2 testers in parallel]
 [Dispatches 2 implementers in parallel]
-[Dispatches 1 Claude + 2 OpenCode reviewers in parallel]
+[Dispatches 1 Claude + 2 external reviewers in parallel]
 [Synthesizes review, no critical issues]
 [Writes checkpoint, commits batch 3]
 

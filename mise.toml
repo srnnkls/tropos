@@ -68,6 +68,25 @@ else
 fi
 """
 
+[tasks.install-peer]
+description = "Install the peer external-review wrapper onto PATH (~/.local/bin)"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+GIT_ROOT="$(git rev-parse --show-toplevel)"
+SRC="$GIT_ROOT/skills/peer/peer"
+DEST="$HOME/.local/bin/peer"
+
+mkdir -p "$HOME/.local/bin"
+ln -sf "$SRC" "$DEST"
+echo "installed: $DEST -> $SRC"
+
+# When peer becomes a compiled binary, replace the symlink above with a build, e.g.:
+#   go build -o "$DEST" "$GIT_ROOT/cmd/peer"
+# Same PATH target and `peer` CLI — nothing downstream changes.
+"""
+
 [tasks.bootstrap]
 description = "Create worktree for a branch, build image, and install tools"
 usage = '''
