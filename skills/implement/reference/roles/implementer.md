@@ -4,7 +4,7 @@ Make failing tests pass (GREEN phase of TDD).
 
 ## Subagent
 
-`subagent_type: "general"`
+`subagent_type: "task-implementer"`
 
 ## Purpose
 

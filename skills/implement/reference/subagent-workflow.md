@@ -400,7 +400,7 @@ If tester reports `status: gap`:
 
 ```yaml
 Task:
-  subagent_type: general
+  subagent_type: task-tester
   description: "Write tests for Task N (clarified)"
   prompt: |
     Previous attempt reported gap: [gap_reason]

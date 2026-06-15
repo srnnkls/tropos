@@ -155,7 +155,7 @@ Even for a single task, the four-phase pipeline applies:
 
 ### Phase A: Dispatch Tester Subagent
 
-Dispatch a **fresh tester subagent** (`subagent_type: "general"`) to write failing tests.
+Dispatch a **fresh tester subagent** (`subagent_type: "task-tester"`) to write failing tests.
 
 - Tester reads task requirements and discovers expected behavior independently
 - Tester writes tests and verifies RED state
@@ -176,7 +176,7 @@ See dispatch template in `reference/subagent-workflow.md` — Test Review Dispat
 
 ### Phase B: Dispatch Implementer Subagent
 
-Dispatch a **fresh implementer subagent** (`subagent_type: "general"`) with the test-review-cleared tester report.
+Dispatch a **fresh implementer subagent** (`subagent_type: "task-implementer"`) with the test-review-cleared tester report.
 
 - Implementer makes tests pass (GREEN)
 - Implementer refactors while staying green
