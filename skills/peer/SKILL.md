@@ -8,7 +8,7 @@ metadata:
 
 # peer
 
-`peer` ships with this repo at `skills/peer/peer` (a zsh script with a `#!/usr/bin/env zsh`
+`peer` ships with this repo at `skills/peer/scripts/peer` (a zsh script with a `#!/usr/bin/env zsh`
 shebang, so it runs from any shell). It is the **only** sanctioned way to invoke the
 external review harnesses from the skills — never call `codex exec` / the Vertex API directly.
 

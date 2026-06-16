@@ -75,7 +75,7 @@ run = """
 set -euo pipefail
 
 GIT_ROOT="$(git rev-parse --show-toplevel)"
-SRC="$GIT_ROOT/skills/peer/peer"
+SRC="$GIT_ROOT/skills/peer/scripts/peer"
 DEST="$HOME/.local/bin/peer"
 
 mkdir -p "$HOME/.local/bin"
