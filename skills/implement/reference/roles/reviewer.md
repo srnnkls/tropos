@@ -4,7 +4,7 @@ Multi-agent review of batch implementations. Multiple reviewers run in parallel 
 
 ## Roles × Harnesses
 
-**All role × harness combinations dispatch in parallel (SINGLE message).**
+**Per role, dispatch a Claude `Task` + one `peer run` in parallel (SINGLE message).**
 
 ### Roles
 
@@ -20,17 +20,20 @@ See `/review` [reference/harnesses.md](../../../review/reference/harnesses.md) f
 
 ### Roles × Harnesses
 
-Full cartesian product: every role dispatches on every harness.
+Every role is reviewed by Claude **and** the configured external reviewers. Per role,
+that's one Claude `Task` + one `peer run` (which fans the role prompt out to all
+external harnesses) — **not** a per-harness list of shell-outs.
 
-| Role | Claude | Codex | Gemini |
-|------|--------|----------|----------|
-| General | 1 (required) | 0-N (from validation.yaml) | 0-N (from validation.yaml) |
-| Architecture | 1 (required) | 0-N (from validation.yaml) | 0-N (from validation.yaml) |
-| Compliance | 1 (required) | 0-N (from validation.yaml) | 0-N (from validation.yaml) |
+| Role | Claude | External (via `peer run`) |
+|------|--------|---------------------------|
+| General | 1 `Task` (required) | codex + gemini, from validation.yaml/defaults |
+| Architecture | 1 `Task` (required) | codex + gemini, from validation.yaml/defaults |
+| Compliance | 1 `Task` (required) | codex + gemini, from validation.yaml/defaults |
 
-**Available models:** See `/review` [reference/models.md](../../../review/reference/models.md).
+**Registry / models:** `peer list` (see the [peer skill](../../../peer/SKILL.md)).
 
-**CRITICAL:** Dispatch all role × harness combinations in the same message for true parallelism.
+**CRITICAL:** Per role, dispatch the Claude `Task` + the `peer run` in the same message
+for true parallelism. Never shell out to codex/gemini directly.
 
 ## Purpose
 
@@ -107,13 +110,10 @@ Review prompts per role: see `code` review skill Step 4.
 Batch N:
 ├── Phase A: Testers (parallel)
 ├── Phase B: Implementers (parallel)
-└── Phase C: Reviewers (roles × harnesses in parallel) ← this role
-    ├── General × Claude [required]
-    ├── General × Codex (0-N from validation.yaml)
-    ├── Architecture × Claude [required]
-    ├── Architecture × Codex (0-N from validation.yaml)
-    ├── Compliance × Claude [required]
-    └── Compliance × Codex (0-N from validation.yaml)
+└── Phase C: Reviewers (per role: Claude Task + one peer run) ← this role
+    ├── General      — Claude Task + peer run (codex + gemini)
+    ├── Architecture — Claude Task + peer run (codex + gemini)
+    └── Compliance   — Claude Task + peer run (codex + gemini)
 ```
 
 ## Report Format

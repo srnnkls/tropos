@@ -165,7 +165,7 @@ Dispatch a **fresh tester subagent** (`subagent_type: "task-tester"`) to write f
 
 ### Phase A.5: Test Review Gate
 
-Dispatch **all configured reviewers in parallel** (Claude `Task` + Codex `Bash` × N per `/review` config) on the test files from Phase A. Same cartesian dispatch pattern as Phase C — Codex shell-outs are mandatory whenever Codex is installed.
+Dispatch a Claude `Task` **plus one `peer run`** (which fans out to all configured external reviewers) on the test files from Phase A. Same shape as Phase C; never shell out to codex/gemini directly. External reviewers via `peer run` are mandatory — read its manifest, require ≥1 external `ok`.
 
 - Reviewers check for oracle mirroring, mock tautologies, framework tests, trivial assertions
 - Synthesize findings: a test is flagged if any harness reports `issues_found`

@@ -104,8 +104,10 @@ Full details: [reference/models.md](reference/models.md), [reference/harnesses.m
 
 ### Dispatch Pattern
 
-Cartesian product: roles × harnesses, all in single message.
-Domain skill defines roles. This skill defines harnesses.
+Per role, in a single message: one Claude `Task` + one `peer run` that fans the role
+prompt out to all configured external reviewers. **Never shell out to codex/gemini
+directly** — `peer` owns external dispatch. Domain skill defines roles; see
+[reference/harnesses.md](reference/harnesses.md) and the [peer skill](../peer/SKILL.md).
 
 ### Reviewer Selection
 

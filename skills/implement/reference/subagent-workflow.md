@@ -109,7 +109,7 @@ Wait for ALL testers to complete before dispatching Phase A.5.
 
 **PRECONDITION:** All Phase A testers completed with `status: success` and RED verified.
 
-Collect all test file paths from every `tester_report` in the batch, then dispatch **all configured reviewers in parallel** (Claude native + Codex/Gemini shell-outs — same cartesian dispatch pattern as Phase C). Test review must be multi-harness for the same reason code review is: fresh-perspective models catch quality issues a single harness misses.
+Collect all test file paths from every `tester_report` in the batch, then dispatch a Claude `Task` **plus one `peer run`** (which fans out to all configured external reviewers) — same shape as Phase C; never shell out to codex/gemini directly. Test review must be multi-harness for the same reason code review is: fresh-perspective models catch quality issues a single harness misses.
 
 **Resolve reviewer config (in order):**
 1. `validation.yaml` `review_config` for the active scope
@@ -406,12 +406,12 @@ external harness.
 
 ## Best Practices
 
-1. **Specialized subagent types** - Use `task-tester`, `task-implementer`, `task-reviewer` for Claude native Task calls; Codex Bash shell-outs run the `peer` wrapper with the role in the prompt
+1. **Specialized subagent types** - Use `task-tester`, `task-implementer`, `task-reviewer` for Claude native Task calls; external reviewers (codex/gemini) go through one `peer run` per role, never raw shell-outs
 2. **Tester first** - Implementer must receive failing tests
 3. **Test review gate** - Every batch's tests pass Phase A.5 before implementers are dispatched
 4. **All three code-review roles mandatory** - Every batch gets General + Architecture + Compliance review
 5. **YAML reports** - Structured handoff between phases
-6. **Single message dispatch** - All role × harness combinations in one message
+6. **Single message dispatch** - Per role, the Claude `Task` + the `peer run` in one message
 7. **Fresh context** - Each subagent starts clean
 8. **Track progress** - Update TodoWrite after each phase
 9. **Configure harnesses** - Set external reviewers (codex/gemini) in validation.yaml `review_config` (applied to ALL roles); models per `peer list`

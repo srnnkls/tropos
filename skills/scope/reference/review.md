@@ -91,7 +91,7 @@ All gates pass → "Ready for implementation." Issues found → "Address critica
 **Strengths:** Deep project context, can verify feasibility against actual codebase, catches integration issues.
 **Limitations:** Single model perspective, may be anchored by prior context.
 
-### Codex Reviewer (Fresh Perspective)
+### External Reviewer (Fresh Perspective — via `peer`)
 
 - Evaluates what's missing that a newcomer would need
 - Checks terms and concepts for self-consistency
