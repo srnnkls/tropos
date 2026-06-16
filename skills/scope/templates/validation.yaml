@@ -146,7 +146,7 @@ review_config:
   reviewers:
     - type: claude
       model: ${CLAUDE_MODEL}        # opus
-    - type: codex
+    - type: gpt
       model: gpt-5.5
     - type: gemini
       model: gemini-3.5-flash
