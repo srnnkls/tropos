@@ -51,7 +51,15 @@ Evaluate against these gates:
 Return a YAML reviewer_report (see Report Schema below).
 ```
 
-Dispatch per `/review` harness configuration. See `/review` [reference/harnesses.md](../../review/reference/harnesses.md) for dispatch templates.
+**In a single message**, dispatch the Claude subagent and `peer run` together:
+
+```
+Task(subagent_type="general", prompt={review_prompt})              # Claude — agent-native
+Bash(run_in_background=true):                                      # codex + gemini — peer fans out (agentic)
+  peer run -d {outdir} --reviewers {external_aliases} --effort {reasoning} "{review_prompt}"
+```
+
+Read the TSV manifest `peer run` prints; pull each `ok` report file, skip `stalled`/`error`/`auth` rows (note them as partial results). Full contract in the **[peer skill](../../../peer/SKILL.md)**.
 
 ### Step 4: Synthesize Reviews
 

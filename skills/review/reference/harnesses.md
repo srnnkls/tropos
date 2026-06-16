@@ -56,7 +56,7 @@ retry-once, graceful skip, and parallel fan-out (`peer run`). Harness flags, exi
 and model strings live in that skill — this doc does not duplicate them, so they can't drift.
 
 What these external harnesses add: fresh outside perspective, cross-model coverage, catching
-assumptions insiders miss. Limitations: no project context; may flag conventions as issues.
+assumptions insiders miss — and both are **agentic** (they explore the diff with tools, not just read a static prompt). Limitations: no project context; may flag conventions as issues.
 The Claude harness above is the one `peer` cannot dispatch (in-process `Task`) — the agent
 spawns it directly.
 
