@@ -50,6 +50,14 @@ _peer_resolve() {
   return 1
 }
 
+# reject malformed flag values loudly: $1=effort (empty ok) $2=idle $3=cap
+_peer_validate() {
+  case "$1" in ''|low|medium|high) ;; *) print -u2 "peer: invalid --effort '$1' (expected: low, medium, or high)"; return 2 ;; esac
+  [[ "$2" == <1-> ]] || { print -u2 "peer: invalid --idle '$2' (expected a positive integer of seconds)"; return 2; }
+  [[ "$3" == <1-> ]] || { print -u2 "peer: invalid --cap '$3' (expected a positive integer of seconds)"; return 2; }
+  return 0
+}
+
 local cmd="${1:-}"
 
 # --- peer list -----------------------------------------------------------------------
@@ -110,6 +118,7 @@ if [[ "$cmd" != codex && "$cmd" != pi ]]; then
     print -u2 "usage: peer -d OUTDIR [--reviewers id|alias,...] [--effort L] [--idle S] [--cap S] PROMPT"
     return 2
   }
+  _peer_validate "$effort" "$idle" "$cap" || return 2
   mkdir -p "$outdir" || return 2
 
   # Declare every loop-local ONCE. A bare `local x` that re-declares an
@@ -127,7 +136,7 @@ if [[ "$cmd" != codex && "$cmd" != pi ]]; then
   fi
 
   for tok in $want; do
-    id=$(_peer_resolve "$tok") || { print -u2 "peer: unknown reviewer '$tok'"; continue; }
+    id=$(_peer_resolve "$tok") || { print -u2 "peer: unknown reviewer '$tok' (see: peer list)"; return 2; }
     if [[ ${NATIVE[$id]} == yes ]]; then
       print -u2 "peer: '$id' is agent-native (Claude Task) — dispatch from the agent, skipping here"
       continue
@@ -169,6 +178,7 @@ local prompt="$*"
   print -u2 "       peer -d OUTDIR [--reviewers ...] PROMPT   (parallel fan-out — the default)"
   return 2
 }
+_peer_validate "$effort" "$idle" "$cap" || return 2
 
 # Vertex config for the pi harness (pi + @ssweens/pi-vertex, ADC auth; override via env).
 local gproj="${PEER_GEMINI_PROJECT:-code17-main}"
@@ -231,12 +241,6 @@ for attempt in 1 2; do
   kill "$capper" 2>/dev/null; wait "$capper" 2>/dev/null
   rm -f "$fifo" 2>/dev/null
 
-  # auth/availability (codex OAuth; pi-vertex ADC) — not a transient stall, don't retry.
-  if print -r -- "$log" | grep -qiE 'refresh_token_invalidated|could not be refreshed|invalid_grant|401 Unauthorized|UNAUTHENTICATED|PERMISSION_DENIED|not authenticated'; then
-    print -u2 "peer: $harness auth/availability error - re-authenticate (codex login / gcloud auth application-default login)"
-    return 3
-  fi
-
   # codex writes the report via -o; pi (--mode json) emits it as the last assistant
   # message's text parts — recover that from the captured stream.
   if [[ "$harness" == pi && $stalled -eq 0 ]]; then
@@ -257,8 +261,18 @@ if last:
 '
   fi
 
+  # A produced report proves the harness authed and ran — succeed before any auth scan.
+  # Scanning the stream for auth strings earlier misfires when the model's OWN output
+  # quotes them (e.g. reviewing auth-handling code), classifying a clean run as auth.
   if (( stalled == 0 )) && [[ -s "$outfile" ]]; then
     return 0
+  fi
+
+  # No usable report — only now decide auth vs stall. Genuine auth/availability failures
+  # (codex OAuth, pi-vertex ADC) produce no report and aren't a transient stall: don't retry.
+  if print -r -- "$log" | grep -qiE 'refresh_token_invalidated|could not be refreshed|invalid_grant|401 Unauthorized|UNAUTHENTICATED|PERMISSION_DENIED|not authenticated'; then
+    print -u2 "peer: $harness auth/availability error - re-authenticate (codex login / gcloud auth application-default login)"
+    return 3
   fi
   (( attempt == 1 )) && print -u2 "peer: $harness stalled/failed (no clean report) - retrying once"
 done
