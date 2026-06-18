@@ -87,6 +87,21 @@ echo "installed: $DEST -> $SRC"
 # Same PATH target and `peer` CLI — nothing downstream changes.
 """
 
+[tasks.install-issue]
+description = "Install the issue authoring/gh wrapper onto PATH (~/.local/bin)"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+GIT_ROOT="$(git rev-parse --show-toplevel)"
+SRC="$GIT_ROOT/skills/issue/scripts/issue"
+DEST="$HOME/.local/bin/issue"
+
+mkdir -p "$HOME/.local/bin"
+ln -sf "$SRC" "$DEST"
+echo "installed: $DEST -> $SRC"
+"""
+
 [tasks.bootstrap]
 description = "Create worktree for a branch, build image, and install tools"
 usage = '''

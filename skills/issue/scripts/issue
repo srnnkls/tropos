@@ -1,0 +1,275 @@
+#!/usr/bin/env zsh
+# issue - thin wrapper over the gh plumbing the /issue skill drives: next-number
+# prediction, GitHub Issues-2.0 metadata (type, parent, depends-on/blocks), publish
+# with post-publish number reconciliation, and a verify read-back. The repo is resolved
+# once from `gh repo view`; node/type IDs are looked up at runtime (never hardcoded).
+#
+# The mechanical gh/GraphQL steps live here so the skill body stays declarative; the
+# 2x2 review gate stays agent-driven (Claude Task + `peer run`), like peer leaves the
+# Claude harness to the agent.
+#
+# Subcommands:
+#   issue next                                  predicted next number (issues+PRs share the sequence)
+#   issue slug "TITLE"                          kebab-case a title for a draft filename
+#   issue draft NUMBER TYPE "TITLE"             ensure .issues/, print .issues/NUMBER-type-slug.md
+#   issue type-id "Feature|Task|Bug|Initiative" issue-type node id
+#   issue node NUMBER                           issue node id
+#   issue verify NUMBER                         read-back: type, parent, blockedBy, blocking (yaml)
+#   issue set-type NUMBER "TypeName"            set type via GraphQL (fallback; create/edit use --type)
+#   issue parent PARENT# CHILD#                 addSubIssue (PARENT is the parent)
+#   issue block BLOCKED# BLOCKER#               addBlockedBy (low-level edge)
+#   issue depends-on NUMBER DEP#[,DEP#...]      NUMBER is blocked by each DEP
+#   issue blocks NUMBER TARGET#[,TARGET#...]    each TARGET is blocked by NUMBER
+#   issue create --type T --title "..." --body-file F [--parent N] [--depends-on L] [--blocks L]
+#                                               gh issue create --type, then reconcile the draft
+#                                               filename to the real number and apply edges; prints
+#                                               "NUMBER<TAB>URL"
+#   issue edit NUMBER [--type T] [--body-file F] [--parent N] [--depends-on L] [--blocks L]
+#   issue review NUMBER|DRAFTFILE [--effort L]  external half of the 2x2 gate via `peer run`
+#                                               (gpt+gemini); the Claude half (/review, sonnet+opus)
+#                                               is agent-native and must be dispatched by the agent
+#   issue purge [NUMBER]                        trash .issues/ contents (all, or just #NUMBER's)
+#
+# Exit: 0 ok · 2 usage · 3 gh/auth or lookup failure
+emulate -L zsh
+setopt localoptions pipefail no_unset
+
+_die()   { print -u2 -- "issue: $*"; return 3 }
+_usage() { print -u2 -- "issue: $*"; return 2 }
+
+# --- repo identity (resolved once, memoised in the process) --------------------------
+typeset -g _ISSUE_OWNER _ISSUE_NAME
+_repo() {
+  [[ -n "${_ISSUE_OWNER:-}" ]] && return 0
+  local nwo; nwo=$(gh repo view --json nameWithOwner -q .nameWithOwner) || return 3
+  _ISSUE_OWNER=${nwo%/*}; _ISSUE_NAME=${nwo#*/}
+}
+
+# --- low-level lookups ---------------------------------------------------------------
+_next() {
+  # issues+PRs share one number sequence; the REST issues endpoint includes PRs.
+  gh api 'repos/{owner}/{repo}/issues?state=all&per_page=1' --jq '(.[0].number // 0) + 1'
+}
+
+_type_id() {
+  _repo || return 3
+  local id
+  id=$(gh api graphql -f query='
+    query($owner:String!,$name:String!){
+      repository(owner:$owner,name:$name){ issueTypes(first:20){ nodes{ id name } } }
+    }' -f owner="$_ISSUE_OWNER" -f name="$_ISSUE_NAME" \
+    --jq ".data.repository.issueTypes.nodes[] | select(.name==\"$1\") | .id") || return 3
+  [[ -n "$id" ]] || { _die "no issue type named '$1' in $_ISSUE_OWNER/$_ISSUE_NAME"; return 3 }
+  print -r -- "$id"
+}
+
+_node_id() {
+  _repo || return 3
+  local id
+  id=$(gh api graphql -f query='
+    query($owner:String!,$name:String!,$n:Int!){
+      repository(owner:$owner,name:$name){ issue(number:$n){ id } }
+    }' -f owner="$_ISSUE_OWNER" -f name="$_ISSUE_NAME" -F n="$1" \
+    --jq '.data.repository.issue.id') || return 3
+  [[ -n "$id" && "$id" != null ]] || { _die "no issue #$1"; return 3 }
+  print -r -- "$id"
+}
+
+_kebab() {
+  # lower-case, non-alnum -> '-', collapse and trim '-'
+  print -r -- "${1:l}" | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//; s/-+/-/g'
+}
+
+# --- edges ---------------------------------------------------------------------------
+_set_type() {  # NUMBER TypeName
+  local iid tid
+  iid=$(_node_id "$1") || return 3
+  tid=$(_type_id "$2") || return 3
+  gh api graphql -f query='
+    mutation($issueId:ID!,$typeId:ID!){
+      updateIssueIssueType(input:{issueId:$issueId, issueTypeId:$typeId}){ issue{ number } }
+    }' -f issueId="$iid" -f typeId="$tid" --jq '.data.updateIssueIssueType.issue.number' >/dev/null \
+    || { _die "set-type #$1 -> $2 failed"; return 3 }
+}
+
+_add_sub() {   # PARENT# CHILD#
+  local pid cid
+  pid=$(_node_id "$1") || return 3
+  cid=$(_node_id "$2") || return 3
+  gh api graphql -f query='
+    mutation($parentId:ID!,$childId:ID!){
+      addSubIssue(input:{issueId:$parentId, subIssueId:$childId, replaceParent:true}){ subIssue{ number } }
+    }' -f parentId="$pid" -f childId="$cid" --jq '.data.addSubIssue.subIssue.number' >/dev/null \
+    || { _die "parent #$1 -> child #$2 failed"; return 3 }
+}
+
+_add_blocked_by() {  # BLOCKED# BLOCKER#   (issueId is always the blocked side)
+  local bid kid
+  bid=$(_node_id "$1") || return 3
+  kid=$(_node_id "$2") || return 3
+  gh api graphql -f query='
+    mutation($issueId:ID!,$blockingIssueId:ID!){
+      addBlockedBy(input:{issueId:$issueId, blockingIssueId:$blockingIssueId}){ issue{ number } }
+    }' -f issueId="$bid" -f blockingIssueId="$kid" --jq '.data.addBlockedBy.issue.number' >/dev/null \
+    || { _die "block: #$1 blocked-by #$2 failed"; return 3 }
+}
+
+_each() {  # FUNC NUMBER "csv"  -> apply FUNC per element with NUMBER
+  local fn=$1 n=$2 csv=$3 t
+  for t in ${(s:,:)csv}; do [[ -n "$t" ]] && { $fn "$n" "$t" || return 3 }; done
+}
+
+_verify() {  # NUMBER -> yaml read-back
+  _repo || return 3
+  gh api graphql -f query='
+    query($owner:String!,$name:String!,$n:Int!){
+      repository(owner:$owner,name:$name){
+        issue(number:$n){
+          number title issueType{ name } parent{ number title }
+          blockedBy(first:20){ nodes{ number } }
+          blocking(first:20){ nodes{ number } }
+        }
+      }
+    }' -f owner="$_ISSUE_OWNER" -f name="$_ISSUE_NAME" -F n="$1" --jq '
+      .data.repository.issue as $i
+      | "number: \($i.number)",
+        "title: \($i.title)",
+        "type: \($i.issueType.name // "—")",
+        "parent: \($i.parent.number // "—")",
+        "blockedBy: [\([$i.blockedBy.nodes[].number] | join(", "))]",
+        "blocking: [\([$i.blocking.nodes[].number] | join(", "))]"
+    ' || { _die "verify #$1 failed"; return 3 }
+}
+
+# rename .issues/PREDICTED-...md (and PREDICTED-reviews/) to the real number after publish
+_reconcile() {  # bodyfile actual
+  local f=$1 actual=$2 dir base digits tail
+  dir=${f:h}; base=${f:t}
+  digits=${base%%[!0-9]*}                 # leading run of digits = predicted number
+  [[ -n "$digits" && "$digits" != "$actual" ]] || { print -r -- "$f"; return 0 }
+  tail=${base#$digits}
+  local newf="$dir/${actual}${tail}"
+  mv -- "$f" "$newf" 2>/dev/null || newf=$f
+  [[ -d "$dir/${digits}-reviews" ]] && mv -- "$dir/${digits}-reviews" "$dir/${actual}-reviews" 2>/dev/null
+  print -r -- "$newf"
+}
+
+_apply_meta() {  # NUMBER parent depends blocks
+  local n=$1 parent=$2 depends=$3 blocks=$4
+  [[ -n "$parent"  ]] && { _add_sub "$parent" "$n"        || return 3 }
+  [[ -n "$depends" ]] && { _each _add_blocked_by "$n" "$depends" || return 3 }  # n blocked-by each dep
+  if [[ -n "$blocks" ]]; then
+    local t
+    for t in ${(s:,:)blocks}; do [[ -n "$t" ]] && { _add_blocked_by "$t" "$n" || return 3 }; done
+  fi
+}
+
+# --- dispatch ------------------------------------------------------------------------
+local cmd="${1:-help}"; (( $# )) && shift
+
+case "$cmd" in
+  help|-h|--help)
+    sed -n '/^# Subcommands:/,/^# Exit:/p' "$0:A" | sed 's/^# \{0,1\}//'
+    return 0 ;;
+
+  next)     _next ;;
+  slug)     [[ -n "${1:-}" ]] || { _usage 'slug "TITLE"'; return 2 }; _kebab "$1" ;;
+  type-id)  [[ -n "${1:-}" ]] || { _usage 'type-id "Feature"'; return 2 }; _type_id "$1" ;;
+  node)     [[ -n "${1:-}" ]] || { _usage 'node NUMBER'; return 2 }; _node_id "$1" ;;
+  verify)   [[ -n "${1:-}" ]] || { _usage 'verify NUMBER'; return 2 }; _verify "$1" ;;
+  set-type) [[ -n "${2:-}" ]] || { _usage 'set-type NUMBER "TypeName"'; return 2 }; _set_type "$1" "$2" ;;
+  parent)   [[ -n "${2:-}" ]] || { _usage 'parent PARENT# CHILD#'; return 2 }; _add_sub "$1" "$2" ;;
+  block)    [[ -n "${2:-}" ]] || { _usage 'block BLOCKED# BLOCKER#'; return 2 }; _add_blocked_by "$1" "$2" ;;
+  depends-on) [[ -n "${2:-}" ]] || { _usage 'depends-on NUMBER DEP#[,DEP#...]'; return 2 }; _each _add_blocked_by "$1" "$2" ;;
+  blocks)   [[ -n "${2:-}" ]] || { _usage 'blocks NUMBER TARGET#[,TARGET#...]'; return 2 }
+            local n=$1 t; for t in ${(s:,:)2}; do [[ -n "$t" ]] && { _add_blocked_by "$t" "$n" || return 3 }; done ;;
+
+  draft)
+    [[ -n "${3:-}" ]] || { _usage 'draft NUMBER TYPE "TITLE"'; return 2 }
+    mkdir -p .issues || { _die "cannot create .issues/"; return 3 }
+    print -r -- ".issues/$1-${2:l}-$(_kebab "$3").md" ;;
+
+  create)
+    local type="" title="" body="" parent="" depends="" blocks=""
+    while (( $# )); do
+      case "$1" in
+        --type)       type="$2"; shift 2 ;;
+        --title)      title="$2"; shift 2 ;;
+        --body-file)  body="$2"; shift 2 ;;
+        --parent)     parent="$2"; shift 2 ;;
+        --depends-on) depends="$2"; shift 2 ;;
+        --blocks)     blocks="$2"; shift 2 ;;
+        *) _usage "create: unexpected '$1'"; return 2 ;;
+      esac
+    done
+    [[ -n "$type" && -n "$title" && -n "$body" ]] || {
+      _usage 'create --type T --title "..." --body-file F [--parent N] [--depends-on L] [--blocks L]'; return 2; }
+    [[ -f "$body" ]] || { _die "body file not found: $body"; return 3 }
+    local url; url=$(gh issue create --title "$title" --type "$type" --body-file "$body") || { _die "gh issue create failed"; return 3 }
+    local actual=${url##*/}
+    [[ "$actual" == <-> ]] || { _die "could not parse issue number from '$url'"; return 3 }
+    _reconcile "$body" "$actual" >/dev/null
+    _apply_meta "$actual" "$parent" "$depends" "$blocks" || return 3
+    printf '%s\t%s\n' "$actual" "$url" ;;
+
+  edit)
+    [[ -n "${1:-}" ]] || { _usage 'edit NUMBER [--type T] [--body-file F] [--parent N] [--depends-on L] [--blocks L]'; return 2 }
+    local n=$1; shift
+    local type="" body="" parent="" depends="" blocks=""
+    while (( $# )); do
+      case "$1" in
+        --type)       type="$2"; shift 2 ;;
+        --body-file)  body="$2"; shift 2 ;;
+        --parent)     parent="$2"; shift 2 ;;
+        --depends-on) depends="$2"; shift 2 ;;
+        --blocks)     blocks="$2"; shift 2 ;;
+        *) _usage "edit: unexpected '$1'"; return 2 ;;
+      esac
+    done
+    local -a a=( "$n" )
+    [[ -n "$type" ]] && a+=( --type "$type" )
+    [[ -n "$body" ]] && a+=( --body-file "$body" )
+    (( ${#a} > 1 )) && { gh issue edit "${a[@]}" >/dev/null || { _die "gh issue edit failed"; return 3 } }
+    _apply_meta "$n" "$parent" "$depends" "$blocks" || return 3
+    print -r -- "$n" ;;
+
+  review)
+    [[ -n "${1:-}" ]] || { _usage 'review NUMBER|DRAFTFILE [--effort L]'; return 2 }
+    local target=$1; shift
+    local effort=high
+    while (( $# )); do
+      case "$1" in --effort) effort="$2"; shift 2 ;; *) _usage "review: unexpected '$1'"; return 2 ;; esac
+    done
+    command -v peer >/dev/null 2>&1 || { _die "peer not found (mise run install-peer) — external half can't run"; return 3 }
+    local draft
+    if [[ -f "$target" ]]; then
+      draft=$target
+    else
+      local -a hits=( .issues/${target}-*.md(N) )
+      hits=( ${hits:#*.orig.md} )
+      (( ${#hits} )) || { _die "no draft .issues/${target}-*.md"; return 3 }
+      draft=${hits[1]}
+    fi
+    local number=${${draft:t}%%[!0-9]*}
+    local outdir=".issues/${number}-reviews"; mkdir -p "$outdir"
+    local prompt="Review the GitHub issue draft at '$draft' against the canonical issue template (required sections: Goal, Definition of done; correct '#' header ordering; section selection matches the issue type) and this repo's own conventions (read CLAUDE.md / AGENTS.md and the surrounding code to infer them — naming, error handling, module layout). Implementation sketches must follow the repo's existing idioms, not impose a foreign stack. Separate BLOCKING findings (missing/incorrect sections, sketches that contradict the codebase) from nits."
+    print -u2 -- "issue review: external half (gpt+gemini) -> $outdir"
+    peer run -d "$outdir" --reviewers gpt,gemini --effort "$effort" "$prompt"
+    print -u2 -- "issue review: Claude half is agent-native — dispatch /review on '$draft' with model sonnet AND model opus to close the 2x2 gate." ;;
+
+  purge)
+    command -v trash >/dev/null 2>&1 || { _die "trash not found — refusing to rm; install trash-cli (macOS: 'trash')"; return 3 }
+    [[ -d .issues ]] || { print -u2 -- "issue: no .issues/ to purge"; return 0 }
+    local -a hits
+    if [[ -n "${1:-}" ]]; then
+      hits=( .issues/${1}-*(N) )
+      (( ${#hits} )) || { print -u2 -- "issue: nothing matching #$1 in .issues/"; return 0 }
+    else
+      hits=( .issues/*(ND) )
+      (( ${#hits} )) || { print -u2 -- "issue: .issues/ already empty"; return 0 }
+    fi
+    trash -- "${hits[@]}" || { _die "trash failed"; return 3 }
+    print -r -- "purged ${#hits} entr$( (( ${#hits} == 1 )) && print -n y || print -n ies ) from .issues/" ;;
+
+  *) _usage "unknown subcommand '$cmd' (try: issue help)"; return 2 ;;
+esac
