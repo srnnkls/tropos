@@ -270,7 +270,7 @@ if last:
 
   # No usable report — only now decide auth vs stall. Genuine auth/availability failures
   # (codex OAuth, pi-vertex ADC) produce no report and aren't a transient stall: don't retry.
-  if print -r -- "$log" | grep -qiE 'refresh_token_invalidated|could not be refreshed|invalid_grant|401 Unauthorized|UNAUTHENTICATED|PERMISSION_DENIED|not authenticated'; then
+  if print -r -- "$log" | grep -qiE 'unauthenticated|permission[_ ]denied|status[^0-9]{0,6}40[13]\b|\b40[13][[:space:]]+(unauthorized|forbidden)|invalid_grant|invalid_rapt|invalid_api_key|incorrect[_ ]api[_ ]key|authentication[_ ](error|failed)|not[_ ]authenticated|refresh_token_invalidated|could not be refreshed|could not[^"]{0,40}credential|application default credentials|reauthenticat|token (has[_ ])?(been[_ ])?(expired|revoked)'; then
     print -u2 "peer: $harness auth/availability error - re-authenticate (codex login / gcloud auth application-default login)"
     return 3
   fi
