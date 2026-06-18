@@ -4,7 +4,7 @@ Multi-agent review of batch implementations. Multiple reviewers run in parallel 
 
 ## Roles × Harnesses
 
-**Per role, dispatch a Claude `Task` + one `peer run` in parallel (SINGLE message).**
+**Per role, dispatch a Claude `Task` + one `peer` in parallel (SINGLE message).**
 
 ### Roles
 
@@ -21,10 +21,10 @@ See `/review` [reference/harnesses.md](../../../review/reference/harnesses.md) f
 ### Roles × Harnesses
 
 Every role is reviewed by Claude **and** the configured external reviewers. Per role,
-that's one Claude `Task` + one `peer run` (which fans the role prompt out to all
+that's one Claude `Task` + one `peer` (which fans the role prompt out to all
 external harnesses) — **not** a per-harness list of shell-outs.
 
-| Role | Claude | External (via `peer run`) |
+| Role | Claude | External (via `peer`) |
 |------|--------|---------------------------|
 | General | 1 `Task` (required) | codex + gemini, from validation.yaml/defaults |
 | Architecture | 1 `Task` (required) | codex + gemini, from validation.yaml/defaults |
@@ -32,7 +32,7 @@ external harnesses) — **not** a per-harness list of shell-outs.
 
 **Registry / models:** `peer list` (see the [peer skill](../../../peer/SKILL.md)).
 
-**CRITICAL:** Per role, dispatch the Claude `Task` + the `peer run` in the same message
+**CRITICAL:** Per role, dispatch the Claude `Task` + the `peer` in the same message
 for true parallelism. Never shell out to codex/gemini directly.
 
 ## Purpose
@@ -110,10 +110,10 @@ Review prompts per role: see `code` review skill Step 4.
 Batch N:
 ├── Phase A: Testers (parallel)
 ├── Phase B: Implementers (parallel)
-└── Phase C: Reviewers (per role: Claude Task + one peer run) ← this role
-    ├── General      — Claude Task + peer run (codex + gemini)
-    ├── Architecture — Claude Task + peer run (codex + gemini)
-    └── Compliance   — Claude Task + peer run (codex + gemini)
+└── Phase C: Reviewers (per role: Claude Task + one peer) ← this role
+    ├── General      — Claude Task + peer (codex + gemini)
+    ├── Architecture — Claude Task + peer (codex + gemini)
+    └── Compliance   — Claude Task + peer (codex + gemini)
 ```
 
 ## Report Format
@@ -214,7 +214,7 @@ Languages: python | Rules: 12 | Violations: 1
 
 ## Handling Timeouts
 
-`peer` owns the idle-stall watchdog, retry-once, and skip; the caller reads `peer run`'s
+`peer` owns the idle-stall watchdog, retry-once, and skip; the caller reads `peer`'s
 per-reviewer manifest status and synthesizes what landed (minimum 1 Claude required),
 noting any skipped reviewer as partial results. Exit codes and details:
 **[peer skill](../../../peer/SKILL.md)**. Never block the pipeline on an external harness.
@@ -233,12 +233,12 @@ Review is good when it:
 
 **Batch:** Tasks T002, T003, T004 (parallel)
 
-**Dispatch (single message):** per role, a Claude `Task` + one `peer run` (peer fans the
+**Dispatch (single message):** per role, a Claude `Task` + one `peer` (peer fans the
 role prompt out to every configured external harness). See **[peer skill](../../../peer/SKILL.md)**.
 ```
 # Per role (General / Architecture / Compliance):
 Task(general): "{role} review: batch T002-T004" ...
-Bash(background): peer run -d {role_outdir} --effort {reasoning_effort} "{role} review: ..."
+Bash(background): peer -d {role_outdir} --effort {reasoning_effort} "{role} review: ..."
 ```
 
 **Individual Outputs:**

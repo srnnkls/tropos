@@ -109,7 +109,7 @@ Wait for ALL testers to complete before dispatching Phase A.5.
 
 **PRECONDITION:** All Phase A testers completed with `status: success` and RED verified.
 
-Collect all test file paths from every `tester_report` in the batch, then dispatch a Claude `Task` **plus one `peer run`** (which fans out to all configured external reviewers) — same shape as Phase C; never shell out to codex/gemini directly. Test review must be multi-harness for the same reason code review is: fresh-perspective models catch quality issues a single harness misses.
+Collect all test file paths from every `tester_report` in the batch, then dispatch a Claude `Task` **plus one `peer`** (which fans out to all configured external reviewers) — same shape as Phase C; never shell out to codex/gemini directly. Test review must be multi-harness for the same reason code review is: fresh-perspective models catch quality issues a single harness misses.
 
 **Resolve reviewer config (in order):**
 1. `validation.yaml` `review_config` for the active scope
@@ -151,7 +151,7 @@ test_review_report:
 ```
 ```
 
-**Dispatch (single message):** Claude `Task` + one `peer run` for the external harnesses.
+**Dispatch (single message):** Claude `Task` + one `peer` for the external harnesses.
 
 ```
 # Claude harness (required) — agent-native
@@ -160,10 +160,10 @@ Task(subagent_type="task-reviewer", description="Test quality review — claude-
 
 # External harnesses — peer fans out + watches; see the `peer` skill
 Bash(run_in_background=true):
-  peer run -d {outdir} --effort high "{shared_prompt}"
+  peer -d {outdir} --effort high "{shared_prompt}"
 ```
 
-Wait for the Claude Task and `peer run`; read each `ok` row of `peer run`'s manifest.
+Wait for the Claude Task and `peer`; read each `ok` row of `peer`'s manifest.
 Dispatch contract, flags, exit codes: **[peer skill](../../peer/SKILL.md)**.
 
 **Synthesis for Phase A.5:**
@@ -256,7 +256,7 @@ Wait for ALL implementers to complete before dispatching reviewers.
 3. Defaults: `claude-opus` + `codex-gpt5.5` (codex, reasoning effort `high`) + `gemini-3.5-flash` (gemini)
 4. Never dispatch with zero external reviewers when Codex/Gemini are installed — external shell-outs are mandatory for cross-model coverage
 
-**Dispatch (single message):** per role, a Claude `Task` + one `peer run` that fans the
+**Dispatch (single message):** per role, a Claude `Task` + one `peer` that fans the
 role prompt out to every configured external reviewer.
 
 ```
@@ -264,10 +264,10 @@ role prompt out to every configured external reviewer.
 Task(subagent_type="task-reviewer", description="{role} review — claude-opus",
      prompt={role_prompt with reviewer_id: {role}-claude-opus})
 Bash(run_in_background=true):
-  peer run -d {role_outdir} --reviewers {external_aliases} --effort high "{role_prompt}"
+  peer -d {role_outdir} --reviewers {external_aliases} --effort high "{role_prompt}"
 ```
 
-`peer run` parallelises the external harnesses itself (one report file per reviewer,
+`peer` parallelises the external harnesses itself (one report file per reviewer,
 each with its own idle-stall watchdog) and prints a manifest — the agent no longer
 manages N background jobs. Read each `ok` row's report; skip stalled/error rows.
 Dispatch contract, flags, exit codes, `peer list`: **[peer skill](../../peer/SKILL.md)**.
@@ -397,7 +397,7 @@ Task:
 ## Handling Reviewer Timeouts
 
 External reviewers run through `peer`, which owns the idle-stall watchdog, retry-once,
-and skip. Read `peer run`'s per-reviewer manifest status; continue with completed reviews
+and skip. Read `peer`'s per-reviewer manifest status; continue with completed reviews
 (minimum 1 Claude required), note any skipped reviewer as partial results, and synthesize
 what landed. Details: **[peer skill](../../peer/SKILL.md)**. Never block the pipeline on an
 external harness.
@@ -406,12 +406,12 @@ external harness.
 
 ## Best Practices
 
-1. **Specialized subagent types** - Use `task-tester`, `task-implementer`, `task-reviewer` for Claude native Task calls; external reviewers (codex/gemini) go through one `peer run` per role, never raw shell-outs
+1. **Specialized subagent types** - Use `task-tester`, `task-implementer`, `task-reviewer` for Claude native Task calls; external reviewers (codex/gemini) go through one `peer` per role, never raw shell-outs
 2. **Tester first** - Implementer must receive failing tests
 3. **Test review gate** - Every batch's tests pass Phase A.5 before implementers are dispatched
 4. **All three code-review roles mandatory** - Every batch gets General + Architecture + Compliance review
 5. **YAML reports** - Structured handoff between phases
-6. **Single message dispatch** - Per role, the Claude `Task` + the `peer run` in one message
+6. **Single message dispatch** - Per role, the Claude `Task` + the `peer` in one message
 7. **Fresh context** - Each subagent starts clean
 8. **Track progress** - Update TodoWrite after each phase
 9. **Configure harnesses** - Set external reviewers (codex/gemini) in validation.yaml `review_config` (applied to ALL roles); models per `peer list`

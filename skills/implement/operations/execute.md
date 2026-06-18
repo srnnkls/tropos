@@ -33,9 +33,9 @@ Each batch executes four phases. **A batch is NOT complete until all four phases
 │  ├── Each writes failing tests (RED)                            │
 │  └── Wait for ALL testers                                       │
 │                          ↓                                      │
-│  Phase A.5: TEST REVIEW (Claude Task + one peer run)            │
+│  Phase A.5: TEST REVIEW (Claude Task + one peer)            │
 │  ├── Claude Task (opus) [required]                              │
-│  ├── peer run → codex + gemini (review_config/defaults) [req]   │
+│  ├── peer → codex + gemini (review_config/defaults) [req]   │
 │  ├── Check: oracle mirroring, mock tautologies, assertion-free  │
 │  └── Gate: clean → Phase B | issues → re-dispatch tester(s)     │
 │                          ↓                                      │
@@ -45,11 +45,11 @@ Each batch executes four phases. **A batch is NOT complete until all four phases
 │  ├── Each makes tests pass (GREEN)                              │
 │  └── Wait for ALL implementers                                  │
 │                          ↓                                      │
-│  Phase C: REVIEWERS (per role: Claude Task + one peer run)       │
-│  ├── General      — Claude Task + peer run [required]           │
-│  ├── Architecture — Claude Task + peer run (gestalt) [required] │
-│  ├── Compliance   — Claude Task + peer run (loqui) [required]   │
-│  ├── peer run fans out to all configured external harnesses     │
+│  Phase C: REVIEWERS (per role: Claude Task + one peer)       │
+│  ├── General      — Claude Task + peer [required]           │
+│  ├── Architecture — Claude Task + peer (gestalt) [required] │
+│  ├── Compliance   — Claude Task + peer (loqui) [required]   │
+│  ├── peer fans out to all configured external harnesses     │
 │  ├── Each role reviews own gates only; wait for ALL              │
 │  └── Synthesize by role, then aggregate                          │
 │                          ↓                                      │
@@ -59,7 +59,7 @@ Each batch executes four phases. **A batch is NOT complete until all four phases
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**CRITICAL:** All four phases are mandatory. Test review (Phase A.5) and code review (Phase C) each dispatch, per role, a Claude `Task` **plus one `peer run`** that fans out to the configured external harnesses (codex + gemini) — **never shell out to codex/gemini directly; never dispatch Claude alone.** Read `peer run`'s manifest: require ≥1 external reviewer `ok`; if only Claude reported (peer skipped/failed), treat the phase as partial and note it. Dispatch contract: [peer skill](../../peer/SKILL.md).
+**CRITICAL:** All four phases are mandatory. Test review (Phase A.5) and code review (Phase C) each dispatch, per role, a Claude `Task` **plus one `peer`** that fans out to the configured external harnesses (codex + gemini) — **never shell out to codex/gemini directly; never dispatch Claude alone.** Read `peer`'s manifest: require ≥1 external reviewer `ok`; if only Claude reported (peer skipped/failed), treat the phase as partial and note it. Dispatch contract: [peer skill](../../peer/SKILL.md).
 
 ---
 
@@ -164,7 +164,7 @@ If any failure mode is detected → re-dispatch the tester with feedback identif
 
 **PRECONDITION:** All Phase A testers completed with `status: success` and RED verified.
 
-Dispatch a Claude `Task` **plus one `peer run`** (which fans out to all configured external harnesses) on the test files from the batch — same shape as Phase C. Never shell out to codex/gemini directly. Read `peer run`'s manifest; require ≥1 external reviewer `ok` before proceeding to Phase B (if only Claude reported, treat as partial).
+Dispatch a Claude `Task` **plus one `peer`** (which fans out to all configured external harnesses) on the test files from the batch — same shape as Phase C. Never shell out to codex/gemini directly. Read `peer`'s manifest; require ≥1 external reviewer `ok` before proceeding to Phase B (if only Claude reported, treat as partial).
 
 **Collect inputs:**
 - All `test_files[*].path` from all `tester_report`s in this batch
@@ -172,7 +172,7 @@ Dispatch a Claude `Task` **plus one `peer run`** (which fans out to all configur
 
 **Resolve reviewer config (in order):** `--reviewers` flag → `validation.yaml` `review_config` → defaults (`opus,gpt,gemini` → claude-opus + codex-gpt5.5 + gemini-3.5-flash).
 
-**Dispatch template:** See `reference/subagent-workflow.md` — Test Review Dispatch Template (Claude `Task` + one `peer run`).
+**Dispatch template:** See `reference/subagent-workflow.md` — Test Review Dispatch Template (Claude `Task` + one `peer`).
 
 **Gate outcome:**
 
@@ -220,22 +220,22 @@ Each implementer:
 # range: <last_batch_commit>..HEAD   (for gestalt diff)
 ```
 
-**Per role, dispatch in a SINGLE message: a Claude `Task` + one `peer run` (which fans out to all configured external harnesses). Never shell out to codex/gemini directly.**
+**Per role, dispatch in a SINGLE message: a Claude `Task` + one `peer` (which fans out to all configured external harnesses). Never shell out to codex/gemini directly.**
 
 ```
 Per role (General / Architecture / Compliance), in one message:
   Task(subagent_type="task-reviewer", prompt={role_prompt})              # Claude
-  peer run -d {role_outdir} --reviewers {externals} "{role_prompt}"      # codex + gemini (fans out)
-→ Wait for ALL; read each peer run manifest, skip stalled/error rows
+  peer -d {role_outdir} --reviewers {externals} "{role_prompt}"      # codex + gemini (fans out)
+→ Wait for ALL; read each peer manifest, skip stalled/error rows
 ```
 
 **Reviewer cascade (each role owns distinct gates):**
 
 | Role | Primary Gates | Skill | Harnesses |
 |------|---------------|-------|-----------|
-| General | Correctness, Security, Performance | `code review` | Claude `Task` + `peer run` |
-| Architecture | Architecture | `gestalt` | Claude `Task` + `peer run` |
-| Compliance | Style | `loqui` | Claude `Task` + `peer run` |
+| General | Correctness, Security, Performance | `code review` | Claude `Task` + `peer` |
+| Architecture | Architecture | `gestalt` | Claude `Task` + `peer` |
+| Compliance | Style | `loqui` | Claude `Task` + `peer` |
 
 **Reviewers receive pointers and load code themselves:**
 1. `{diff_cmd}` (e.g., `git diff <last_batch_commit>..HEAD`) — reviewer runs the command
@@ -257,8 +257,8 @@ Dispatch reviewers per `/review` infrastructure and `code review` role definitio
 **Resolve harness config (in order):**
 1. Explicit `--reviewers` flag passed to `/implement execute` (aliases: `opus, sonnet, gpt, gemini` — see `/review` SKILL.md "Reviewer Selection")
 2. `validation.yaml` `review_config` for the active scope → use those reviewers and reasoning effort
-3. Defaults: `claude-opus` (Task) + `peer run --reviewers gpt,gemini` (codex-gpt5.5 + gemini-3.5-flash)
-4. External reviewers are mandatory — never Claude alone. Pass them to `peer run`; read its manifest and require ≥1 external `ok` before synthesizing Phase C (if only Claude reported, treat as partial). Models/flags/effort: [peer skill](../../peer/SKILL.md).
+3. Defaults: `claude-opus` (Task) + `peer --reviewers gpt,gemini` (codex-gpt5.5 + gemini-3.5-flash)
+4. External reviewers are mandatory — never Claude alone. Pass them to `peer`; read its manifest and require ≥1 external `ok` before synthesizing Phase C (if only Claude reported, treat as partial). Models/flags/effort: [peer skill](../../peer/SKILL.md).
 
 Apply the resolved config to all three roles (General, Architecture, Compliance).
 
@@ -396,12 +396,12 @@ After ALL batches complete, invoke `code review` skill in **final mode**:
 /review --final <scope-name>
 ```
 
-Or dispatch all roles directly (per role: Claude `Task` + one `peer run`):
+Or dispatch all roles directly (per role: Claude `Task` + one `peer`):
 
 ```
 Per role (General / Architecture / Compliance), in one message:
   Task(subagent_type="task-reviewer", prompt={role_prompt})         # Claude
-  peer run -d {role_outdir} --reviewers {externals} "{role_prompt}"  # codex + gemini (fans out)
+  peer -d {role_outdir} --reviewers {externals} "{role_prompt}"  # codex + gemini (fans out)
 ```
 
 **Final review checks:**
@@ -489,7 +489,7 @@ The `issue pr` operation handles pushing the branch, building the PR title/body 
 | Architecture Reviewer | task-reviewer | gestalt |
 | Compliance Reviewer | task-reviewer | loqui |
 
-**External reviewers:** the `subagent_type` column applies to Claude native `Task` calls only. codex/gemini are dispatched via **`peer run`** (no subagent type), which carries the role via the prompt and fans out to all configured external harnesses.
+**External reviewers:** the `subagent_type` column applies to Claude native `Task` calls only. codex/gemini are dispatched via **`peer`** (no subagent type), which carries the role via the prompt and fans out to all configured external harnesses.
 
 ---
 

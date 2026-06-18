@@ -52,7 +52,7 @@ The `{role_review_prompt}` is the role-specific prompt from the domain skill (e.
 External reviewers are dispatched **exclusively** through the **[`peer` skill](../../peer/SKILL.md)** —
 never `codex exec` / `gemini` directly. `peer` owns the canonical model registry (`peer list`),
 the idle-stall watchdog (kills a hung backend in ~1 min instead of waiting a fixed cap),
-retry-once, graceful skip, and parallel fan-out (`peer run`). Harness flags, exit codes,
+retry-once, graceful skip, and parallel fan-out (`peer`). Harness flags, exit codes,
 and model strings live in that skill — this doc does not duplicate them, so they can't drift.
 
 What these external harnesses add: fresh outside perspective, cross-model coverage, catching
@@ -64,16 +64,16 @@ spawns it directly.
 
 ## Dispatch Pattern
 
-Per role, in a single message: the Claude `Task` (required) plus one `peer run` that fans
+Per role, in a single message: the Claude `Task` (required) plus one `peer` that fans
 the role prompt out to every configured external reviewer concurrently.
 
 ```
 Task(subagent_type="general", prompt={role_review_prompt})          # Claude — agent-native
 Bash(run_in_background=true):                                        # codex + gemini via peer
-  peer run -d {role_outdir} --reviewers {external_aliases} --effort {reasoning} "{role_review_prompt}"
+  peer -d {role_outdir} --reviewers {external_aliases} --effort {reasoning} "{role_review_prompt}"
 ```
 
-Read the TSV manifest `peer run` prints; pull each `ok` report file, skip stalled/error/auth
+Read the TSV manifest `peer` prints; pull each `ok` report file, skip stalled/error/auth
 rows (note them as partial results). Full contract — flags, manifest, exit codes — in the
 **[peer skill](../../peer/SKILL.md)**.
 
@@ -82,7 +82,7 @@ rows (note them as partial results). Full contract — flags, manifest, exit cod
 ## Timeout/Error Handling
 
 **External harnesses:** handled inside `peer` (idle watchdog + retry-once + skip); the
-caller only reads `peer run`'s manifest status per reviewer and synthesises what landed —
+caller only reads `peer`'s manifest status per reviewer and synthesises what landed —
 see the **[peer skill](../../peer/SKILL.md)**. Never block the pipeline on an external harness.
 
 **Claude subagent timeout:**

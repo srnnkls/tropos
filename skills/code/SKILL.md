@@ -112,7 +112,7 @@ When routing to `review`, this domain skill provides the full code review method
 1. **Detect Input Type** — scope, git rev, git range, path, or diff
 2. **Resolve Review Target** — pointers for reviewers to load code themselves
 3. **Select Reviewers** — via `/review` infrastructure (interactive or from validation.yaml)
-4. **Dispatch Reviewers in Parallel** — per role: one Claude `Task` + one `peer run` (fans out to all configured external harnesses); never raw codex/gemini
+4. **Dispatch Reviewers in Parallel** — per role: one Claude `Task` + one `peer` (fans out to all configured external harnesses); never raw codex/gemini
 5. **Synthesize Reviews** — per `/review` infrastructure
 6. **Write Review Output** — scope review.yaml or ephemeral markdown
 7. **Present Review** — gate summary, issues by severity

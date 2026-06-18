@@ -52,7 +52,7 @@ The gh/GraphQL plumbing is wrapped by the **`issue` command** (on PATH via `mise
 |---|---|
 | `issue next` | predicted next number (the [Pre-loaded Context](#pre-loaded-context) one-liner) |
 | `issue draft <n> <type> "<title>"` | ensure `.issues/`, print `.issues/<n>-<type>-<slug>.md` |
-| `issue review <n>\|<draft>` | external half of the gate — `peer run` → gpt+gemini (Claude half stays agent-native) |
+| `issue review <n>\|<draft>` | external half of the gate — `peer` → gpt+gemini (Claude half stays agent-native) |
 | `issue create --type T --title … --body-file F [--parent N] [--depends-on L] [--blocks L]` | publish, **auto-reconcile the draft filename to the real number**, apply parent/dependency edges; prints `<number>\t<url>` |
 | `issue edit <n> [--type T] [--body-file F] [--parent N] [--depends-on L] [--blocks L]` | update body/type + edges |
 | `issue verify <n>` | read-back (type, parent, blockedBy, blocking) |
@@ -74,7 +74,7 @@ The raw `gh api graphql` mutations are documented below as the reference the wra
    - Create: use the **next issue number** from `issue next`. Draft the body into `.issues/<next>-<type>-<slug>.md`.
    - Update: the number is the issue you're editing. Preserve the live body first — `gh issue view <n> --json body -q .body > ".issues/<n>-<type>-<slug>.orig.md"` — then draft into `.issues/<n>-<type>-<slug>.md`. Surface a diff (`diff ".issues/<n>-<type>-<slug>.orig.md" ".issues/<n>-<type>-<slug>.md"`) before the gate if rewriting an existing body.
 7. **Review gate (mandatory 2×2) — run before any publish.** The drafted body must clear a four-reviewer gate before it reaches GitHub. Dispatch all four in one message (see [Review gate](#review-gate-2x2-before-publish) below):
-   - **peer** — `issue review <next>` runs the external half (`peer run` → **gpt** + **gemini**), reports under `.issues/<n>-reviews/`.
+   - **peer** — `issue review <next>` runs the external half (`peer` → **gpt** + **gemini**), reports under `.issues/<n>-reviews/`.
    - **claude** — two `Task` subagents, one on **sonnet** and one on **opus** (agent-native — `issue review` can't dispatch them; do it in the same message).
 
    Read all four reports, fold blocking findings back into the draft, and re-run the gate until it passes. **Do not publish until the gate passes.**
@@ -96,9 +96,9 @@ No issue body reaches GitHub until it clears a **2×2 reviewer gate**: two provi
 | Provider | Models |
 |---|---|
 | **claude** | `sonnet`, `opus` (in-process `Task` subagents) |
-| **peer** | `gpt`, `gemini` (external, via `peer run`) |
+| **peer** | `gpt`, `gemini` (external, via `peer`) |
 
-Dispatch all four **in one message** — the two Claude `Task`s plus a single backgrounded `peer run`:
+Dispatch all four **in one message** — the two Claude `Task`s plus a single backgrounded `peer`:
 
 ```bash
 # Claude side — two Task subagents, model sonnet and model opus, same review prompt.
@@ -106,7 +106,7 @@ Dispatch all four **in one message** — the two Claude `Task`s plus a single ba
 
 # peer side — fan out to the two external reviewers, reports into the draft's review dir:
 issue review <number> --effort high
-# (equivalently: peer run -d .issues/<number>-reviews --reviewers gpt,gemini --effort high "<prompt>")
+# (equivalently: peer -d .issues/<number>-reviews --reviewers gpt,gemini --effort high "<prompt>")
 ```
 
 Review prompt (both sides): check the draft against the canonical template (required sections present, `#` header ordering correct, section selection matches the issue type) and against the repo's existing idioms (sketches must follow the codebase, not impose a foreign stack). Return blocking findings (missing/incorrect sections, sketches that contradict the codebase) separately from nits.

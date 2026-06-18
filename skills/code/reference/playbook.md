@@ -8,7 +8,7 @@ Edge case handling and decision trees for review scenarios.
 
 ### External Harness (Codex / Gemini) Stall
 
-`peer` owns the idle-stall watchdog, retry-once, and skip. Read `peer run`'s manifest
+`peer` owns the idle-stall watchdog, retry-once, and skip. Read `peer`'s manifest
 status per reviewer; on a skipped/stalled reviewer, warn "[Reviewer] stalled, skipped.
 Partial results." and synthesize with the rest. Exit codes and rationale:
 **[peer skill](../../peer/SKILL.md)**. Never block the pipeline on an external harness.

@@ -104,7 +104,7 @@ Full details: [reference/models.md](reference/models.md), [reference/harnesses.m
 
 ### Dispatch Pattern
 
-Per role, in a single message: one Claude `Task` + one `peer run` that fans the role
+Per role, in a single message: one Claude `Task` + one `peer` that fans the role
 prompt out to all configured external reviewers. **Never shell out to codex/gemini
 directly** — `peer` owns external dispatch. Domain skill defines roles; see
 [reference/harnesses.md](reference/harnesses.md) and the [peer skill](../peer/SKILL.md).
@@ -119,20 +119,16 @@ Reviewers can be specified three ways, resolved in this order:
 
 #### `--reviewers` Flag
 
-Accepts a comma-separated list of short aliases:
+Accepts a comma-separated list of short aliases. The alias ↔ harness ↔ reviewer-id ↔
+model mapping is injected live from the peer registry (single source of truth, cannot drift):
 
-| Alias | Harness | Reviewer-id |
-|---|---|---|
-| `opus` | claude | claude-opus |
-| `sonnet` | claude | claude-sonnet |
-| `gpt` | codex | codex-gpt5.5 |
-| `gemini` | gemini | gemini-3.5-flash |
-
-(Model per reviewer-id: `peer list`.)
+```!
+peer list
+```
 
 **Examples:**
-- `/review --reviewers opus,gpt` → claude-opus + codex-gpt5.5
-- `/review --reviewers opus,gpt,gemini` → claude-opus + codex-gpt5.5 + gemini-3.5-flash
+- `/review --reviewers opus,gpt` → claude-opus + !`peer get id gpt`
+- `/review --reviewers opus,gpt,gemini` → claude-opus + !`peer get id gpt` + !`peer get id gemini`
 - `/implement execute --reviewers opus,gpt` → same two reviewers used for Phase A.5 + Phase C
 
 **Invalid alias:** Report unknown alias and ask user to pick from the table.
@@ -140,17 +136,17 @@ Accepts a comma-separated list of short aliases:
 #### Interactive Fallback (no flag, no review_config)
 
 **Question 1:** Select reviewers (multiSelect):
-- claude-opus (Recommended), claude-sonnet, codex-gpt5.5 (Recommended), gemini-3.5-flash (Recommended)
+- claude-opus (Recommended), claude-sonnet, !`peer get id gpt` (Recommended), !`peer get id gemini` (Recommended)
 
-**Default:** claude-opus, codex-gpt5.5, gemini-3.5-flash
+**Default:** claude-opus + !`peer get id gpt` + !`peer get id gemini`
 
 **Question 2:** Reasoning effort (if Codex selected): low, medium, high (Recommended)
 
 #### Full Model Mapping
 
 Reviewer-id ↔ harness ↔ model is the **[peer skill](../peer/SKILL.md)** registry (`peer list`).
-`claude-opus`/`claude-sonnet` map to the Claude `Task` harness; `codex-gpt5.5`/
-`gemini-3.5-flash` to the external harnesses peer dispatches.
+`claude-opus`/`claude-sonnet` map to the Claude `Task` harness; !`peer get id gpt` and !`peer get id gemini`
+to the external harnesses peer dispatches.
 
 Store resolved selections in `validation.yaml` under `review_config` (whether from flag, prior config, or interactive prompt).
 

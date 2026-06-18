@@ -5,7 +5,7 @@
 # once from `gh repo view`; node/type IDs are looked up at runtime (never hardcoded).
 #
 # The mechanical gh/GraphQL steps live here so the skill body stays declarative; the
-# 2x2 review gate stays agent-driven (Claude Task + `peer run`), like peer leaves the
+# 2x2 review gate stays agent-driven (Claude Task + `peer`), like peer leaves the
 # Claude harness to the agent.
 #
 # Subcommands:
@@ -25,7 +25,7 @@
 #                                               filename to the real number and apply edges; prints
 #                                               "NUMBER<TAB>URL"
 #   issue edit NUMBER [--type T] [--body-file F] [--parent N] [--depends-on L] [--blocks L]
-#   issue review NUMBER|DRAFTFILE [--effort L]  external half of the 2x2 gate via `peer run`
+#   issue review NUMBER|DRAFTFILE [--effort L]  external half of the 2x2 gate via `peer`
 #                                               (gpt+gemini); the Claude half (/review, sonnet+opus)
 #                                               is agent-native and must be dispatched by the agent
 #   issue purge [NUMBER]                        trash .issues/ contents (all, or just #NUMBER's)
@@ -254,7 +254,7 @@ case "$cmd" in
     local outdir=".issues/${number}-reviews"; mkdir -p "$outdir"
     local prompt="Review the GitHub issue draft at '$draft' against the canonical issue template (required sections: Goal, Definition of done; correct '#' header ordering; section selection matches the issue type) and this repo's own conventions (read CLAUDE.md / AGENTS.md and the surrounding code to infer them — naming, error handling, module layout). Implementation sketches must follow the repo's existing idioms, not impose a foreign stack. Separate BLOCKING findings (missing/incorrect sections, sketches that contradict the codebase) from nits."
     print -u2 -- "issue review: external half (gpt+gemini) -> $outdir"
-    peer run -d "$outdir" --reviewers gpt,gemini --effort "$effort" "$prompt"
+    peer -d "$outdir" --reviewers gpt,gemini --effort "$effort" "$prompt"
     print -u2 -- "issue review: Claude half is agent-native — dispatch /review on '$draft' with model sonnet AND model opus to close the 2x2 gate." ;;
 
   purge)
