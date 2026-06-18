@@ -227,9 +227,9 @@ case "$cmd" in
       esac
     done
     local -a a=( "$n" )
-    [[ -n "$type" ]] && a+=( --type "$type" )
     [[ -n "$body" ]] && a+=( --body-file "$body" )
     (( ${#a} > 1 )) && { gh issue edit "${a[@]}" >/dev/null || { _die "gh issue edit failed"; return 3 } }
+    [[ -n "$type" ]] && { _set_type "$n" "$type" || return 3 }  # gh issue edit has no --type; set via GraphQL
     _apply_meta "$n" "$parent" "$depends" "$blocks" || return 3
     print -r -- "$n" ;;
 
