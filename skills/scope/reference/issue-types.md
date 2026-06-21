@@ -54,7 +54,7 @@ User-facing value with multiple implementation tasks. Creates detailed plan with
 **Question limit:** 3
 **Taxonomy:** Minimal (Scope, Behavior, Integration)
 
-Concrete work item, single deliverable. Creates lightweight plan, mostly tasks.md.
+Concrete work item, single deliverable. Creates lightweight plan, mostly tasks.yaml.
 
 **Examples:**
 - "Add CSV export handler to API"
@@ -150,6 +150,10 @@ For when the user isn't sure of the scope yet. Gathers context first, then trans
 | dependencies.yaml | Full DAG | Phase-based | Skip |
 
 **Task output = 2 files:** scope.md (lightweight) + tasks.yaml
+
+Skipping `dependencies.yaml` does **not** disable parallelism: the batch signal lives in
+`tasks.yaml` (`depends_on` + `files` per task), so Task scopes still fan out. `dependencies.yaml`
+is only a precomputed DAG fast-path for Feature/Initiative.
 
 **Rationale:**
 - Initiatives need maximum rigor (strategic, long-running)

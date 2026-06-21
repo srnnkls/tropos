@@ -68,7 +68,7 @@ Each batch executes four phases. **A batch is NOT complete until all four phases
 ### 1. Load Scope and Populate TodoWrite
 
 1. Find most recent scope in `./scopes/*/*/` (lifecycle dirs: `draft`, `active`, `done` — prefer `active` for in-flight work)
-2. Read `tasks.yaml` from that directory
+2. Read `tasks.yaml` from that directory. Also read `dependencies.yaml` **if it exists** — it carries the precomputed `batches[*]` used in Step 3 (absent for Task scopes, which derive batches from `tasks.yaml`).
 3. Parse tasks with `status: pending` or `status: in_progress`
 4. Create TodoWrite with ALL uncompleted tasks:
    - First uncompleted task: "in_progress"
@@ -107,15 +107,23 @@ Before dispatching any tasks, verify validation.yaml gates:
      - Prompt: "Resolve markers first or proceed?"
 4. **If Feature/Task:** Skip gate check (gates marked n/a)
 
-### 3. Analyze Task Dependencies
+### 3. Analyze Task Dependencies → Build Batches
 
-Parse `dependencies.yaml` to identify execution batches:
+Determine execution batches from the batch signal. **Two sources, in order:**
 
-**Dependency rules:**
-- Tasks in Phase N depend on Phase N-1 completion
-- Tasks with `[P]` marker AND different file paths can run in parallel
-- Tasks with same file path must run sequentially
-- Phase boundaries force batch breaks
+1. **`dependencies.yaml` present** (Feature/Initiative) → use its precomputed `batches[*].tasks`
+   directly. Each `batch` entry is one parallel group, in order.
+2. **`dependencies.yaml` absent** (Task scopes) → derive batches from `tasks.yaml` using the
+   `depends_on` + `files` fields per task.
+
+**Derivation rules** (identical to the rules documented in `dependencies.yaml`):
+- Tasks with no unmet `depends_on` go in the earliest batch.
+- A task joins the earliest batch where **all** its `depends_on` are already complete.
+- Tasks sharing any `files` entry **cannot** be in the same batch (same-file → sequential).
+- A task with no `files` declared defaults to its own single-task batch (safe fallback).
+
+The result is an ordered list of batches; each batch's tasks dispatch in parallel (Phase A/B
+below), and batches run sequentially.
 
 ### 4. Execute Batches (Four-Phase Pipeline)
 
@@ -553,7 +561,7 @@ Batch 1: Task 1 (single task)
 ├── Synthesize: 1 minor issue (note for later)
 └── Commit: feat(cache): add caching layer
 
-Batch 2: Tasks 2, 3, 4 ([P] parallel batch)
+Batch 2: Tasks 2, 3, 4 (parallel batch — independent, different files)
 ├── Phase A: Dispatch 3 testers (single message)
 │   └── All testers complete with failing tests
 ├── Phase A.5: Dispatch reviewers (Claude opus + Codex gpt + Gemini gemini in parallel, all 3 test files)

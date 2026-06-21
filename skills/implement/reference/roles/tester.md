@@ -17,7 +17,7 @@ The tester writes tests BEFORE any implementation exists. Tests must fail becaus
 
 ## Responsibilities
 
-1. Read task requirements and test_hints from tasks.md
+1. Read task requirements and test_hints from tasks.yaml
 2. Design tests that cover all specified behaviors
 3. Write minimal, clear tests
 4. Run tests to verify they FAIL (RED state)
@@ -140,12 +140,14 @@ Tests are good when they:
 
 ## Example
 
-**Task from tasks.md:**
-```markdown
-- [ ] Add caching to API responses
-  - test_hints: [cache hit returns cached, cache miss calls backend, TTL expiration]
-  - impl_file: src/api/cache.py
-  - test_file: tests/test_cache.py
+**Task from tasks.yaml:**
+```yaml
+- id: API-007
+  content: Add caching to API responses
+  status: pending
+  files: [src/api/cache.py]
+  test_hints: [cache hit returns cached, cache miss calls backend, TTL expiration]
+  test_file: tests/test_cache.py
 ```
 
 **Tester output:**

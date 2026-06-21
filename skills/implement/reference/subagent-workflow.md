@@ -2,13 +2,14 @@
 
 ## Task Batching
 
-Before dispatching, analyze `dependencies.yaml` for execution batches:
+Before dispatching, build execution batches from the batch signal:
 
-1. Parse task dependency graph
-2. Identify `[P]` markers (parallelizable within same phase)
-3. Group consecutive `[P]` tasks that modify different files
-4. Non-`[P]` tasks form single-task batches
-5. Phase boundaries force batch breaks
+1. If `dependencies.yaml` exists → use its precomputed `batches[*].tasks` directly.
+2. Otherwise derive batches from `tasks.yaml`: a task joins the earliest batch where all its
+   `depends_on` are complete; tasks sharing any `files` entry never co-batch; a task with no
+   `files` declared forms its own single-task batch.
+
+See `operations/execute.md` Step 3 and `reference/parallel-detection.md` for the full algorithm.
 
 ## Four-Phase Pipeline
 
@@ -322,7 +323,7 @@ After fixes, dispatch targeted review (can be single Claude reviewer for speed).
 
 ---
 
-## Workflow Diagram (Three-Phase Pipeline)
+## Workflow Diagram (Four-Phase Pipeline)
 
 ```
 Load Scope + dependencies.yaml
@@ -340,7 +341,7 @@ Build Execution Batches
     |         Phase B:   Dispatch 1 implementer (opus)
     |         Phase C:   Dispatch reviewers (Claude + Codex × N, see /review)
     |         |
-    |    NO (parallel [P] tasks):
+    |    NO (multi-task batch):
     |         Phase A:   Dispatch N testers (single message)
     |         Phase A.5: Dispatch reviewers (Claude + Codex × N, all test files) → gate
     |         Phase B:   Dispatch N implementers (single message)

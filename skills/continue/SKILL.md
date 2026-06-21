@@ -56,11 +56,15 @@ Read these files (in parallel):
 ./scopes/<state>/<scope>/checkpoint.yaml   # Session state
 ./scopes/<state>/<scope>/scope.md          # Requirements
 ./scopes/<state>/<scope>/tasks.yaml        # Task definitions
-./scopes/<state>/<scope>/dependencies.yaml # Batch structure
+./scopes/<state>/<scope>/dependencies.yaml # Batch structure (absent for Task scopes)
 ./scopes/<state>/<scope>/validation.yaml   # Review config
 ```
 
 `<state>` ∈ `{draft, active, done}` — typically `active` for in-flight work.
+
+If `dependencies.yaml` is absent (Task scopes), derive batches from `tasks.yaml`'s `depends_on` +
+`files` — same rule as `../implement/reference/parallel-detection.md`. Resumed Task scopes still
+fan out.
 
 ### Step 3: Verify Branch State
 

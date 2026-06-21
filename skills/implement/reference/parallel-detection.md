@@ -1,147 +1,140 @@
 # Parallel Task Detection
 
-## Task Format
+The batch signal lives in **`tasks.yaml`**. Each task carries `depends_on` (task IDs that must
+complete first) and `files` (the paths it will create or modify). Batches are derived from these
+two fields. When `dependencies.yaml` exists (Feature/Initiative), its `batches[*]` block is the
+same derivation precomputed at scope-creation time — use it directly as a fast-path.
 
-Tasks in tasks.md follow the pattern:
+## Task Schema
 
+```yaml
+tasks:
+  - id: AUT-001
+    content: Create auth middleware
+    status: pending
+    files: [src/auth/middleware.py]
+    depends_on: []
+  - id: AUT-002
+    content: Add session storage
+    status: pending
+    files: [src/auth/session.py]
+    depends_on: []
+  - id: AUT-003
+    content: Write integration tests
+    status: pending
+    files: [tests/test_auth_integration.py]
+    depends_on: [AUT-001, AUT-002]
 ```
-- [ ] TXXX [P?] [Story?] Description in path/to/file.ext
-```
 
-Components:
-- **Checkbox:** `- [ ]` (markdown checkbox)
-- **Task ID:** Sequential (T001, T002, T003...) in execution order
-- **[P] marker:** Indicates parallelizable (different files, no dependencies)
-- **[Story] label:** Maps to user story (format: [US1], [US2], etc.)
-- **Description:** Clear action with exact file path
+Fields that drive batching:
+- **`depends_on`** — task IDs that must be `done` before this task can start.
+- **`files`** — declared target paths. Two tasks that share any path cannot run together.
 
 ## Detection Algorithm
 
 ```python
-def can_parallelize(task_a: str, task_b: str) -> bool:
-    """Check if two tasks can run in parallel."""
-    # Both must have [P] marker
-    if not (has_p_marker(task_a) and has_p_marker(task_b)):
+def can_parallelize(task_a: dict, task_b: dict) -> bool:
+    """Two tasks may run in the same batch."""
+    # Neither may depend on the other (handled by batch ordering, but guard anyway)
+    if task_a["id"] in task_b.get("depends_on", []):
+        return False
+    if task_b["id"] in task_a.get("depends_on", []):
         return False
 
-    # Must be in same phase (prerequisites complete)
-    if get_phase(task_a) != get_phase(task_b):
+    # A task with no declared files is conservatively isolated
+    files_a = set(task_a.get("files", []))
+    files_b = set(task_b.get("files", []))
+    if not files_a or not files_b:
         return False
 
-    # Must modify different files
-    files_a = extract_file_paths(task_a)
-    files_b = extract_file_paths(task_b)
-    if files_a & files_b:  # intersection not empty
-        return False
-
-    return True
-
-
-def has_p_marker(task: str) -> bool:
-    """Check if task has [P] parallelization marker."""
-    return "[P]" in task
-
-
-def get_phase(task: str) -> int:
-    """Extract phase number from task context."""
-    # Implementation depends on tasks.md structure
-    # Typically parsed from "## Phase N" headers
-    pass
-
-
-def extract_file_paths(task: str) -> set[str]:
-    """Extract file paths mentioned in task description."""
-    # Match patterns like:
-    # - src/module/file.py
-    # - tests/test_file.py
-    # - path/to/file.ext
-    import re
-    pattern = r'\b[\w./]+\.\w+\b'
-    return set(re.findall(pattern, task))
+    # Must touch different files
+    return not (files_a & files_b)
 ```
 
 ## Batching Algorithm
 
-Group consecutive parallelizable tasks into batches:
+A task joins the earliest batch where all its `depends_on` are already satisfied and it shares no
+file with another task already placed in that batch.
 
 ```python
-def build_batches(tasks: list[str]) -> list[list[str]]:
-    """Group tasks into execution batches."""
-    batches = []
-    current_batch = []
+def build_batches(tasks: list[dict]) -> list[list[str]]:
+    """Group tasks into ordered parallel batches by depends_on + files."""
+    done: set[str] = set()
+    remaining = list(tasks)
+    batches: list[list[str]] = []
 
-    for task in tasks:
-        if not current_batch:
-            current_batch.append(task)
-            continue
+    while remaining:
+        ready = [t for t in remaining if set(t.get("depends_on", [])) <= done]
+        if not ready:
+            raise ValueError("dependency cycle or unknown task id in depends_on")
 
-        # Check if task can join current batch
-        can_join = all(
-            can_parallelize(task, existing)
-            for existing in current_batch
-        )
+        batch: list[dict] = []
+        for task in ready:
+            if all(can_parallelize(task, placed) for placed in batch):
+                batch.append(task)
 
-        if can_join:
-            current_batch.append(task)
-        else:
-            # Finalize current batch, start new one
-            batches.append(current_batch)
-            current_batch = [task]
-
-    if current_batch:
-        batches.append(current_batch)
+        batches.append([t["id"] for t in batch])
+        placed_ids = {t["id"] for t in batch}
+        done |= placed_ids
+        remaining = [t for t in remaining if t["id"] not in placed_ids]
 
     return batches
 ```
 
+A task with no `files` declared falls through `can_parallelize` as isolated, so it lands in its own
+single-task batch — the safe fallback.
+
 ## Example
 
-Given tasks.md:
+Given `tasks.yaml`:
 
-```markdown
-## Phase 2: Implementation
-
-- [ ] T005 [P] Implement auth middleware in src/middleware/auth.py
-- [ ] T006 [P] Setup routing in src/routes/index.py
-- [ ] T007 Create base models in src/models/base.py
-- [ ] T008 [P] Add logging utility in src/utils/logger.py
-- [ ] T009 [P] Create config loader in src/config/loader.py
+```yaml
+tasks:
+  - id: T001
+    files: [src/middleware/auth.py]
+    depends_on: []
+  - id: T002
+    files: [src/routes/index.py]
+    depends_on: []
+  - id: T003
+    files: [src/models/base.py]
+    depends_on: [T001, T002]
+  - id: T004
+    files: [src/utils/logger.py]
+    depends_on: [T003]
+  - id: T005
+    files: [src/config/loader.py]
+    depends_on: [T003]
 ```
 
 Batching result:
 
 | Batch | Tasks | Reason |
 |-------|-------|--------|
-| 1 | T005, T006 | Both [P], different files |
-| 2 | T007 | No [P] marker |
-| 3 | T008, T009 | Both [P], different files |
+| 1 | T001, T002 | No deps, different files |
+| 2 | T003 | Depends on T001 + T002 |
+| 3 | T004, T005 | Both depend only on T003, different files |
 
-Execution:
-1. Dispatch T005 + T006 simultaneously → wait → review
-2. Dispatch T007 → wait → review
-3. Dispatch T008 + T009 simultaneously → wait → review
+Execution: dispatch T001+T002 simultaneously → wait → review; T003 → wait → review;
+T004+T005 simultaneously → wait → review.
 
 ## Edge Cases
 
-**Same file in multiple tasks:**
+**Same file in multiple tasks** — cannot co-batch even with identical deps:
+```yaml
+- id: T010
+  files: [src/models/user.py]
+  depends_on: []
+- id: T011
+  files: [src/models/user.py]
+  depends_on: []
 ```
-- [ ] T010 [P] Add User model in src/models/user.py
-- [ ] T011 [P] Add validation to User in src/models/user.py
-```
-→ Cannot parallelize (same file: `src/models/user.py`)
+→ Separate batches (shared file `src/models/user.py`).
 
-**Cross-phase tasks:**
+**No `files` declared** — cannot verify file independence:
+```yaml
+- id: T015
+  content: Refactor authentication logic
+  depends_on: []
 ```
-## Phase 1
-- [ ] T001 [P] Setup database connection
-
-## Phase 2
-- [ ] T002 [P] Create User table
-```
-→ Cannot parallelize (different phases, T002 depends on T001)
-
-**No file path in description:**
-```
-- [ ] T015 [P] Refactor authentication logic
-```
-→ Default to sequential (cannot verify file independence)
+→ Own single-task batch (conservative default).

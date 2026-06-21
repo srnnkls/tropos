@@ -10,6 +10,12 @@ meta:
   last_updated: ${DATE}
   progress: 0/0
 
+# Batch signal: a pending task's `depends_on` + `files` drive parallel dispatch.
+# Batches are derived from these two fields (see dependencies.yaml batching rules):
+# no-dep tasks run first; a task runs in the earliest batch where all `depends_on`
+# are satisfied; tasks sharing any `files` entry never co-batch. A task with no
+# `files` declared defaults to its own single-task batch.
+
 # Phases organize tasks logically (optional - for complex scopes)
 # Each phase references task IDs and may have a checkpoint gate
 phases: []
@@ -23,6 +29,7 @@ phases: []
 #     content: Create auth middleware
 #     status: done
 #     active_form: Creating auth middleware
+#     files: [src/auth/middleware.py]
 #     evidence:
 #       commits: [abc123, def456]
 #       files: [src/auth/middleware.py]
@@ -30,10 +37,12 @@ phases: []
 #     content: Add session storage
 #     status: in_progress
 #     active_form: Adding session storage
+#     files: [src/auth/session.py]
 #   - id: AUT-003
 #     content: Write integration tests
 #     status: pending
 #     active_form: Writing integration tests
+#     files: [tests/test_auth_integration.py]
 #     depends_on: [AUT-001, AUT-002]
 #
 # meta:

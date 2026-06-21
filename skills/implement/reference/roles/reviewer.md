@@ -108,9 +108,10 @@ Review prompts per role: see `code` review skill Step 4.
 
 ```
 Batch N:
-├── Phase A: Testers (parallel)
-├── Phase B: Implementers (parallel)
-└── Phase C: Reviewers (per role: Claude Task + one peer) ← this role
+├── Phase A:   Testers (parallel)
+├── Phase A.5: Test review gate (Claude Task + one peer)
+├── Phase B:   Implementers (parallel)
+└── Phase C:   Reviewers (per role: Claude Task + one peer) ← this role
     ├── General      — Claude Task + peer (codex + gemini)
     ├── Architecture — Claude Task + peer (codex + gemini)
     └── Compliance   — Claude Task + peer (codex + gemini)

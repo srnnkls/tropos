@@ -9,44 +9,45 @@ phases:
     name: Setup
     tasks:
       - id: T001
-        file: path/to/file.py
+        files: [path/to/file.py]
         depends_on: []
       - id: T002
-        file: path/to/other.py
+        files: [path/to/other.py]
         depends_on: [T001]
 
   - id: core
     name: Core Implementation
     tasks:
       - id: T003
-        file: src/feature.py
+        files: [src/feature.py]
         depends_on: [T002]
       - id: T004
-        file: src/handler.py
+        files: [src/handler.py]
         depends_on: [T002]
 
   - id: integration
     name: Integration
     tasks:
       - id: T005
-        file: src/main.py
+        files: [src/main.py]
         depends_on: [T003, T004]
 
   - id: testing
     name: Testing
     tasks:
       - id: T006
-        file: tests/test_feature.py
+        files: [tests/test_feature.py]
         depends_on: [T005]
 
 # ------------------------------------------------------------------------------
 # Computed parallel batches (derived from DAG)
 # implement uses this to maximize parallelism
 #
-# Batching rules:
+# Batching rules (must match tasks.yaml derivation):
 # - Tasks with no dependencies go in batch 1
 # - Tasks go in the earliest batch where all dependencies are satisfied
-# - Tasks modifying the same file cannot be in the same batch
+# - Tasks sharing any `files` entry cannot be in the same batch
+# - A task with no `files` declared defaults to its own single-task batch
 # - Phase boundaries don't force batch breaks if dependencies allow parallelism
 # ------------------------------------------------------------------------------
 batches:

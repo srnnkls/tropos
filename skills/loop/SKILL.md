@@ -1,6 +1,6 @@
 ---
 name: loop
-description: Autonomous implementation loop over a focus topic. Reads active scopes, enumerates tasks as todos, then iterates the TDD pipeline (tester→implementer→reviewer) until all tasks are complete. Use when autonomously implementing all pending work for a scope or topic without manual step-by-step oversight.
+description: Autonomous implementation loop over a focus topic. Reads active scopes, builds parallel task batches, then iterates the TDD pipeline one batch per iteration (parallel testers → test review gate → parallel implementers → review) until all tasks are complete. Use when autonomously implementing all pending work for a scope or topic without manual step-by-step oversight.
 argument-hint: "<focus topic>"
 allowed-tools: Bash(find *), Bash(git *), Bash(peer *)
 context: fork
@@ -38,8 +38,11 @@ Focus: $ARGUMENTS
 
 ## Protocol
 
-1. **Enumerate** — Read scopes relevant to `$ARGUMENTS`, create one TodoWrite entry per task
-2. **Iterate** — Read and follow `operations/iterate.md`
+1. **Enumerate** — Read scopes relevant to `$ARGUMENTS`, build parallel batches from the batch
+   signal (`dependencies.yaml` `batches[*]` if present, else derived from `tasks.yaml`'s
+   `depends_on` + `files` — see `../implement/reference/parallel-detection.md`), and create one
+   TodoWrite entry per task annotated with its batch number
+2. **Iterate** — Read and follow `operations/iterate.md` (one batch per iteration)
 3. **Complete** — When all todos are done, output summary and stop
 
 ---

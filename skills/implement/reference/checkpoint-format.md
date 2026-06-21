@@ -44,7 +44,7 @@ checkpoint:
     tasks:
       - id: T003
         name: "Add session management"
-        file: src/auth/session.py
+        files: [src/auth/session.py]
     parallel: false
 
   # Deferred issues (medium severity, noted for later)

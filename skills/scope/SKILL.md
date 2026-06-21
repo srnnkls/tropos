@@ -339,6 +339,12 @@ Generate these files:
 
 **Task output = 2 files:** scope.md (lightweight) + tasks.yaml
 
+**Batch signal lives in `tasks.yaml`.** Each task's `depends_on` + `files` fields are the
+source of truth for parallel dispatch, so Task scopes parallelize from `tasks.yaml` alone — no
+`dependencies.yaml` required. `dependencies.yaml` is the Feature/Initiative precomputed DAG
+(a fast-path); when present, executors use its `batches[*]` directly, otherwise they derive
+batches from `tasks.yaml`.
+
 **scope.md frontmatter:**
 
 ```yaml

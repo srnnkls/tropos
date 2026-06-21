@@ -112,7 +112,7 @@ reviewer_report:
   # Issues found, by severity
   issues:
     - task: T001
-      severity: critical | important | minor
+      severity: critical | high | medium
       description: "Clear description of issue"
       suggested_fix: "Actionable suggestion"
       file: path/to/file.py  # optional
@@ -141,8 +141,8 @@ reviewer_report:
 | Severity | Definition | Action |
 |----------|------------|--------|
 | `critical` | Blocks progress, breaks build/tests | Fix immediately |
-| `important` | Affects quality, missing coverage | Fix before next batch |
-| `minor` | Style, naming, improvements | Note for later |
+| `high` | Affects quality, missing coverage | Fix before next batch |
+| `medium` | Style, naming, improvements | Note for later |
 
 ---
 
