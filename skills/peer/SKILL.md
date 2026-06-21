@@ -63,6 +63,8 @@ Fan-out is `peer`'s default action — no subcommand needed. (`peer run -d …` 
 a back-compat alias for the same thing.)
 
 - `-d {outdir}` (required): directory for per-reviewer reports (`{outdir}/{reviewer-id}.yaml`).
+  Callers don't invent this — the review pipeline pins a git-ignored `.reviews/<slug>/`
+  per run (see the review skill's **Report Output Directory**); `issue` pins `.issues/<number>-reviews/`.
 - `--reviewers` (optional): comma-separated reviewer-ids — e.g. !`peer get id gpt` — or aliases (`gpt,gemini`).
   Omit to use every peer-runnable reviewer. `claude-*` entries are skipped with a notice
   (dispatch those as `Task` from the agent).

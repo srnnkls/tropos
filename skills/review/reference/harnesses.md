@@ -73,6 +73,10 @@ Bash(run_in_background=true):                                        # codex + g
   peer -d {role_outdir} --reviewers {external_aliases} --effort {reasoning} "{role_review_prompt}"
 ```
 
+`{role_outdir}` is the per-run review home — `.reviews/<slug>/` (or `.reviews/<slug>/<role>/`
+for multi-role pipelines), pinned by the review skill's **Report Output Directory** section,
+not invented per dispatch.
+
 Read the TSV manifest `peer` prints; pull each `ok` report file, skip stalled/error/auth
 rows (note them as partial results). Full contract — flags, manifest, exit codes — in the
 **[peer skill](../../peer/SKILL.md)**.

@@ -109,6 +109,25 @@ prompt out to all configured external reviewers. **Never shell out to codex/gemi
 directly** — `peer` owns external dispatch. Domain skill defines roles; see
 [reference/harnesses.md](reference/harnesses.md) and the [peer skill](../peer/SKILL.md).
 
+### Report Output Directory
+
+External reports have a fixed home — `peer`'s required `-d {outdir}` is never invented
+ad-hoc. Reports go to a **git-ignored `.reviews/<slug>/`** at the repo root (mirrors the
+`issue` skill's `.issues/<number>-reviews/`), one subdirectory per review run:
+
+| Route | `<slug>` | `{outdir}` |
+|---|---|---|
+| PR | `pr-<number>` | `.reviews/pr-<number>/` |
+| Commit | `commit-<sha7>` | `.reviews/commit-<sha7>/` |
+| Branch diff | `diff-<base>..<target>` (sanitised) | `.reviews/diff-<base>..<target>/` |
+| Uncommitted | `working` | `.reviews/working/` |
+| Path | `path-<basename>` | `.reviews/path-<basename>/` |
+| Scope | `scope-<name>` | `.reviews/scope-<name>/` |
+
+`peer` writes `{outdir}/{reviewer-id}.yaml` per reviewer. The dispatcher `mkdir -p`s the
+slug dir and ensures `.reviews/` is in `.gitignore` (append if absent) before fanning out.
+Multi-role pipelines (`implement`) nest by role: `.reviews/<slug>/<role>/`.
+
 ### Reviewer Selection
 
 Reviewers can be specified three ways, resolved in this order:
