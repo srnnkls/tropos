@@ -6,9 +6,9 @@
 #   codex  - OpenAI Codex CLI (agentic, streams). The shared ChatGPT/Codex backend stalls
 #            mid-request: the client then sits at ~0 CPU emitting NOTHING until a fixed cap.
 #            peer watches the live stream and kills after --idle seconds of silence
-#            (default 120s; a healthy agentic run at high reasoning effort goes quiet for
-#            60-90s during a long tool/reasoning step, so a tighter idle false-kills it -
-#            a true stall is unbounded silence the cap still catches), retries once, skips.
+#            (default: 120s + 1s per 500 chars of prompt, auto-scaled so large prompts get
+#            more first-token headroom; a tighter fixed value false-kills long reasoning
+#            steps; a true stall is unbounded silence the --cap still catches), retries once.
 #   gemini - pi + the @ssweens/pi-vertex provider → Gemini on Vertex AI (ADC auth). Fully
 #            agentic (explores the diff with tools), `--mode json` streams events so the
 #            same idle-watchdog applies. Project/location default to a billed Vertex
@@ -100,13 +100,13 @@ if [[ "$cmd" != codex && "$cmd" != pi ]]; then
     return 0
   fi
   [[ "$cmd" == run ]] && shift
-  local outdir="" reviewers="" effort="" idle=120 cap=600
+  local outdir="" reviewers="" effort="" idle=120 idle_set=0 cap=600
   while (( $# )); do
     case "$1" in
       -d|--out-dir)  outdir="$2"; shift 2 ;;
       --reviewers)   reviewers="$2"; shift 2 ;;
       --effort)      effort="$2"; shift 2 ;;
-      --idle)        idle="$2"; shift 2 ;;
+      --idle)        idle="$2"; idle_set=1; shift 2 ;;
       --cap)         cap="$2"; shift 2 ;;
       --) shift; break ;;
       -*) print -u2 "peer: unknown flag $1"; return 2 ;;
@@ -118,6 +118,7 @@ if [[ "$cmd" != codex && "$cmd" != pi ]]; then
     print -u2 "usage: peer -d OUTDIR [--reviewers id|alias,...] [--effort L] [--idle S] [--cap S] PROMPT"
     return 2
   }
+  (( idle_set )) || { local _auto=$(( 120 + ${#prompt} / 500 )); idle=$(( _auto > cap ? cap : _auto )); }
   _peer_validate "$effort" "$idle" "$cap" || return 2
   mkdir -p "$outdir" || return 2
 
@@ -159,13 +160,13 @@ fi
 
 # --- single harness: codex|pi (also the unit the fan-out dispatches to) ---------------
 local harness="$cmd"; shift
-local effort=high model="" outfile="" idle=120 cap=600
+local effort=high model="" outfile="" idle=120 idle_set=0 cap=600
 while (( $# )); do
   case "$1" in
     -o|--out)   outfile="$2"; shift 2 ;;
     --effort)   effort="$2"; shift 2 ;;
     --model)    model="$2"; shift 2 ;;
-    --idle)     idle="$2"; shift 2 ;;
+    --idle)     idle="$2"; idle_set=1; shift 2 ;;
     --cap)      cap="$2"; shift 2 ;;
     --) shift; break ;;
     -*) print -u2 "peer: unknown flag $1"; return 2 ;;
@@ -178,6 +179,7 @@ local prompt="$*"
   print -u2 "       peer -d OUTDIR [--reviewers ...] PROMPT   (parallel fan-out — the default)"
   return 2
 }
+(( idle_set )) || { local _auto=$(( 120 + ${#prompt} / 500 )); idle=$(( _auto > cap ? cap : _auto )); }
 _peer_validate "$effort" "$idle" "$cap" || return 2
 
 # Vertex config for the pi harness (pi + @ssweens/pi-vertex, ADC auth; override via env).
