@@ -97,6 +97,23 @@ Creates structured tracking documents for complex development tasks.
 
 ---
 
+## Validation Depth (Dispatch Gate)
+
+Ask this once, up front — before the numbered steps. It gates the guided decision questions:
+
+```
+Header: Depth
+Question: How thorough should requirement validation be?
+multiSelect: false
+Options:
+- Guided: Add decision questions — approach selection, strategy & story prioritization, design-alternatives probing (Recommended for Features/Initiatives)
+- Standard: Taxonomy clarification loop only — skip the guided decision questions
+```
+
+Set `guided = true` when **Guided** is selected. Steps marked **[guided]** below run only when `guided = true`; otherwise skip them silently. Guided steps carry additional gates (issue type / opt-in) as noted on each.
+
+---
+
 ## Steps
 
 ### Step 0: Native Plan Context
@@ -196,6 +213,48 @@ Options:
 | Feature | Scope, Behavior, Data Model, Constraints, Edge Cases, Integration, Terminology |
 | Task | Scope, Behavior, Integration |
 
+### Step 3.4: Propose Approaches [guided]
+
+After the validation loop, present concrete options — never proceed on an unstated default:
+
+```
+Header: Approach
+Question: Which approach should we take?
+multiSelect: false
+Options:
+- Approach A: [brief] - Trade-off: [X]
+- Approach B: [brief] - Trade-off: [Y]
+- Approach C: [brief] - Trade-off: [Z]
+```
+
+Lead with your recommendation (mark it). Apply YAGNI ruthlessly — drop options that add cost without clear value. Record the selected approach in `validation.yaml`; seeds the Implementation Strategy / Approach in scope.md.
+
+### Step 3.45: Initiative Strategy & Story Prioritization [guided, Initiatives only]
+
+For Initiatives, probe prioritization and rollout:
+
+```
+Header: User Stories
+Question: How should user stories be prioritized?
+multiSelect: false
+Options:
+- MVP First: P1 delivers standalone value, P2/P3 incremental (Recommended)
+- Parallel Tracks: Stories developed independently by different teams
+- Sequential: Strict dependencies, complete in order
+```
+
+```
+Header: Strategy
+Question: What implementation approach fits best?
+multiSelect: false
+Options:
+- MVP First: Ship P1, iterate on P2/P3 from feedback (Recommended)
+- Incremental: Each phase adds value, all planned upfront
+- Parallel Team: Multiple workstreams, integration points defined
+```
+
+Record selections in `validation.yaml`; they populate the User Stories and Implementation Strategy sections of scope.md.
+
 ### Step 3.5: SDD Section Opt-ins (Features/Initiatives)
 
 ```
@@ -209,6 +268,23 @@ Options:
 - Design: Design document with alternatives, invariants, complexity analysis
 - None: Keep scope lightweight
 ```
+
+### Step 3.55: Design Probing [guided, when Design opt-in selected]
+
+If **Design** was selected in Step 3.5, probe for alternatives context:
+
+```
+Header: Alternatives
+Question: Were other approaches considered before this one?
+multiSelect: false
+Options:
+- Yes, describe: I can list rejected alternatives and why
+- Partially: Some were considered informally
+- No: This is the first approach explored
+- Skip: I'll fill in design.md directly
+```
+
+Record the response in `validation.yaml`; seeds the Alternatives section of `design.md`.
 
 ### Step 3.6: Detect and Extract Code Artifacts
 
