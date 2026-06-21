@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env bash
 # peer - external code-review harness with a canonical model registry, idle-stall
 # detection, and self-parallelising fan-out.
 #
@@ -31,12 +31,11 @@
 #
 # Exit (single harness): 0 report in OUTFILE · 2 usage · 3 auth/missing · 124 failed twice
 # Exit (fan-out):        0 at least one report produced · 1 none · 2 usage
-emulate -L zsh
-setopt localoptions no_monitor no_notify
+set +m
 
 # --- canonical model registry: the single source of truth for reviewer identity ------
-local -a IDS=( codex-gpt5.5 gemini-3.5-flash claude-opus claude-sonnet )
-local -A HARNESS MODEL ALIAS EFFORT NATIVE
+IDS=( codex-gpt5.5 gemini-3.5-flash claude-opus claude-sonnet )
+declare -A HARNESS MODEL ALIAS EFFORT NATIVE
 HARNESS[codex-gpt5.5]=codex;       MODEL[codex-gpt5.5]='gpt-5.5';            ALIAS[codex-gpt5.5]=gpt;        EFFORT[codex-gpt5.5]=high; NATIVE[codex-gpt5.5]=no
 HARNESS[gemini-3.5-flash]=pi;      MODEL[gemini-3.5-flash]='gemini-3.5-flash'; ALIAS[gemini-3.5-flash]=gemini; EFFORT[gemini-3.5-flash]=-;  NATIVE[gemini-3.5-flash]=no
 HARNESS[claude-opus]=claude;     MODEL[claude-opus]='opus';            ALIAS[claude-opus]=opus;      EFFORT[claude-opus]=-;     NATIVE[claude-opus]=yes
@@ -45,47 +44,46 @@ HARNESS[claude-sonnet]=claude;   MODEL[claude-sonnet]='sonnet';        ALIAS[cla
 # resolve an id-or-alias token to a canonical reviewer-id (nonzero if unknown)
 _peer_resolve() {
   local t=$1 id
-  [[ -n ${HARNESS[$t]:-} ]] && { print -r -- "$t"; return 0; }
-  for id in $IDS; do [[ ${ALIAS[$id]} == "$t" ]] && { print -r -- "$id"; return 0; }; done
+  [[ -n ${HARNESS[$t]:-} ]] && { printf '%s\n' "$t"; return 0; }
+  for id in "${IDS[@]}"; do [[ ${ALIAS[$id]} == "$t" ]] && { printf '%s\n' "$id"; return 0; }; done
   return 1
 }
 
 # reject malformed flag values loudly: $1=effort (empty ok) $2=idle $3=cap
 _peer_validate() {
-  case "$1" in ''|low|medium|high) ;; *) print -u2 "peer: invalid --effort '$1' (expected: low, medium, or high)"; return 2 ;; esac
-  [[ "$2" == <1-> ]] || { print -u2 "peer: invalid --idle '$2' (expected a positive integer of seconds)"; return 2; }
-  [[ "$3" == <1-> ]] || { print -u2 "peer: invalid --cap '$3' (expected a positive integer of seconds)"; return 2; }
+  case "$1" in ''|low|medium|high) ;; *) printf '%s\n' "peer: invalid --effort '$1' (expected: low, medium, or high)" >&2; return 2 ;; esac
+  { [[ "$2" =~ ^[0-9]+$ ]] && (( 10#$2 >= 1 )); } || { printf '%s\n' "peer: invalid --idle '$2' (expected a positive integer of seconds)" >&2; return 2; }
+  { [[ "$3" =~ ^[0-9]+$ ]] && (( 10#$3 >= 1 )); } || { printf '%s\n' "peer: invalid --cap '$3' (expected a positive integer of seconds)" >&2; return 2; }
   return 0
 }
 
-local cmd="${1:-}"
+cmd="${1:-}"
 
 # --- peer list -----------------------------------------------------------------------
 if [[ "$cmd" == list ]]; then
   printf '%-22s %-7s %-26s %-7s %s\n' REVIEWER-ID HARNESS MODEL ALIAS RUN-BY-PEER
-  local id runnable
-  for id in $IDS; do
+  for id in "${IDS[@]}"; do
     [[ ${NATIVE[$id]} == yes ]] && runnable='no (agent Task)' || runnable=yes
     printf '%-22s %-7s %-26s %-7s %s\n' "$id" "${HARNESS[$id]}" "${MODEL[$id]}" "${ALIAS[$id]}" "$runnable"
   done
-  return 0
+  exit 0
 fi
 
 # --- peer get: one registry field for a reviewer (id|alias) — for doc injection -------
 if [[ "$cmd" == get ]]; then
   shift
-  local field="${1:-}" tok="${2:-}" gid
-  gid=$(_peer_resolve "$tok") || { print -u2 "peer get: unknown reviewer '$tok'"; return 2; }
+  field="${1:-}"; tok="${2:-}"
+  gid=$(_peer_resolve "$tok") || { printf '%s\n' "peer get: unknown reviewer '$tok'" >&2; exit 2; }
   case "$field" in
-    id)      print -r -- "$gid" ;;
-    model)   print -r -- "${MODEL[$gid]}" ;;
-    harness) print -r -- "${HARNESS[$gid]}" ;;
-    alias)   print -r -- "${ALIAS[$gid]}" ;;
-    effort)  print -r -- "${EFFORT[$gid]}" ;;
-    native)  print -r -- "${NATIVE[$gid]}" ;;
-    *) print -u2 "peer get: unknown field '$field' (id|model|harness|alias|effort|native)"; return 2 ;;
+    id)      printf '%s\n' "$gid" ;;
+    model)   printf '%s\n' "${MODEL[$gid]}" ;;
+    harness) printf '%s\n' "${HARNESS[$gid]}" ;;
+    alias)   printf '%s\n' "${ALIAS[$gid]}" ;;
+    effort)  printf '%s\n' "${EFFORT[$gid]}" ;;
+    native)  printf '%s\n' "${NATIVE[$gid]}" ;;
+    *) printf '%s\n' "peer get: unknown field '$field' (id|model|harness|alias|effort|native)" >&2; exit 2 ;;
   esac
-  return 0
+  exit 0
 fi
 
 # --- parallel fan-out over external harnesses — the DEFAULT action -------------------
@@ -94,13 +92,13 @@ fi
 # are identical.
 if [[ "$cmd" != codex && "$cmd" != pi ]]; then
   if [[ -z "$cmd" ]]; then
-    print -u2 "usage: peer [-d OUTDIR] [--reviewers id|alias,...] [--effort L] [--idle S] [--cap S] PROMPT   (parallel fan-out — default)"
-    print -u2 "       peer <codex|pi> -o OUTFILE [--model M] [...] PROMPT   (single reviewer)"
-    print -u2 "       peer list | peer get <id|model|harness|alias|effort|native> <id|alias>"
-    return 0
+    printf '%s\n' "usage: peer [-d OUTDIR] [--reviewers id|alias,...] [--effort L] [--idle S] [--cap S] PROMPT   (parallel fan-out — default)" >&2
+    printf '%s\n' "       peer <codex|pi> -o OUTFILE [--model M] [...] PROMPT   (single reviewer)" >&2
+    printf '%s\n' "       peer list | peer get <id|model|harness|alias|effort|native> <id|alias>" >&2
+    exit 0
   fi
   [[ "$cmd" == run ]] && shift
-  local outdir="" reviewers="" effort="" idle=120 idle_set=0 cap=600
+  outdir=""; reviewers=""; effort=""; idle=120; idle_set=0; cap=600
   while (( $# )); do
     case "$1" in
       -d|--out-dir)  outdir="$2"; shift 2 ;;
@@ -109,58 +107,52 @@ if [[ "$cmd" != codex && "$cmd" != pi ]]; then
       --idle)        idle="$2"; idle_set=1; shift 2 ;;
       --cap)         cap="$2"; shift 2 ;;
       --) shift; break ;;
-      -*) print -u2 "peer: unknown flag $1"; return 2 ;;
+      -*) printf '%s\n' "peer: unknown flag $1" >&2; exit 2 ;;
       *) break ;;
     esac
   done
-  local prompt="$*"
+  prompt="$*"
   [[ -n "$outdir" && -n "$prompt" ]] || {
-    print -u2 "usage: peer -d OUTDIR [--reviewers id|alias,...] [--effort L] [--idle S] [--cap S] PROMPT"
-    return 2
+    printf '%s\n' "usage: peer -d OUTDIR [--reviewers id|alias,...] [--effort L] [--idle S] [--cap S] PROMPT" >&2
+    exit 2
   }
-  (( idle_set )) || { local _auto=$(( 120 + ${#prompt} / 500 )); idle=$(( _auto > cap ? cap : _auto )); }
-  _peer_validate "$effort" "$idle" "$cap" || return 2
-  mkdir -p "$outdir" || return 2
+  (( idle_set )) || { _auto=$(( 120 + ${#prompt} / 500 )); idle=$(( _auto > cap ? cap : _auto )); }
+  _peer_validate "$effort" "$idle" "$cap" || exit 2
+  mkdir -p "$outdir" || exit 2
 
-  # Declare every loop-local ONCE. A bare `local x` that re-declares an
-  # already-local var prints `x=value` to stdout in zsh — which would corrupt the
-  # manifest below; so no `local` appears inside the loops.
-  local -a want=() ran=()
-  local -A PID
-  local id tok e pid rc st ok=0
+  want=(); ran=(); declare -A PID; ok=0
 
   # default to every external (peer-runnable) reviewer
   if [[ -n "$reviewers" ]]; then
-    want=( ${(s:,:)reviewers} )
+    IFS=',' read -ra want <<< "$reviewers"
   else
-    for id in $IDS; do [[ ${NATIVE[$id]} == no ]] && want+=( "$id" ); done
+    for id in "${IDS[@]}"; do [[ ${NATIVE[$id]} == no ]] && want+=( "$id" ); done
   fi
 
-  for tok in $want; do
-    id=$(_peer_resolve "$tok") || { print -u2 "peer: unknown reviewer '$tok' (see: peer list)"; return 2; }
+  for tok in "${want[@]}"; do
+    id=$(_peer_resolve "$tok") || { printf '%s\n' "peer: unknown reviewer '$tok' (see: peer list)" >&2; exit 2; }
     if [[ ${NATIVE[$id]} == yes ]]; then
-      print -u2 "peer: '$id' is agent-native (Claude Task) — dispatch from the agent, skipping here"
+      printf '%s\n' "peer: '$id' is agent-native (Claude Task) — dispatch from the agent, skipping here" >&2
       continue
     fi
     e="${effort:-${EFFORT[$id]}}"; [[ "$e" == - ]] && e=high
     peer "${HARNESS[$id]}" --model "${MODEL[$id]}" --effort "$e" \
          --idle "$idle" --cap "$cap" -o "$outdir/$id.yaml" "$prompt" &
-    pid=$!                # $! does not expand directly into an assoc element in zsh
-    PID[$id]=$pid
+    PID[$id]=$!
     ran+=( "$id" )
   done
 
-  for id in $ran; do
+  for id in "${ran[@]}"; do
     wait "${PID[$id]}"; rc=$?
     case $rc in 0) st=ok; (( ok++ )) ;; 124) st=stalled ;; 3) st=auth ;; *) st=error ;; esac
     printf '%s\t%s\t%s\n' "$id" "$st" "$outdir/$id.yaml"
   done
-  (( ok > 0 )) && return 0 || return 1
+  (( ok > 0 )) && exit 0 || exit 1
 fi
 
 # --- single harness: codex|pi (also the unit the fan-out dispatches to) ---------------
-local harness="$cmd"; shift
-local effort=high model="" outfile="" idle=120 idle_set=0 cap=600
+harness="$cmd"; shift
+effort=high; model=""; outfile=""; idle=120; idle_set=0; cap=600
 while (( $# )); do
   case "$1" in
     -o|--out)   outfile="$2"; shift 2 ;;
@@ -169,41 +161,38 @@ while (( $# )); do
     --idle)     idle="$2"; idle_set=1; shift 2 ;;
     --cap)      cap="$2"; shift 2 ;;
     --) shift; break ;;
-    -*) print -u2 "peer: unknown flag $1"; return 2 ;;
+    -*) printf '%s\n' "peer: unknown flag $1" >&2; exit 2 ;;
     *) break ;;
   esac
 done
-local prompt="$*"
+prompt="$*"
 [[ -n "$harness" && -n "$outfile" && -n "$prompt" ]] || {
-  print -u2 "usage: peer <codex|pi> -o OUTFILE [--model M] [--effort L] [--idle S] [--cap S] PROMPT"
-  print -u2 "       peer -d OUTDIR [--reviewers ...] PROMPT   (parallel fan-out — the default)"
-  return 2
+  printf '%s\n' "usage: peer <codex|pi> -o OUTFILE [--model M] [--effort L] [--idle S] [--cap S] PROMPT" >&2
+  printf '%s\n' "       peer -d OUTDIR [--reviewers ...] PROMPT   (parallel fan-out — the default)" >&2
+  exit 2
 }
-(( idle_set )) || { local _auto=$(( 120 + ${#prompt} / 500 )); idle=$(( _auto > cap ? cap : _auto )); }
-_peer_validate "$effort" "$idle" "$cap" || return 2
+(( idle_set )) || { _auto=$(( 120 + ${#prompt} / 500 )); idle=$(( _auto > cap ? cap : _auto )); }
+_peer_validate "$effort" "$idle" "$cap" || exit 2
 
 # Vertex config for the pi harness (pi + @ssweens/pi-vertex, ADC auth; override via env).
-local gproj="${PEER_GEMINI_PROJECT:-code17-main}"
-local gloc="${PEER_GEMINI_LOCATION:-global}"   # 3.x flash lives on the global endpoint, not regional
-local bin
+gproj="${PEER_GEMINI_PROJECT:-code17-main}"
+gloc="${PEER_GEMINI_LOCATION:-global}"   # 3.x flash lives on the global endpoint, not regional
 case "$harness" in
   codex)  bin=codex ;;
-  pi)     bin=pi; : ${model:='gemini-3.5-flash'} ;;   # pi-vertex provider → Vertex AI; default model gemini
-  *) print -u2 "peer: unknown harness '$harness' (use codex|pi, or 'list'/'run')"; return 2 ;;
+  pi)     bin=pi; : "${model:=gemini-3.5-flash}" ;;   # pi-vertex provider → Vertex AI; default model gemini
+  *) printf '%s\n' "peer: unknown harness '$harness' (use codex|pi, or 'list'/'run')" >&2; exit 2 ;;
 esac
-command -v "$bin" >/dev/null 2>&1 || { print -u2 "peer: $bin not found"; return 3; }
+command -v "$bin" >/dev/null 2>&1 || { printf '%s\n' "peer: $bin not found" >&2; exit 3; }
 
 # peer communicates via OUTFILE + exit code + stderr; its stdout is not part of the
 # contract. Scope fd1 to /dev/null for the run so no harness/job chatter leaks into a
 # caller that captures our stdout. (A block redirect, not `exec` - `exec` would persist
 # into the calling shell.)
-local attempt fifo log line hpid capper stalled
-local -a a
 {
 for attempt in 1 2; do
   : >| "$outfile"
-  fifo="${TMPDIR:-/tmp}/peer.$$.${outfile:t}.$attempt.$RANDOM"
-  mkfifo "$fifo" 2>/dev/null || { print -u2 "peer: cannot create fifo"; return 1; }
+  fifo="${TMPDIR:-/tmp}/peer.$$.${outfile##*/}.$attempt.$RANDOM"
+  mkfifo "$fifo" 2>/dev/null || { printf '%s\n' "peer: cannot create fifo" >&2; exit 1; }
 
   # Both harnesses are agentic and STREAM into the fifo so the idle watchdog applies.
   # </dev/null is load-bearing: these CLIs read stdin and block forever when it isn't
@@ -246,7 +235,7 @@ for attempt in 1 2; do
   # codex writes the report via -o; pi (--mode json) emits it as the last assistant
   # message's text parts — recover that from the captured stream.
   if [[ "$harness" == pi && $stalled -eq 0 ]]; then
-    print -r -- "$log" | OUTFILE="$outfile" python3 -c '
+    printf '%s\n' "$log" | OUTFILE="$outfile" python3 -c '
 import os,sys,json
 last=None
 for ln in sys.stdin:
@@ -267,18 +256,18 @@ if last:
   # Scanning the stream for auth strings earlier misfires when the model's OWN output
   # quotes them (e.g. reviewing auth-handling code), classifying a clean run as auth.
   if (( stalled == 0 )) && [[ -s "$outfile" ]]; then
-    return 0
+    exit 0
   fi
 
   # No usable report — only now decide auth vs stall. Genuine auth/availability failures
   # (codex OAuth, pi-vertex ADC) produce no report and aren't a transient stall: don't retry.
-  if print -r -- "$log" | grep -qiE 'unauthenticated|permission[_ ]denied|status[^0-9]{0,6}40[13]\b|\b40[13][[:space:]]+(unauthorized|forbidden)|invalid_grant|invalid_rapt|invalid_api_key|incorrect[_ ]api[_ ]key|authentication[_ ](error|failed)|not[_ ]authenticated|refresh_token_invalidated|could not be refreshed|could not[^"]{0,40}credential|application default credentials|reauthenticat|token (has[_ ])?(been[_ ])?(expired|revoked)'; then
-    print -u2 "peer: $harness auth/availability error - re-authenticate (codex login / gcloud auth application-default login)"
-    return 3
+  if printf '%s\n' "$log" | grep -qiE 'unauthenticated|permission[_ ]denied|status[^0-9]{0,6}40[13]\b|\b40[13][[:space:]]+(unauthorized|forbidden)|invalid_grant|invalid_rapt|invalid_api_key|incorrect[_ ]api[_ ]key|authentication[_ ](error|failed)|not[_ ]authenticated|refresh_token_invalidated|could not be refreshed|could not[^"]{0,40}credential|application default credentials|reauthenticat|token (has[_ ])?(been[_ ])?(expired|revoked)'; then
+    printf '%s\n' "peer: $harness auth/availability error - re-authenticate (codex login / gcloud auth application-default login)" >&2
+    exit 3
   fi
-  (( attempt == 1 )) && print -u2 "peer: $harness stalled/failed (no clean report) - retrying once"
+  (( attempt == 1 )) && printf '%s\n' "peer: $harness stalled/failed (no clean report) - retrying once" >&2
 done
 
-print -u2 "peer: $harness failed twice - skip this reviewer"
-return 124
+printf '%s\n' "peer: $harness failed twice - skip this reviewer" >&2
+exit 124
 } >/dev/null

@@ -1,14 +1,14 @@
 ---
 name: peer
 description: |
-  External code-review harness (`peer` zsh tool): canonical model registry, idle-stall watchdog, and self-parallelising fan-out to codex/gemini. Use when dispatching external (non-Claude) reviewers from the review or implement pipelines — call `peer`/`peer <harness>` instead of `codex exec`/`gcloud`+Vertex directly.
+  External code-review harness (`peer` bash tool): canonical model registry, idle-stall watchdog, and self-parallelising fan-out to codex/gemini. Use when dispatching external (non-Claude) reviewers from the review or implement pipelines — call `peer`/`peer <harness>` instead of `codex exec`/`gcloud`+Vertex directly.
 metadata:
   type: generic
 ---
 
 # peer
 
-`peer` ships with this repo at `skills/peer/scripts/peer` (a zsh script with a `#!/usr/bin/env zsh`
+`peer` ships with this repo at `skills/peer/scripts/peer` (a bash script with a `#!/usr/bin/env bash`
 shebang, so it runs from any shell). It is the **only** sanctioned way to invoke the
 external review harnesses from the skills — never call `codex exec` / the Vertex API directly.
 
