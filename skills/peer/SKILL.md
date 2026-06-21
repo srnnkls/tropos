@@ -67,7 +67,10 @@ a back-compat alias for the same thing.)
   Omit to use every peer-runnable reviewer. `claude-*` entries are skipped with a notice
   (dispatch those as `Task` from the agent).
 - `--effort` (optional): `low|medium|high` for codex (gemini ignores it). Defaults per registry.
-- `--idle {s}` / `--cap {s}` (optional): codex silence timeout (default 120) / hard cap (default 600).
+- `--idle {s}` / `--cap {s}` (optional): silence timeout / hard cap (default 600). Idle
+  auto-scales as `base + 1s per 500 prompt chars`; base is harness-specific — codex 120s,
+  pi 180s (gemini-on-Vertex's legitimate mid-generation silence runs longer). An explicit
+  `--idle` overrides the auto-scale for every reviewer.
 
 **Output:** a TSV manifest on stdout, one row per reviewer:
 

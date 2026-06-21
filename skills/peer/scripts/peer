@@ -6,13 +6,18 @@
 #   codex  - OpenAI Codex CLI (agentic, streams). The shared ChatGPT/Codex backend stalls
 #            mid-request: the client then sits at ~0 CPU emitting NOTHING until a fixed cap.
 #            peer watches the live stream and kills after --idle seconds of silence
-#            (default: 120s + 1s per 500 chars of prompt, auto-scaled so large prompts get
-#            more first-token headroom; a tighter fixed value false-kills long reasoning
+#            (default base 120s + 1s per 500 chars of prompt, auto-scaled so large prompts
+#            get more first-token headroom; a tighter fixed value false-kills long reasoning
 #            steps; a true stall is unbounded silence the --cap still catches), retries once.
 #   gemini - pi + the @ssweens/pi-vertex provider → Gemini on Vertex AI (ADC auth). Fully
 #            agentic (explores the diff with tools), `--mode json` streams events so the
-#            same idle-watchdog applies. Project/location default to a billed Vertex
-#            project (override via PEER_GEMINI_PROJECT / PEER_GEMINI_LOCATION); needs
+#            same idle-watchdog applies. BUT gemini-on-Vertex streams thinking/text deltas,
+#            then goes silent for a long stretch (server-side reasoning + report generation)
+#            before emitting the answer — observed ~70s, occasionally past codex's 120s base.
+#            That silence scales with OUTPUT (the report) which the prompt-size auto-scale
+#            can't see, so the pi harness uses a higher idle base (180s) than codex (120s).
+#            Project/location default to a billed Vertex project (override via
+#            PEER_GEMINI_PROJECT / PEER_GEMINI_LOCATION); needs
 #            `gcloud auth application-default login`.
 #
 # The Claude harness is an in-process subagent (Task), dispatchable only by the agent
@@ -116,7 +121,8 @@ if [[ "$cmd" != codex && "$cmd" != pi ]]; then
     printf '%s\n' "usage: peer -d OUTDIR [--reviewers id|alias,...] [--effort L] [--idle S] [--cap S] PROMPT" >&2
     exit 2
   }
-  (( idle_set )) || { _auto=$(( 120 + ${#prompt} / 500 )); idle=$(( _auto > cap ? cap : _auto )); }
+  # No auto-scale here: each child self-scales with its own harness-aware idle base (codex
+  # 120s, pi 180s). A user-supplied --idle is forwarded verbatim to every child below.
   _peer_validate "$effort" "$idle" "$cap" || exit 2
   mkdir -p "$outdir" || exit 2
 
@@ -136,8 +142,9 @@ if [[ "$cmd" != codex && "$cmd" != pi ]]; then
       continue
     fi
     e="${effort:-${EFFORT[$id]}}"; [[ "$e" == - ]] && e=high
+    idle_arg=(); (( idle_set )) && idle_arg=( --idle "$idle" )
     peer "${HARNESS[$id]}" --model "${MODEL[$id]}" --effort "$e" \
-         --idle "$idle" --cap "$cap" -o "$outdir/$id.yaml" "$prompt" &
+         "${idle_arg[@]}" --cap "$cap" -o "$outdir/$id.yaml" "$prompt" &
     PID[$id]=$!
     ran+=( "$id" )
   done
@@ -171,7 +178,9 @@ prompt="$*"
   printf '%s\n' "       peer -d OUTDIR [--reviewers ...] PROMPT   (parallel fan-out — the default)" >&2
   exit 2
 }
-(( idle_set )) || { _auto=$(( 120 + ${#prompt} / 500 )); idle=$(( _auto > cap ? cap : _auto )); }
+# Idle base is harness-specific: gemini-on-Vertex's legitimate mid-generation silence runs
+# longer than codex's, so pi gets 180s vs codex's 120s before the prompt-size scaling.
+(( idle_set )) || { _base=$([[ "$harness" == pi ]] && printf 180 || printf 120); _auto=$(( _base + ${#prompt} / 500 )); idle=$(( _auto > cap ? cap : _auto )); }
 _peer_validate "$effort" "$idle" "$cap" || exit 2
 
 # Vertex config for the pi harness (pi + @ssweens/pi-vertex, ADC auth; override via env).
