@@ -20,7 +20,7 @@ Current branch:
 Routes to the appropriate operation based on argument or context.
 
 > **Protocol:** [dispatch/protocol.md](../dispatch/protocol.md)
-> **Reference:** See [reference/review.md](reference/review.md) for review workflow, [reference/update.md](reference/update.md) for update workflow, [reference/operations.md](reference/operations.md) for done/list.
+> **Reference:** See [reference/review.md](reference/review.md) for review workflow, [reference/update.md](reference/update.md) for update workflow, [reference/operations.md](reference/operations.md) for done/list, [reference/issue.md](reference/issue.md) for publishing a scope as a GitHub issue tree.
 
 ---
 
@@ -31,6 +31,7 @@ Parse `$ARGUMENTS` in order:
 | Pattern | Route | Action |
 |---|---|---|
 | `review [name]` | Review | Multi-agent review, produce review.yaml |
+| `issue [name]` | Issue | Publish the scope as a GitHub issue tree via the `issue` skill — see [reference/issue.md](reference/issue.md) |
 | `update [name]` | Update | Sync tasks.yaml status from git history |
 | `done [name]` | Complete | Set status to `done` |
 | `list` | List | Show all scopes with status |
@@ -52,6 +53,7 @@ multiSelect: false
 Options:
 - Create: Define a new scope with requirements and tasks
 - Review: Multi-agent scope review with parallel reviewers
+- Issue: Publish the scope as a GitHub issue tree
 - Update: Sync task status from git history
 - List: Show all scopes with status
 ```
@@ -60,6 +62,7 @@ Options:
 |---|---|
 | Create | Run creation workflow below |
 | Review | See [reference/review.md](reference/review.md) |
+| Issue | See [reference/issue.md](reference/issue.md) |
 | Update | See [reference/update.md](reference/update.md) |
 | List | See [reference/operations.md](reference/operations.md) |
 
