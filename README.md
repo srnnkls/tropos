@@ -30,7 +30,6 @@ Supporting principles:
 ## Plugins
 
 - *[skills](skills/)* — Scope pipeline, code quality, task execution
-- *[commands](commands/)* — Shortcuts for common workflows
 - *[agents](agents/)* — Implementer, reviewer, tester
 
 ## Development

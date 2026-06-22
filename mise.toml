@@ -1,6 +1,3 @@
-[task_config]
-includes = ["mise/tasks"]
-
 [tasks.loqui-link]
 description = "Symlink skills/loqui/reference/loqui to a local loqui checkout"
 usage = '''
@@ -81,10 +78,6 @@ DEST="$HOME/.local/bin/peer"
 mkdir -p "$HOME/.local/bin"
 ln -sf "$SRC" "$DEST"
 echo "installed: $DEST -> $SRC"
-
-# When peer becomes a compiled binary, replace the symlink above with a build, e.g.:
-#   go build -o "$DEST" "$GIT_ROOT/cmd/peer"
-# Same PATH target and `peer` CLI — nothing downstream changes.
 """
 
 [tasks.install-issue]
@@ -100,65 +93,4 @@ DEST="$HOME/.local/bin/issue"
 mkdir -p "$HOME/.local/bin"
 ln -sf "$SRC" "$DEST"
 echo "installed: $DEST -> $SRC"
-"""
-
-[tasks.bootstrap]
-description = "Create worktree for a branch, build image, and install tools"
-usage = '''
-arg "<branch>" help="Git branch to checkout in a worktree"
-'''
-run = """
-#!/usr/bin/env bash
-set -euo pipefail
-
-BRANCH="${usage_branch}"
-GIT_ROOT="$(git rev-parse --show-toplevel)"
-WORKTREE="${GIT_ROOT}/.worktrees/${BRANCH}"
-COMPOSE_FILE="${GIT_ROOT}/docker/compose.yml"
-
-if [[ ! -d "$WORKTREE" ]]; then
-  git worktree add "$WORKTREE" "$BRANCH"
-fi
-
-docker compose --file "$COMPOSE_FILE" build
-docker compose --file "$COMPOSE_FILE" run --rm bootstrap
-"""
-
-[tasks.claude]
-description = "Run claude in an isolated container (one-shot by default, --loop for autonomous mode)"
-usage = '''
-flag "-l --loop" help="Prefix prompt with /loop to run the autonomous loop skill"
-flag "-H --headless" help="Run detached (no output stream)"
-flag "-b --branch <branch>" help="Use worktree for this branch (requires prior bootstrap)"
-arg "<prompt>" help="Prompt to pass to claude" var
-'''
-run = """
-#!/usr/bin/env bash
-set -euo pipefail
-
-GIT_ROOT="$(git rev-parse --show-toplevel)"
-
-if [[ -n "${usage_branch:-}" ]]; then
-  WORKSPACE="${GIT_ROOT}/.worktrees/${usage_branch}"
-  if [[ ! -d "$WORKSPACE" ]]; then
-    git worktree add "$WORKSPACE" "${usage_branch}"
-  fi
-else
-  WORKSPACE="$(pwd)"
-fi
-
-if [[ "${usage_loop:-false}" == "true" ]]; then
-  PROMPT="/loop ${usage_prompt}"
-else
-  PROMPT="${usage_prompt}"
-fi
-
-COMPOSE=(docker compose --file "${GIT_ROOT}/docker/compose.yml" run --rm)
-
-if [[ "${usage_headless:-false}" == "true" ]]; then
-  COMPOSE+=(--detach)
-  WORKSPACE="$WORKSPACE" "${COMPOSE[@]}" claude --print "${PROMPT}"
-else
-  WORKSPACE="$WORKSPACE" "${COMPOSE[@]}" claude "${PROMPT}"
-fi
 """

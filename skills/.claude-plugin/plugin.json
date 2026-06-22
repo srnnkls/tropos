@@ -1,7 +1,0 @@
-{
-  "name": "skills",
-  "version": "1.0.0",
-  "description": "Skills for scope-driven development",
-  "author": {"name": "srnnkls"},
-  "skills": "./"
-}
