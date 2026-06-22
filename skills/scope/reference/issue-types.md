@@ -149,13 +149,3 @@ For when the user isn't sure of the scope yet. Gathers context first, then trans
 | validation.yaml | Full | Full | Skip |
 | dependencies.yaml | Full DAG | Phase-based | Skip |
 
-**Task output = 2 files:** scope.md (lightweight) + tasks.yaml
-
-Skipping `dependencies.yaml` does **not** disable parallelism: the batch signal lives in
-`tasks.yaml` (`depends_on` + `files` per task), so Task scopes still fan out. `dependencies.yaml`
-is only a precomputed DAG fast-path for Feature/Initiative.
-
-**Rationale:**
-- Initiatives need maximum rigor (strategic, long-running)
-- Features balance rigor with velocity (opt-in SDD sections)
-- Tasks prioritize speed (KISS, 2 files only)

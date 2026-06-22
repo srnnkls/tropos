@@ -88,7 +88,7 @@ allowed-tools:
   - Bash
 ```
 
-Use YAML list syntax for cleaner declarations.
+Use YAML list syntax.
 
 ---
 
@@ -190,11 +190,6 @@ Follow the scope skill workflow.
 
 > **See**: `.claude/skills/scope/SKILL.md`
 ```
-
-**Benefits:**
-- Commands are thin wrappers
-- Skills contain all logic
-- Reusable across contexts
 
 ---
 

@@ -130,8 +130,6 @@ Before research, check for existing context from Claude's native `/plan`:
    - Open questions → priority clarification targets in Step 3
 3. **If absent:** Proceed to Step 1.
 
-This step bridges native planning with structured validation so the user isn't asked to re-state what `/plan` already established.
-
 ### Step 1: Research
 
 Run `gestalt map`, read key files, understand current state. Research comes FIRST — before asking questions.
@@ -159,11 +157,7 @@ This determines:
 
 ### Step 3: Validation (Human-in-the-Loop)
 
-Present findings and ask focused questions. Every question must:
-
-- **Provide context:** What was found, what is thought, what is uncertain
-- **Make tradeoffs explicit:** "We could do A (faster) or B (cleaner). A fits because X, but B if Y."
-- **Never ask without context:** Always "Based on [findings], I recommend [X] over [Y] because [Z]. Does this match your intent?"
+Present findings and ask focused questions. Every question must provide context (what was found, what is uncertain), make tradeoffs explicit, and never ask without a recommendation: "Based on [findings], I recommend [X] over [Y] because [Z]. Does this match your intent?"
 
 **Ambiguity scan:** For each taxonomy area (based on issue type), evaluate status and record in `validation.yaml` under `ambiguity_scan`:
 
@@ -184,7 +178,7 @@ Per-area evaluation criteria:
 | Terminology | Domain terms defined consistently | Some ambiguous terms | No definitions |
 
 Routing:
-- **All clear:** Skip the validation loop, proceed silently to Step 3.5.
+- **All clear:** Skip the validation loop, proceed to Step 3.5.
 - **Gaps found:** Areas with `partial` or `missing` status become priority candidates, ordered by (Impact × Uncertainty).
 
 **Constitution check (Initiatives only):** Read `.claude/constitution.md`; flag conflicts and ask user to resolve or document exception. Skip for Features/Tasks.
@@ -230,7 +224,7 @@ Options:
 - Approach C: [brief] - Trade-off: [Z]
 ```
 
-Lead with your recommendation (mark it). Apply YAGNI ruthlessly — drop options that add cost without clear value. Record the selected approach in `validation.yaml`; seeds the Implementation Strategy / Approach in scope.md.
+Lead with your recommendation (mark it). Drop options that add cost without clear value. Record the selected approach in `validation.yaml`; seeds the Implementation Strategy / Approach in scope.md.
 
 ### Step 3.45: Initiative Strategy & Story Prioritization [guided, Initiatives only]
 
@@ -342,11 +336,7 @@ Generate these files:
 
 **Task output = 2 files:** scope.md (lightweight) + tasks.yaml
 
-**Batch signal lives in `tasks.yaml`.** Each task's `depends_on` + `files` fields are the
-source of truth for parallel dispatch, so Task scopes parallelize from `tasks.yaml` alone — no
-`dependencies.yaml` required. `dependencies.yaml` is the Feature/Initiative precomputed DAG
-(a fast-path); when present, executors use its `batches[*]` directly, otherwise they derive
-batches from `tasks.yaml`.
+**Batch signal lives in `tasks.yaml`.** Each task's `depends_on` + `files` fields drive parallel dispatch — Task scopes parallelize from `tasks.yaml` alone. `dependencies.yaml` is the Feature/Initiative precomputed DAG; when present, executors use its `batches[*]` directly, otherwise they derive batches from `tasks.yaml`.
 
 **scope.md frontmatter:**
 
@@ -369,7 +359,7 @@ issue_type: [Initiative|Feature|Task]
 | Tech Decisions | Include | Opt-in | Skip |
 | Data Model | Include | Opt-in | Skip |
 
-**design.md trigger:** Created when Design opt-in selected. All sections optional — include only what adds value.
+**design.md trigger:** Created when Design opt-in selected.
 
 > **Reference:** See [reference/quality-model.md](reference/quality-model.md) for design document quality patterns.
 

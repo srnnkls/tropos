@@ -1,16 +1,16 @@
 # Architecture Reviewer Role
 
-Structural analysis reviewer using gestalt code intelligence. Runs on any harness (Claude, or an external reviewer via the peer skill).
+Structural analysis reviewer using gestalt code intelligence.
 
 ---
 
 ## Characteristics
 
-- **Structure-aware:** Uses gestalt to analyze call graphs, coupling, and hotspots
-- **Impact-focused:** Evaluates how changes propagate through the dependency graph
-- **Metric-driven:** Reports on coupling, centrality, cycle introduction, seam violations
-- **Tool-intensive:** Runs multiple gestalt commands to build a structural picture
-- **Harness-agnostic:** Works on Claude (native subagent) and external reviewers (codex/gemini via peer) — both have full tool access
+- Uses gestalt to analyze call graphs, coupling, and hotspots
+- Evaluates how changes propagate through the dependency graph
+- Reports on coupling, centrality, cycle introduction, seam violations
+- Runs multiple gestalt commands to build a structural picture
+- Works on Claude (native subagent) and external reviewers (codex/gemini via peer) — both have full tool access
 
 ---
 
@@ -41,7 +41,7 @@ Structural analysis reviewer using gestalt code intelligence. Runs on any harnes
 
 ## Gestalt Commands
 
-The reviewer runs these commands (at minimum):
+The reviewer runs these commands:
 
 ```bash
 gestalt analyze                         # Current architecture: hotspots, seams, coupling
@@ -58,12 +58,3 @@ gestalt refs <symbol>                   # All references to a changed symbol
 gestalt rank --file <changed-file>      # Centrality of symbols in changed files
 ```
 
----
-
-## Expected Behavior
-
-- Runs `gestalt analyze` and `gestalt diff` before reviewing code
-- Uses callers/callees/refs to investigate suspicious patterns
-- Reports structural metrics alongside standard gate assessment
-- Focuses exclusively on architecture and structural concerns
-- Defers correctness/security/style to other reviewers

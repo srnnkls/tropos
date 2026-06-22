@@ -101,37 +101,23 @@ synthesized_report:
 
 ## Gate Status Values
 
-| Status | Meaning |
-|--------|---------|
-| `pass` | No issues found for this gate |
-| `fail` | One or more issues found |
+`pass` | `fail`
 
 ---
 
 ## Issue Severity
 
-| Severity | Definition | Action |
-|----------|------------|--------|
-| `critical` | Bugs, security issues, data corruption | Must fix before merge |
-| `high` | Significant issues, unclear behavior | Should fix before merge |
-| `medium` | Style issues, minor improvements | Can merge, follow-up |
+| Severity | Definition |
+|----------|------------|
+| `critical` | Bugs, security issues, data corruption — must fix before merge |
+| `high` | Significant issues, unclear behavior — should fix before merge |
+| `medium` | Style issues, minor improvements — can merge, follow-up |
 
 ---
 
 ## Issue Areas
 
-| Area | Covers |
-|------|--------|
-| `logic` | Control flow, algorithms, conditionals |
-| `error_handling` | Exceptions, error states, recovery |
-| `type_safety` | Type correctness, nullability |
-| `naming` | Variable, function, class names |
-| `formatting` | Code layout, indentation, spacing |
-| `efficiency` | Time/space complexity, caching |
-| `validation` | Input checking, sanitization |
-| `secrets` | Credentials, keys, tokens |
-| `coupling` | Dependencies, interfaces |
-| `testing` | Test coverage, testability |
+`logic` | `error_handling` | `type_safety` | `naming` | `formatting` | `efficiency` | `validation` | `secrets` | `coupling` | `testing`
 
 ---
 

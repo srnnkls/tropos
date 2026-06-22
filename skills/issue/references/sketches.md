@@ -1,18 +1,19 @@
 # Implementation sketches — patterns
 
-Guidance for the code that appears in `# Implementation plan`. Sketches are illustrative, not literal — they bind **shape** (signatures, module structure, error flow), not bodies.
+Guidance for the code that appears in `# Implementation plan`. Sketches are illustrative, not literal — they bind shape (signatures, module structure, error flow), not bodies.
 
 ## The one rule: match the repo
 
-A sketch must read as if someone fluent in *this* codebase wrote it. Before sketching, learn the repo's idioms (`gestalt map`/`analyze`, `/loqui`, `CLAUDE.md`/`AGENTS.md`, a couple of neighbouring modules) and mirror them — naming grammar, error handling, how modules expose their public surface, how dependencies are wired. **Do not import a pattern the codebase doesn't already use.** A sketch that imposes a foreign stack is a blocking finding at the review gate.
+A sketch must read as if someone fluent in this codebase wrote it. Before sketching, learn the repo's idioms (`gestalt map`/`analyze`, `/loqui`, `CLAUDE.md`/`AGENTS.md`, a couple of neighbouring modules) and mirror them — naming grammar, error handling, how modules expose their public surface, how dependencies are wired. Do not import a pattern the codebase doesn't already use.
 
 ## What a sketch shows
 
-- **Public surface first.** The signatures a caller sees — function/method/endpoint shapes with their input and output types — before any internals.
-- **Then internals.** The main flow or algorithm, in the repo's idiom (its loop/iteration constructs, its composition style). Phase-by-phase comments are fine; keep them to one line each.
-- **Then types.** The domain types and identifiers introduced, in the repo's type vocabulary.
-- **Then errors.** The failure modes and how they surface at the boundary, following the repo's error convention.
-- **Then wiring.** How the piece is constructed and its dependencies are supplied — at the repo's composition root, not scattered through call sites.
+Order:
+1. Public surface — the signatures a caller sees (function/method/endpoint shapes with their input and output types) before any internals.
+2. Internals — the main flow or algorithm, in the repo's idiom (its loop/iteration constructs, its composition style). Phase-by-phase comments are fine; keep them to one line each.
+3. Types — the domain types and identifiers introduced, in the repo's type vocabulary.
+4. Errors — the failure modes and how they surface at the boundary, following the repo's error convention.
+5. Wiring — how the piece is constructed and its dependencies are supplied, at the repo's composition root.
 
 Show signatures and shapes, never full bodies. The implementer writes the bodies.
 

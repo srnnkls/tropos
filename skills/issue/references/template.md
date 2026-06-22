@@ -1,8 +1,8 @@
 # Issue template
 
-Structural shape only. Section names, ordering, heading levels, and what each section is for. No domain-specific content — drop in the actual subject matter at draft time.
+Section names, ordering, heading levels, and what each section is for.
 
-Issue body sections use **first-level (`#`) headings**, with `##` / `###` for nested subsections.
+Issue body sections use first-level (`#`) headings, with `##` / `###` for nested subsections.
 
 ## Title
 
@@ -18,7 +18,7 @@ Issue body sections use **first-level (`#`) headings**, with `##` / `###` for ne
 
 One paragraph stating what the issue produces and why.
 
-Parent, depends-on, and blocks relationships live on GitHub's native metadata — set them via the skill's GraphQL mutations (`updateIssueIssueType`, `addSubIssue`, `addBlockedBy`) and let GitHub render them in the sidebar and sub-issue tree. The body stays focused on Goal / Implementation plan / Definition of done.
+Parent, depends-on, and blocks relationships live on GitHub's native metadata — set them via the skill's GraphQL mutations (`updateIssueIssueType`, `addSubIssue`, `addBlockedBy`). The body stays focused on Goal / Implementation plan / Definition of done.
 
 ### `# Context` (optional)
 
@@ -59,7 +59,7 @@ For trivial issues, replace with a `# Plan` paragraph or omit.
 
 ### `# Constraints` (when design rules bind the implementer)
 
-Bullet list of design rules. These bind the implementer — not suggestions. Reference the project's relevant conventions or prior decisions where they apply.
+Bullet list of design rules that bind the implementer. Reference the project's relevant conventions or prior decisions where they apply.
 
 ### `# What landed where` (optional)
 
@@ -79,9 +79,9 @@ GitHub-task-list checkboxes (`- [ ]`). Each item testable and binary. End with t
 |---|---|---|
 | Architecture-level Feature (new module / new service) | Goal, Layout, Implementation plan, Definition of done | Context, Constraints, What landed where, Follow-up |
 | Architecture-level refactor (module boundary restructure) | Goal, Layout, Implementation plan, Definition of done | Context (usually yes), Constraints, What landed where |
-| Non-architecture Feature / Task (behavior change inside an existing module) | Goal, Implementation plan, Definition of done | Context, Constraints, Follow-up — **no Layout** |
-| Bug fix | Goal, Definition of done | Context (repro), Implementation plan (if non-obvious) — **no Layout** |
-| Doc / tooling tweak | Goal, Definition of done | Implementation plan — **no Layout** |
+| Non-architecture Feature / Task (behavior change inside an existing module) | Goal, Implementation plan, Definition of done | Context, Constraints, Follow-up — no Layout |
+| Bug fix | Goal, Definition of done | Context (repro), Implementation plan (if non-obvious) — no Layout |
+| Doc / tooling tweak | Goal, Definition of done | Implementation plan — no Layout |
 
 ## Header conventions
 
@@ -100,4 +100,4 @@ GitHub-task-list checkboxes (`- [ ]`). Each item testable and binary. End with t
 
 ## Reference issues
 
-For tone and section content, fetch live exemplars with `gh issue view <n>`. Read them for shape, not heading level (issues authored before the convention shift to `#` use `##`).
+For tone and section content, fetch live exemplars with `gh issue view <n>`. Issues authored before the convention shift to `#` use `##` — read them for shape, not heading level.

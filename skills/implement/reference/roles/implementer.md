@@ -6,10 +6,6 @@ Make failing tests pass (GREEN phase of TDD).
 
 `subagent_type: "task-implementer"`
 
-## Purpose
-
-The implementer receives failing tests from the tester and writes minimal code to make them pass.
-
 ## Skills to Invoke
 
 **First action:** Read `./skills/loqui/reference/loqui/languages/{lang}/README.md` for language-specific guidelines.
@@ -106,14 +102,6 @@ implementer_report:
     Possible resolution:
     - [suggestion]
 ```
-
-## Quality Criteria
-
-Implementation is good when:
-- All tests pass (GREEN)
-- Code is minimal (no extra features)
-- Follows language guidelines from implement
-- Clear naming and structure
 
 ## Example
 

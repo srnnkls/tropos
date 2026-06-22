@@ -10,7 +10,7 @@ metadata:
 
 Orchestrate multi-perspective debates on a topic using color-coded team subagents.
 
-> **Reference**: See [reference.md](reference.md) for moderation guidelines and intervention patterns.
+> Reference: See [reference.md](reference.md) for moderation guidelines and intervention patterns.
 
 ---
 
@@ -34,9 +34,9 @@ Orchestrate multi-perspective debates on a topic using color-coded team subagent
 
 ### Step 2: Configure Teams
 
-Use **AskUserQuestion** to gather team configuration:
+Use `AskUserQuestion` to gather team configuration:
 
-**Question 1: Optional Teams (multiSelect: true)**
+Question 1: Optional Teams (multiSelect: true)
 ```
 Which additional teams should participate beyond Red and Blue?
 - None: Just Red and Blue
@@ -45,23 +45,23 @@ Which additional teams should participate beyond Red and Blue?
 - Purple Team: Synthesis/integration bridge
 ```
 
-**Question 2: Red Team Stance**
+Question 2: Red Team Stance
 ```
 What position should Red Team (challenger/skeptic) argue?
 ```
 
-**Question 3: Blue Team Stance**
+Question 3: Blue Team Stance
 ```
 What position should Blue Team (defender/advocate) argue?
 ```
 
-**Questions 4-6: Additional team stances** (if selected)
+Questions 4-6: Additional team stances (if selected)
 
 Write all stances to the scratchpad's Team Positions section.
 
 ### Step 3: Spawn Opening Arguments (Parallel)
 
-Launch all team subagents **simultaneously** using the Task tool:
+Launch all team subagents simultaneously using the Task tool:
 
 ```
 Task(subagent_type="general", prompt="""
@@ -99,20 +99,20 @@ For deep research questions, spawn focused subagents:
 
 After subagents complete, the main agent:
 
-1. **Read scratchpad** and summarize key points to user
-2. **Assess debate health:**
+1. Read scratchpad and summarize key points to user
+2. Assess debate health:
    - Progress: Are teams making new points?
    - Balance: Is one team dominating?
    - Relevance: Staying on topic?
    - Depth: Avoiding superficial arguments?
 
-3. **Intervene if needed** - write to Moderator Notes section:
+3. Intervene if needed - write to Moderator Notes section:
    - `[MODERATOR] Stuck:` "Team X, consider addressing Y"
    - `[MODERATOR] Tunnel:` "Team X, you've repeated Z"
    - `[MODERATOR] Astray:` "Refocus on core question"
    - `[MODERATOR] Disconnected:` "Team X, respond to Team Y's point"
 
-4. **Ask user** for next action:
+4. Ask user for next action:
    - "Advance to rebuttals?"
    - "Request synthesis round?"
    - "Conclude debate?"
@@ -135,10 +135,10 @@ If requested, spawn Purple Team (or all teams) to find:
 ### Step 7: Conclude Debate
 
 Main agent writes Conclusion section:
-- **Summary:** Key positions from each team
-- **Agreements:** Points of consensus
-- **Disagreements:** Unresolved tensions
-- **Recommendations:** Suggested path forward (if applicable)
+- Summary: Key positions from each team
+- Agreements: Points of consensus
+- Disagreements: Unresolved tensions
+- Recommendations: Suggested path forward (if applicable)
 
 Update scratchpad status to "Completed".
 
@@ -162,18 +162,8 @@ Update scratchpad status to "Completed".
 
 ## Integration
 
-**Command:** `/debate {topic}`
+Command: `/debate {topic}`
 
-**Related:**
+Related:
 - Tools: Task (subagents), AskUserQuestion (configuration), Edit (scratchpad)
 - Pattern: Document-centric coordination via shared scratchpad
-
----
-
-## Reference
-
-See [reference.md](reference.md) for:
-- Team perspective definitions
-- Intervention decision tree
-- Example debate flows
-- Common failure modes

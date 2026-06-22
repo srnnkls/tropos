@@ -84,9 +84,9 @@ Remaining tokens after flag extraction are ignored.
 
 ### 2. Resolve Issue Number and Base Branch
 
-- **Issue number:** Use `--issue <n>` if provided; otherwise use the issue number from pre-loaded context (branch name prefix). If neither yields a number, `ISSUE_NUM` is empty.
-- **Base branch:** Use `--base <branch>` if provided; otherwise use the default branch from pre-loaded context.
-- **Issue metadata:** Already available in pre-loaded context — no additional `gh` call needed unless `--issue` overrides the detected number.
+- Issue number: Use `--issue <n>` if provided; otherwise use the issue number from pre-loaded context (branch name prefix). If neither yields a number, `ISSUE_NUM` is empty.
+- Base branch: Use `--base <branch>` if provided; otherwise use the default branch from pre-loaded context.
+- Issue metadata: Already available in pre-loaded context — no additional `gh` call needed unless `--issue` overrides the detected number.
 
 If `--issue` overrides the branch-detected number, fetch the new issue's title and body:
 
@@ -102,7 +102,7 @@ All PR titles MUST follow conventional commit format:
 <type>(<scope>): <description> (#<ISSUE_NUM>)
 ```
 
-**`<type>`** — pick from the dominant commit type in pre-loaded context; fall back to this label→type mapping:
+`<type>` — pick from the dominant commit type in pre-loaded context; fall back to this label→type mapping:
 
 | Issue label | Type |
 |-------------|------|
@@ -115,11 +115,11 @@ All PR titles MUST follow conventional commit format:
 | `test` | `test` |
 | No label / unknown | `feat` |
 
-**`(<scope>)`** — optional but preferred. Derive from the most specific noun in the issue title (e.g. `RfcSchema — back call()…` → `rfcschema`; `Cache TTL expiry` → `cache`). Lowercase, no spaces.
+`(<scope>)` — optional but preferred. Derive from the most specific noun in the issue title (e.g. `RfcSchema — back call()…` → `rfcschema`; `Cache TTL expiry` → `cache`). Lowercase, no spaces.
 
-**`<description>`** — imperative, lowercase, no period. Strip the issue number and type prefix if already present in the issue title. Keep under 60 characters after type+scope.
+`<description>` — imperative, lowercase, no period. Strip the issue number and type prefix if already present in the issue title. Keep under 60 characters after type+scope.
 
-**`(#<ISSUE_NUM>)`** — append when an issue is linked; omit otherwise.
+`(#<ISSUE_NUM>)` — append when an issue is linked; omit otherwise.
 
 Priority:
 1. `--title <text>` if provided — still MUST be conventional commit format; validate and warn if not
@@ -130,7 +130,7 @@ Total title length: ≤ 72 characters. Truncate description if needed (never tru
 
 ### 4. Build PR Body
 
-**With issue linked:**
+With issue linked:
 
 ```
 ## Summary
@@ -140,9 +140,9 @@ Total title length: ≤ 72 characters. Truncate description if needed (never tru
 Closes #<ISSUE_NUM>
 ```
 
-Use the issue body already present in pre-loaded context. Trim to the first meaningful paragraph or first 5 bullets if the body is long.
+Use the issue body already present in pre-loaded context. Trim to the first paragraph or first 5 bullets.
 
-**Without issue:**
+Without issue:
 
 ```
 ## Summary
@@ -168,7 +168,7 @@ Do NOT create a duplicate PR.
 
 ### 7. Create PR
 
-**If `--state draft` (default):**
+If `--state draft` (default):
 
 ```bash
 gh pr create \
@@ -181,7 +181,7 @@ EOF
   --base <BASE>
 ```
 
-**If `--state open`:**
+If `--state open`:
 
 ```bash
 gh pr create \

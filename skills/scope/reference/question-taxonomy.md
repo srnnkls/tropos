@@ -84,16 +84,6 @@ Question: How should export handle invalid data?
 }
 ```
 
-**When to recommend:**
-- Clear codebase precedent exists
-- Industry standard practice applies
-- One option significantly reduces complexity
-
-**When NOT to recommend:**
-- Options are equally valid trade-offs
-- User context determines best choice
-- No clear advantage to any option
-
 ---
 
 ## Scope
@@ -403,8 +393,6 @@ When selecting which taxonomy area to ask about next:
 3. Medium Impact × High Uncertainty (6) → Ask second
 4. Lower scores → Ask if questions remain
 
-**Note:** Design is opt-in triggered (Step 3.6), not part of the standard priority scan. Design questions are only asked when the user selects the Design SDD section.
-
 **Stop conditions:**
 - All taxonomy areas covered
 - User signals "enough clarification"
@@ -423,9 +411,3 @@ After receiving answers, re-evaluate pending questions before the next batch:
 - If custom answer spans multiple areas, add follow-up clarification to next batch
 - Keep follow-ups focused on the specific ambiguity
 
-**Example re-evaluation:**
-```
-Batch 1 (Scope): User answers "MVP only - no advanced features"
-→ Re-evaluate: Skip questions about advanced feature edge cases
-→ Batch 2 (Behavior): Only ask about core behavior, not advanced scenarios
-```

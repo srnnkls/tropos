@@ -68,8 +68,6 @@ git absorb                        # Auto-create fixup commits
 git rebase -i --autosquash main   # Fold them in
 ```
 
-`absorb` analyzes blame to determine which commit introduced each changed line, then creates the appropriate `--fixup` commits automatically.
-
 ## Inspecting History
 
 ```bash
@@ -104,8 +102,6 @@ git switch main
 git merge --squash feat/auth
 git commit                        # Single commit with all changes
 ```
-
-Produces linear history on main. Each merge = one logical unit.
 
 ### When to squash vs. regular merge
 
@@ -149,4 +145,4 @@ git reflog                        # Find the SHA
 git switch -c recovered <sha>     # Recreate
 ```
 
-Reflog entries expire after 90 days (default). For critical work, act sooner.
+Reflog entries expire after 90 days (default).

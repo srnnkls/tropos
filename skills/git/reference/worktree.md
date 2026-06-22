@@ -3,9 +3,7 @@
 Existing worktrees:
 !`git worktree list 2>/dev/null`
 
-Git worktrees create isolated workspaces sharing the same repository.
-
-**Core principle:** Systematic directory selection + safety verification = reliable isolation.
+Git worktrees create isolated workspaces sharing the same repository. Systematic directory selection + safety verification = reliable isolation.
 
 ---
 
@@ -71,8 +69,6 @@ grep -q "^\.worktrees/$" .gitignore || grep -q "^worktrees/$" .gitignore
 1. Add appropriate line to .gitignore
 2. Commit the change
 3. Proceed with worktree creation
-
-**Why critical:** Prevents accidentally committing worktree contents.
 
 ### For Global Directory
 
@@ -173,6 +169,4 @@ Ready to implement <feature-name>
 ## Integration
 
 **Use with:**
-- `brainstorm` - After design approval, set up workspace
 - `implement` - Work happens in this worktree
-- `completion-verify` - Verify baseline before and after

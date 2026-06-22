@@ -2,11 +2,11 @@
 
 ## Branching from Main vs. Cascading
 
-**Independent work:** Branch from `main`. No rebase coordination needed.
+*Independent work:* Branch from `main`. No rebase coordination needed.
 
-**Dependent work:** Cascade from the branch you depend on. Accept the rebase tax.
+*Dependent work:* Cascade from the branch you depend on. Accept the rebase tax.
 
-**The rebase tax:** Every time an upstream branch's ref changes (force-push during review, squash merge into main), all downstream branches need `rebase --onto`.
+*The rebase tax:* Every time an upstream branch's ref changes (force-push during review, squash merge into main), all downstream branches need `rebase --onto`.
 
 ## Cascading Workflow
 
@@ -81,8 +81,6 @@ The command means: take commits between `<old-base>` and `<branch>`, replay them
 
 - Commit directly on B (no rebase needed).
 - `git switch <downstream> && git rebase --onto B <old-tip>` — moves the downstream onto B, leaves B in place.
-
-Rebasing B onto a downstream is almost never what's wanted: it makes B a child of work that was supposed to depend on it, and if B then gets squash-merged anywhere, the downstream's commits travel with it.
 
 After any `--onto` rebase, run `git log --oneline --graph <expected-base>..HEAD` and confirm the parent chain matches intent before doing anything else.
 

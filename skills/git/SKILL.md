@@ -183,8 +183,8 @@ See [reference/commands.md](reference/commands.md) and [reference/history.md](re
 
 ## Related Skills
 
-- **bash**: Shell command patterns
-- **issue**: GitHub issue operations (create PRs, link issues to branches)
+- `bash`: Shell command patterns
+- `issue`: GitHub issue operations (create PRs, link issues to branches)
 
 ---
 

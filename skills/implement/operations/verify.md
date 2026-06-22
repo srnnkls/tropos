@@ -1,7 +1,5 @@
 # Verification Before Completion
 
-Claiming work is complete without verification is dishonesty, not efficiency.
-
 **Core principle:** Evidence before claims, always.
 
 ---
@@ -91,19 +89,6 @@ DON'T: "Tests pass, phase complete"
 DO:   Agent reports -> Check VCS diff -> Verify changes -> Report
 DON'T: Trust agent report
 ```
-
----
-
-## Rationalization Prevention
-
-| Excuse | Reality |
-|--------|---------|
-| "Should work now" | RUN the verification |
-| "I'm confident" | Confidence != evidence |
-| "Just this once" | No exceptions |
-| "Linter passed" | Linter != compiler |
-| "Agent said success" | Verify independently |
-| "Partial check is enough" | Partial proves nothing |
 
 ---
 

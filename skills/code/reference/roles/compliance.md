@@ -1,16 +1,16 @@
 # Compliance Reviewer Role
 
-Language-standard compliance reviewer using loqui guidelines. Runs on any harness (Claude, or an external reviewer via the peer skill).
+Language-standard compliance reviewer using loqui guidelines.
 
 ---
 
 ## Characteristics
 
-- **Standards-driven:** Reviews against loqui's codified language guidelines
-- **Language-specific:** Loads guidelines for each language present in the diff
-- **Pattern-focused:** Checks naming, composition, module structure, error handling
-- **Prescriptive:** References specific loqui rules in findings
-- **Harness-agnostic:** Works on Claude (native subagent) and external reviewers (codex/gemini via peer) — both can read loqui files
+- Reviews against loqui's codified language guidelines
+- Loads guidelines for each language present in the diff
+- Checks naming, composition, module structure, error handling
+- References specific loqui rules in findings
+- Works on Claude (native subagent) and external reviewers (codex/gemini via peer) — both can read loqui files
 
 ---
 
@@ -51,19 +51,3 @@ The reviewer reads guidelines for each language detected in the diff:
 └── errors.md        # Error handling patterns
 ```
 
-**Workflow:**
-
-1. Detect language(s) from file extensions in the diff
-2. Read the README.md for each detected language
-3. Read topic files relevant to the changes (composition.md for new classes, errors.md for error handling, etc.)
-4. Evaluate code against loaded guidelines
-
----
-
-## Expected Behavior
-
-- Reads loqui guidelines before reviewing code
-- References specific loqui rules in each finding
-- Focuses exclusively on style, naming, composition, and patterns
-- Defers correctness/security/performance to other reviewers
-- Reports both violations and positive compliance observations

@@ -130,7 +130,7 @@ Detect the branch source from `$ARGUMENTS` and apply the matching naming convent
      - <current-branch> (current — pick if cascading)
      - Other: provide branch name
      ```
-   - **Never fork from local `main`/`master`** — it may be stale (this is how branches are born already behind). When the base is the trunk, `git fetch origin <trunk>` and use `origin/<trunk>`.
+   - **Never fork from local `main`/`master`** — it may be stale. When the base is the trunk, `git fetch origin <trunk>` and use `origin/<trunk>`.
    - Verify the base exists (`git rev-parse --verify <base>`) before proceeding.
 4. **Checkout mode** — pre-parse `--worktree` (or `worktree`) from `$ARGUMENTS`:
    - **Worktree directive present** → follow `skills/git/reference/worktree.md` end-to-end with `BRANCH_NAME=<branch>` from step 1 and the resolved base from step 3. All subsequent phases run from the reported worktree path.
@@ -158,8 +158,6 @@ Dispatch a **fresh tester subagent** (`subagent_type: "task-tester"`) to write f
 - Tester reads task requirements and discovers expected behavior independently
 - Tester writes tests and verifies RED state
 - Orchestrator verifies RED (see Quality Gates in `operations/execute.md`)
-
-**Why a separate subagent?** The orchestrator's understanding of the task leaks into hand-written tests, causing oracle mirroring (tests that mirror implementation logic) and mock tautologies (mocks that assume the answer). A fresh subagent discovers behavior from code and specs independently.
 
 ### Phase A.5: Test Review Gate
 

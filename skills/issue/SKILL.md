@@ -15,7 +15,7 @@ Current branch:
 Next issue number (predicted; for the `.issues/` draft filename on **create**):
 !`gh api 'repos/{owner}/{repo}/issues?state=all&per_page=1' --jq '(.[0].number // 0) + 1' 2>/dev/null || echo "?"`
 
-GitHub shares one number sequence across issues and PRs, so the REST `issues` endpoint (which includes PRs) gives the true next number. It is a best-effort prediction — a concurrent open during the (non-instant) review gate can shift it, so the draft filename is **realigned to the real number after publish** (step 8). On **update**, the number is the issue you're editing, not this value.
+GitHub shares one number sequence across issues and PRs. This is a best-effort prediction — the draft filename is reconciled to the real number after publish (step 8). On update, the number is the issue you're editing.
 
 # Issue Skill
 
@@ -32,8 +32,8 @@ Apply to `$ARGUMENTS` in order, first match wins:
 | Pattern | Route | Action |
 |---|---|---|
 | `pr` (with or without args) | Create PR | Read and follow [operations/pr.md](operations/pr.md) |
-| Issue number (`172`, `#172`, "update #172") | Update issue | This file — **Mode dispatch → update** |
-| Anything else (free-text subject, or empty) | Create issue | This file — **Mode dispatch → create** |
+| Issue number (`172`, `#172`, "update #172") | Update issue | This file — Mode dispatch → update |
+| Anything else (free-text subject, or empty) | Create issue | This file — Mode dispatch → create |
 
 ---
 
@@ -53,45 +53,45 @@ The gh/GraphQL plumbing is wrapped by the **`issue` command** (on PATH via `mise
 | `issue next` | predicted next number (the [Pre-loaded Context](#pre-loaded-context) one-liner) |
 | `issue draft <n> <type> "<title>"` | ensure `.issues/`, print `.issues/<n>-<type>-<slug>.md` |
 | `issue review <n>\|<draft>` | external half of the gate — `peer` → gpt+gemini (Claude half stays agent-native) |
-| `issue create --type T --title … --body-file F [--parent N] [--depends-on L] [--blocks L]` | publish, **auto-reconcile the draft filename to the real number**, apply parent/dependency edges; prints `<number>\t<url>` |
+| `issue create --type T --title … --body-file F [--parent N] [--depends-on L] [--blocks L]` | publish, auto-reconcile the draft filename to the real number, apply parent/dependency edges; prints `<number>\t<url>` |
 | `issue edit <n> [--type T] [--body-file F] [--parent N] [--depends-on L] [--blocks L]` | update body/type + edges |
 | `issue verify <n>` | read-back (type, parent, blockedBy, blocking) |
 | `issue purge [<n>]` | `trash` `.issues/` contents (all, or one issue's drafts+reviews) |
 
-The raw `gh api graphql` mutations are documented below as the reference the wrapper implements; reach for them only when scripting outside the wrapper.
+The raw `gh api graphql` mutations are documented below as the reference the wrapper implements.
 
 ## Workflow
 
 1. **Read the template structure.** Consult [`references/template.md`](references/template.md) for the section list, header ordering, and what each section must contain.
-2. **Orient in the target repo before sketching.** Before drafting implementation sketches, learn the repo's existing idioms so sketches *match* rather than impose a stack:
+2. **Orient in the target repo before sketching.** Before drafting implementation sketches, learn the repo's existing idioms so sketches match rather than impose a stack:
    - `gestalt map` / `gestalt analyze` for structure, hotspots, and seams.
    - `/loqui` for language-specific patterns and style.
    - Read `CLAUDE.md` / `AGENTS.md` and a couple of neighbouring modules for naming, error handling, and layering conventions.
 3. **Draft the issue body.** Use the section order in `references/template.md`. For implementation sketches, follow [`references/sketches.md`](references/sketches.md) — illustrative shapes (signatures, not bodies) written in the repo's own idioms.
 4. **Title format.** `<Module> — <short summary>` with an em-dash (—), not a hyphen. Examples: `Discovery — dependency traversal from activities to tables`, `Catalog — migration catalog with priority, stats, and export`.
-5. **Determine issue type, parent, and dependencies (depends-on / blocks) before submitting** (see [Issue metadata](#issue-metadata-type-parent-dependencies) below). If the user hasn't specified type or parent, ask via **AskUserQuestion** — don't guess. Ask about depends-on / blocks only when the body sketch hints at sequencing between issues; skip for standalone work. For updates, inspect the existing metadata first via `gh api graphql` and only change what the user asked to change.
+5. **Determine issue type, parent, and dependencies (depends-on / blocks) before submitting** (see [Issue metadata](#issue-metadata-type-parent-dependencies) below). If the user hasn't specified type or parent, ask via `AskUserQuestion` — don't guess. Ask about depends-on / blocks only when the body sketch hints at sequencing between issues; skip for standalone work. For updates, inspect the existing metadata first via `gh api graphql` and only change what the user asked to change.
 6. **Draft to the local `.issues/` folder** (repo-local, git-ignored — never `$TMPDIR`, the draft and its reviews persist there). Name the file `<issue-number>-<type>-<slug>.md` — e.g. `745-feature-discovery-dependency-traversal.md` (`<type>` is `feature`/`task` lowercase; `<slug>` is the kebab-cased title). `issue draft <n> <type> "<title>"` prints the path and creates `.issues/`.
-   - Create: use the **next issue number** from `issue next`. Draft the body into `.issues/<next>-<type>-<slug>.md`.
+   - Create: use the next issue number from `issue next`. Draft the body into `.issues/<next>-<type>-<slug>.md`.
    - Update: the number is the issue you're editing. Preserve the live body first — `gh issue view <n> --json body -q .body > ".issues/<n>-<type>-<slug>.orig.md"` — then draft into `.issues/<n>-<type>-<slug>.md`. Surface a diff (`diff ".issues/<n>-<type>-<slug>.orig.md" ".issues/<n>-<type>-<slug>.md"`) before the gate if rewriting an existing body.
 7. **Review gate (mandatory 2×2) — run before any publish.** The drafted body must clear a four-reviewer gate before it reaches GitHub. Dispatch all four in one message (see [Review gate](#review-gate-2x2-before-publish) below):
    - **peer** — `issue review <next>` runs the external half (`peer` → **gpt** + **gemini**), reports under `.issues/<n>-reviews/`.
    - **claude** — two `Task` subagents, one on **sonnet** and one on **opus** (agent-native — `issue review` can't dispatch them; do it in the same message).
 
    Read all four reports, fold blocking findings back into the draft, and re-run the gate until it passes. **Do not publish until the gate passes.**
-8. **Publish (auto-reconciles the number).** `issue create` runs `gh issue create --type`, then — because the `<next>` filename was a *prediction* a concurrent open during the gate can invalidate — **renames the draft (and its `-reviews/` dir) to the real number** before applying edges. The GitHub issue is the source of truth; the file follows it.
+8. **Publish (auto-reconciles the number).** `issue create` runs `gh issue create --type`, then renames the draft (and its `-reviews/` dir) to the real number before applying edges.
    - Create: `issue create --type "<Feature|Task>" --title "..." --body-file ".issues/<next>-<type>-<slug>.md" [--parent <n>] [--depends-on <a,b>] [--blocks <c,d>]` → prints `<number>\t<url>`.
    - Update: `issue edit <n> [--type "<Feature|Task>"] --body-file ".issues/<n>-<type>-<slug>.md" [--parent …] [--depends-on …] [--blocks …]`. No reconciliation — `<n>` is already real.
 
    `issue create/edit` fold the parent and depends-on/blocks edges in (step 9) so this is usually the only publish call. Verify with `issue verify <number>`.
 9. **Edges, if not folded into publish.** `issue create/edit --parent/--depends-on/--blocks` set them already; otherwise apply them directly — `issue parent <parent#> <child#>`, `issue depends-on <n> <dep#,…>`, `issue blocks <n> <target#,…>` (these wrap the `addSubIssue` / `addBlockedBy` GraphQL mutations documented below).
 
-The `.issues/` drafts and review reports are kept (git-ignored), not trashed — they are the local audit trail for the gate. Use `issue purge [<n>]` to clear them when done.
+The `.issues/` drafts and review reports are kept (git-ignored). Use `issue purge [<n>]` to clear them when done.
 
 > **Prerequisites:** `issue` on PATH (`mise run install-issue`), `gh` authenticated, and for the review gate `peer` installed (`mise run install-peer`) with its harnesses authenticated. Add `.issues/` to `.gitignore` (or `.gitignore.local`).
 
 ## Review gate (2×2, before publish)
 
-No issue body reaches GitHub until it clears a **2×2 reviewer gate**: two providers × two models, each reviewing the drafted `.issues/<…>.md` against [`references/template.md`](references/template.md) (section completeness, header ordering, section selection by issue type) and the **target repo's own conventions** (inferred from `CLAUDE.md` / `AGENTS.md` and surrounding code — naming, error handling, idioms). The gate is **blocking** — fold every blocking finding back into the draft and re-run until clean.
+No issue body reaches GitHub until it clears a 2×2 reviewer gate: two providers × two models, each reviewing the drafted `.issues/<…>.md` against [`references/template.md`](references/template.md) (section completeness, header ordering, section selection by issue type) and the target repo's own conventions (inferred from `CLAUDE.md` / `AGENTS.md` and surrounding code — naming, error handling, idioms). The gate is blocking — fold every blocking finding back into the draft and re-run until clean.
 
 | Provider | Models |
 |---|---|
@@ -111,7 +111,7 @@ issue review <number> --effort high
 
 Review prompt (both sides): check the draft against the canonical template (required sections present, `#` header ordering correct, section selection matches the issue type) and against the repo's existing idioms (sketches must follow the codebase, not impose a foreign stack). Return blocking findings (missing/incorrect sections, sketches that contradict the codebase) separately from nits.
 
-Read all four reports (the two `Task` results + the `peer` manifest's `ok` rows under `.issues/<number>-reviews/`). The gate **passes** when no reviewer reports a blocking finding; nits are optional. Keep the review reports in `.issues/` as the audit trail. Only then proceed to **step 8 (Publish)**.
+Read all four reports (the two `Task` results + the `peer` manifest's `ok` rows under `.issues/<number>-reviews/`). The gate passes when no reviewer reports a blocking finding; nits are optional. Keep the review reports in `.issues/` as the audit trail. Only then proceed to step 8 (Publish).
 
 Consult the `/peer` skill for the dispatch contract, reviewer registry, and auth requirements (`codex login`, `gcloud auth application-default login`).
 
@@ -121,27 +121,27 @@ Every issue carries metadata that is not part of the body:
 
 - **Issue type** — `Feature` or `Task` (see below).
 - **Parent** — hierarchical sub-issue relationship (`addSubIssue`).
-- **Depends on / Blocks** — dependency relationships (`addBlockedBy`). `A depends on B` and `B blocks A` are the *same* edge viewed from opposite sides.
+- **Depends on / Blocks** — dependency relationships (`addBlockedBy`). `A depends on B` and `B blocks A` are the same edge viewed from opposite sides.
 
-All three live exclusively on GitHub's native issue fields, set via `gh api graphql` mutations. The GraphQL edge is the single source of truth; GitHub renders type, parent, and dependencies in the sidebar and sub-issue tree automatically. Keep the issue body focused on Goal / Implementation plan / Definition of done — leave structural relationships to metadata.
+All three live exclusively on GitHub's native issue fields, set via `gh api graphql` mutations. GitHub renders type, parent, and dependencies in the sidebar and sub-issue tree automatically. Keep the issue body focused on Goal / Implementation plan / Definition of done — leave structural relationships to metadata.
 
 ### Choosing the type
 
 - **Feature** — user-facing capability or a coherent slice of behavior that delivers value on its own. Architecture-level Features ship with a `# Layout`; non-architecture Features don't.
 - **Task** — implementation unit that exists in service of a parent Feature (or Initiative). Tasks almost always have a parent.
-- **Bug / Initiative** — exist but are out of scope for this skill's default dispatch. Only use when the user explicitly asks for a bug report or an initiative.
+- Bug / Initiative — exist but are out of scope for this skill's default dispatch. Only use when the user explicitly asks for a bug report or an initiative.
 
-If the user didn't state the type, **ask via `AskUserQuestion`** with header `"Issue type"`, options `Feature` and `Task`. Don't guess from the body — the same body can describe either.
+If the user didn't state the type, ask via `AskUserQuestion` with header `"Issue type"`, options `Feature` and `Task`. Don't guess from the body — the same body can describe either.
 
 ### Choosing the parent
 
 - Features usually sit under an Initiative (or stand alone at the top level).
 - Tasks almost always sit under a Feature.
-- The parent is a sub-issue relationship (`addSubIssue` GraphQL mutation), *not* a body-level `Parent: #N` line. Write the body line **and** set the GraphQL parent — they serve different readers (human and GitHub's issue graph).
+- The parent is a sub-issue relationship (`addSubIssue` GraphQL mutation), not a body-level `Parent: #N` line. Write the body line and set the GraphQL parent.
 
 If the user didn't state the parent:
 
-- For a **Task**: **ask via `AskUserQuestion`**. Pre-seed the options with plausible parents from `gh issue list --state open --search "type:Feature" --json number,title --limit 20` so the user can pick an existing Feature. Include `No parent` only if the user context suggests a standalone Task.
+- For a **Task**: ask via `AskUserQuestion`. Pre-seed the options with plausible parents from `gh issue list --state open --search "type:Feature" --json number,title --limit 20` so the user can pick an existing Feature. Include `No parent` only if the user context suggests a standalone Task.
 - For a **Feature**: ask whether it has a parent Initiative. Default to `No parent` if the repo has no open Initiative.
 
 Never invent or infer a parent silently. The user confirms the relationship.
@@ -210,20 +210,20 @@ Note the argument naming: in `AddSubIssueInput`, `issueId` is the **parent**, `s
 
 ### Choosing depends-on / blocks
 
-Dependency relationships capture *sequencing* between issues that don't share a parent/child hierarchy:
+Dependency relationships capture sequencing between issues that don't share a parent/child hierarchy:
 
-- **Depends on** — this issue cannot start/merge until the referenced issue lands. `A depends on B` ⇒ A is blocked *by* B.
-- **Blocks** — this issue must land before the referenced issue can start/merge. `A blocks B` ⇒ B is blocked *by* A.
+- **Depends on** — this issue cannot start/merge until the referenced issue lands. `A depends on B` ⇒ A is blocked by B.
+- **Blocks** — this issue must land before the referenced issue can start/merge. `A blocks B` ⇒ B is blocked by A.
 
-These are two views of the same directed edge — pick whichever direction the user naturally phrased. Don't double-set them.
+These are two views of the same directed edge. Pick whichever direction the user naturally phrased; don't double-set them.
 
 When to ask:
 
 - If the user already said "depends on #N" or "blocks #N", take that literally — no `AskUserQuestion` needed.
-- If the issue body sketch references prior work or unblocks future work, and the user hasn't stated the relationship, **ask via `AskUserQuestion`** with two questions: `"Depends on"` and `"Blocks"`. Offer `None` as an option and allow free-text entry ("Other" in the AskUserQuestion UI). Do not invent edges from body content alone.
+- If the issue body sketch references prior work or unblocks future work, and the user hasn't stated the relationship, ask via `AskUserQuestion` with two questions: `"Depends on"` and `"Blocks"`. Offer `None` as an option and allow free-text entry ("Other" in the AskUserQuestion UI). Do not invent edges from body content alone.
 - For trivial standalone issues (doc tweaks, isolated bug fixes) skip the ask.
 
-As with `Parent: #N`, write the body-level line **and** set the GraphQL edge — the body serves humans reading the issue in isolation; the GraphQL edge powers the repo's issue graph (`blockedBy` / `blocking` in the issues sidebar, `issueDependenciesSummary` rollups).
+Write the body-level line and set the GraphQL edge.
 
 ### Setting depends-on (`addBlockedBy` from the dependent side)
 
@@ -253,7 +253,7 @@ gh api graphql -f query='
   }' -f issueId="$B_ID" -f blockingIssueId="$A_ID"
 ```
 
-Rule of thumb: `issueId` is always the **blocked** side; `blockingIssueId` is always the **blocker**. Translate the user's phrasing once before running the mutation.
+`issueId` is the blocked side; `blockingIssueId` is the blocker. Translate the user's phrasing once before running the mutation.
 
 ### Removing a dependency
 

@@ -21,8 +21,6 @@ Parse `$ARGUMENTS` in order:
 
 ## Subagent orientation
 
-All subagents (implementers, testers, reviewers) should orient before starting work:
-
 ```bash
 gestalt map                             # Where do I look?
 gestalt analyze                         # What are the hotspots, seams, coupling?
@@ -59,8 +57,6 @@ gestalt map --verbose                   # Per-cluster detail
    72│pub fn parse ...
 ```
 
-Feed to an agent or skim when starting work.
-
 ### analyze — why the territory looks that way
 
 ```bash
@@ -85,8 +81,6 @@ gestalt analyze --no-entry-points       # Hide entry points
 ./src/tree/parser.rs:
     72 │ function parse ↑38 ↓1
 ```
-
-Study when the graph reveals a problem — refactoring targets, coupling hotspots, architectural seams.
 
 ## Diff and history
 
@@ -114,9 +108,7 @@ Output markers for diff:
 
 ## Structural review
 
-Gestalt provides enough structural data to drive a review protocol — see [operations/review.md](operations/review.md).
-
-The protocol uses `gestalt diff --format json` for triage, `callers`/`callees`/`blame`/`log` for deep investigation, and `analyze`/`rank` for structural context. The agent identifies where to look and generates targeted questions; the human provides semantic judgment.
+See [operations/review.md](operations/review.md).
 
 ## Call graph
 

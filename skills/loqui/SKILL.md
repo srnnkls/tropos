@@ -20,7 +20,7 @@ Loqui resources are in this skill's directory:
 ~/.claude/skills/loqui/reference/loqui/languages/{language}/
 ```
 
-**Use Read tool** (not Glob) to access - paths outside cwd require direct reads.
+Use Read (not Glob) to access — paths outside cwd require direct reads.
 
 ---
 
@@ -49,16 +49,7 @@ Each language directory follows this structure:
 └── ...              # Additional language-specific resources
 ```
 
-**Start with the README** for quick reference and core principles.
-
----
-
-## Workflow
-
-1. Identify the target language
-2. Read `~/.claude/skills/loqui/reference/loqui/languages/{language}/README.md`
-3. Consult specific topic files as needed (composition, errors, modules, etc.)
-4. Apply patterns to implementation
+Start with the README for quick reference and core principles.
 
 ---
 
@@ -66,11 +57,11 @@ Each language directory follows this structure:
 
 Shared across all languages:
 
-- **Naming over comments** - Spend 5x more time on names than comments
-- **Composition over inheritance** - Even in languages that support inheritance
-- **Feature-based organization** - Group by domain, not technical layer
-- **Parse at boundaries** - Accept permissive input, convert to strict types immediately
-- **Explicit over implicit** - Make intent clear through code structure
+- Naming over comments — spend 5x more time on names than comments
+- Composition over inheritance
+- Feature-based organization — group by domain, not technical layer
+- Parse at boundaries — accept permissive input, convert to strict types immediately
+- Explicit over implicit
 
 ---
 

@@ -95,10 +95,9 @@ Canonical configuration for multi-agent review. Domain skills compose on this.
 
 ### Models & Harnesses
 
-- **Claude** (native subagent): `opus`, `sonnet` — dispatched by the agent via `Task`.
-- **External** (codex, gemini): defined and dispatched by the **[peer skill](../peer/SKILL.md)**
-  — run `peer list` for the canonical registry (id ↔ harness ↔ model ↔ alias). Don't
-  restate model strings here.
+- Claude (native subagent): `opus`, `sonnet` — dispatched via `Task`.
+- External (codex, gemini): defined and dispatched by the **[peer skill](../peer/SKILL.md)**
+  — run `peer list` for the canonical registry (id ↔ harness ↔ model ↔ alias).
 
 Full details: [reference/models.md](reference/models.md), [reference/harnesses.md](reference/harnesses.md), [peer skill](../peer/SKILL.md)
 
@@ -111,9 +110,8 @@ directly** — `peer` owns external dispatch. Domain skill defines roles; see
 
 ### Report Output Directory
 
-External reports have a fixed home — `peer`'s required `-d {outdir}` is never invented
-ad-hoc. Reports go to a **git-ignored `.reviews/<slug>/`** at the repo root (mirrors the
-`issue` skill's `.issues/<number>-reviews/`), one subdirectory per review run:
+External reports go to a **git-ignored `.reviews/<slug>/`** at the repo root (mirrors the
+`issue` skill's `.issues/<number>-reviews/`), one subdirectory per review run. `peer`'s required `-d {outdir}` always points here:
 
 | Route | `<slug>` | `{outdir}` |
 |---|---|---|
@@ -171,10 +169,8 @@ Store resolved selections in `validation.yaml` under `review_config` (whether fr
 
 ### Report Schema
 
-Base YAML structures for reviewer and synthesized reports.
 Full details: [reference/report.md](reference/report.md)
 
 ### Synthesis
 
-Merge, dedup, gate aggregation, severity aggregation.
 Full details: [reference/synthesis.md](reference/synthesis.md)

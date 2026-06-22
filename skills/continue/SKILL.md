@@ -23,7 +23,7 @@ Current branch:
 
 # Continue Skill
 
-Resume interrupted work from context. Picks up where `implement` (execute operation) left off.
+Resume interrupted work from context.
 
 ---
 
@@ -63,8 +63,7 @@ Read these files (in parallel):
 `<state>` ∈ `{draft, active, done}` — typically `active` for in-flight work.
 
 If `dependencies.yaml` is absent (Task scopes), derive batches from `tasks.yaml`'s `depends_on` +
-`files` — same rule as `../implement/reference/parallel-detection.md`. Resumed Task scopes still
-fan out.
+`files` — see `../implement/reference/parallel-detection.md`.
 
 ### Step 3: Verify Branch State
 
@@ -74,12 +73,11 @@ git checkout <checkpoint.branch>
 
 # Verify at expected commit
 git log -1 --format="%H" | head -c 8
-# Should match checkpoint.last_commit
 
 # If mismatch, warn user and ask to proceed or abort
 ```
 
-**Base-drift preflight (MANDATORY):** Follow `../implement/reference/base-drift-preflight.md` — it fetches `origin/<base>` fresh and measures divergence. If `behind > 0`, intersect the base's changed files with this branch's changes and the next batch's target files, then gate. **Do not resume the pipeline (Step 5) past a non-empty overlap without a user decision** — the base may already ship what the next batch would build.
+**Base-drift preflight (MANDATORY):** Follow `../implement/reference/base-drift-preflight.md` — it fetches `origin/<base>` fresh and measures divergence. If `behind > 0`, intersect the base's changed files with this branch's changes and the next batch's target files, then gate. **Do not resume the pipeline (Step 5) past a non-empty overlap without a user decision.**
 
 ### Step 4: Report Progress
 
@@ -99,27 +97,11 @@ Present concise status:
 
 **Deferred issues:** <count>
 [list if any]
-
-Continuing with three-phase pipeline...
 ```
 
 ### Step 5: Resume Three-Phase Pipeline
 
-Execute the next batch using the same pipeline as `implement` (execute operation):
-
-```
-Phase A: TESTERS
-├── Dispatch tester(s) for next_batch.tasks
-└── Wait for completion
-
-Phase B: IMPLEMENTERS
-├── Dispatch implementer(s) with tester reports
-└── Wait for completion
-
-Phase C: REVIEWERS
-├── Dispatch 1 Claude + N external reviewers (via peer) (from review_config)
-└── Wait for completion + synthesize
-```
+Execute the next batch using the same pipeline as `implement` (execute operation).
 
 **CRITICAL:** Follow all `implement` execute operation rules:
 - Always use `subagent_type: "general"` for subagents
@@ -140,8 +122,6 @@ After batch completes:
 
 ## Quick Resume Template
 
-When resuming, use this condensed context for subagents:
-
 **For Tester:**
 ```
 Task: <task_id> - <task_name>
@@ -149,7 +129,7 @@ From: <scope_name> (batch <N>)
 Requirements: [from tasks.yaml]
 Test hints: [from tasks.yaml]
 
-Invoke `test` skill. Write failing tests (RED).
+Invoke `test` skill. Write failing tests.
 Report tester_report YAML.
 ```
 
@@ -159,7 +139,7 @@ Task: <task_id> - <task_name>
 From: <scope_name> (batch <N>)
 Tester report: [paste tester_report]
 
-Invoke `implement` skill. Make tests pass (GREEN).
+Invoke `implement` skill. Make tests pass.
 Report implementer_report YAML.
 ```
 
@@ -178,13 +158,13 @@ Report reviewer_report YAML.
 
 ## Handling Edge Cases
 
-**Checkpoint not found:**
+### Checkpoint not found
 ```
 No checkpoint found for <scope>.
 Run /implement <scope> to start fresh.
 ```
 
-**Branch mismatch:**
+### Branch mismatch
 ```
 Warning: Current branch differs from checkpoint.
 Expected: feat/<scope> at <sha>
@@ -195,7 +175,7 @@ Options:
 2. Abort and investigate
 ```
 
-**Checkpoint stale (tasks.yaml modified):**
+### Checkpoint stale (tasks.yaml modified)
 ```
 Warning: tasks.yaml modified since checkpoint.
 Checkpoint: <timestamp>
@@ -204,7 +184,7 @@ tasks.yaml: <modified_time>
 Regenerating next batch from current state...
 ```
 
-**All tasks complete:**
+### All tasks complete
 ```
 All tasks complete for <scope>.
 Run final review? [Y/n]
@@ -244,14 +224,5 @@ Claude: Found checkpoint for auth-system
 **Deferred issues:** 1
 - [M1] Variable naming in auth.py:45 (batch 2)
 
-Continuing with three-phase pipeline...
-
-[Dispatches 2 testers in parallel]
-[Dispatches 2 implementers in parallel]
-[Dispatches 1 Claude + 2 external reviewers in parallel]
-[Synthesizes review, no critical issues]
-[Writes checkpoint, commits batch 3]
-
 Batch 3 complete. 1 batch remaining.
-Continue in this session or /continue later.
 ```

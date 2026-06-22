@@ -14,10 +14,6 @@ Uncommitted:
 
 # Validate Dispatcher
 
-Routes to the appropriate validation skill based on argument type.
-
----
-
 ## Auto-Detect Rules
 
 Apply these rules to `$ARGUMENTS` in order:
@@ -33,7 +29,7 @@ Apply these rules to `$ARGUMENTS` in order:
 
 ## Menu Fallback
 
-When no argument or ambiguous, use **AskUserQuestion**:
+When no argument or ambiguous, use `AskUserQuestion`:
 
 ```
 Header: Validate
@@ -45,12 +41,10 @@ Options:
 - Hooks: Test Claude Code hooks at unit/integration/e2e levels
 ```
 
-**Routing by selection:**
-
 | Selection | Action |
 |---|---|
 | TDD | `Skill(test)` |
 | Completion | `Skill(implement, verify)` |
 | Hooks | `Skill(hooks-test)` |
 
-> **Protocol:** [dispatch/protocol.md](../dispatch/protocol.md)
+> Protocol: [dispatch/protocol.md](../dispatch/protocol.md)

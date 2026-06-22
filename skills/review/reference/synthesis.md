@@ -20,14 +20,11 @@ Aggregate harness results within each role first:
 ### 3. Merge Issues Within Role
 
 - Deduplicate across Claude + external (codex/gemini) harnesses within each role
-- Issues flagged by multiple harnesses = higher confidence
 
 ### 4. Merge Issues Across Roles
 
 - Deduplicate by location + description similarity
 - Preserve role attribution
-- Combine issues flagged by multiple reviewers (higher confidence)
-- Note which reviewer(s) found each issue
 
 ### 5. Aggregate Gates
 
@@ -35,8 +32,7 @@ Aggregate harness results within each role first:
   - General: Correctness, Security, Performance
   - Architecture: Architecture
   - Compliance: Style
-- Gate fails if ANY harness within the owning role fails it
-- On failure, record which harness(es) failed
+- Gate fails if ANY harness within the owning role fails it; record which harness(es) failed
 
 ### 6. Aggregate Severity
 

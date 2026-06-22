@@ -1,7 +1,5 @@
 # Checkpoint Format
 
-Checkpoints are written after each successful batch to enable session recovery.
-
 ## Location
 
 ```
@@ -82,11 +80,3 @@ The `continue` skill reads checkpoint.yaml to:
 3. Resume three-phase pipeline
 4. Carry forward deferred issues
 
-## Checkpoint vs tasks.yaml
-
-| Aspect | tasks.yaml | checkpoint.yaml |
-|--------|------------|-----------------|
-| Purpose | Scope definition | Session state |
-| Updates | Status changes | After each batch |
-| Contains | All tasks | Progress + next batch |
-| Used by | implement (execute) | continue |

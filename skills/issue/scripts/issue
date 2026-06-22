@@ -1,12 +1,8 @@
 #!/usr/bin/env zsh
-# issue - thin wrapper over the gh plumbing the /issue skill drives: next-number
-# prediction, GitHub Issues-2.0 metadata (type, parent, depends-on/blocks), publish
-# with post-publish number reconciliation, and a verify read-back. The repo is resolved
-# once from `gh repo view`; node/type IDs are looked up at runtime (never hardcoded).
-#
-# The mechanical gh/GraphQL steps live here so the skill body stays declarative; the
-# 2x2 review gate stays agent-driven (Claude Task + `peer`), like peer leaves the
-# Claude harness to the agent.
+# issue - gh/GraphQL plumbing for the /issue skill: next-number prediction,
+# GitHub Issues-2.0 metadata (type, parent, depends-on/blocks), publish with
+# post-publish number reconciliation, and a verify read-back. Repo resolved once
+# from `gh repo view`; node/type IDs looked up at runtime (never hardcoded).
 #
 # Subcommands:
 #   issue next                                  predicted next number (issues+PRs share the sequence)
@@ -76,7 +72,6 @@ _node_id() {
 }
 
 _kebab() {
-  # lower-case, non-alnum -> '-', collapse and trim '-'
   print -r -- "${1:l}" | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//; s/-+/-/g'
 }
 
@@ -141,7 +136,6 @@ _verify() {  # NUMBER -> yaml read-back
     ' || { _die "verify #$1 failed"; return 3 }
 }
 
-# rename .issues/PREDICTED-...md (and PREDICTED-reviews/) to the real number after publish
 _reconcile() {  # bodyfile actual
   local f=$1 actual=$2 dir base digits tail
   dir=${f:h}; base=${f:t}
@@ -254,8 +248,7 @@ case "$cmd" in
     local outdir=".issues/${number}-reviews"; mkdir -p "$outdir"
     local prompt="Review the GitHub issue draft at '$draft' against the canonical issue template (required sections: Goal, Definition of done; correct '#' header ordering; section selection matches the issue type) and this repo's own conventions (read CLAUDE.md / AGENTS.md and the surrounding code to infer them — naming, error handling, module layout). Implementation sketches must follow the repo's existing idioms, not impose a foreign stack. Separate BLOCKING findings (missing/incorrect sections, sketches that contradict the codebase) from nits."
     print -u2 -- "issue review: external half (gpt+gemini) -> $outdir"
-    peer -d "$outdir" --reviewers gpt,gemini --effort "$effort" "$prompt"
-    print -u2 -- "issue review: Claude half is agent-native — dispatch /review on '$draft' with model sonnet AND model opus to close the 2x2 gate." ;;
+    peer -d "$outdir" --reviewers gpt,gemini --effort "$effort" "$prompt" ;;
 
   purge)
     command -v trash >/dev/null 2>&1 || { _die "trash not found — refusing to rm; install trash-cli (macOS: 'trash')"; return 3 }

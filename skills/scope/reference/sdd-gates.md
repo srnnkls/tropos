@@ -14,8 +14,6 @@ Reference for gates applied to Initiative-type scopes before implementation.
 
 ### Simplicity Gate
 
-Prevents over-engineering before implementation begins.
-
 Checklist:
 - [ ] Solution uses minimal projects/components
 - [ ] No future-proofing or speculative features
@@ -23,16 +21,12 @@ Checklist:
 
 ### Anti-Abstraction Gate
 
-Prevents premature abstraction.
-
 Checklist:
 - [ ] Using framework/tools directly (no wrapper layers)
 - [ ] Single representation of core concepts
 - [ ] No "just in case" abstractions
 
 ### Integration-First Gate
-
-Ensures integration points are defined before implementation.
 
 Checklist:
 - [ ] API contracts defined (if applicable)

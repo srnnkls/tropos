@@ -2,13 +2,6 @@
 
 ## Task Batching
 
-Before dispatching, build execution batches from the batch signal:
-
-1. If `dependencies.yaml` exists → use its precomputed `batches[*].tasks` directly.
-2. Otherwise derive batches from `tasks.yaml`: a task joins the earliest batch where all its
-   `depends_on` are complete; tasks sharing any `files` entry never co-batch; a task with no
-   `files` declared forms its own single-task batch.
-
 See `operations/execute.md` Step 3 and `reference/parallel-detection.md` for the full algorithm.
 
 ## Four-Phase Pipeline
@@ -110,7 +103,7 @@ Wait for ALL testers to complete before dispatching Phase A.5.
 
 **PRECONDITION:** All Phase A testers completed with `status: success` and RED verified.
 
-Collect all test file paths from every `tester_report` in the batch, then dispatch a Claude `Task` **plus one `peer`** (which fans out to all configured external reviewers) — same shape as Phase C; never shell out to codex/gemini directly. Test review must be multi-harness for the same reason code review is: fresh-perspective models catch quality issues a single harness misses.
+Collect all test file paths from every `tester_report` in the batch, then dispatch a Claude `Task` **plus one `peer`** (which fans out to all configured external reviewers) — same shape as Phase C; never shell out to codex/gemini directly.
 
 **Resolve reviewer config (in order):**
 1. `validation.yaml` `review_config` for the active scope
@@ -403,17 +396,3 @@ and skip. Read `peer`'s per-reviewer manifest status; continue with completed re
 what landed. Details: **[peer skill](../../peer/SKILL.md)**. Never block the pipeline on an
 external harness.
 
----
-
-## Best Practices
-
-1. **Specialized subagent types** - Use `task-tester`, `task-implementer`, `task-reviewer` for Claude native Task calls; external reviewers (codex/gemini) go through one `peer` per role, never raw shell-outs
-2. **Tester first** - Implementer must receive failing tests
-3. **Test review gate** - Every batch's tests pass Phase A.5 before implementers are dispatched
-4. **All three code-review roles mandatory** - Every batch gets General + Architecture + Compliance review
-5. **YAML reports** - Structured handoff between phases
-6. **Single message dispatch** - Per role, the Claude `Task` + the `peer` in one message
-7. **Fresh context** - Each subagent starts clean
-8. **Track progress** - Update TodoWrite after each phase
-9. **Configure harnesses** - Set external reviewers (codex/gemini) in validation.yaml `review_config` (applied to ALL roles); models per `peer list`
-10. **Minimize subagent output** - Subagent final messages get embedded into parent context (duplicated in `.output` and `.result`). Every extra token directly inflates parent context. Subagents must return ONLY the YAML report — no prose, no explanation.

@@ -9,27 +9,22 @@ metadata:
 
 Write the test first. Watch it fail. Write minimal code to pass.
 
-**Core principle:** If you didn't watch the test fail, you don't know if it tests the right thing.
+If you didn't watch the test fail, you don't know if it tests the right thing.
 
 ---
 
 ## When to Use
 
-**Always use for:**
+Always use for:
 - New features
 - Bug fixes
 - Behavior changes
 - Refactoring
 
-**Exceptions (confirm with user):**
+Exceptions (confirm with user):
 - Throwaway prototypes
 - Generated code
 - Configuration files
-
-**Workflow Integration:**
-- **Multiple independent tasks from a scope?** → Use `implement` skill (it runs the scope execution pipeline)
-- **Single implementation task?** → Use `implement` skill (it dispatches tester + implementer subagents)
-- **This skill is for subagents** — tester subagents invoke this skill to follow TDD methodology. The orchestrator never invokes this skill directly to write tests.
 
 ---
 
@@ -69,8 +64,8 @@ Run the test. Confirm:
 
 Write the simplest code to pass the test.
 
-**DO:** Just enough to pass, simple implementation
-**DON'T:** Add features, refactor other code, add configurability
+DO: Just enough to pass, simple implementation
+DON'T: Add features, refactor other code, add configurability
 
 ### 4. Verify GREEN - Watch It Pass
 
@@ -117,7 +112,7 @@ Next failing test for next behavior.
 - "Just this once" rationalization
 - Keeping code "as reference"
 
-**All of these mean:** Delete code. Start with TDD.
+Delete code. Start with TDD.
 
 ---
 
@@ -159,16 +154,5 @@ tdd_evidence:
 ## Domain Context
 
 Domain skills inject specifics into this generic methodology:
-- **code**: Language-specific test conventions via loqui, test frameworks
-- **doc**: Documentation validation, link checking
-
-When invoked via a domain skill, follow the domain-specific test guidance provided.
-
----
-
-## Integration
-
-**Use with:**
-- `implement` (debug operation) - Write failing test to reproduce bug before fixing
-- `implement` (execute operation) - Subagents follow TDD for each task
-- `implement` (verify operation) - Run tests before claiming completion
+- `code`: Language-specific test conventions via loqui, test frameworks
+- `doc`: Documentation validation, link checking

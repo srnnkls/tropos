@@ -1,7 +1,5 @@
 # Code Review Checklist
 
-Generic review checklist applicable to any language. For language-specific checks, reference `implement` resources.
-
 ---
 
 ## Correctness

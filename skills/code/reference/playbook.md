@@ -1,7 +1,5 @@
 # Code Review Playbook
 
-Edge case handling and decision trees for review scenarios.
-
 ---
 
 ## Timeout Handling
@@ -11,7 +9,7 @@ Edge case handling and decision trees for review scenarios.
 `peer` owns the idle-stall watchdog, retry-once, and skip. Read `peer`'s manifest
 status per reviewer; on a skipped/stalled reviewer, warn "[Reviewer] stalled, skipped.
 Partial results." and synthesize with the rest. Exit codes and rationale:
-**[peer skill](../../peer/SKILL.md)**. Never block the pipeline on an external harness.
+[peer skill](../../peer/SKILL.md). Never block the pipeline on an external harness.
 
 ### Claude Subagent Timeout
 
@@ -64,7 +62,6 @@ Partial results." and synthesize with the rest. Exit codes and rationale:
 **Response:**
 1. Warn: "Codex not available, using Claude only"
 2. Proceed with Claude reviewer
-3. Suggest: `npm install -g @openai/codex` then `codex login`
 
 ---
 
@@ -96,10 +93,6 @@ Flags override auto-detection:
 **Response:**
 1. If flag provided → use flag, skip detection
 2. Otherwise, follow priority order (scope → git → path)
-3. Suggest flag if detection seems wrong:
-   ```
-   Detected "main" as scope. Use --rev main for git branch.
-   ```
 
 ---
 

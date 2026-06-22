@@ -38,12 +38,12 @@ Focus: $ARGUMENTS
 
 ## Protocol
 
-1. **Enumerate** — Read scopes relevant to `$ARGUMENTS`, build parallel batches from the batch
+1. Enumerate — Read scopes relevant to `$ARGUMENTS`, build parallel batches from the batch
    signal (`dependencies.yaml` `batches[*]` if present, else derived from `tasks.yaml`'s
    `depends_on` + `files` — see `../implement/reference/parallel-detection.md`), and create one
    TodoWrite entry per task annotated with its batch number
-2. **Iterate** — Read and follow `operations/iterate.md` (one batch per iteration)
-3. **Complete** — When all todos are done, output summary and stop
+2. Iterate — `operations/iterate.md` (one batch per iteration)
+3. Complete — When all todos are done, output summary and stop
 
 ---
 

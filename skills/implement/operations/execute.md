@@ -6,20 +6,6 @@ Execute scopes with proper TDD: tester writes failing tests, implementer makes t
 
 ---
 
-## When to Use
-
-**Use when:**
-- Executing an implementation scope (created with `scope`)
-- Tasks are mostly independent
-- Want TDD enforcement with quality gates
-
-**Don't use when:**
-- No scope exists yet (use `/scope` first)
-- Tasks are tightly coupled (manual execution better)
-- Initiative scope has failed gates (resolve first via /clarify)
-
----
-
 ## The Four-Phase Pipeline
 
 Each batch executes four phases. **A batch is NOT complete until all four phases finish.**
@@ -159,9 +145,9 @@ Each tester:
 - If `failure_output` is empty, shows only errors (not failures), or tests passed → re-dispatch that tester
 
 **Failure mode checks** — read the test code and verify it is not:
-- **Oracle mirroring:** Tests that assert what the current code does rather than what it should do. If the tests describe existing behavior with different names, they will pass immediately once wired up — not because the feature works, but because the test mirrors the implementation.
-- **Mock tautologies:** Tests where everything is mocked, leaving nothing real under test. The test checks that the mock's return value came back — proving only that the test setup works.
-- **Testing dependencies:** Tests that exercise framework or library behavior rather than application logic. Ask: if this test passes, does it prove OUR code works, or just that a dependency works?
+- **Oracle mirroring:** Tests that assert what the current code does rather than what it should do.
+- **Mock tautologies:** Tests where everything is mocked, leaving nothing real under test.
+- **Testing dependencies:** Tests that exercise framework or library behavior rather than application logic.
 - **Assertion-free coverage:** Tests that execute code paths but verify nothing meaningful — no assertions, or assertions on trivial properties.
 
 **Verification technique:** Pick one test. Trace what it would do if a key behavior were wrong (e.g., wrong field mapping, wrong transformation). If it would still pass, the test is not testing intent — re-dispatch the tester with specific feedback about what the test must actually verify.
@@ -595,8 +581,6 @@ and `.result` fields — a platform bug). Mitigations:
 1. **YAML-only final messages** — All dispatch templates instruct subagents to return ONLY the YAML report. No prose, no explanation, no summary.
 2. **Truncated output fields** — `failure_output` and `test_output` limited to last 20 lines (summary + counts).
 3. **Batch size awareness** — With N parallel subagents, context grows by ~N × (subagent conversation size). Limit parallel batch size when context is above 50%.
-
-**Budget math:** Each subagent conversation typically runs 150-400 KB. With duplication, that's 300-800 KB per task embedded in parent context. A 5-task parallel batch can consume 1.5-4 MB — potentially 70%+ of a 200K token window.
 
 ---
 

@@ -36,54 +36,54 @@ Full template: [templates/debate-scratchpad.md](templates/debate-scratchpad.md)
 ## Team Perspective Definitions
 
 ### Red Team (Required)
-**Role:** Challenger / Skeptic / Attacker
+Role: Challenger / Skeptic / Attacker
 
 - Questions assumptions and status quo
 - Identifies weaknesses, risks, and failure modes
 - Plays devil's advocate against proposed solutions
 - Stress-tests arguments for logical consistency
 
-**Default stance:** "Why this won't work" or "What could go wrong"
+Default stance: "Why this won't work" or "What could go wrong"
 
 ### Blue Team (Required)
-**Role:** Defender / Advocate / Builder
+Role: Defender / Advocate / Builder
 
 - Argues for the proposed approach or status quo
 - Highlights strengths, benefits, and opportunities
 - Provides evidence supporting the position
 - Addresses concerns raised by opposition
 
-**Default stance:** "Why this will work" or "How we succeed"
+Default stance: "Why this will work" or "How we succeed"
 
 ### Green Team (Optional)
-**Role:** Pragmatist / Implementer
+Role: Pragmatist / Implementer
 
 - Focuses on practical feasibility
 - Considers resource constraints and timelines
 - Proposes incremental or hybrid approaches
 - Bridges theory and execution
 
-**Default stance:** "How we actually build this"
+Default stance: "How we actually build this"
 
 ### Yellow Team (Optional)
-**Role:** Risk Analyst / Safety Advocate
+Role: Risk Analyst / Safety Advocate
 
 - Identifies security, safety, and compliance concerns
 - Considers edge cases and failure scenarios
 - Evaluates long-term consequences
 - Proposes safeguards and mitigations
 
-**Default stance:** "What we must protect against"
+Default stance: "What we must protect against"
 
 ### Purple Team (Optional)
-**Role:** Synthesizer / Integrator
+Role: Synthesizer / Integrator
 
 - Finds common ground between positions
 - Identifies false dichotomies
 - Proposes hybrid solutions
 - Facilitates convergence
 
-**Default stance:** "How we combine the best of both"
+Default stance: "How we combine the best of both"
 
 ---
 
@@ -154,29 +154,29 @@ Red's point about authentication vulnerabilities in the proposed API design.
 ## Common Failure Modes
 
 ### 1. Echo Chamber
-**Symptom:** Teams agree too quickly without substantive debate
-**Cause:** Topic not controversial enough or stances too similar
-**Fix:** Sharpen distinctions, assign more adversarial stances
+Symptom: Teams agree too quickly without substantive debate
+Cause: Topic not controversial enough or stances too similar
+Fix: Sharpen distinctions, assign more adversarial stances
 
 ### 2. Talking Past Each Other
-**Symptom:** Teams make points but don't engage with opposition
-**Cause:** Unclear topic framing or teams not reading opponent arguments
-**Fix:** Direct teams to quote and respond to specific opponent claims
+Symptom: Teams make points but don't engage with opposition
+Cause: Unclear topic framing or teams not reading opponent arguments
+Fix: Direct teams to quote and respond to specific opponent claims
 
 ### 3. Tunnel Vision
-**Symptom:** Team repeats same argument in different words
-**Cause:** Team stuck on single angle, not exploring alternatives
-**Fix:** Suggest new dimensions: "Consider the [cost/timeline/user] angle"
+Symptom: Team repeats same argument in different words
+Cause: Team stuck on single angle, not exploring alternatives
+Fix: Suggest new dimensions: "Consider the [cost/timeline/user] angle"
 
 ### 4. Analysis Paralysis
-**Symptom:** Teams research endlessly without committing to arguments
-**Cause:** Topic too broad or teams too cautious
-**Fix:** Set explicit scope, ask for "best current argument given available info"
+Symptom: Teams research endlessly without committing to arguments
+Cause: Topic too broad or teams too cautious
+Fix: Set explicit scope, ask for "best current argument given available info"
 
 ### 5. Premature Convergence
-**Symptom:** Teams agree before fully exploring disagreements
-**Cause:** Conflict avoidance or insufficient adversarial framing
-**Fix:** Ask probing questions: "But what about X?" "How do you respond to Y?"
+Symptom: Teams agree before fully exploring disagreements
+Cause: Conflict avoidance or insufficient adversarial framing
+Fix: Ask probing questions: "But what about X?" "How do you respond to Y?"
 
 ---
 

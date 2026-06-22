@@ -37,11 +37,7 @@ for true parallelism. Never shell out to codex/gemini directly.
 
 ## Purpose
 
-Reviewers check the **diff of changes** from a batch, ensuring quality and scope compliance before proceeding to the next batch.
-
-**This is Phase C of the Three-Phase Pipeline.** It is mandatory - no batch completes without review.
-
-**Key:** Reviewers work with the git diff, not full file contents. This keeps reviews focused and efficient.
+Reviewers check the **diff of changes** from a batch, ensuring quality and scope compliance before proceeding to the next batch. Reviewers work with the git diff, not full file contents.
 
 ## Skills to Invoke
 
@@ -219,16 +215,6 @@ Languages: python | Rules: 12 | Violations: 1
 per-reviewer manifest status and synthesizes what landed (minimum 1 Claude required),
 noting any skipped reviewer as partial results. Exit codes and details:
 **[peer skill](../../../peer/SKILL.md)**. Never block the pipeline on an external harness.
-
-## Quality Criteria
-
-Review is good when it:
-- Evaluates all five gates
-- Covers all tasks in the batch
-- Provides actionable feedback (not vague)
-- Prioritizes issues by severity
-- Acknowledges strengths
-- Includes file/line references
 
 ## Example
 

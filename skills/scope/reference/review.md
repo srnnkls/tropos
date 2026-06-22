@@ -96,8 +96,7 @@ All gates pass → "Ready for implementation." Issues found → "Address critica
 - Applies project documentation standards
 - Verifies design depth (alternatives substantiated, invariants testable)
 
-**Strengths:** Deep project context, can verify feasibility against actual codebase, catches integration issues.
-**Limitations:** Single model perspective, may be anchored by prior context.
+Deep project context, can verify feasibility against actual codebase, catches integration issues. Single model perspective, may be anchored by prior context.
 
 ### External Reviewer (Fresh Perspective — via `peer`)
 
@@ -107,8 +106,7 @@ All gates pass → "Ready for implementation." Issues found → "Address critica
 - Tests clarity for unfamiliar readers
 - Assesses whether reasoning is self-contained
 
-**Strengths:** Catches assumptions insiders miss, simulates new team member perspective.
-**Limitations:** Cannot verify against actual codebase, may flag project conventions as issues.
+Catches assumptions insiders miss, simulates new team member perspective. Cannot verify against actual codebase, may flag project conventions as issues.
 
 ---
 
@@ -236,7 +234,7 @@ synthesized_report:
 
 ### No Reviewers Selected
 
-Default to claude-opus only. Warn about single-perspective review.
+Default to claude-opus only.
 
 ### Scope Not Found
 

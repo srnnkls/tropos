@@ -1,41 +1,6 @@
 #!/usr/bin/env bash
-# peer - external code-review harness with a canonical model registry, idle-stall
-# detection, and self-parallelising fan-out.
-#
-# Harnesses:
-#   codex  - OpenAI Codex CLI (agentic, streams). The shared ChatGPT/Codex backend stalls
-#            mid-request: the client then sits at ~0 CPU emitting NOTHING until a fixed cap.
-#            peer watches the live stream and kills after --idle seconds of silence
-#            (default base 120s + 1s per 500 chars of prompt, auto-scaled so large prompts
-#            get more first-token headroom; a tighter fixed value false-kills long reasoning
-#            steps; a true stall is unbounded silence the --cap still catches), retries once.
-#   gemini - pi + the @ssweens/pi-vertex provider → Gemini on Vertex AI (ADC auth). Fully
-#            agentic (explores the diff with tools), `--mode json` streams events so the
-#            same idle-watchdog applies. BUT gemini-on-Vertex streams thinking/text deltas,
-#            then goes silent for a long stretch (server-side reasoning + report generation)
-#            before emitting the answer — observed ~70s, occasionally past codex's 120s base.
-#            That silence scales with OUTPUT (the report) which the prompt-size auto-scale
-#            can't see, so the pi harness uses a higher idle base (180s) than codex (120s).
-#            Project/location default to a billed Vertex project (override via
-#            PEER_GEMINI_PROJECT / PEER_GEMINI_LOCATION); needs
-#            `gcloud auth application-default login`.
-#
-# The Claude harness is an in-process subagent (Task), dispatchable only by the agent
-# itself; peer covers the external harnesses. `peer list` shows all of them.
-#
-# Subcommands:
-#   peer [run] -d OUTDIR [--reviewers id|alias,...] [--effort L] [--idle S] [--cap S] PROMPT
-#         ^ parallel fan-out — the DEFAULT action; the `run` keyword is optional (back-compat)
-#   peer <codex|pi> -o OUTFILE [--model M] [--effort L] [--idle S] [--cap S] PROMPT
-#         ^ single harness; `pi` defaults its model to gemini-3.5-flash (override with --model)
-#   peer list
-#   peer get <id|model|harness|alias|effort|native> <id-or-alias>
-#
-# Harness names the external CLI peer execs (codex, pi) — NOT the model. The model
-# (gpt-5.5, gemini-3.5-flash) lives in the registry and is what `pi`/`codex` run.
-#
-# Exit (single harness): 0 report in OUTFILE · 2 usage · 3 auth/missing · 124 failed twice
-# Exit (fan-out):        0 at least one report produced · 1 none · 2 usage
+# peer - external code-review harness: canonical model registry, idle-stall watchdog,
+# self-parallelising fan-out to codex (OpenAI) and pi/gemini (Vertex AI).
 set +m
 
 # --- canonical model registry: the single source of truth for reviewer identity ------
@@ -46,7 +11,6 @@ HARNESS[gemini-3.5-flash]=pi;      MODEL[gemini-3.5-flash]='gemini-3.5-flash'; A
 HARNESS[claude-opus]=claude;     MODEL[claude-opus]='opus';            ALIAS[claude-opus]=opus;      EFFORT[claude-opus]=-;     NATIVE[claude-opus]=yes
 HARNESS[claude-sonnet]=claude;   MODEL[claude-sonnet]='sonnet';        ALIAS[claude-sonnet]=sonnet;  EFFORT[claude-sonnet]=-;   NATIVE[claude-sonnet]=yes
 
-# resolve an id-or-alias token to a canonical reviewer-id (nonzero if unknown)
 _peer_resolve() {
   local t=$1 id
   [[ -n ${HARNESS[$t]:-} ]] && { printf '%s\n' "$t"; return 0; }
@@ -54,7 +18,6 @@ _peer_resolve() {
   return 1
 }
 
-# reject malformed flag values loudly: $1=effort (empty ok) $2=idle $3=cap
 _peer_validate() {
   case "$1" in ''|low|medium|high) ;; *) printf '%s\n' "peer: invalid --effort '$1' (expected: low, medium, or high)" >&2; return 2 ;; esac
   { [[ "$2" =~ ^[0-9]+$ ]] && (( 10#$2 >= 1 )); } || { printf '%s\n' "peer: invalid --idle '$2' (expected a positive integer of seconds)" >&2; return 2; }
@@ -92,9 +55,6 @@ if [[ "$cmd" == get ]]; then
 fi
 
 # --- parallel fan-out over external harnesses — the DEFAULT action -------------------
-# Reached for everything except an explicit single harness (codex|pi). The `run`
-# keyword is optional and stripped here so `peer -d … PROMPT` and `peer run -d … PROMPT`
-# are identical.
 if [[ "$cmd" != codex && "$cmd" != pi ]]; then
   if [[ -z "$cmd" ]]; then
     printf '%s\n' "usage: peer [-d OUTDIR] [--reviewers id|alias,...] [--effort L] [--idle S] [--cap S] PROMPT   (parallel fan-out — default)" >&2
@@ -121,14 +81,11 @@ if [[ "$cmd" != codex && "$cmd" != pi ]]; then
     printf '%s\n' "usage: peer -d OUTDIR [--reviewers id|alias,...] [--effort L] [--idle S] [--cap S] PROMPT" >&2
     exit 2
   }
-  # No auto-scale here: each child self-scales with its own harness-aware idle base (codex
-  # 120s, pi 180s). A user-supplied --idle is forwarded verbatim to every child below.
   _peer_validate "$effort" "$idle" "$cap" || exit 2
   mkdir -p "$outdir" || exit 2
 
   want=(); ran=(); declare -A PID; ok=0
 
-  # default to every external (peer-runnable) reviewer
   if [[ -n "$reviewers" ]]; then
     IFS=',' read -ra want <<< "$reviewers"
   else
@@ -183,7 +140,6 @@ prompt="$*"
 (( idle_set )) || { _base=$([[ "$harness" == pi ]] && printf 180 || printf 120); _auto=$(( _base + ${#prompt} / 500 )); idle=$(( _auto > cap ? cap : _auto )); }
 _peer_validate "$effort" "$idle" "$cap" || exit 2
 
-# Vertex config for the pi harness (pi + @ssweens/pi-vertex, ADC auth; override via env).
 gproj="${PEER_GEMINI_PROJECT:-code17-main}"
 gloc="${PEER_GEMINI_LOCATION:-global}"   # 3.x flash lives on the global endpoint, not regional
 case "$harness" in
@@ -212,19 +168,14 @@ for attempt in 1 2; do
     [[ -n "$model" ]] && a+=( -m "$model" )
     codex "${a[@]}" "$prompt" </dev/null >"$fifo" 2>&1 &
   else
-    # gemini via pi + pi-vertex provider (Vertex AI, ADC). --mode json streams events
-    # (liveness for the watchdog); the report is recovered from the stream below.
     GOOGLE_CLOUD_PROJECT="$gproj" GOOGLE_CLOUD_LOCATION="$gloc" \
       pi -p --mode json --provider vertex --model "$model" "$prompt" </dev/null >"$fifo" 2>&1 &
   fi
   hpid=$!
 
-  # Coarse backstop: kill if the run exceeds --cap even while dribbling output.
   ( sleep "$cap"; kill -TERM "$hpid" 2>/dev/null ) &
   capper=$!
 
-  # Idle watchdog: read blocks at most --idle seconds. A line resets it; silence past
-  # --idle leaves the loop with the harness still alive -> stall.
   log=""
   exec 3<"$fifo"
   while IFS= read -t "$idle" -r -u 3 line; do
@@ -241,8 +192,6 @@ for attempt in 1 2; do
   kill "$capper" 2>/dev/null; wait "$capper" 2>/dev/null
   rm -f "$fifo" 2>/dev/null
 
-  # codex writes the report via -o; pi (--mode json) emits it as the last assistant
-  # message's text parts — recover that from the captured stream.
   if [[ "$harness" == pi && $stalled -eq 0 ]]; then
     printf '%s\n' "$log" | OUTFILE="$outfile" python3 -c '
 import os,sys,json
@@ -268,8 +217,6 @@ if last:
     exit 0
   fi
 
-  # No usable report — only now decide auth vs stall. Genuine auth/availability failures
-  # (codex OAuth, pi-vertex ADC) produce no report and aren't a transient stall: don't retry.
   if printf '%s\n' "$log" | grep -qiE 'unauthenticated|permission[_ ]denied|status[^0-9]{0,6}40[13]\b|\b40[13][[:space:]]+(unauthorized|forbidden)|invalid_grant|invalid_rapt|invalid_api_key|incorrect[_ ]api[_ ]key|authentication[_ ](error|failed)|not[_ ]authenticated|refresh_token_invalidated|could not be refreshed|could not[^"]{0,40}credential|application default credentials|reauthenticat|token (has[_ ])?(been[_ ])?(expired|revoked)'; then
     printf '%s\n' "peer: $harness auth/availability error - re-authenticate (codex login / gcloud auth application-default login)" >&2
     exit 3

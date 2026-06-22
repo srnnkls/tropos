@@ -1,22 +1,8 @@
 # Design: ${SCOPE_NAME}
 
-<!--
-Design reasoning for ${SCOPE_NAME}.
-Structured analysis between deciding what to build and breaking it into tasks.
-All sections optional — include only what adds value.
-Code sketches belong in resources/implementation.md, not here.
-
-See reference/quality-model.md for quality patterns from exemplary docs.
--->
-
 ---
 
 ## Problem
-
-<!--
-Quantified current state with evidence.
-What's broken, slow, or missing — with numbers.
--->
 
 | Metric | Current | Target |
 |--------|---------|--------|
@@ -27,11 +13,6 @@ ${PROBLEM_NARRATIVE}
 ---
 
 ## Alternatives
-
-<!--
-What was considered and rejected, with specific reasoning.
-Each alternative should have a clear rejection rationale.
--->
 
 ### ${ALTERNATIVE_A}
 
@@ -67,10 +48,6 @@ ID each invariant for test linkage in Verification section.
 
 ## Complexity
 
-<!--
-Before/after comparison showing the change is justified.
--->
-
 | Dimension | Before | After | Delta |
 |-----------|--------|-------|-------|
 | ${DIMENSION} | ${BEFORE} | ${AFTER} | ${DELTA} |
@@ -78,11 +55,6 @@ Before/after comparison showing the change is justified.
 ---
 
 ## Verification
-
-<!--
-How to confirm the design works.
-Link test cases to invariant IDs above.
--->
 
 ### Test Cases
 
@@ -94,10 +66,5 @@ Link test cases to invariant IDs above.
 ---
 
 ## Design Notes
-
-<!--
-Edge cases, caveats, subtle decisions.
-Things a reviewer or implementer should know.
--->
 
 - ${NOTE}

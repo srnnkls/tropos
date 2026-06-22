@@ -56,7 +56,7 @@ Inspect current git state and recommend the right rebase command.
 ## Workflow
 
 1. **Read pre-loaded context above.** It already collected the signals (HEAD, base, merge-base, fork-point, divergence, fixups, downstream, working tree).
-2. **State intent in one line before matching:** "`<branch>` will become a descendant of `<new-base>`; commits `<old-base>..<branch>` get replayed." If the user's prior instruction was "the fix belongs on branch X," the branch under your cursor should usually be X (commit there) or X's *downstream* (rebase onto X) — not X being rebased onto its descendant. Confirm direction with the user when **any** of these hold: target is an integration/aggregator branch, source is a published PR head, or other branches descend from either.
+2. **State intent in one line before matching:** "`<branch>` will become a descendant of `<new-base>`; commits `<old-base>..<branch>` get replayed." If the user's prior instruction was "the fix belongs on branch X," the branch under your cursor should usually be X (commit there) or X's *downstream* (rebase onto X) — not X being rebased onto its descendant. Confirm direction with the user when any of these hold: target is an integration/aggregator branch, source is a published PR head, or other branches descend from either.
 3. **Match the dominant signal in the decision table below** (top-down — first match wins).
 4. **Present the recommendation:**
    - One-line diagnosis (what state the branch is in)
@@ -68,7 +68,7 @@ Inspect current git state and recommend the right rebase command.
    - Parent chain matches the intent stated in step 2
    - No unexpected commits replayed (e.g., commits from the wrong side of the cascade)
    - No expected commits missing
-   If the graph diverges from intent, **stop**. Do not commit, force-push, or merge on top — each of those bakes the misplacement deeper. Reverse with `git reset --hard ORIG_HEAD` and reconsider direction.
+   If the graph diverges from intent, stop. Do not commit, force-push, or merge on top — each of those bakes the misplacement deeper. Reverse with `git reset --hard ORIG_HEAD` and reconsider direction.
 
 ---
 
@@ -115,8 +115,6 @@ Notes:
 
 ## Helpful One-Shot Commands
 
-When the user wants to inspect more before committing to a strategy:
-
 ```bash
 # Save the current upstream tip BEFORE pulling — needed for rebase --onto later
 git rev-parse @{upstream} > /tmp/old-upstream-$(git rev-parse --abbrev-ref HEAD)
@@ -140,8 +138,8 @@ git merge-base --is-ancestor <branch> <other> && echo "ancestor" || echo "diverg
 - Rebasing while a merge / cherry-pick / bisect is in progress.
 - Rebasing with a dirty index (use stash, never `--ignore` flags).
 - Using `git push --force` instead of `git push --force-with-lease`.
-- **Inverting `rebase --onto` direction.** `git rebase --onto X Y` makes the *current* branch a descendant of `X`. If the user's intent is "work belongs on branch B," check the branch under your cursor before running — you usually want to commit on B, or rebase B's downstreams onto B, not the reverse.
-- **Continuing past a rebase without a topology check.** Edits, commits, force-pushes, and especially squash-merges on top of a misrouted rebase are a one-way ratchet: each step embeds the mistake further, and a squash-merge into an integration branch will propagate it to main.
+- Inverting `rebase --onto` direction. `git rebase --onto X Y` makes the *current* branch a descendant of `X`. If the user's intent is "work belongs on branch B," check the branch under your cursor before running — you usually want to commit on B, or rebase B's downstreams onto B, not the reverse.
+- Continuing past a rebase without a topology check. Edits, commits, force-pushes, and especially squash-merges on top of a misrouted rebase are a one-way ratchet: each step embeds the mistake further, and a squash-merge into an integration branch will propagate it to main.
 
 ---
 

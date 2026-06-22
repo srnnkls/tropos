@@ -1,7 +1,5 @@
 # Systematic Debugging
 
-Random fixes waste time and create new bugs.
-
 **Core principle:** ALWAYS find root cause before attempting fixes. Symptom fixes are failure.
 
 ---
@@ -24,12 +22,6 @@ Use for ANY technical issue:
 - Unexpected behavior
 - Performance problems
 - Build failures
-
-**Use ESPECIALLY when:**
-- Under time pressure (emergencies make guessing tempting)
-- "Just one quick fix" seems obvious
-- You've already tried multiple fixes
-- You don't fully understand the issue
 
 ---
 
@@ -139,18 +131,6 @@ log("DEBUG operation:", {
 - "One more fix attempt" (when already tried 2+)
 
 **ALL of these mean:** STOP. Return to Phase 1.
-
----
-
-## Common Rationalizations
-
-| Excuse | Reality |
-|--------|---------|
-| "Issue is simple" | Simple issues have root causes too. |
-| "Emergency, no time" | Systematic is FASTER than thrashing. |
-| "Just try this first" | First fix sets the pattern. Do it right. |
-| "I see the problem" | Seeing symptoms != understanding root cause. |
-| "One more fix attempt" | 3+ failures = architectural problem. |
 
 ---
 

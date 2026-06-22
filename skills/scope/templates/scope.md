@@ -10,7 +10,6 @@ issue_type: ${ISSUE_TYPE}
 
 ${GOAL_DESCRIPTION}
 
-<!-- User Stories section: Include when Initiative issue type -->
 ## User Stories
 
 > Include when: Initiative issue type
@@ -30,14 +29,7 @@ ${GOAL_DESCRIPTION}
 - US003: ${USER_STORY_3}
   - **Independent test:** ${HOW_TO_TEST_INDEPENDENTLY}
 
-<!-- End User Stories section -->
-
 ## Context
-
-<!--
-Key files, architecture decisions, constraints, gotchas.
-What we know about the current state that shapes the approach.
--->
 
 ### Key Files
 
@@ -97,7 +89,6 @@ What we know about the current state that shapes the approach.
   When ${ACTION_2}
   Then ${EXPECTED_RESULT_2}
 
-<!-- API Contract section: Include when Feature/Initiative involves API changes -->
 ## API Contract
 
 > Include when: Feature/Initiative involves API changes
@@ -108,9 +99,6 @@ What we know about the current state that shapes the approach.
 |--------|------|---------|
 | ${METHOD} | ${PATH} | ${PURPOSE} |
 
-<!-- End API Contract section -->
-
-<!-- Implementation Strategy section: Include when Initiative issue type -->
 ## Implementation Strategy
 
 > Include when: Initiative issue type
@@ -123,8 +111,6 @@ ${APPROACH}
 
 - **Phase 1:** ${PHASE_1_GOAL}
 - **Phase 2:** ${PHASE_2_GOAL}
-
-<!-- End Implementation Strategy section -->
 
 ## Dependency Graph
 
@@ -142,10 +128,6 @@ Phase 1 (${PHASE_1_NAME})
 - ${EXPLICIT_NON_GOAL_2}
 
 ## Verification
-
-<!--
-How to know it's done. Test commands, acceptance criteria, expected behavior.
--->
 
 - ${VERIFICATION_STEP_1}
 - ${VERIFICATION_STEP_2}

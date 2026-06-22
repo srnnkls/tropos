@@ -2,13 +2,6 @@
 
 YAML report schemas for structured handoff between subagents.
 
-## Why YAML Reports
-
-- **Structured parsing** - Main agent can reliably extract data
-- **Consistent handoff** - Tester -> Implementer -> Reviewer
-- **Clear status** - Success, gap, blocked states
-- **Evidence-based** - Actual outputs, not claims
-
 ## Output Constraint
 
 **All subagents must return ONLY the YAML report as their final message.**
@@ -204,14 +197,3 @@ TESTER
     └─ status: gap ──► Consult scope, ask user, re-dispatch tester
 ```
 
----
-
-## Parsing Reports
-
-Main agent should:
-
-1. Look for YAML code blocks in subagent output
-2. Parse the appropriate `*_report` structure
-3. Check `status` field first
-4. Handle success/failure paths accordingly
-5. Pass reports to next phase (tester → implementer → reviewer)

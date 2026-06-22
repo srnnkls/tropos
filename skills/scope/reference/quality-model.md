@@ -1,6 +1,6 @@
 # Design Document Quality Model
 
-Patterns extracted from exemplary design documents (gestalt/sira/nmnm). Use as a thinking pattern, not a fill-in-the-blank template.
+Patterns extracted from exemplary design documents (gestalt/sira/nmnm).
 
 ---
 
@@ -78,8 +78,3 @@ Clear dependencies and verification per phase. Each phase should produce observa
 | Exhaustive alternatives catalog | Only seriously considered ones with rejection rationale |
 | Design without verification | Link invariants to test cases |
 
----
-
-## Why Chain-of-Thought Matters for LLM Design
-
-Without explicit motivation requirements, LLMs default to assertion mode — "we chose X" without explaining why. Requiring the motivation chain (decision → why → alternatives → tradeoffs) forces the reasoning to be externalized and verifiable. The human can then validate the reasoning, not just the conclusion.

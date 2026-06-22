@@ -1,7 +1,5 @@
 # Root Cause Tracing
 
-Bugs often manifest deep in the call stack. Your instinct is to fix where the error appears, but that's treating a symptom.
-
 **Core principle:** Trace backward through the call chain until you find the original trigger, then fix at the source.
 
 ## When to Use

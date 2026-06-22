@@ -26,13 +26,3 @@ Broad-spectrum code reviewer covering correctness, security, and performance.
 
 **Required:** Invoke `code review` skill for review methodology.
 
----
-
-## Expected Behavior
-
-- Reads code thoroughly
-- May use Glob/Grep/Read to check codebase patterns
-- Outputs structured YAML report (see [../report.md](../report.md))
-- Provides actionable suggestions with concrete fixes
-- References existing code when suggesting improvements
-- Defers architecture and style to specialized reviewers

@@ -18,7 +18,7 @@ Languages detected:
 
 Composes generic skills (`implement`, `review`, `test`) with code-specific context.
 
-> **Protocol:** [dispatch/protocol.md](../dispatch/protocol.md)
+> [dispatch/protocol.md](../dispatch/protocol.md)
 
 ---
 
@@ -61,11 +61,9 @@ Options:
 
 ## Code Context (Injected into Generic Skills)
 
-When delegating to generic skills, provide this code-specific context:
-
 ### For Implement
 
-**Language guidelines:** Read `~/.claude/skills/loqui/reference/loqui/languages/{language}/README.md` for language-specific conventions. Each language directory contains:
+Language guidelines: `~/.claude/skills/loqui/reference/loqui/languages/{language}/README.md`
 
 ```
 ~/.claude/skills/loqui/reference/loqui/languages/{language}/
@@ -77,15 +75,13 @@ When delegating to generic skills, provide this code-specific context:
 └── ...                    # Additional language-specific resources
 ```
 
-**Use Read tool** (not Glob) to access resources — paths outside cwd require direct reads.
+Use Read (not Glob) — paths outside cwd require direct reads.
 
-**Start with the language README** for quick reference and core principles, then dive into specific topic files as needed.
-
-**Code intelligence:** Use `gestalt map` for codebase orientation, `gestalt callers`/`callees`/`refs` for symbol navigation.
+Code intelligence: `gestalt map` for orientation, `gestalt callers`/`callees`/`refs` for symbol navigation.
 
 ### For Review
 
-**Reviewer Cascade** — Three roles with distinct, non-overlapping concerns:
+Reviewer Cascade — Three roles with distinct, non-overlapping concerns:
 
 | Role | Concern | Primary Gates | Skill |
 |------|---------|---------------|-------|
@@ -93,21 +89,19 @@ When delegating to generic skills, provide this code-specific context:
 | **Architecture** | Structural impact, coupling, hotspots | Architecture | `gestalt` |
 | **Compliance** | Language idioms, naming, patterns | Style | `loqui` |
 
-**Review reference:** See [reference/roles/](reference/roles/) for reviewer concerns, [reference/playbook.md](reference/playbook.md) for edge case handling, [reference/checklist.md](reference/checklist.md) for review checklist.
+Review reference: [reference/roles/](reference/roles/) for reviewer concerns, [reference/playbook.md](reference/playbook.md) for edge case handling, [reference/checklist.md](reference/checklist.md) for review checklist.
 
-**Compliance reviewer loqui path:** `~/.claude/skills/loqui/reference/loqui/languages/{language}/`
+Compliance reviewer loqui path: `~/.claude/skills/loqui/reference/loqui/languages/{language}/`
 
 ### For Test
 
-**Language-specific test conventions:** Read loqui language guidelines for test patterns:
+Language-specific test conventions — read loqui language guidelines for test patterns:
 - `~/.claude/skills/loqui/reference/loqui/languages/{language}/test.md` (if exists)
 - `~/.claude/skills/loqui/reference/loqui/languages/{language}/README.md` for general conventions
 
 ---
 
 ## Review Workflow
-
-When routing to `review`, this domain skill provides the full code review methodology. See `code review` in the original skill for the complete workflow:
 
 1. **Detect Input Type** — scope, git rev, git range, path, or diff
 2. **Resolve Review Target** — pointers for reviewers to load code themselves
@@ -327,12 +321,11 @@ Additional focus:
 ## Integration
 
 **Related skills:**
-- `implement` - Generic implementation methodology
+- `implement` - Generic implementation methodology and scope execution pipeline
 - `review` - Generic review infrastructure (models, harnesses, reports, synthesis)
 - `test` - Generic TDD methodology
 - `gestalt` - Architecture reviewer uses for structural analysis
 - `loqui` - Compliance reviewer uses for language guidelines
-- `implement` - Scope execution pipeline
 
 ---
 

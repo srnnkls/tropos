@@ -1,11 +1,5 @@
 # Gestalt Structural Review Protocol
 
-A structured review protocol where the agent uses gestalt commands to build structural understanding, generates targeted questions for the human, and produces a grounded review verdict.
-
-No new gestalt features required — only the existing CLI.
-
----
-
 ## Phase 0: Orient
 
 ```bash
@@ -115,8 +109,6 @@ Options:
 **Rules:**
 - Group related symbols into a single `AskUserQuestion` call (up to 4 questions)
 - Use multiple calls if >4 questions
-- Don't rubber-stamp — wait for all answers before proceeding to Phase 4
-- Record each answer for the Phase 5 verdict (resolved vs. unresolved)
 
 ---
 
@@ -173,18 +165,3 @@ Reason: [grounded in structural evidence and human-confirmed facts]
 Action: [specific next step if not approving]
 ```
 
----
-
-## Key Principle
-
-The agent doesn't review alone. It uses gestalt to identify **where** to look, generates questions that force **domain engagement**, and relies on the human for **semantic judgment**. The protocol makes the agent a structural analyst and question generator, not a judge.
-
----
-
-## What This Buys Over Naive Review
-
-1. **Starts with structure, not text** — sees change topology before reading code
-2. **Asks specific questions** — grounded in caller/callee data, not generic
-3. **Quantifies blast radius** — facts the agent cannot infer from the diff alone
-4. **Routes the hard questions to the human** — premises, domain accuracy, boundary contracts
-5. **Produces a grounded verdict** — references structural evidence and human-confirmed facts

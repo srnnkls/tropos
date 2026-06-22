@@ -15,30 +15,22 @@ Pending draft comments:
 
 Interactive GitHub PR review workflow: fetch PR, iterate findings with clarification, manage draft comments, submit when ready.
 
-**Delegates to:** `code` domain for review methodology and language guidelines.
+Delegates to `code` domain for review methodology and language guidelines.
 
-**Requires:** `gh-review` extension (`gh extension install srnnkls/gh-review`)
-
----
-
-## When to Use
-
-- Reviewing PRs on GitHub repositories
-- When asked to review `owner/repo#N` or just `#N`
-- Posting structured feedback with inline code comments
+Requires: `gh-review` extension (`gh extension install srnnkls/gh-review`)
 
 ---
 
 ## Workflow
 
-### Step 1: Configure Review
+### 1. Configure Review
 
 Use **AskUserQuestion** to gather configuration (see `code review` for details):
 - Focus areas: correctness, style, performance, security
 - Severity threshold: blocking, high, all
 - Scope: full, quick
 
-### Step 2: Fetch PR Context
+### 2. Fetch PR Context
 
 If pre-loaded context above is populated, skip fetching. Otherwise (cross-repo or no argument):
 
@@ -48,7 +40,7 @@ gh pr diff {pr} --repo {owner}/{repo}
 gh api repos/{owner}/{repo}/pulls/{pr} --jq '.head.sha'  # Get commit SHA
 ```
 
-### Step 3: Check Existing Drafts
+### 3. Check Existing Drafts
 
 If pre-loaded draft comments above are populated, skip fetching. Otherwise:
 
@@ -58,33 +50,31 @@ gh review comments {pr} -R {owner}/{repo} --mine --states=pending
 
 If drafts exist, display them and offer to continue or discard.
 
-### Step 4: Check Related Issues
+### 4. Check Related Issues
 
 ```bash
 gh issue view {issue} --repo {owner}/{repo} --json title,body
 ```
 
-### Step 5: Delegate to Review Skills
+### 5. Delegate to Review Skills
 
-**Detect language** from file extensions:
+Detect language from file extensions:
 ```bash
 gh pr view {pr} --repo {owner}/{repo} --json files --jq '.files[].path' | \
   sed 's/.*\.//' | sort | uniq -c | sort -rn
 ```
 
-**Load review methodology:**
-- `code` domain - Review process and checklist
+Load:
+- `code` domain — review process and checklist
+- `~/.claude/skills/loqui/reference/loqui/languages/{language}/*` — language-specific resources based on file extensions
 
-**Load language guidelines:**
-- `~/.claude/skills/loqui/reference/loqui/languages/{language}/*` - Load language-specific resources based on file extensions
-
-### Step 6: Reference Style Guides
+### 6. Reference Style Guides
 
 Compare against:
 - Project style guides (STYLE.md, CLAUDE.md)
 - Established patterns from related issues
 
-### Step 7: Iterate Findings with Clarification
+### 7. Iterate Findings with Clarification
 
 For each potential issue identified:
 
@@ -96,7 +86,7 @@ For each potential issue identified:
    - General → "Flag this?", "Severity level?"
 3. **Batch decisions** - Allow selecting multiple findings to flag/dismiss
 
-### Step 8: Create/Update Draft Comments
+### 8. Create/Update Draft Comments
 
 For each confirmed finding, add to pending review:
 
@@ -119,7 +109,7 @@ To remove a draft:
 gh review delete {pr} -R {owner}/{repo} -c {comment_id}
 ```
 
-### Step 9: Submit or Keep Draft
+### 9. Submit or Keep Draft
 
 Use **AskUserQuestion** to determine action:
 
@@ -141,9 +131,9 @@ gh review discard {pr} -R {owner}/{repo}
 
 ## Key Gotchas
 
-- **Line numbers**: Use actual file line numbers (not diff positions) with `gh review`
-- **Comment IDs**: GraphQL node IDs (e.g., `PRRC_kwDOABC123`) - get with `--ids` flag
-- **Comment format**: Supports markdown, suggestion blocks with triple backticks
+- Line numbers: Use actual file line numbers (not diff positions) with `gh review`
+- Comment IDs: GraphQL node IDs (e.g., `PRRC_kwDOABC123`) - get with `--ids` flag
+- Comment format: Supports markdown, suggestion blocks with triple backticks
 
 ---
 
@@ -163,9 +153,8 @@ gh review discard {pr} -R {owner}/{repo}
 
 ## Related Skills
 
-- **code**: Review methodology (focus, severity, checklist) and language guidelines
-- **implement**: Implementation methodology
-- **loqui**: Language guidelines
+- `code`: Review methodology (focus, severity, checklist) and language guidelines
+- `loqui`: Language guidelines
 
 ---
 

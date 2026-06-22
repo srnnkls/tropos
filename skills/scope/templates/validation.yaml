@@ -1,18 +1,13 @@
-# Validation: ${SCOPE_NAME}
-# Machine + human readable validation tracking
-
 metadata:
   issue_type: ${ISSUE_TYPE}  # Initiative | Feature | Task
   created: ${DATE}
   questions_used: ${N}
-  questions_limit: ${LIMIT}  # Initiative/Feature: 5, Task: 3
+  questions_limit: ${LIMIT}  # Initiative/Feature: 5 | Task: 3
   approach: "${SELECTED_APPROACH}"
   source: ${SOURCE}  # scope | standalone
 
-# Ambiguity scan runs during scope creation to identify gaps.
-# Status values: clear | partial | missing
-# No gaps = silent proceed (no confirmation required)
 ambiguity_scan:
+  # Status values: clear | partial | missing
   scope:
     status: ${STATUS}
     gaps: []
@@ -35,7 +30,6 @@ ambiguity_scan:
     status: ${STATUS}
     gaps: []
 
-# Taxonomy coverage tracks which requirement areas have been addressed.
 taxonomy_coverage:
   scope:
     status: ${STATUS}  # covered | gap | n/a
@@ -59,7 +53,6 @@ taxonomy_coverage:
     status: ${STATUS}
     source: ${SOURCE}
 
-# Clarification log records each question asked during validation.
 clarification_log:
   - id: C001
     area: ${TAXONOMY_AREA}
@@ -68,7 +61,6 @@ clarification_log:
     impact_uncertainty: ${SCORE}
     integration: ${TARGET_DOC_OR_SECTION}
 
-# Clarification sessions provide full resolution tracking with audit trail.
 clarification_sessions:
   - id: S001
     timestamp: ${TIMESTAMP}
@@ -82,7 +74,6 @@ clarification_sessions:
             section: ${SECTION}
             action: ${ACTION}
 
-# Markers track unresolved items requiring future clarification.
 markers:
   - id: M001
     area: ${TAXONOMY_AREA}
@@ -91,16 +82,13 @@ markers:
     status: open
     resolution: null
 
-# Complexity tracking documents justified gate violations.
 complexity_tracking:
   - violation: "${WHAT_EXCEEDS_SIMPLICITY}"
     justification: "${WHY_NEEDED}"
     alternative_rejected: "${SIMPLER_APPROACH_AND_WHY_NOT}"
 
-# SDD gates enforce spec-driven development principles.
-# Initiative: All gates evaluated
-# Feature/Task: n/a
 gates:
+  # Initiative: All gates evaluated | Feature/Task: n/a
   simplicity:
     status: ${STATUS}  # passed | failed | n/a
     reason: "${EXPLANATION}"
@@ -111,18 +99,15 @@ gates:
     status: ${STATUS}
     reason: "${EXPLANATION}"
 
-# Deferred items identified but not clarified due to question limit.
 deferred:
   - area: ${TAXONOMY_AREA}
     question: "${QUESTION_NOT_ASKED}"
 
-# Design document context (opt-in).
 design_context:
   design_opted_in: ${BOOL}
   alternatives_described: ${BOOL}
   alternative_descriptions: []
 
-# Readiness checklist for programmatic gate checks.
 readiness:
   high_priority_areas_covered: ${BOOL}
   success_criteria_measurable: ${BOOL}
@@ -130,7 +115,6 @@ readiness:
   integration_points_identified: ${BOOL}
   edge_cases_addressed: ${BOOL}
 
-# Loqui validation results (if input contained code blocks).
 loqui_check:
   present: ${BOOL}
   language: ${LANG}
@@ -139,13 +123,11 @@ loqui_check:
   adherence_notes: |
     ${NOTES_ON_CODE_QUALITY}
 
-# Review configuration for implementation batch reviews.
-# Used by implement to determine which reviewers to use.
 review_config:
   reasoning_effort: ${REASONING_EFFORT}
   reviewers:
     - type: claude
-      model: ${CLAUDE_MODEL}        # opus
+      model: ${CLAUDE_MODEL}
     - type: gpt
       model: gpt-5.5
     - type: gemini

@@ -2,8 +2,6 @@
 
 ## switch / restore (2.23)
 
-`checkout` was overloaded — branch switching and file restoration in one command.
-
 ```bash
 # Branch operations → switch
 git switch main
@@ -20,8 +18,6 @@ git restore -s main -- src/       # Restore directory from branch
 ```
 
 ## force-with-lease (2.13)
-
-Prevents overwriting commits pushed by others since your last fetch.
 
 ```bash
 git push --force-with-lease       # Safe: fails if remote diverged
@@ -58,8 +54,6 @@ git worktree list                             # List all worktrees
 git worktree remove ../feat-auth              # Clean up
 ```
 
-Each worktree is an independent directory with its own index and working tree, sharing objects and refs.
-
 ## sparse-checkout (2.25)
 
 Work with a subset of files in large repos.
@@ -92,8 +86,6 @@ git maintenance stop        # Disable
 git maintenance run --task=gc              # Run specific task
 git maintenance run --task=commit-graph    # Update commit-graph
 ```
-
-Configures a cron/launchd schedule for automatic optimization.
 
 ## blame --ignore-rev (2.23)
 
@@ -157,5 +149,3 @@ git rerere status                       # Show recorded resolutions
 git rerere diff                         # Show what rerere would apply
 git rerere forget <file>                # Forget resolution for file
 ```
-
-Useful when rebasing cascading branches — the same conflicts recur and rerere handles them automatically.

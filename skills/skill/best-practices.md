@@ -8,7 +8,7 @@ Adapted from [Anthropic Skill Best Practices](https://platform.claude.com/docs/e
 
 The context window is shared. Skills compete with system prompt, conversation history, other skills' metadata, and the user request.
 
-**Default assumption:** Claude is already very smart. Only add context Claude doesn't have.
+Only add context Claude doesn't have.
 
 Challenge each piece of information:
 - "Does Claude really need this explanation?"
@@ -41,15 +41,13 @@ Match specificity to task fragility:
 | **Medium** | Preferred pattern exists, some variation OK | Script with parameters |
 | **Low** | Fragile operations, consistency critical | Exact migration command |
 
-**Analogy:** Narrow bridge with cliffs = low freedom. Open field = high freedom.
-
 ### Test with Target Models
 
 Skills effectiveness depends on the underlying model:
 
-- **Haiku** (fast): Does the skill provide enough guidance?
-- **Sonnet** (balanced): Is the skill clear and efficient?
-- **Opus** (powerful): Does the skill avoid over-explaining?
+- **Haiku**: Does the skill provide enough guidance?
+- **Sonnet**: Is the skill clear and efficient?
+- **Opus**: Does the skill avoid over-explaining?
 
 ---
 
@@ -212,7 +210,6 @@ Choose one term, use it throughout:
 
 Provide templates for output format:
 
-**Strict requirements:**
 ```markdown
 ## Report structure
 ALWAYS use this exact template:
@@ -222,7 +219,6 @@ ALWAYS use this exact template:
 ## Recommendations
 ```
 
-**Flexible guidance:**
 ```markdown
 ## Report structure
 Sensible default, adjust as needed:
@@ -289,27 +285,7 @@ Create evaluations BEFORE writing extensive documentation. This ensures your ski
 
 ### Develop Iteratively with Claude
 
-Use two Claude instances:
-- **Claude A**: Creates and refines the skill
-- **Claude B**: Tests the skill on real tasks
-
-**Creating a new skill:**
-
-1. **Complete task without skill**: Work through problem with Claude A. Notice what context you repeatedly provide
-2. **Identify reusable pattern**: What would help similar future tasks?
-3. **Ask Claude A to create skill**: "Create a skill capturing this pattern"
-4. **Review for conciseness**: Remove unnecessary explanations
-5. **Improve architecture**: Split into reference files as needed
-6. **Test with Claude B**: Fresh instance with skill loaded
-7. **Iterate**: If Claude B struggles, return to Claude A with specifics
-
-**Iterating on existing skills:**
-
-1. Use skill in real workflows with Claude B
-2. Observe: Where does it struggle? Succeed? Make unexpected choices?
-3. Return to Claude A: "Claude B forgot to filter test accounts. The skill mentions it but maybe not prominently enough?"
-4. Apply refinements, test again
-5. Repeat based on usage
+Use two Claude instances: Claude A creates and refines the skill; Claude B tests it on real tasks. When Claude B struggles, return to Claude A with specifics.
 
 ### Observe How Claude Navigates
 
@@ -350,11 +326,6 @@ def process_file(path):
 
 ### Provide Utility Scripts
 
-Pre-made scripts offer:
-- More reliable than generated code
-- Save tokens (no code in context)
-- Ensure consistency
-
 **Document clearly:**
 ```markdown
 ## Utility scripts
@@ -388,14 +359,6 @@ For complex tasks, use plan-validate-execute pattern:
 2. **Validate** → Run validation script on plan
 3. **Execute** → Apply changes only after validation passes
 4. **Verify** → Confirm results
-
-**Benefits:**
-- Catches errors before changes applied
-- Machine-verifiable with scripts
-- Reversible planning (iterate without touching originals)
-- Clear debugging with specific error messages
-
-**When to use:** Batch operations, destructive changes, complex validation, high-stakes operations.
 
 ### Package Dependencies
 

@@ -1,9 +1,3 @@
-# Dependencies: ${SCOPE_NAME}
-# Machine + human readable DAG for parallel dispatch
-
-# ------------------------------------------------------------------------------
-# Phases organize tasks logically. Tasks within a phase share prerequisites.
-# ------------------------------------------------------------------------------
 phases:
   - id: setup
     name: Setup
@@ -39,31 +33,16 @@ phases:
         files: [tests/test_feature.py]
         depends_on: [T005]
 
-# ------------------------------------------------------------------------------
-# Computed parallel batches (derived from DAG)
-# implement uses this to maximize parallelism
-#
-# Batching rules (must match tasks.yaml derivation):
-# - Tasks with no dependencies go in batch 1
-# - Tasks go in the earliest batch where all dependencies are satisfied
-# - Tasks sharing any `files` entry cannot be in the same batch
-# - A task with no `files` declared defaults to its own single-task batch
-# - Phase boundaries don't force batch breaks if dependencies allow parallelism
-# ------------------------------------------------------------------------------
 batches:
   - batch: 1
     tasks: [T001]
   - batch: 2
     tasks: [T002]
   - batch: 3
-    tasks: [T003, T004]  # Parallel: different files, same dependency satisfied
+    tasks: [T003, T004]
   - batch: 4
     tasks: [T005]
   - batch: 5
     tasks: [T006]
 
-# ------------------------------------------------------------------------------
-# Special actions (optional)
-# For tasks that aren't file creation/modification
-# ------------------------------------------------------------------------------
 actions: []

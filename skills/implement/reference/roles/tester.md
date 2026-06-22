@@ -6,10 +6,6 @@ Write failing tests for task requirements (RED phase of TDD).
 
 `subagent_type: "task-tester"`
 
-## Purpose
-
-The tester writes tests BEFORE any implementation exists. Tests must fail because the feature isn't implemented yet.
-
 ## Skills to Invoke
 
 **First action:** Read `./skills/test/SKILL.md` for TDD methodology.
@@ -42,52 +38,6 @@ Empty or error-only output will be rejected by the orchestrator.
 - Make tests pass
 - Modify existing code (except test files)
 - **Test dependencies or framework behavior**
-
-## Test Your Code, Not Dependencies
-
-**Critical:** Tests must verify YOUR application logic, not that libraries work.
-
-**Bad tests (testing dependencies):**
-```go
-// Tests that cobra's ExactArgs works - NOT your code
-func TestCmd_RequiresExactlyOneArg(t *testing.T) {
-    cmd := NewCmd()
-    cmd.SetArgs([]string{})
-    err := cmd.Execute()
-    assert.Error(t, err)  // Just proves cobra works
-}
-```
-
-**Good tests (testing your code):**
-```go
-// Tests YOUR transformation logic
-func TestTransform_AppliesAllTransformers(t *testing.T) {
-    input := "hello"
-    result := transform(input, []Transformer{Upper, Reverse})
-    assert.Equal(t, "OLLEH", result)
-}
-
-// Tests YOUR business logic decisions
-func TestSync_SkipsUpToDateArtifacts(t *testing.T) {
-    artifact := Artifact{Hash: "abc123"}
-    lockfile := Lockfile{Artifacts: map[string]string{"test": "abc123"}}
-    assert.False(t, needsSync(artifact, lockfile))
-}
-```
-
-**Ask yourself:** If this test passes, does it prove MY code works, or just that a library works?
-
-**Trust frameworks for:**
-- Argument parsing (cobra, flag)
-- HTTP routing (gin, chi)
-- Validation decorators
-- ORM query building
-
-**Test your code for:**
-- Business logic and transformations
-- Integration between your components
-- Error handling decisions YOU make
-- State management in YOUR code
 
 ## Report Format
 
@@ -129,14 +79,6 @@ tester_report:
 ```
 
 Main agent will handle gaps by consulting scope or asking user.
-
-## Quality Criteria
-
-Tests are good when they:
-- Cover all behaviors in test_hints
-- Fail for the RIGHT reason (missing feature, not typos)
-- Are clear and minimal (one behavior per test)
-- Have descriptive names
 
 ## Example
 
