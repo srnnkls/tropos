@@ -15,7 +15,6 @@
 - [ ] Consistent naming conventions
 - [ ] Code is readable without excessive comments
 - [ ] No commented-out code
-- [ ] Appropriate abstraction level
 - [ ] Follows project conventions
 
 ## Performance
@@ -31,6 +30,14 @@
 - [ ] Input validation at boundaries
 - [ ] No injection vulnerabilities (SQL, command, etc.)
 - [ ] Safe handling of user-provided paths
+
+## Over-engineering
+
+- [ ] No speculative abstraction — interface, factory, or layer with one implementation; inline until a second exists
+- [ ] No hand-rolled code the stdlib or platform already ships
+- [ ] No new dependency for what a few lines or an installed dep covers
+- [ ] No dead flexibility — unused config, flags, or parameters
+- [ ] Same behavior couldn't be materially shorter
 
 ## Architecture
 

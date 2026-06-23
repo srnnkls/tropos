@@ -9,6 +9,7 @@ Broad-spectrum code reviewer covering correctness, security, and performance.
 1. **Correctness** — Logic errors, edge cases, error handling, type safety
 2. **Security** — Input validation, secrets exposure, injection risks
 3. **Performance** — Efficiency, data structures, unnecessary computation
+4. **Simplicity** — Speculative abstraction, reinvented stdlib, needless dependencies, dead flexibility
 
 ---
 
@@ -19,6 +20,7 @@ Broad-spectrum code reviewer covering correctness, security, and performance.
 | **Correctness** | Logic errors, edge cases, error handling, type safety |
 | **Security** | Input validation, secrets exposure, injection risks |
 | **Performance** | Efficiency, data structures, unnecessary computation |
+| **Simplicity** | Speculative abstraction, hand-rolled stdlib/platform, needless deps, dead flexibility |
 
 ---
 
