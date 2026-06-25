@@ -242,6 +242,7 @@ case "$cmd" in
       local -a hits=( .issues/${target}-*.md(N) )
       hits=( ${hits:#*.orig.md} )
       (( ${#hits} )) || { _die "no draft .issues/${target}-*.md"; return 3 }
+      (( ${#hits} == 1 )) || { _die "ambiguous: ${#hits} drafts match .issues/${target}-*.md (${hits[*]}); pass the full path"; return 3 }
       draft=${hits[1]}
     fi
     local number=${${draft:t}%%[!0-9]*}

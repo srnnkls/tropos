@@ -74,7 +74,7 @@ The raw `gh api graphql` mutations are documented below as the reference the wra
    - Create: use the next issue number from `issue next`. Draft the body into `.issues/<next>-<type>-<slug>.md`.
    - Update: the number is the issue you're editing. Preserve the live body first — `gh issue view <n> --json body -q .body > ".issues/<n>-<type>-<slug>.orig.md"` — then draft into `.issues/<n>-<type>-<slug>.md`. Surface a diff (`diff ".issues/<n>-<type>-<slug>.orig.md" ".issues/<n>-<type>-<slug>.md"`) before the gate if rewriting an existing body.
 7. **Review gate (mandatory 2×2) — run before any publish.** The drafted body must clear a four-reviewer gate before it reaches GitHub. Dispatch all four in one message (see [Review gate](#review-gate-2x2-before-publish) below):
-   - **peer** — `issue review <next>` runs the external half (`peer` → **gpt** + **gemini**), reports under `.issues/<n>-reviews/`.
+   - **peer** — `issue review ".issues/<n>-<type>-<slug>.md"` runs the external half (`peer` → **gpt** + **gemini**), reports under `.issues/<n>-reviews/`. Pass the **draft path**, not the bare number — a bare number globs `.issues/<n>-*.md` and now errors if more than one draft shares that number.
    - **claude** — two `Task` subagents, one on **sonnet** and one on **opus** (agent-native — `issue review` can't dispatch them; do it in the same message).
 
    Read all four reports, fold blocking findings back into the draft, and re-run the gate until it passes. **Do not publish until the gate passes.**
@@ -104,9 +104,10 @@ Dispatch all four **in one message** — the two Claude `Task`s plus a single ba
 # Claude side — two Task subagents, model sonnet and model opus, same review prompt.
 # (dispatch via the agent's Task tool, not shell)
 
-# peer side — fan out to the two external reviewers, reports into the draft's review dir:
-issue review <number> --effort high
-# (equivalently: peer -d .issues/<number>-reviews --reviewers gpt,gemini --effort high "<prompt>")
+# peer side — fan out to the two external reviewers, reports into the draft's review dir.
+# Pass the draft PATH (a bare number globs .issues/<n>-*.md and errors on multiple matches):
+issue review ".issues/<n>-<type>-<slug>.md" --effort high
+# (equivalently: peer -d .issues/<n>-reviews --reviewers gpt,gemini --effort high "<prompt>")
 ```
 
 Review prompt (both sides): check the draft against the canonical template (required sections present, `#` header ordering correct, section selection matches the issue type) and against the repo's existing idioms (sketches must follow the codebase, not impose a foreign stack). Return blocking findings (missing/incorrect sections, sketches that contradict the codebase) separately from nits.
