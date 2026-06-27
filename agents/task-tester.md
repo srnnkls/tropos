@@ -4,6 +4,15 @@ description: Write tests and verify completeness
 skills: test, loqui
 model: opus
 color: red
+hooks:
+  PreToolUse:
+    - hooks:
+        - type: command
+          command: "fas eval --harness claude"
+  PostToolUse:
+    - hooks:
+        - type: command
+          command: "fas eval --harness claude"
 ---
 
 ## FIRST: Load Language Guidelines

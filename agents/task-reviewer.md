@@ -5,6 +5,15 @@ tools: Glob, Grep, Read, Bash, TodoWrite, AskUserQuestion
 skills: review, loqui
 model: opus
 color: yellow
+hooks:
+  PreToolUse:
+    - hooks:
+        - type: command
+          command: "fas eval --harness claude"
+  PostToolUse:
+    - hooks:
+        - type: command
+          command: "fas eval --harness claude"
 ---
 
 ## Skills

@@ -4,6 +4,15 @@ description: Implement task requirements following TDD
 skills: test, implement, loqui,
 model: opus
 color: green
+hooks:
+  PreToolUse:
+    - hooks:
+        - type: command
+          command: "fas eval --harness claude"
+  PostToolUse:
+    - hooks:
+        - type: command
+          command: "fas eval --harness claude"
 ---
 
 ## FIRST: Load Language Guidelines
