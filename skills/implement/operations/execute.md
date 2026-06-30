@@ -80,6 +80,11 @@ Each batch executes four phases. **A batch is NOT complete until all four phases
 Before dispatching any tasks, verify validation.yaml gates:
 
 1. Read `validation.yaml` from scope directory
+
+**Mandatory review gate (all issue types).** Check `review_gate.status`:
+- `passed` → proceed.
+- absent or `failed` → the scope has not cleared its mandatory review gate. **Do not dispatch tasks.** Report that the scope is not implementable and run `/scope review <name>` (which writes `review_gate.status` on a clean pass). Only proceed once the gate is `passed`. This is the scope-level analog of the `issue` skill's pre-publish gate; it is blocking and is not skippable per issue type.
+
 2. Check `metadata.issue_type`
 3. **If Initiative:**
    - Check all gates in `gates` section

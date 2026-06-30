@@ -6,10 +6,10 @@ Multi-perspective scope review using parallel subagent dispatch.
 
 ## When to Use
 
+- The mandatory gate every scope must clear before `implement`/`loop` (all issue types)
 - After creation to validate before implementation
 - When scope feels incomplete or ambiguous
-- Before `implement` for Initiatives
-- Standalone review of existing scopes
+- Standalone review of existing scopes (re-run to clear/refresh the gate)
 
 ---
 
@@ -80,9 +80,16 @@ Use **AskUserQuestion** with questions grouped by taxonomy area. Record answers 
 
 Add clarification session to `validation.yaml`. Update markers (close resolved, add new for deferred).
 
-### Step 8: Recommend Action
+### Step 8: Record Gate Result and Recommend Action
 
-All gates pass → "Ready for implementation." Issues found → "Address critical/high issues, re-run /scope review."
+This review is the **mandatory blocking gate** a scope must clear before implementation (the scope-level analog of the `issue` skill's 2×2 gate before publish). Write the outcome to `validation.yaml` under `review_gate`:
+
+- **No `critical`/`high` issue from any reviewer** → `review_gate.status: passed` (record reviewers, timestamp, `blocking_resolved`, and any deferred `medium` nits). Report "Ready for implementation."
+- **Any `critical`/`high` issue** → `review_gate.status: failed`. Report "Address critical/high issues, then re-run /scope review." Fold the findings back into `scope.md` / `tasks.yaml` / `design.md` and re-run until clean.
+
+`implement`/`loop` will not execute a scope whose `review_gate.status` is absent or `failed` (enforced at `implement/operations/execute.md` Step 2).
+
+When invoked standalone (`/scope review <name>`) the same gate semantics apply — a passing run writes `review_gate.status: passed`, unblocking implementation.
 
 ---
 

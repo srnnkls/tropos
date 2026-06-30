@@ -42,6 +42,10 @@ Focus: $ARGUMENTS
    signal (`dependencies.yaml` `batches[*]` if present, else derived from `tasks.yaml`'s
    `depends_on` + `files` — see `../implement/reference/parallel-detection.md`), and create one
    TodoWrite entry per task annotated with its batch number
+1a. Review gate — For each enumerated scope, verify `validation.yaml.review_gate.status: passed`.
+   If absent or `failed`, the scope has not cleared its mandatory review gate: output
+   `LOOP_BLOCKED: <scope> not reviewed — run /scope review` and stop. Do not iterate an
+   unreviewed scope (same precondition as `implement/operations/execute.md` Step 2).
 2. Iterate — `operations/iterate.md` (one batch per iteration)
 3. Complete — When all todos are done, output summary and stop
 

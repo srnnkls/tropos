@@ -128,5 +128,13 @@ review_config:
   # reviewers resolved from --reviewers / interactive selection against `peer list`
   reviewers: ${REVIEWERS}
 
+review_gate:
+  # Mandatory blocking gate — must be `passed` before implement/loop will execute the scope.
+  status: ${STATUS}  # passed | failed (absent ⇒ not yet reviewed ⇒ not implementable)
+  reviewers: ${REVIEWERS}  # who cleared the gate (claude + external via peer)
+  reviewed_at: ${TIMESTAMP}
+  blocking_resolved: ${N}   # critical/high findings folded back before pass
+  deferred_nits: []         # medium findings carried forward
+
 notes: |
   ${NOTES}

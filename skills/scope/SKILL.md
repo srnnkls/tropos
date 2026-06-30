@@ -1,6 +1,6 @@
 ---
 name: scope
-description: Unified scope lifecycle. Auto-detects operation from argument or presents selection menu. Routes to create, review, update, done, or list.
+description: Unified scope lifecycle. Auto-detects operation from argument or presents selection menu. Routes to create, review, update, done, or list. Creation clears a mandatory multi-agent review gate before the scope is implementable.
 argument-hint: "[operation|name] [scope-name]"
 allowed-tools: Bash(find *), Bash(git branch *), Bash(git log *), Bash(git status *), Bash(git diff *)
 metadata:
@@ -375,19 +375,20 @@ Show: directory created, scope.md overview, design.md (if created), tooling arti
 
 Present scope, ask "ready to implement or revise?"
 
-### Step 8: Offer Review (Optional)
+### Step 8: Review Gate (Mandatory)
 
-```
-Header: Review
-Question: Would you like a comprehensive scope review before implementation?
-multiSelect: false
-Options:
-- Yes: Run multi-agent review (Claude + external reviewers via peer)
-- Later: Skip for now, use /scope review when ready
-- Skip: Proceed without review
-```
+No scope reaches implementation until it clears a multi-agent review gate — the scope-level analog of the `issue` skill's mandatory 2×2 gate (which blocks before publish). Here the gate blocks before implementation.
 
-If "Yes": Run review sub-operation with the just-created scope name.
+Run the review sub-operation against the just-created scope (see [reference/review.md](reference/review.md)). The gate is **blocking**:
+
+1. Dispatch the configured reviewers (claude + external via `peer`) on the scope documents.
+2. Fold every `critical`/`high` finding back into `scope.md` / `tasks.yaml` / `design.md`.
+3. Re-run until no reviewer reports a `critical` or `high` issue.
+4. Record the result in `validation.yaml` under `review_gate` (see template) — `status: passed`, the reviewers, and the timestamp. `medium` nits may be deferred and noted.
+
+The gate must be `passed` before `implement`/`loop` will execute the scope (enforced at the implementation entry — `implement/operations/execute.md` Step 2). A scope whose `review_gate.status` is absent or `failed` is not implementable.
+
+Reviewers come from `validation.yaml.review_config` (set in Step 3.7). Consult the `/peer` skill for external dispatch and auth.
 
 ---
 
