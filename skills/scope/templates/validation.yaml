@@ -125,13 +125,8 @@ loqui_check:
 
 review_config:
   reasoning_effort: ${REASONING_EFFORT}
-  reviewers:
-    - type: claude
-      model: ${CLAUDE_MODEL}
-    - type: gpt
-      model: gpt-5.5
-    - type: gemini
-      model: gemini-3.5-flash
+  # reviewers resolved from --reviewers / interactive selection against `peer list`
+  reviewers: ${REVIEWERS}
 
 notes: |
   ${NOTES}

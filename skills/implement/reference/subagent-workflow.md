@@ -107,7 +107,7 @@ Collect all test file paths from every `tester_report` in the batch, then dispat
 
 **Resolve reviewer config (in order):**
 1. `validation.yaml` `review_config` for the active scope
-2. Defaults from `/review` SKILL.md — `claude-opus` + `codex-gpt5.5` + `gemini-3.5-flash`
+2. Defaults from `/review` SKILL.md — the reviewers configured in `peer list` (selected via --reviewers / interactive)
 3. Never dispatch Claude alone — external shell-outs (Codex/Gemini) are mandatory whenever installed
 
 **Shared prompt (reused across all harnesses):**
@@ -133,7 +133,7 @@ Read `./skills/review/operations/test-audit.md` for the four anti-patterns to ch
 **Report in YAML format:**
 ```yaml
 test_review_report:
-  reviewer_id: [e.g. claude-opus | codex-gpt5.5 | gemini-3.5-flash]
+  reviewer_id: {reviewer-id}  # from `peer list`
   status: clean  # or "issues_found"
   findings:
     - test_file: [path]
@@ -149,8 +149,8 @@ test_review_report:
 
 ```
 # Claude harness (required) — agent-native
-Task(subagent_type="task-reviewer", description="Test quality review — claude-opus",
-     prompt={shared_prompt with reviewer_id: claude-opus})
+Task(subagent_type="task-reviewer", description="Test quality review — claude",
+     prompt={shared_prompt with reviewer_id: {reviewer-id}})
 
 # External harnesses — peer fans out + watches; see the `peer` skill
 Bash(run_in_background=true):
@@ -247,7 +247,7 @@ Wait for ALL implementers to complete before dispatching reviewers.
 **Resolve reviewer config (in order):**
 1. Explicit `--reviewers` flag if caller passed one (see `/review` SKILL.md "Reviewer Selection")
 2. `validation.yaml` `review_config` for the active scope
-3. Defaults: `claude-opus` + `codex-gpt5.5` (codex, reasoning effort `high`) + `gemini-3.5-flash` (gemini)
+3. Defaults: the reviewers configured in `peer list` (selected via --reviewers / interactive)
 4. Never dispatch with zero external reviewers when Codex/Gemini are installed — external shell-outs are mandatory for cross-model coverage
 
 **Dispatch (single message):** per role, a Claude `Task` + one `peer` that fans the
@@ -255,8 +255,8 @@ role prompt out to every configured external reviewer.
 
 ```
 # Per role (General / Architecture / Compliance):
-Task(subagent_type="task-reviewer", description="{role} review — claude-opus",
-     prompt={role_prompt with reviewer_id: {role}-claude-opus})
+Task(subagent_type="task-reviewer", description="{role} review — claude",
+     prompt={role_prompt with reviewer_id: {role}-{reviewer-id}})
 Bash(run_in_background=true):
   peer -d {role_outdir} --reviewers {external_aliases} --effort high "{role_prompt}"
 ```

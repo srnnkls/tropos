@@ -3,33 +3,22 @@
 Available models for multi-agent review dispatch.
 
 **Canonical source:** the `peer` wrapper's registry is the single source of truth for
-reviewer identity (id ↔ harness ↔ model ↔ alias). Run `peer list` for the live table;
-the tables below mirror it. Don't hardcode model strings in dispatch — pass the harness
-to `peer` and let it supply the model.
-
-```
-$ peer list
-REVIEWER-ID            HARNESS MODEL                      ALIAS   RUN-BY-PEER
-codex-gpt5.5           codex   gpt-5.5                    gpt     yes
-gemini-3.5-flash       gemini  gemini-3.5-flash           gemini  yes
-claude-opus            claude  opus                       opus    no (agent Task)
-claude-sonnet          claude  sonnet                     sonnet  no (agent Task)
-```
+reviewer identity (id ↔ harness ↔ model ↔ alias). Run `peer list` for the live table of
+ids, harnesses, models, and aliases — do not hardcode any of those values here. Dispatch
+by passing the selected reviewer to `peer`, which resolves the model at runtime.
 
 ---
 
 ## Claude (native subagent)
 
-| Display Name | Model |
-|---|---|
-| claude-opus | opus |
-| claude-sonnet | sonnet |
+Dispatch with the user-selected Claude model; do not hardcode a model string.
 
 ### Invocation
 ```
-Task(subagent_type="general", model="opus", prompt="{prompt}")
-Task(subagent_type="general", model="sonnet", prompt="{prompt}")
+Task(subagent_type="general", model="{claude-model}", prompt="{prompt}")
 ```
+
+`{claude-model}` is the model selected for this review run (resolved at dispatch time, never hardcoded).
 
 ---
 

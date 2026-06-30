@@ -123,7 +123,7 @@ Each reviewer produces a YAML report with gates:
 
 ```yaml
 reviewer_report:
-  reviewer: general-claude-opus  # or general-codex-gpt5.5, general-gemini-3.5-flash, architecture-claude-opus, compliance-claude-opus
+  reviewer: {role}-{reviewer-id}  # reviewer-ids from `peer list`
   gates:
     correctness:
       status: pass | fail
@@ -233,7 +233,7 @@ Bash(background): peer -d {role_outdir} --effort {reasoning_effort} "{role} revi
 Claude (General):
 ```yaml
 reviewer_report:
-  reviewer: general-claude-opus
+  reviewer: general-{reviewer-id}
   gates:
     correctness: { status: fail, issues: ["Missing null check"] }
     style: { status: pass, issues: [] }
@@ -249,10 +249,10 @@ reviewer_report:
       suggestion: "Use parameterized queries"
 ```
 
-Gemini Gemini (General):
+External (General):
 ```yaml
 reviewer_report:
-  reviewer: general-gemini-3.5-flash
+  reviewer: general-{reviewer-id}
   gates:
     correctness: { status: pass, issues: [] }
     style: { status: pass, issues: [] }
@@ -281,7 +281,7 @@ reviewer_report:
 
 ## Critical (2 reviewers agree)
 - [C1] SQL injection at src/db/query.py:45
-  Found by: general-claude-opus, general-gemini-3.5-flash
+  Found by: [{reviewer-id}, …]
   Fix: Use parameterized queries + input validation
 
 Action: Dispatch fix subagent before proceeding

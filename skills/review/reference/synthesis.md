@@ -81,12 +81,12 @@ Languages: python | Rules: 12 | Violations: 1
 ```
 ## Critical (found by 2+ harnesses — high confidence)
 - [C1] SQL injection at src/db/query.py:45
-  Role: General | Found by: Claude, Gemini
+  Role: General | Found by: {reviewer-id}, {reviewer-id}
   Suggestion: Use parameterized queries
 
 ## High
 - [H1] Missing null check at src/api/handler.ts:112
-  Role: General | Found by: GPT-5.5
+  Role: General | Found by: {reviewer-id}
   Suggestion: Add guard clause
 
 ## Medium

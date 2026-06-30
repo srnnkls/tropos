@@ -164,7 +164,7 @@ Dispatch a Claude `Task` **plus one `peer`** (which fans out to all configured e
 - All `test_files[*].path` from all `tester_report`s in this batch
 - Tester task descriptions (what behavior each test should verify)
 
-**Resolve reviewer config (in order):** `--reviewers` flag → `validation.yaml` `review_config` → defaults (`opus,gpt,gemini` → claude-opus + codex-gpt5.5 + gemini-3.5-flash).
+**Resolve reviewer config (in order):** `--reviewers` flag → `validation.yaml` `review_config` → defaults (the reviewers configured in `peer list`, selected via --reviewers / interactive).
 
 **Dispatch template:** See `reference/subagent-workflow.md` — Test Review Dispatch Template (Claude `Task` + one `peer`).
 
@@ -249,9 +249,9 @@ Per role (General / Architecture / Compliance), in one message:
 Dispatch reviewers per `/review` infrastructure and `code review` role definitions.
 
 **Resolve harness config (in order):**
-1. Explicit `--reviewers` flag passed to `/implement execute` (aliases: `opus, sonnet, gpt, gemini` — see `/review` SKILL.md "Reviewer Selection")
+1. Explicit `--reviewers` flag passed to `/implement execute` (aliases from `peer list` — see `/review` SKILL.md "Reviewer Selection")
 2. `validation.yaml` `review_config` for the active scope → use those reviewers and reasoning effort
-3. Defaults: `claude-opus` (Task) + `peer --reviewers gpt,gemini` (codex-gpt5.5 + gemini-3.5-flash)
+3. Defaults: the reviewers configured in `peer list` (selected via --reviewers / interactive)
 4. External reviewers are mandatory — never Claude alone. Pass them to `peer`; read its manifest and require ≥1 external `ok` before synthesizing Phase C (if only Claude reported, treat as partial). Models/flags/effort: [peer skill](../../peer/SKILL.md).
 
 Apply the resolved config to all three roles (General, Architecture, Compliance).
@@ -280,12 +280,10 @@ After ALL reviewers complete:
        commit: <SHA>
        tasks: [T001, T002]
         reviewers:
-          - id: general-claude-opus
-            status: success
-            gates: { correctness: pass, style: pass, ... }
-          - id: general-codex-gpt5.5
+          # one entry per configured reviewer (see `peer list`)
+          - id: {role}-{reviewer-id}
             status: success | timeout | failed
-            gates: { ... }
+            gates: { correctness: pass, style: pass, ... }
        synthesized:
          gates: { correctness: pass, style: fail, ... }
          critical_issues: <N>
@@ -411,7 +409,7 @@ Per role (General / Architecture / Compliance), in one message:
 final_review:
   status: completed
   timestamp: <ISO_TIMESTAMP>
-  reviewers: [general-claude-opus, general-codex-gpt5.5, architecture-claude-opus, architecture-codex-gpt5.5, compliance-claude-opus, compliance-codex-gpt5.5, ...]
+  reviewers: [{role}-{reviewer-id}, …]  # from `peer list`
   gates: { correctness: pass, style: pass, ... }
   scope_compliance:
     all_tasks_complete: true
@@ -534,10 +532,10 @@ The `issue pr` operation handles pushing the branch, building the PR title/body 
 Batch 1: Task 1 (single task)
 ├── Phase A: Dispatch tester
 │   └── Tester: Wrote 3 tests, all failing (RED)
-├── Phase A.5: Dispatch reviewers (Claude opus + Codex gpt + Gemini gemini in parallel)
-│   ├── Claude opus: Clean
-│   ├── Codex gpt: Clean
-│   └── Gemini gemini: Clean — no oracle mirroring or tautologies
+├── Phase A.5: Dispatch reviewers (Claude Task + peer → configured harnesses in parallel)
+│   ├── Claude: Clean
+│   ├── Codex: Clean
+│   └── Gemini: Clean — no oracle mirroring or tautologies
 ├── Phase B: Dispatch implementer + tester report
 │   └── Implementer: Made tests pass (GREEN)
 ├── Phase C: Dispatch reviewers (3 in parallel)
@@ -550,8 +548,8 @@ Batch 1: Task 1 (single task)
 Batch 2: Tasks 2, 3, 4 (parallel batch — independent, different files)
 ├── Phase A: Dispatch 3 testers (single message)
 │   └── All testers complete with failing tests
-├── Phase A.5: Dispatch reviewers (Claude opus + Codex gpt + Gemini gemini in parallel, all 3 test files)
-│   ├── Synthesized: Task 2 tests — oracle mirroring detected (flagged by Codex gpt)
+├── Phase A.5: Dispatch reviewers (Claude Task + peer → configured harnesses in parallel, all 3 test files)
+│   ├── Synthesized: Task 2 tests — oracle mirroring detected (flagged by Codex)
 │   ├── Re-dispatch Task 2 tester with finding
 │   └── Task 2 re-tester: Clean on second attempt
 ├── Phase B: Dispatch 3 implementers (single message)

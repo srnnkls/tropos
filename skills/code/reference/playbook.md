@@ -52,7 +52,7 @@ Partial results." and synthesize with the rest. Exit codes and rationale:
 **Symptom:** User deselects all options
 
 **Response:**
-1. Default to general-claude-opus only
+1. Default to a single Claude reviewer (general role; reviewer-id from `peer list`)
 2. Warn: "No reviewers selected, defaulting to Claude. Consider external reviewer for fresh perspective."
 
 ### Codex Not Available

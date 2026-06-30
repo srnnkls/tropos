@@ -1,0 +1,44 @@
+reviewers:
+  - id: codex-gpt5.5
+    harness: codex
+    model: gpt-5.5
+    alias: gpt
+    effort: high
+    native: false
+  - id: gemini-3.5-flash
+    harness: pi
+    provider: vertex
+    model: gemini-3.5-flash
+    alias: gemini
+    effort: "-"
+    native: false
+  - id: glm-5.2
+    harness: pi
+    provider: openrouter
+    model: openrouter/z-ai/glm-5.2
+    alias: glm
+    effort: high
+    native: false
+  - id: claude-opus
+    harness: claude
+    model: opus
+    alias: opus
+    effort: "-"
+    native: true
+  - id: claude-sonnet
+    harness: claude
+    model: sonnet
+    alias: sonnet
+    effort: "-"
+    native: true
+
+providers:
+  vertex:
+    env:
+      GOOGLE_CLOUD_PROJECT: code17-main
+      GOOGLE_CLOUD_LOCATION: global
+  openrouter:
+    thinking: true
+
+defaults:
+  pi: gemini-3.5-flash

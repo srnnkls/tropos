@@ -34,13 +34,8 @@ metadata:
 # Reasoning options: low | medium | high
 review_config:
   reasoning_effort: ${REASONING_EFFORT}  # low | medium | high
-  reviewers:
-    - type: claude
-      model: ${CLAUDE_MODEL}  # opus
-    - type: codex
-      model: gpt-5.5
-    - type: gemini
-      model: gemini-3.5-flash
+  # reviewers resolved from --reviewers / selection against `peer list`
+  reviewers: ${REVIEWERS}
 
 # Accumulated gate status across all batch reviews.
 # Gate fails if ANY batch review failed it.
@@ -70,67 +65,9 @@ batch_reviews:
     commit: ${SHA}
     tasks: [T001, T002]
     reviewers:
-      - id: general-claude-opus
-        status: success
-        gates:
-          correctness: pass
-          style: pass
-          performance: pass
-          security: pass
-          architecture: pass
-      - id: general-codex-gpt5.5
-        status: success
-        gates:
-          correctness: pass
-          style: fail
-          performance: pass
-          security: pass
-          architecture: pass
-      - id: general-gemini-3.5-flash
-        status: timeout  # or success | failed
-        gates: null
-      - id: architecture-claude-opus
-        status: success
-        gates:
-          correctness: pass
-          style: pass
-          performance: pass
-          security: pass
-          architecture: pass
-      - id: architecture-codex-gpt5.5
-        status: success
-        gates:
-          correctness: pass
-          style: pass
-          performance: pass
-          security: pass
-          architecture: pass
-      - id: architecture-gemini-3.5-flash
-        status: success
-        gates:
-          correctness: pass
-          style: pass
-          performance: pass
-          security: pass
-          architecture: pass
-      - id: compliance-claude-opus
-        status: success
-        gates:
-          correctness: pass
-          style: pass
-          performance: pass
-          security: pass
-          architecture: pass
-      - id: compliance-codex-gpt5.5
-        status: success
-        gates:
-          correctness: pass
-          style: pass
-          performance: pass
-          security: pass
-          architecture: pass
-      - id: compliance-gemini-3.5-flash
-        status: success
+      # one entry per configured reviewer (see `peer list`)
+      - id: {role}-{reviewer-id}
+        status: success  # or timeout | failed
         gates:
           correctness: pass
           style: pass
@@ -161,7 +98,7 @@ issues:
       location: "src/auth/login.py:45"
       description: "SQL injection via unsanitized input"
       suggestion: "Use parameterized queries"
-      found_by: [general-claude-opus, general-gemini-3.5-flash]
+      found_by: [{reviewer-id}, …]
       status: resolved  # or open
       resolution:
         batch: 2
@@ -175,7 +112,7 @@ issues:
       location: "src/models/user.py:23"
       description: "Missing null check before dereference"
       suggestion: "Add guard clause"
-      found_by: [general-claude-opus]
+      found_by: [{reviewer-id}]
       status: resolved
       resolution:
         batch: 1
@@ -189,7 +126,7 @@ issues:
       location: "src/auth/auth.py:45"
       description: "Variable name 'x' is unclear"
       suggestion: "Rename to 'retry_count'"
-      found_by: [general-codex-gpt5.5]
+      found_by: [{reviewer-id}]
       status: deferred  # medium issues can be deferred
       resolution: null
 

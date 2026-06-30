@@ -128,7 +128,7 @@ Scope reviews use domain-specific gates and areas instead of the code review gat
 
 ```yaml
 reviewer_report:
-  reviewer: claude-opus | codex-gpt5.5
+  reviewer: {reviewer-id}  # from `peer list`
   gates:
     completeness:
       status: pass | fail
@@ -162,7 +162,7 @@ reviewer_report:
 
 ```yaml
 synthesized_report:
-  reviewers: [claude-opus, codex-gpt5.5]
+  reviewers: [{reviewer-id}, …]
   gates:
     completeness:
       status: pass | fail
@@ -174,7 +174,7 @@ synthesized_report:
       area: edge_cases
       description: "Missing error handling"
       suggestion: "Add error case"
-      found_by: [claude-opus, codex-gpt5.5]
+      found_by: [{reviewer-id}, …]
   recommendation: ready_to_implement | address_issues
 ```
 
@@ -234,7 +234,7 @@ synthesized_report:
 
 ### No Reviewers Selected
 
-Default to claude-opus only.
+Default to a single Claude reviewer (see `peer list`).
 
 ### Scope Not Found
 

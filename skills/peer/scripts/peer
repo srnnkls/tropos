@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
-# peer - external code-review harness: canonical model registry, idle-stall watchdog,
-# self-parallelising fan-out to codex (OpenAI) and pi/gemini (Vertex AI).
+# peer - external code-review harness: registry-driven reviewer dispatch, idle-stall
+# watchdog, self-parallelising fan-out to codex and pi. Identity lives in reviewers.yaml;
+# peer maps it to CLI flags and leaves provider credentials to the underlying CLI.
 set +m
 
-# --- canonical model registry: the single source of truth for reviewer identity ------
-IDS=( codex-gpt5.5 gemini-3.5-flash claude-opus claude-sonnet )
-declare -A HARNESS MODEL ALIAS EFFORT NATIVE
-HARNESS[codex-gpt5.5]=codex;       MODEL[codex-gpt5.5]='gpt-5.5';            ALIAS[codex-gpt5.5]=gpt;        EFFORT[codex-gpt5.5]=high; NATIVE[codex-gpt5.5]=no
-HARNESS[gemini-3.5-flash]=pi;      MODEL[gemini-3.5-flash]='gemini-3.5-flash'; ALIAS[gemini-3.5-flash]=gemini; EFFORT[gemini-3.5-flash]=-;  NATIVE[gemini-3.5-flash]=no
-HARNESS[claude-opus]=claude;     MODEL[claude-opus]='opus';            ALIAS[claude-opus]=opus;      EFFORT[claude-opus]=-;     NATIVE[claude-opus]=yes
-HARNESS[claude-sonnet]=claude;   MODEL[claude-sonnet]='sonnet';        ALIAS[claude-sonnet]=sonnet;  EFFORT[claude-sonnet]=-;   NATIVE[claude-sonnet]=yes
+REGISTRY="${PEER_REGISTRY:-$(dirname "$(realpath "${BASH_SOURCE[0]}")")/reviewers.yaml}"
+command -v yq >/dev/null 2>&1 || { printf '%s\n' "peer: yq not found" >&2; exit 3; }
+[[ -r "$REGISTRY" ]] || { printf '%s\n' "peer: registry not readable at $REGISTRY" >&2; exit 3; }
+
+IDS=(); declare -A HARNESS MODEL ALIAS EFFORT NATIVE PROVIDER
+while IFS=$'\t' read -r _id _h _m _a _e _n _p; do
+  [[ -n "$_id" ]] || continue
+  IDS+=("$_id")
+  HARNESS[$_id]=$_h; MODEL[$_id]=$_m; ALIAS[$_id]=$_a; EFFORT[$_id]=$_e; PROVIDER[$_id]=$_p
+  [[ "$_n" == true ]] && NATIVE[$_id]=yes || NATIVE[$_id]=no
+done < <(yq -r '.reviewers[] | [.id,.harness,.model,.alias,.effort,.native,(.provider // "")] | @tsv' "$REGISTRY")
 
 _peer_resolve() {
   local t=$1 id
@@ -19,7 +24,7 @@ _peer_resolve() {
 }
 
 _peer_validate() {
-  case "$1" in ''|low|medium|high) ;; *) printf '%s\n' "peer: invalid --effort '$1' (expected: low, medium, or high)" >&2; return 2 ;; esac
+  case "$1" in ''|minimal|low|medium|high|xhigh) ;; *) printf '%s\n' "peer: invalid --effort '$1' (expected: minimal, low, medium, high, or xhigh)" >&2; return 2 ;; esac
   { [[ "$2" =~ ^[0-9]+$ ]] && (( 10#$2 >= 1 )); } || { printf '%s\n' "peer: invalid --idle '$2' (expected a positive integer of seconds)" >&2; return 2; }
   { [[ "$3" =~ ^[0-9]+$ ]] && (( 10#$3 >= 1 )); } || { printf '%s\n' "peer: invalid --cap '$3' (expected a positive integer of seconds)" >&2; return 2; }
   return 0
@@ -29,10 +34,10 @@ cmd="${1:-}"
 
 # --- peer list -----------------------------------------------------------------------
 if [[ "$cmd" == list ]]; then
-  printf '%-22s %-7s %-26s %-7s %s\n' REVIEWER-ID HARNESS MODEL ALIAS RUN-BY-PEER
+  printf '%-16s %-7s %-11s %-26s %-7s %s\n' REVIEWER-ID HARNESS PROVIDER MODEL ALIAS RUN-BY-PEER
   for id in "${IDS[@]}"; do
     [[ ${NATIVE[$id]} == yes ]] && runnable='no (agent Task)' || runnable=yes
-    printf '%-22s %-7s %-26s %-7s %s\n' "$id" "${HARNESS[$id]}" "${MODEL[$id]}" "${ALIAS[$id]}" "$runnable"
+    printf '%-16s %-7s %-11s %-26s %-7s %s\n' "$id" "${HARNESS[$id]}" "${PROVIDER[$id]}" "${MODEL[$id]}" "${ALIAS[$id]}" "$runnable"
   done
   exit 0
 fi
@@ -48,8 +53,9 @@ if [[ "$cmd" == get ]]; then
     harness) printf '%s\n' "${HARNESS[$gid]}" ;;
     alias)   printf '%s\n' "${ALIAS[$gid]}" ;;
     effort)  printf '%s\n' "${EFFORT[$gid]}" ;;
-    native)  printf '%s\n' "${NATIVE[$gid]}" ;;
-    *) printf '%s\n' "peer get: unknown field '$field' (id|model|harness|alias|effort|native)" >&2; exit 2 ;;
+    native)   printf '%s\n' "${NATIVE[$gid]}" ;;
+    provider) printf '%s\n' "${PROVIDER[$gid]}" ;;
+    *) printf '%s\n' "peer get: unknown field '$field' (id|model|harness|alias|effort|native|provider)" >&2; exit 2 ;;
   esac
   exit 0
 fi
@@ -100,7 +106,7 @@ if [[ "$cmd" != codex && "$cmd" != pi ]]; then
     fi
     e="${effort:-${EFFORT[$id]}}"; [[ "$e" == - ]] && e=high
     idle_arg=(); (( idle_set )) && idle_arg=( --idle "$idle" )
-    peer "${HARNESS[$id]}" --model "${MODEL[$id]}" --effort "$e" \
+    peer "${HARNESS[$id]}" --provider "${PROVIDER[$id]}" --model "${MODEL[$id]}" --effort "$e" \
          "${idle_arg[@]}" --cap "$cap" -o "$outdir/$id.yaml" "$prompt" &
     PID[$id]=$!
     ran+=( "$id" )
@@ -116,12 +122,13 @@ fi
 
 # --- single harness: codex|pi (also the unit the fan-out dispatches to) ---------------
 harness="$cmd"; shift
-effort=high; model=""; outfile=""; idle=120; idle_set=0; cap=600
+effort=high; model=""; outfile=""; idle=120; idle_set=0; cap=600; provider=""
 while (( $# )); do
   case "$1" in
     -o|--out)   outfile="$2"; shift 2 ;;
     --effort)   effort="$2"; shift 2 ;;
     --model)    model="$2"; shift 2 ;;
+    --provider) provider="$2"; shift 2 ;;
     --idle)     idle="$2"; idle_set=1; shift 2 ;;
     --cap)      cap="$2"; shift 2 ;;
     --) shift; break ;;
@@ -140,14 +147,23 @@ prompt="$*"
 (( idle_set )) || { _base=$([[ "$harness" == pi ]] && printf 180 || printf 120); _auto=$(( _base + ${#prompt} / 500 )); idle=$(( _auto > cap ? cap : _auto )); }
 _peer_validate "$effort" "$idle" "$cap" || exit 2
 
-gproj="${PEER_GEMINI_PROJECT:-code17-main}"
-gloc="${PEER_GEMINI_LOCATION:-global}"   # 3.x flash lives on the global endpoint, not regional
 case "$harness" in
   codex)  bin=codex ;;
-  pi)     bin=pi; : "${model:=gemini-3.5-flash}" ;;   # pi-vertex provider → Vertex AI; default model gemini
+  pi)     bin=pi
+          if [[ -z "$model" ]]; then
+            _def=$(yq -r '.defaults.pi // ""' "$REGISTRY")
+            [[ -n "$_def" ]] && { model="${MODEL[$_def]}"; : "${provider:=${PROVIDER[$_def]}}"; }
+          fi ;;
   *) printf '%s\n' "peer: unknown harness '$harness' (use codex|pi, or 'list'/'run')" >&2; exit 2 ;;
 esac
 command -v "$bin" >/dev/null 2>&1 || { printf '%s\n' "peer: $bin not found" >&2; exit 3; }
+
+penv=(); pi_thinking=false
+if [[ "$harness" == pi && -n "$provider" ]]; then
+  while IFS= read -r _kv; do [[ -n "$_kv" ]] && penv+=("$_kv"); done \
+    < <(prov="$provider" yq -r '.providers[strenv(prov)].env // {} | to_entries[] | .key + "=" + .value' "$REGISTRY")
+  pi_thinking=$(prov="$provider" yq -r '.providers[strenv(prov)].thinking // false' "$REGISTRY")
+fi
 
 # peer communicates via OUTFILE + exit code + stderr; its stdout is not part of the
 # contract. Scope fd1 to /dev/null for the run so no harness/job chatter leaks into a
@@ -168,8 +184,8 @@ for attempt in 1 2; do
     [[ -n "$model" ]] && a+=( -m "$model" )
     codex "${a[@]}" "$prompt" </dev/null >"$fifo" 2>&1 &
   else
-    GOOGLE_CLOUD_PROJECT="$gproj" GOOGLE_CLOUD_LOCATION="$gloc" \
-      pi -p --mode json --provider vertex --model "$model" "$prompt" </dev/null >"$fifo" 2>&1 &
+    _targs=(); [[ "$pi_thinking" == true ]] && _targs=( --thinking "$effort" )
+    env "${penv[@]}" pi -p --mode json --provider "$provider" --model "$model" "${_targs[@]}" "$prompt" </dev/null >"$fifo" 2>&1 &
   fi
   hpid=$!
 
@@ -217,8 +233,8 @@ if last:
     exit 0
   fi
 
-  if printf '%s\n' "$log" | grep -qiE 'unauthenticated|permission[_ ]denied|status[^0-9]{0,6}40[13]\b|\b40[13][[:space:]]+(unauthorized|forbidden)|invalid_grant|invalid_rapt|invalid_api_key|incorrect[_ ]api[_ ]key|authentication[_ ](error|failed)|not[_ ]authenticated|refresh_token_invalidated|could not be refreshed|could not[^"]{0,40}credential|application default credentials|reauthenticat|token (has[_ ])?(been[_ ])?(expired|revoked)'; then
-    printf '%s\n' "peer: $harness auth/availability error - re-authenticate (codex login / gcloud auth application-default login)" >&2
+  if printf '%s\n' "$log" | grep -qiE 'unauthenticated|permission[_ ]denied|status[^0-9]{0,6}40[13]\b|\b40[13][[:space:]]+(unauthorized|forbidden)|invalid_grant|invalid_rapt|invalid_api_key|incorrect[_ ]api[_ ]key|no api key found|authentication[_ ](error|failed)|not[_ ]authenticated|refresh_token_invalidated|could not be refreshed|could not[^"]{0,40}credential|application default credentials|reauthenticat|token (has[_ ])?(been[_ ])?(expired|revoked)'; then
+    printf '%s\n' "peer: $harness auth/availability error - authenticate the provider (codex login / gcloud auth application-default login / set the provider API key)" >&2
     exit 3
   fi
   (( attempt == 1 )) && printf '%s\n' "peer: $harness stalled/failed (no clean report) - retrying once" >&2

@@ -23,14 +23,19 @@ non-interactive shells, so skill `Bash` shell-outs resolve `peer`.
   at ~0 CPU emitting nothing, and `codex exec` does **not** self-abort. `peer` watches
   the live stream and kills after `--idle` seconds of silence (default 120s), retries
   once, then skips.
-- **pi** — the `pi` CLI + the **`@ssweens/pi-vertex`** provider → the gemini model on
-  **Vertex AI**, a *fully agentic* reviewer (explores the diff with tools). `pi --mode json`
-  streams events, so the same fifo + idle-watchdog applies; the report is the final
-  assistant message, recovered from the stream. Auth is **ADC** (`gcloud auth
-  application-default login`) — no API key. Defaults: model !`peer get model gemini` — project
-  `code17-main`, location `global` (3.x flash is served by Vertex AI on the global
-  endpoint, which gemini-cli's Code Assist backend can't reach). Override with
-  `PEER_GEMINI_PROJECT` / `PEER_GEMINI_LOCATION`.
+- **pi** — the `pi` CLI, a *fully agentic* reviewer (explores the diff with tools) that
+  fronts two providers, selected per reviewer by the registry's `provider` field.
+  `pi --mode json` streams events, so the same fifo + idle-watchdog applies; the report is
+  the final assistant message, recovered from the stream.
+  - **`provider=vertex`** → the gemini model on **Vertex AI** via the **`@ssweens/pi-vertex`**
+    provider. Auth is **ADC** (`gcloud auth application-default login`) — no API key.
+    Defaults: model !`peer get model gemini` — project `code17-main`, location `global`
+    (3.x flash is served on the global endpoint, which gemini-cli's Code Assist backend
+    can't reach). Override with `PEER_GEMINI_PROJECT` / `PEER_GEMINI_LOCATION`.
+  - **`provider=openrouter`** → the glm model (!`peer get model glm`) on **OpenRouter**.
+    `peer` runs `pi` as the PATH binary, not the user's shell function, so it resolves
+    `OPENROUTER_API_KEY` itself — env first, else `fnox get OPENROUTER_API_KEY`. `--effort`
+    maps to pi's `--thinking` level (`high` per registry, `xhigh` to escalate).
 
 The **Claude** harness is an in-process subagent (`Task`), dispatchable only by the agent
 itself; `peer` covers the external harnesses. Don't replace `peer` with a bare `timeout`.
@@ -61,7 +66,8 @@ Fan-out is `peer`'s default action — no subcommand needed. (`peer run -d …` 
 - `--reviewers` (optional): comma-separated reviewer-ids or aliases (`gpt,gemini`).
   Omit to use every peer-runnable reviewer. `claude-*` entries are skipped with a notice
   (dispatch those as `Task` from the agent).
-- `--effort` (optional): `low|medium|high` for codex (gemini ignores it). Defaults per registry.
+- `--effort` (optional): `minimal|low|medium|high|xhigh` — codex reasoning effort, or pi's
+  `--thinking` level for `provider=openrouter` (gemini/vertex ignores it). Defaults per registry.
 - `--idle {s}` / `--cap {s}` (optional): silence timeout / hard cap (default 600). Idle
   auto-scales as `base + 1s per 500 prompt chars`; base is harness-specific — codex 120s,
   pi 180s. An explicit `--idle` overrides the auto-scale for every reviewer.

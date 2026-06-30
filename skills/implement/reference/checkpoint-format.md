@@ -56,9 +56,7 @@ checkpoint:
   # Variant format: {reasoning_effort}-medium (verbosity fixed at medium)
   review_config:
     reasoning_effort: medium  # low | medium | high
-    reviewers:
-      - gpt-5.5                       # codex
-      - gemini-3.5-flash       # gemini
+    reviewers: ${REVIEWERS}  # resolved from --reviewers / selection against `peer list`
 ```
 
 ## Writing Checkpoints

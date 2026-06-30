@@ -10,7 +10,7 @@ Each reviewer outputs this structure:
 
 ```yaml
 reviewer_report:
-  reviewer: {role}-{harness}-{model}  # e.g., general-claude-opus, architecture-codex-gpt5.5, compliance-gemini-3.5-flash
+  reviewer: {role}-{reviewer-id}  # reviewer-ids come from `peer list`
 
   gates:
     correctness:
@@ -55,12 +55,12 @@ Main agent produces this after merging reviewer reports:
 
 ```yaml
 synthesized_report:
-  reviewers: [general-claude-opus, general-codex-gpt5.5, architecture-claude-opus, architecture-codex-gpt5.5, compliance-claude-opus, compliance-codex-gpt5.5]
+  reviewers: [{role}-{reviewer-id}, …]  # one entry per configured reviewer (see `peer list`)
 
   gates:
     correctness:
       status: pass | fail
-      failed_by: [general-claude-opus]
+      failed_by: [{role}-{reviewer-id}]
     style:
       status: pass | fail
       failed_by: []
@@ -69,7 +69,7 @@ synthesized_report:
       failed_by: []
     security:
       status: pass | fail
-      failed_by: [general-claude-opus, general-gemini-3.5-flash]
+      failed_by: [{role}-{reviewer-id}, …]
     architecture:
       status: pass | fail
       failed_by: []
@@ -82,7 +82,7 @@ synthesized_report:
       location: "src/db/query.py:45"
       description: "SQL injection via unsanitized user input"
       suggestion: "Use parameterized queries"
-      found_by: [general-claude-opus, general-gemini-3.5-flash]
+      found_by: [{reviewer-id}, …]  # reviewer-ids come from `peer list`
 
   strengths:
     - "Clear separation of concerns"
@@ -129,7 +129,7 @@ Architecture reviewers include this section alongside standard gates/issues:
 
 ```yaml
 reviewer_report:
-  reviewer: architecture-claude-opus
+  reviewer: architecture-{reviewer-id}  # reviewer-ids come from `peer list`
   role: architecture
   gates:
     architecture:
@@ -161,7 +161,7 @@ Compliance reviewers include this section alongside standard gates/issues:
 
 ```yaml
 reviewer_report:
-  reviewer: compliance-claude-opus
+  reviewer: compliance-{reviewer-id}  # reviewer-ids come from `peer list`
   role: compliance
   gates:
     style:
