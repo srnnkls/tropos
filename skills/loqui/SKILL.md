@@ -28,10 +28,10 @@ Use Read (not Glob) to access — paths outside cwd require direct reads.
 
 | Language | Path |
 |----------|------|
-| Python | `~/.claude/skills/loqui/loqui/languages/python/` |
-| Go | `~/.claude/skills/loqui/loqui/languages/go/` |
-| Rust | `~/.claude/skills/loqui/loqui/languages/rust/` |
-| Bash | `~/.claude/skills/loqui/loqui/languages/bash/` |
+| Python | `~/.claude/skills/loqui/reference/loqui/languages/python/` |
+| Go | `~/.claude/skills/loqui/reference/loqui/languages/go/` |
+| Rust | `~/.claude/skills/loqui/reference/loqui/languages/rust/` |
+| Bash | `~/.claude/skills/loqui/reference/loqui/languages/bash/` |
 
 ---
 
