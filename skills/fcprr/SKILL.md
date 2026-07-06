@@ -1,19 +1,25 @@
 ---
+name: fcprr
+description: Close PR review threads you've addressed — fix, commit, push, reply, resolve. Applies the fixes for every addressworthy comment, commits and pushes once, then replies to and resolves each thread referencing the commit. Use for "fcprr", "close a review thread I fixed", "resolve threads I've addressed".
+argument-hint: "--comment <id> [--comment <id>…] [--reply <text>] [-m <msg>] [--pr <n>] [paths…]"
 allowed-tools: Bash(gh review *), Bash(gh pr *), Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git rev-parse *), Bash(git branch *)
+metadata:
+  type: domain
 ---
 
-# cprr — commit + push + reply + resolve
+# fcprr — fix + commit + push + reply + resolve
 
-Close the loop on **one** review thread you've just fixed locally: commit the fix, push it, reply to the thread referencing the commit, and resolve the thread.
+Close the loop on the review threads you've addressed: apply the fixes, commit them, push, then reply to each thread referencing the commit and resolve it.
 
-The four steps are strictly ordered. Each gates the next:
+The five steps are strictly ordered. Each gates the next:
 
-1. **commit** — fails if pre-commit hooks (lint, typecheck, tests) are red → stop, surface the output, fix, retry.
-2. **push** — the reply names the commit SHA, so the SHA must exist on the remote first.
-3. **reply** — `gh review reply` posts to the thread.
-4. **resolve** — `gh review resolve` marks the thread resolved.
+1. **fix** — apply the change that addresses the comment; the reply text describes it.
+2. **commit** — fails if pre-commit hooks (lint, typecheck, tests) are red → stop, surface the output, fix, retry.
+3. **push** — the reply names the commit SHA, so the SHA must exist on the remote first.
+4. **reply** — `gh review reply` posts to the thread.
+5. **resolve** — `gh review resolve` marks the thread resolved.
 
-A failure at any step stops the rest. Never reply "Done in `<sha>`" when the commit or push didn't land.
+A failure at any step stops the rest. Never reply "Done in `<sha>`" when the fix, commit, or push didn't land.
 
 `reply` and `resolve` both take the comment node id (`PRRC_…`) from `gh review comments <pr> --ids` and map it to the thread internally — no manual id juggling.
 
@@ -23,7 +29,7 @@ A failure at any step stops the rest. Never reply "Done in `<sha>`" when the com
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--comment <id>` | — (required) | Review comment node id to reply to and whose thread to resolve. From `gh review comments <pr> --ids`. |
+| `--comment <id>` | — (≥1 required) | Review comment node id to reply to and whose thread to resolve; repeat once per addressed thread. From `gh review comments <pr> --ids`. |
 | `--reply <text>` | — | Reply note; the short SHA is prepended automatically (`Done in <sha> — <text>`). If omitted, compose one from the fix. |
 | `-m, --message <text>` | derived | Commit message (conventional commit format). |
 | `--pr <n>` | branch's PR | Override the PR (otherwise resolved from the current branch). |
@@ -35,7 +41,7 @@ A failure at any step stops the rest. Never reply "Done in `<sha>`" when the com
 
 ### 1. Parse arguments and resolve the PR
 
-- `--comment <id>` is required (→ `COMMENT_ID`). Without it there's no thread to reply to or resolve — stop and ask.
+- At least one `--comment <id>` is required (→ `COMMENT_IDS`). Without one there's no thread to reply to or resolve — stop and ask.
 - Resolve the PR into `PR`: use `--pr <n>` if given, else the branch's PR. Stop if neither yields one.
 
 ```bash
@@ -43,9 +49,13 @@ PR="${pr_flag:-$(gh pr view --json number -q .number 2>/dev/null)}"
 [ -z "$PR" ] && { echo "no PR for this branch — pass --pr <n>"; exit 1; }
 ```
 
-### 2. Stage and commit
+### 2. Fix
 
-Inspect what's staged, then commit. Confirm it's only the fix for this thread, not unrelated work.
+Apply the fixes for **every addressworthy comment** — each one the `comments` route accepted (valid), not the invalid ones (misreads, already-addressed, convention-contradicting), which are dismissed rather than fixed. Whatever lands in the working tree here is what the commit and per-thread replies describe. If the fixes are already applied, skip to staging.
+
+### 3. Stage and commit
+
+Inspect what's staged, then commit. Confirm it's the addressworthy fixes and nothing unrelated.
 
 ```bash
 git status --short          # confirm the staged set
@@ -63,7 +73,7 @@ Capture the short SHA for the reply:
 SHA=$(git rev-parse --short HEAD)
 ```
 
-### 3. Push
+### 4. Push
 
 ```bash
 git push                    # or: git push -u origin <branch> on first push
@@ -71,7 +81,7 @@ git push                    # or: git push -u origin <branch> on first push
 
 If the push fails (e.g. non-fast-forward), stop and resolve it before replying — the reply must reference a SHA that exists on the remote.
 
-### 4. Reply
+### 5. Reply
 
 Lead with the SHA so the reviewer can trace the fix. Show the body and confirm before posting — this is outward-facing.
 
@@ -81,7 +91,7 @@ gh review reply "$PR" --comment "$COMMENT_ID" --body "Done in $SHA — <reply te
 
 `gh review reply` errors if the comment id isn't a thread on this PR — re-check with `gh review comments "$PR" --ids`.
 
-### 5. Resolve
+### 6. Resolve
 
 ```bash
 gh review resolve "$PR" --comment "$COMMENT_ID"
@@ -89,11 +99,11 @@ gh review resolve "$PR" --comment "$COMMENT_ID"
 
 Prints `✓ Resolved thread …` on success.
 
-### 6. Report
+### 7. Report
 
-State the outcome in one line: commit SHA + hook result, push target, the thread replied to and resolved. e.g. `1f8e3a2 pushed (hooks green) → replied + resolved thread on src/foo.ts:42`.
+State the outcome in one line: commit SHA + hook result, push target, the threads replied to and resolved. e.g. `1f8e3a2 pushed (hooks green) → replied + resolved 3 threads`.
 
-**Sibling threads fixed by the same commit:** the commit and push happen once. Repeat steps 4–5 per additional `--comment` id, reusing the same `$SHA`.
+**Every addressed thread rides the same commit:** the fix, commit, and push happen once for the batch. Repeat steps 5–6 per `--comment` id, reusing the same `$SHA`.
 
 ---
 

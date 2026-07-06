@@ -1,7 +1,7 @@
 ---
 name: pr
-description: GitHub PR review-comment operations. `comments` assesses each review comment (relevant vs outdated, valid vs invalid) and proposes an action; `cprr` closes a thread you've fixed (commit + push + reply + resolve). Use for "pr comments", "assess PR feedback", "review PR comments", "reply to a PR comment", "resolve a thread", or "cprr".
-argument-hint: "[comments [N] | cprr <args>]"
+description: GitHub PR review-comment operations. `comments` assesses each review comment (relevant vs outdated, valid vs invalid) and proposes an action; `fcprr` closes the threads you've addressed (fix + commit + push + reply + resolve) by delegating to the `fcprr` skill. Use for "pr comments", "assess PR feedback", "review PR comments", "reply to a PR comment", "resolve a thread", or "fcprr".
+argument-hint: "[comments [N] | fcprr <args>]"
 allowed-tools: Bash(gh api *), Bash(gh pr *), Bash(gh review *), Bash(gh repo view *), Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git rev-parse *), Bash(git branch *)
 metadata:
   type: domain
@@ -9,26 +9,26 @@ metadata:
 
 ## Pre-loaded Context
 
-PR comment context, fetched at skill-load for the `comments` route. The PR is `$ARGUMENTS` (a bare number, or after a leading `comments` token) or the current branch's PR. Each block is fail-safe: with no PR resolvable it prints `no-pr`. The `cprr` route skips these blocks — it carries its own context in [operations/cprr.md](operations/cprr.md).
+PR comment context, fetched at skill-load for the `comments` route. The PR is `$ARGUMENTS` (a bare number, or after a leading `comments` token) or the current branch's PR. Each block is fail-safe: with no PR resolvable it prints `no-pr`. The `fcprr` route skips these blocks — it delegates to the `fcprr` skill via [operations/fcprr.md](operations/fcprr.md).
 
 > Dynamic `!` blocks only execute in this SKILL.md, not in Read-loaded operation files — which is why the comment fetch lives here, not in an operation.
 
-These are inline `!` blocks (single-line, like the role-model skill) — the form proven to expand `$ARGUMENTS` at load. Each re-resolves the PR independently and skips the `cprr` route.
+These are inline `!` blocks (single-line, like the role-model skill) — the form proven to expand `$ARGUMENTS` at load. Each re-resolves the PR independently and skips the `fcprr` route.
 
 PR metadata:
-!`A="$ARGUMENTS"; case "$A" in cprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; gh pr view "$PR" --json number,title,state,headRefName,headRefOid,baseRefName,url 2>/dev/null || echo no-pr`
+!`A="$ARGUMENTS"; case "$A" in fcprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; gh pr view "$PR" --json number,title,state,headRefName,headRefOid,baseRefName,url 2>/dev/null || echo no-pr`
 
-Inline review comments (node_id feeds `cprr --comment`; original_line anchors the relevant-vs-outdated check):
-!`A="$ARGUMENTS"; case "$A" in cprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null); gh api "repos/$REPO/pulls/$PR/comments" --paginate --jq '.[] | {node_id, user: .user.login, path, line, original_line, side, in_reply_to_id, body}' 2>/dev/null || echo no-pr`
+Inline review comments (node_id feeds `fcprr --comment`; original_line anchors the relevant-vs-outdated check):
+!`A="$ARGUMENTS"; case "$A" in fcprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null); gh api "repos/$REPO/pulls/$PR/comments" --paginate --jq '.[] | {node_id, user: .user.login, path, line, original_line, side, in_reply_to_id, body}' 2>/dev/null || echo no-pr`
 
 Thread resolution map (unresolved head comments with their node ids; resolved threads collapse, don't re-litigate):
-!`A="$ARGUMENTS"; case "$A" in cprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; gh review comments "$PR" --unresolved --ids --flat 2>/dev/null | head -60 || true`
+!`A="$ARGUMENTS"; case "$A" in fcprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; gh review comments "$PR" --unresolved --ids --flat 2>/dev/null | head -60 || true`
 
 Review bodies and conversation comments (not line-anchored):
-!`A="$ARGUMENTS"; case "$A" in cprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null); echo "== review bodies =="; gh api "repos/$REPO/pulls/$PR/reviews" --jq '.[] | select(.body != "") | {user: .user.login, state, body}' 2>/dev/null; echo "== conversation =="; gh api "repos/$REPO/issues/$PR/comments" --jq '.[] | {user: .user.login, body}' 2>/dev/null`
+!`A="$ARGUMENTS"; case "$A" in fcprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null); echo "== review bodies =="; gh api "repos/$REPO/pulls/$PR/reviews" --jq '.[] | select(.body != "") | {user: .user.login, state, body}' 2>/dev/null; echo "== conversation =="; gh api "repos/$REPO/issues/$PR/comments" --jq '.[] | {user: .user.login, body}' 2>/dev/null`
 
 HEAD diff:
-!`A="$ARGUMENTS"; case "$A" in cprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; gh pr diff "$PR" 2>/dev/null | head -800 || echo no-pr`
+!`A="$ARGUMENTS"; case "$A" in fcprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; gh pr diff "$PR" 2>/dev/null | head -800 || echo no-pr`
 
 If a block printed `no-pr`, ask the user for the PR number before continuing.
 
@@ -37,7 +37,7 @@ If a block printed `no-pr`, ask the user for the PR number before continuing.
 Two operations on a pull request's review feedback:
 
 - **`comments`** — assess every review comment and say what to do about it.
-- **`cprr`** — once you've fixed one, close its thread: commit + push + reply + resolve.
+- **`fcprr`** — close the addressworthy threads: fix + commit + push + reply + resolve. Delegates to the `fcprr` skill.
 
 Requires the `gh-review` extension (`gh extension install srnnkls/gh-review`), exposed as `gh review`.
 
@@ -51,7 +51,7 @@ Apply to `$ARGUMENTS` in order, first match wins:
 
 | Pattern | Route | Action |
 |---|---|---|
-| `cprr` (with or without args) | Close a fixed thread | Read and follow [operations/cprr.md](operations/cprr.md) |
+| `fcprr` (with or without args) | Close addressed threads | Read and follow [operations/fcprr.md](operations/fcprr.md) |
 | `comments`, a bare PR number, or empty | Assess comments | This file — `comments` below |
 
 ---
@@ -83,19 +83,15 @@ One block per comment, grouped by file:
 
 Close with a two-bullet verdict: comments to address, comments to dismiss.
 
-For each comment you **accept and then fix**, close its thread with `cprr`, passing the comment's `node_id`:
-
-```bash
-pr cprr --comment <node_id> --reply "<what changed>" -m "<commit message>"
-```
+Once the verdict is set, close every addressworthy thread in one pass: invoke Skill `fcprr` with `--comment <node_id>` per accepted thread (plus `--reply`, `-m`). It applies the fixes, commits and pushes once, then replies to and resolves each thread. See [operations/fcprr.md](operations/fcprr.md).
 
 ---
 
-## `cprr` — close a thread after fixing it
+## `fcprr` — close the addressed threads
 
-**c**ommit + **p**ush + **r**eply + **r**esolve, scoped to one review thread you've just addressed. See [operations/cprr.md](operations/cprr.md).
+**f**ix + **c**ommit + **p**ush + **r**eply + **r**esolve, over every addressworthy comment. Delegates to the `fcprr` skill; see [operations/fcprr.md](operations/fcprr.md).
 
-Order is load-bearing — the commit must pass hooks before the push, the push must land before the reply (so the referenced SHA exists on the remote), and the reply precedes the resolve. A failure at any step stops the rest.
+Order is load-bearing — the fixes land first, the commit must pass hooks before the push, the push must land before the reply (so the referenced SHA exists on the remote), and the reply precedes the resolve. A failure at any step stops the rest.
 
 ---
 
