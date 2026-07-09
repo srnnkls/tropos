@@ -180,7 +180,7 @@ for attempt in 1 2; do
   # EOF'd (backgrounded under a non-EOF tool pipe), emitting nothing the watchdog would
   # then misread as a stall.
   if [[ "$harness" == codex ]]; then
-    a=( exec -s read-only --json -o "$outfile" -c "model_reasoning_effort=$effort" )
+    a=( exec -s read-only --skip-git-repo-check --json -o "$outfile" -c "model_reasoning_effort=$effort" )
     [[ -n "$model" ]] && a+=( -m "$model" )
     codex "${a[@]}" "$prompt" </dev/null >"$fifo" 2>&1 &
   else
