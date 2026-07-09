@@ -83,7 +83,12 @@ One block per comment, grouped by file:
 
 Close with a two-bullet verdict: comments to address, comments to dismiss.
 
-Once the verdict is set, close every addressworthy thread in one pass: invoke Skill `fcprr` with `--comment <node_id>` per accepted thread (plus `--reply`, `-m`). It applies the fixes, commits and pushes once, then replies to and resolves each thread. See [operations/fcprr.md](operations/fcprr.md).
+Once the verdict is set, close every unresolved thread in one pass — no relevant thread is left open, whether or not anything was addressed:
+
+- **Accepted** threads route through the full `fcprr` (fix + commit + push + reply + resolve): invoke Skill `fcprr` with `--comment <node_id>` per accepted thread, plus `--reply` and `-m`. It applies the fixes, commits and pushes once, then replies to and resolves each thread.
+- **Dismissed** threads route through `fcprr --resolve-only` — no fix, commit, or push: reply with the dismissal rationale and resolve. When the verdict is *all dismiss* (nothing to address), this resolve-only pass is the whole close-out.
+
+Threads you defer or flag needs-discussion stay open. See [operations/fcprr.md](operations/fcprr.md).
 
 ---
 
@@ -92,6 +97,8 @@ Once the verdict is set, close every addressworthy thread in one pass: invoke Sk
 **f**ix + **c**ommit + **p**ush + **r**eply + **r**esolve, over every addressworthy comment. Delegates to the `fcprr` skill; see [operations/fcprr.md](operations/fcprr.md).
 
 Order is load-bearing — the fixes land first, the commit must pass hooks before the push, the push must land before the reply (so the referenced SHA exists on the remote), and the reply precedes the resolve. A failure at any step stops the rest.
+
+Dismissed threads take the `--resolve-only` path — the `rr` of `(fcp)rr` — skipping fix, commit, and push: reply the rationale, resolve.
 
 ---
 

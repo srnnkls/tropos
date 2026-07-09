@@ -1,7 +1,7 @@
 ---
 name: fcprr
-description: Close PR review threads you've addressed — fix, commit, push, reply, resolve. Applies the fixes for every addressworthy comment, commits and pushes once, then replies to and resolves each thread referencing the commit. Use for "fcprr", "close a review thread I fixed", "resolve threads I've addressed".
-argument-hint: "--comment <id> [--comment <id>…] [--reply <text>] [-m <msg>] [--pr <n>] [paths…]"
+description: Close PR review threads you've addressed — fix, commit, push, reply, resolve. Applies the fixes for every addressworthy comment, commits and pushes once, then replies to and resolves each thread referencing the commit. `--resolve-only` closes dismissed threads with a rationale reply and no fix. Use for "fcprr", "close a review thread I fixed", "resolve threads I've addressed", "reply and resolve a dismissed thread".
+argument-hint: "--comment <id> [--comment <id>…] [--reply <text>] [-m <msg>] [--pr <n>] [--resolve-only] [paths…]"
 allowed-tools: Bash(gh review *), Bash(gh pr *), Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git rev-parse *), Bash(git branch *)
 metadata:
   type: domain
@@ -33,6 +33,7 @@ A failure at any step stops the rest. Never reply "Done in `<sha>`" when the fix
 | `--reply <text>` | — | Reply note; the short SHA is prepended automatically (`Done in <sha> — <text>`). If omitted, compose one from the fix. |
 | `-m, --message <text>` | derived | Commit message (conventional commit format). |
 | `--pr <n>` | branch's PR | Override the PR (otherwise resolved from the current branch). |
+| `--resolve-only` | off | Close a **dismissed** thread — skip fix, commit, and push (steps 2–4). Post `--reply` verbatim (no `Done in <sha>` prefix) and resolve. Ignores `-m` and `paths…`. |
 | `[paths…]` | already-staged | Files to stage before committing. With none, commits whatever is already staged. |
 
 ---
@@ -107,11 +108,25 @@ State the outcome in one line: commit SHA + hook result, push target, the thread
 
 ---
 
+## Resolve-only — dismissed threads
+
+`--resolve-only` closes a thread you're **dismissing**, not fixing (a misread, an already-addressed point, a convention-contradicting suggestion). It skips steps 2–4 — there's no fix to commit — and runs only reply + resolve, the `rr` of `(fcp)rr`:
+
+```bash
+gh review reply "$PR" --comment "$COMMENT_ID" --body "<rationale>"
+gh review resolve "$PR" --comment "$COMMENT_ID"
+```
+
+The reply is the dismissal rationale, posted verbatim — no `Done in <sha>` prefix, since nothing was committed. Rationales differ per thread, so invoke once per dismissed thread with its own `--comment` and `--reply`.
+
+---
+
 ## Error Handling
 
 | Condition | Action |
 |-----------|--------|
 | `--comment` missing | Stop — nothing to reply to or resolve |
+| `--resolve-only` with `-m`/`paths…` | Ignore them — resolve-only never commits |
 | No PR for branch and no `--pr` | Stop — report `none` |
 | Commit fails (hooks red) | Stop, surface hook output, fix, retry; do not push |
 | Push rejected (non-fast-forward) | Stop, reconcile (pull/rebase), retry; do not reply yet |
