@@ -24,7 +24,7 @@ _peer_resolve() {
 }
 
 _peer_validate() {
-  case "$1" in ''|minimal|low|medium|high|xhigh) ;; *) printf '%s\n' "peer: invalid --effort '$1' (expected: minimal, low, medium, high, or xhigh)" >&2; return 2 ;; esac
+  case "$1" in ''|minimal|low|medium|high|xhigh|max|ultra) ;; *) printf '%s\n' "peer: invalid --effort '$1' (expected: minimal, low, medium, high, xhigh, max, or ultra)" >&2; return 2 ;; esac
   { [[ "$2" =~ ^[0-9]+$ ]] && (( 10#$2 >= 1 )); } || { printf '%s\n' "peer: invalid --idle '$2' (expected a positive integer of seconds)" >&2; return 2; }
   { [[ "$3" =~ ^[0-9]+$ ]] && (( 10#$3 >= 1 )); } || { printf '%s\n' "peer: invalid --cap '$3' (expected a positive integer of seconds)" >&2; return 2; }
   return 0
@@ -34,10 +34,10 @@ cmd="${1:-}"
 
 # --- peer list -----------------------------------------------------------------------
 if [[ "$cmd" == list ]]; then
-  printf '%-16s %-7s %-11s %-26s %-7s %s\n' REVIEWER-ID HARNESS PROVIDER MODEL ALIAS RUN-BY-PEER
+  printf '%-18s %-7s %-11s %-26s %-7s %s\n' REVIEWER-ID HARNESS PROVIDER MODEL ALIAS RUN-BY-PEER
   for id in "${IDS[@]}"; do
     [[ ${NATIVE[$id]} == yes ]] && runnable='no (agent Task)' || runnable=yes
-    printf '%-16s %-7s %-11s %-26s %-7s %s\n' "$id" "${HARNESS[$id]}" "${PROVIDER[$id]}" "${MODEL[$id]}" "${ALIAS[$id]}" "$runnable"
+    printf '%-18s %-7s %-11s %-26s %-7s %s\n' "$id" "${HARNESS[$id]}" "${PROVIDER[$id]}" "${MODEL[$id]}" "${ALIAS[$id]}" "$runnable"
   done
   exit 0
 fi

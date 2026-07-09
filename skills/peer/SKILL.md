@@ -66,8 +66,9 @@ Fan-out is `peer`'s default action — no subcommand needed. (`peer run -d …` 
 - `--reviewers` (optional): comma-separated reviewer-ids or aliases (`gpt,gemini`).
   Omit to use every peer-runnable reviewer. `claude-*` entries are skipped with a notice
   (dispatch those as `Task` from the agent).
-- `--effort` (optional): `minimal|low|medium|high|xhigh` — codex reasoning effort, or pi's
-  `--thinking` level for `provider=openrouter` (gemini/vertex ignores it). Defaults per registry.
+- `--effort` (optional): `minimal|low|medium|high|xhigh|max|ultra` — codex reasoning effort
+  (`max`/`ultra` are gpt-5.6-only), or pi's `--thinking` level for `provider=openrouter`
+  (gemini/vertex ignores it). Defaults per registry.
 - `--idle {s}` / `--cap {s}` (optional): silence timeout / hard cap (default 600). Idle
   auto-scales as `base + 1s per 500 prompt chars`; base is harness-specific — codex 120s,
   pi 180s. An explicit `--idle` overrides the auto-scale for every reviewer.
