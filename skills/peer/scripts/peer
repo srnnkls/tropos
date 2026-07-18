@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # peer - external code-review harness: registry-driven reviewer dispatch, idle-stall
 # watchdog, self-parallelising fan-out to codex and pi. Identity lives in reviewers.yaml;
-# peer maps it to CLI flags and leaves provider credentials to the underlying CLI.
+# peer maps it to CLI flags.
 set +m
 
 REGISTRY="${PEER_REGISTRY:-$(dirname "$(realpath "${BASH_SOURCE[0]}")")/reviewers.yaml}"
@@ -158,12 +158,9 @@ case "$harness" in
 esac
 command -v "$bin" >/dev/null 2>&1 || { printf '%s\n' "peer: $bin not found" >&2; exit 3; }
 
-penv=(); pi_thinking=false
-if [[ "$harness" == pi && -n "$provider" ]]; then
-  while IFS= read -r _kv; do [[ -n "$_kv" ]] && penv+=("$_kv"); done \
-    < <(prov="$provider" yq -r '.providers[strenv(prov)].env // {} | to_entries[] | .key + "=" + .value' "$REGISTRY")
+pi_thinking=false
+[[ "$harness" == pi && -n "$provider" ]] && \
   pi_thinking=$(prov="$provider" yq -r '.providers[strenv(prov)].thinking // false' "$REGISTRY")
-fi
 
 # peer communicates via OUTFILE + exit code + stderr; its stdout is not part of the
 # contract. Scope fd1 to /dev/null for the run so no harness/job chatter leaks into a
@@ -185,7 +182,7 @@ for attempt in 1 2; do
     codex "${a[@]}" "$prompt" </dev/null >"$fifo" 2>&1 &
   else
     _targs=(); [[ "$pi_thinking" == true ]] && _targs=( --thinking "$effort" )
-    env "${penv[@]}" pi -p --mode json --provider "$provider" --model "$model" "${_targs[@]}" "$prompt" </dev/null >"$fifo" 2>&1 &
+    pi -p --mode json --provider "$provider" --model "$model" "${_targs[@]}" "$prompt" </dev/null >"$fifo" 2>&1 &
   fi
   hpid=$!
 
@@ -234,7 +231,7 @@ if last:
   fi
 
   if printf '%s\n' "$log" | grep -qiE 'unauthenticated|permission[_ ]denied|status[^0-9]{0,6}40[13]\b|\b40[13][[:space:]]+(unauthorized|forbidden)|invalid_grant|invalid_rapt|invalid_api_key|incorrect[_ ]api[_ ]key|no api key found|authentication[_ ](error|failed)|not[_ ]authenticated|refresh_token_invalidated|could not be refreshed|could not[^"]{0,40}credential|application default credentials|reauthenticat|token (has[_ ])?(been[_ ])?(expired|revoked)'; then
-    printf '%s\n' "peer: $harness auth/availability error - authenticate the provider (codex login / gcloud auth application-default login / set the provider API key)" >&2
+    printf '%s\n' "peer: $harness reported an auth/availability error - configure the harness itself" >&2
     exit 3
   fi
   (( attempt == 1 )) && printf '%s\n' "peer: $harness stalled/failed (no clean report) - retrying once" >&2

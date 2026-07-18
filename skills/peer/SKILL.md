@@ -1,7 +1,7 @@
 ---
 name: peer
 description: |
-  External code-review harness (`peer` bash tool): canonical model registry, idle-stall watchdog, and self-parallelising fan-out to codex/gemini. Use when dispatching external (non-Claude) reviewers from the review or implement pipelines — call `peer`/`peer <harness>` instead of `codex exec`/`gcloud`+Vertex directly.
+  External code-review harness (`peer` bash tool): canonical model registry, idle-stall watchdog, and self-parallelising fan-out to codex/gemini. Use when dispatching external (non-Claude) reviewers from the review or implement pipelines — call `peer`/`peer <harness>` instead of `codex exec`/`pi` directly.
 metadata:
   type: generic
 ---
@@ -10,7 +10,7 @@ metadata:
 
 `peer` ships with this repo at `skills/peer/scripts/peer` (a bash script with a `#!/usr/bin/env bash`
 shebang, so it runs from any shell). It is the only sanctioned way to invoke the
-external review harnesses from the skills — never call `codex exec` / the Vertex API directly.
+external review harnesses from the skills — never call `codex exec` / `pi` directly.
 
 **Install:** `mise run install-peer` symlinks it onto PATH at `~/.local/bin/peer`
 (idempotent; re-run after pulls). `~/.local/bin` is on PATH in interactive and
@@ -27,15 +27,10 @@ non-interactive shells, so skill `Bash` shell-outs resolve `peer`.
   fronts two providers, selected per reviewer by the registry's `provider` field.
   `pi --mode json` streams events, so the same fifo + idle-watchdog applies; the report is
   the final assistant message, recovered from the stream.
-  - **`provider=vertex`** → the gemini model on **Vertex AI** via the **`@ssweens/pi-vertex`**
-    provider. Auth is **ADC** (`gcloud auth application-default login`) — no API key.
-    Defaults: model !`peer get model gemini` — project `code17-main`, location `global`
-    (3.x flash is served on the global endpoint, which gemini-cli's Code Assist backend
-    can't reach). Override with `PEER_GEMINI_PROJECT` / `PEER_GEMINI_LOCATION`.
+  - **`provider=google-vertex`** → the gemini model (!`peer get model gemini`) on
+    **Vertex AI** via pi's built-in provider.
   - **`provider=openrouter`** → the glm model (!`peer get model glm`) on **OpenRouter**.
-    `peer` runs `pi` as the PATH binary, not the user's shell function, so it resolves
-    `OPENROUTER_API_KEY` itself — env first, else `fnox get OPENROUTER_API_KEY`. `--effort`
-    maps to pi's `--thinking` level (`high` per registry, `xhigh` to escalate).
+    `--effort` maps to pi's `--thinking` level (`high` per registry, `xhigh` to escalate).
 
 The **Claude** harness is an in-process subagent (`Task`), dispatchable only by the agent
 itself; `peer` covers the external harnesses. Don't replace `peer` with a bare `timeout`.
@@ -68,7 +63,7 @@ Fan-out is `peer`'s default action — no subcommand needed. (`peer run -d …` 
   (dispatch those as `Task` from the agent).
 - `--effort` (optional): `minimal|low|medium|high|xhigh|max|ultra` — codex reasoning effort
   (`max`/`ultra` are gpt-5.6-only), or pi's `--thinking` level for `provider=openrouter`
-  (gemini/vertex ignores it). Defaults per registry.
+  (google-vertex ignores it). Defaults per registry.
 - `--idle {s}` / `--cap {s}` (optional): silence timeout / hard cap (default 600). Idle
   auto-scales as `base + 1s per 500 prompt chars`; base is harness-specific — codex 120s,
   pi 180s. An explicit `--idle` overrides the auto-scale for every reviewer.
@@ -94,8 +89,7 @@ peer pi -o {outfile} "{prompt}"   # gemini model supplied by the registry — ne
 ```
 
 Both write the report to `{outfile}`. Exit: `0` report in `{outfile}` · `2` usage ·
-`3` auth/availability (codex: `codex login`; pi: `gcloud auth application-default login`
-+ billed project) · `124` failed twice → skip this reviewer.
+`3` auth/availability · `124` failed twice → skip this reviewer.
 
 ## Dispatch contract for skills
 
@@ -107,7 +101,3 @@ Task(subagent_type="general", prompt={role_prompt})
 Bash(run_in_background=true):
   peer -d {role_outdir} --reviewers {externals} --effort {reasoning} "{role_prompt}"
 ```
-
-Requirements: `mise run install-peer` (PATH); `codex login` for codex; for gemini —
-`pi install npm:@ssweens/pi-vertex` + `gcloud auth application-default login` with access
-to a billed Vertex project (default `code17-main`).

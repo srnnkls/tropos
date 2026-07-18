@@ -19,7 +19,7 @@ reviewers:
     native: false
   - id: gemini-3.5-flash
     harness: pi
-    provider: vertex
+    provider: google-vertex
     model: gemini-3.5-flash
     alias: gemini
     effort: "-"
@@ -45,10 +45,6 @@ reviewers:
     native: true
 
 providers:
-  vertex:
-    env:
-      GOOGLE_CLOUD_PROJECT: code17-main
-      GOOGLE_CLOUD_LOCATION: global
   openrouter:
     thinking: true
 
