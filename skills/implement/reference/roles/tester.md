@@ -4,7 +4,7 @@ Write failing tests for task requirements (RED phase of TDD).
 
 ## Subagent
 
-`subagent_type: "task-tester"`
+`subagent_type: "tester"`
 
 ## Skills to Invoke
 

@@ -223,7 +223,7 @@ Each implementer:
 
 ```
 Per role (General / Architecture / Compliance), in one message:
-  Task(subagent_type="task-reviewer", prompt={role_prompt})              # Claude
+  Task(subagent_type="reviewer", prompt={role_prompt})              # Claude
   peer -d {role_outdir} --reviewers {externals} "{role_prompt}"      # codex + gemini (fans out)
 → Wait for ALL; read each peer manifest, skip stalled/error rows
 ```
@@ -397,7 +397,7 @@ Or dispatch all roles directly (per role: Claude `Task` + one `peer`):
 
 ```
 Per role (General / Architecture / Compliance), in one message:
-  Task(subagent_type="task-reviewer", prompt={role_prompt})         # Claude
+  Task(subagent_type="reviewer", prompt={role_prompt})         # Claude
   peer -d {role_outdir} --reviewers {externals} "{role_prompt}"  # codex + gemini (fans out)
 ```
 
@@ -480,11 +480,11 @@ The `issue pr` operation handles pushing the branch, building the PR title/body 
 
 | Role | Claude Task subagent_type | Skill |
 |------|--------------------------|-------|
-| Tester | task-tester | test |
-| Implementer | task-implementer | implement |
-| General Reviewer | task-reviewer | code review |
-| Architecture Reviewer | task-reviewer | gestalt |
-| Compliance Reviewer | task-reviewer | loqui |
+| Tester | tester | test |
+| Implementer | implementer | implement |
+| General Reviewer | reviewer | code review |
+| Architecture Reviewer | reviewer | gestalt |
+| Compliance Reviewer | reviewer | loqui |
 
 **External reviewers:** the `subagent_type` column applies to Claude native `Task` calls only. codex/gemini are dispatched via **`peer`** (no subagent type), which carries the role via the prompt and fans out to all configured external harnesses.
 

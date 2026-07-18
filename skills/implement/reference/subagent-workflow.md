@@ -40,7 +40,7 @@ See `operations/execute.md` Step 3 and `reference/parallel-detection.md` for the
 
 ```yaml
 Task:
-  subagent_type: task-tester
+  subagent_type: tester
   description: "Write tests for Task N: [task name]"
   prompt: |
     You are writing failing tests for Task N from [scope-file].
@@ -90,9 +90,9 @@ Dispatch ALL testers in a SINGLE message:
 
 ```yaml
 # Single message with multiple Task tool calls
-Task (task-tester): "Write tests for Task N1" ...
-Task (task-tester): "Write tests for Task N2" ...
-Task (task-tester): "Write tests for Task N3" ...
+Task (tester): "Write tests for Task N1" ...
+Task (tester): "Write tests for Task N2" ...
+Task (tester): "Write tests for Task N3" ...
 ```
 
 Wait for ALL testers to complete before dispatching Phase A.5.
@@ -149,7 +149,7 @@ test_review_report:
 
 ```
 # Claude harness (required) — agent-native
-Task(subagent_type="task-reviewer", description="Test quality review — claude",
+Task(subagent_type="reviewer", description="Test quality review — claude",
      prompt={shared_prompt with reviewer_id: {reviewer-id}})
 
 # External harnesses — peer fans out + watches; see the `peer` skill
@@ -186,7 +186,7 @@ Dispatch contract, flags, exit codes: **[peer skill](../../peer/SKILL.md)**.
 
 ```yaml
 Task:
-  subagent_type: task-implementer
+  subagent_type: implementer
   description: "Implement Task N: [task name]"
   prompt: |
     You are implementing Task N from [scope-file].
@@ -231,9 +231,9 @@ Dispatch ALL implementers in a SINGLE message, each with its corresponding teste
 
 ```yaml
 # Single message with multiple Task tool calls
-Task (task-implementer): "Implement Task N1" + tester_1_report
-Task (task-implementer): "Implement Task N2" + tester_2_report
-Task (task-implementer): "Implement Task N3" + tester_3_report
+Task (implementer): "Implement Task N1" + tester_1_report
+Task (implementer): "Implement Task N2" + tester_2_report
+Task (implementer): "Implement Task N3" + tester_3_report
 ```
 
 Wait for ALL implementers to complete before dispatching reviewers.
@@ -255,7 +255,7 @@ role prompt out to every configured external reviewer.
 
 ```
 # Per role (General / Architecture / Compliance):
-Task(subagent_type="task-reviewer", description="{role} review — claude",
+Task(subagent_type="reviewer", description="{role} review — claude",
      prompt={role_prompt with reviewer_id: {role}-{reviewer-id}})
 Bash(run_in_background=true):
   peer -d {role_outdir} --reviewers {external_aliases} --effort high "{role_prompt}"
@@ -283,7 +283,7 @@ When review finds Critical/High issues:
 
 ```yaml
 Task:
-  subagent_type: task-implementer
+  subagent_type: implementer
   description: "Fix issues from batch review"
   prompt: |
     Fix these issues from code review:
@@ -374,7 +374,7 @@ If tester reports `status: gap`:
 
 ```yaml
 Task:
-  subagent_type: task-tester
+  subagent_type: tester
   description: "Write tests for Task N (clarified)"
   prompt: |
     Previous attempt reported gap: [gap_reason]

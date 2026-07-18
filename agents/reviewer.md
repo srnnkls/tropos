@@ -1,5 +1,5 @@
 ---
-name: task-reviewer
+name: reviewer
 description: Review changes, provide actionable feedback
 tools: Glob, Grep, Read, Bash, TodoWrite, AskUserQuestion
 skills: review, loqui

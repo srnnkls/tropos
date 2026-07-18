@@ -1,5 +1,5 @@
 ---
-name: task-tester
+name: tester
 description: Write tests and verify completeness
 skills: test, loqui
 model: opus
