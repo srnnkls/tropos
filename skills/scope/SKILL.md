@@ -287,15 +287,26 @@ Record the response in `validation.yaml`; seeds the Alternatives section of `des
 
 **If input contains code blocks:** Extract, stage, ask user which resources to create via multiSelect (implementation, schemas, config, patterns, assets, none). Create selected in `scopes/draft/<name>/resources/`.
 
-### Step 3.7: Configure Implementation Reviewers
+### Step 3.7: Configure Scope Reviewers
 
-Configure reviewers per `/review` infrastructure (see `/review` SKILL.md "Reviewer Selection"). Resolution order:
-1. `--reviewers` flag passed to `/scope` — comma-separated aliases from `{opus, sonnet, gpt, gemini}`
+Configure scope-reviewers per the unified `/review` host matrix (see `/review` SKILL.md
+"Reviewer Selection"). Resolution order:
+1. `--reviewers` flag passed to `/scope` — comma-separated live aliases from `peer list`, including
+   host-native entries
 2. Interactive AskUserQuestion prompt (fallback)
 
-Store resolved selections in `validation.yaml` under `review_config`.
+On Codex, default/recommend `codex-native`; reject all registry Codex-family peer aliases and
+native `opus`/`sonnet`, while allowing cross-host `opus-cli`/`sonnet-cli`. On Claude,
+default/recommend native `opus` plus cross-host GPT peers; reject `codex-native` and all registry
+Claude-family peer aliases. Label/filter menu choices dynamically from registry harness/family
+metadata, and never silently convert a rejected selection.
 
-**All issue types** (Initiative, Feature, Task) require reviewer config — Task scopes also run batch reviews and need Codex harnesses configured.
+All-native sets use effort `inherit`. When any peer alias is selected, require one explicit effort
+supported by every selected peer; for `opus-cli`/`sonnet-cli`, the allowed subset is
+`low|medium|high|xhigh|max`. Native entries in a mixed set still inherit. Store resolved selections
+and peer effort in `validation.yaml.review_config`.
+
+**All issue types** (Initiative, Feature, Task) require reviewer config.
 
 ### Step 4: Create Directory and Documents
 
@@ -381,14 +392,20 @@ No scope reaches implementation until it clears a multi-agent review gate — th
 
 Run the review sub-operation against the just-created scope (see [reference/review.md](reference/review.md)). The gate is **blocking**:
 
-1. Dispatch the configured reviewers (claude + external via `peer`) on the scope documents.
+1. Dispatch the configured host-native and/or external reviewers on the scope documents using the
+   unified host matrix and prompt-file contract.
 2. Fold every `critical`/`high` finding back into `scope.md` / `tasks.yaml` / `design.md`.
 3. Re-run until no reviewer reports a `critical` or `high` issue.
 4. Record the result in `validation.yaml` under `review_gate` (see template) — `status: passed`, the reviewers, and the timestamp. `medium` nits may be deferred and noted.
 
+The gate requires at least one successful report from every execution class actually configured.
+Do not require an absent class, and do not pass on a missing configured class.
+
 The gate must be `passed` before `implement`/`loop` will execute the scope (enforced at the implementation entry — `implement/operations/execute.md` Step 2). A scope whose `review_gate.status` is absent or `failed` is not implementable.
 
-Reviewers come from `validation.yaml.review_config` (set in Step 3.7). Consult the `/peer` skill for external dispatch and auth.
+Reviewers come from `validation.yaml.review_config` (set in Step 3.7). Before each run, revalidate
+host compatibility and peer effort against the live registry; stop for explicit config editing on
+incompatibility. Consult `/review` and `/peer` for dispatch/auth contracts.
 
 ---
 

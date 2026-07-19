@@ -1,4 +1,6 @@
 .DS_Store
 *.local.toml
 .worktrees/
+.peer/
+.reviews/
 skills/loqui/reference/loqui

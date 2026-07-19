@@ -4,7 +4,8 @@ Multi-agent review of batch implementations. Multiple reviewers run in parallel 
 
 ## Roles × Harnesses
 
-**Per role, dispatch a Claude `Task` + one `peer` in parallel (SINGLE message).**
+**Per role, dispatch configured host-native reviewers plus an external `peer` fan-out when
+configured, in parallel (SINGLE message).**
 
 ### Roles
 
@@ -20,24 +21,27 @@ See `/review` [reference/harnesses.md](../../../review/reference/harnesses.md) f
 
 ### Roles × Harnesses
 
-Every role is reviewed by Claude **and** the configured external reviewers. Per role,
-that's one Claude `Task` + one `peer` (which fans the role prompt out to all
-external harnesses) — **not** a per-harness list of shell-outs.
+Every role is reviewed by the agents in the live scope configuration. Per role, that is Codex
+delegation for `codex-native`, one Task per configured Claude-host-native alias, and one
+`peer --agent reviewer` fan-out only when external aliases are configured.
 
-| Role | Claude | External (via `peer`) |
-|------|--------|---------------------------|
-| General | 1 `Task` (required) | codex + gemini, from validation.yaml/defaults |
-| Architecture | 1 `Task` (required) | codex + gemini, from validation.yaml/defaults |
-| Compliance | 1 `Task` (required) | codex + gemini, from validation.yaml/defaults |
+| Role | Host-native | External (via `peer`) |
+|------|-------------|-----------------------|
+| General | configured Codex delegation / Claude Tasks | configured external reviewer aliases |
+| Architecture | configured Codex delegation / Claude Tasks | configured external reviewer aliases |
+| Compliance | configured Codex delegation / Claude Tasks | configured external reviewer aliases |
 
 **Registry / models:** `peer list` (see the [peer skill](../../../peer/SKILL.md)).
 
-**CRITICAL:** Per role, dispatch the Claude `Task` + the `peer` in the same message
-for true parallelism. Never shell out to codex/gemini directly.
+**CRITICAL:** Per role, dispatch all configured host-native calls and any external `peer` in the
+same message. Never pass `codex-native`, `opus`, or `sonnet` to peer; `opus-cli`/`sonnet-cli` are
+distinct external aliases.
 
 ## Purpose
 
-Reviewers check the **diff of changes** from a batch, ensuring quality and scope compliance before proceeding to the next batch. Reviewers work with the git diff, not full file contents.
+Reviewers check the **materialized diff of changes** from a batch, ensuring quality and scope
+compliance before proceeding. Every prompt embeds the diff, requirements, and exact report schema;
+git commands/workdir are optional aids for shell-capable reviewers, not required inputs.
 
 ## Skills to Invoke
 
@@ -82,6 +86,8 @@ implementer_report:
 
 **3. Task specs from tasks.yaml (requirements)**
 
+**4. Exact reviewer YAML report schema**
+
 ## Responsibilities
 
 1. Review all changes from the batch together
@@ -93,10 +99,29 @@ implementer_report:
 
 ## Dispatch Configuration
 
-Dispatch per `/review` infrastructure. See `/review` [reference/harnesses.md](../../../review/reference/harnesses.md) for dispatch templates.
+Immediately before dispatching each Phase C role, re-read the scope's `config.yaml` and resolve
+`routing.reviewer.agents` plus `routing.reviewer.effort`. This live configuration is the only
+execution-routing source; never use `checkpoint.yaml` or `validation.yaml.review_config`.
 
-All Codex models and reasoning effort configured in `validation.yaml` under `review_config`.
-Review prompts per role: see `code` review skill Step 4.
+Dispatch `codex-native` through Codex native delegation with inherited settings. Dispatch
+`opus`/`sonnet` through `Task(subagent_type="reviewer", model=<alias>, ...)`. Dispatch all external
+aliases (`gpt`, `gemini`, `opus-cli`, `sonnet-cli`, and other peer registry entries) together only
+when configured:
+
+Filter these choices through the strict host matrix: Codex rejects registry Codex-family peer
+aliases in favor of `codex-native`; Claude rejects registry Claude-family peer aliases in favor of
+native `opus`/`sonnet`. Cross-family peers remain valid; never silently convert config.
+
+```bash
+peer -C <workdir> -d <role-outdir> --agent reviewer \
+  --peers <external-aliases> --effort <routing.reviewer.effort> \
+  --prompt-file <role-outdir>/prompt.md
+```
+
+Use a git-ignored `.peer/<scope>/<epoch>/<batch>/review/<role>/` as `<role-outdir>`. Record the
+reviewers actually used in `review.yaml`. A config edit affects the next dispatch, not reviewers
+already running. Materialize the batch diff, requirements, and schema into each role prompt so a
+shell-less peer can complete it; save that prompt as `<role-outdir>/prompt.md` before dispatch.
 
 ## When Reviewers Run
 
@@ -105,12 +130,12 @@ Review prompts per role: see `code` review skill Step 4.
 ```
 Batch N:
 ├── Phase A:   Testers (parallel)
-├── Phase A.5: Test review gate (Claude Task + one peer)
+├── Phase A.5: Test review gate (configured host-native and/or peer reviewers)
 ├── Phase B:   Implementers (parallel)
-└── Phase C:   Reviewers (per role: Claude Task + one peer) ← this role
-    ├── General      — Claude Task + peer (codex + gemini)
-    ├── Architecture — Claude Task + peer (codex + gemini)
-    └── Compliance   — Claude Task + peer (codex + gemini)
+└── Phase C:   Reviewers (per role: configured host-native and/or external dispatch) ← this role
+    ├── General      — configured reviewer agents
+    ├── Architecture — configured reviewer agents
+    └── Compliance   — configured reviewer agents
 ```
 
 ## Report Format
@@ -211,21 +236,23 @@ Languages: python | Rules: 12 | Violations: 1
 
 ## Handling Timeouts
 
-`peer` owns the idle-stall watchdog, retry-once, and skip; the caller reads `peer`'s
-per-reviewer manifest status and synthesizes what landed (minimum 1 Claude required),
-noting any skipped reviewer as partial results. Exit codes and details:
-**[peer skill](../../../peer/SKILL.md)**. Never block the pipeline on an external harness.
+`peer --agent reviewer` owns the idle-stall watchdog, retry-once, and skip; the caller reads `peer`'s
+per-reviewer manifest status and synthesizes what landed. The gate requires at least one success
+from every execution class actually configured; note skipped reviewers as partial results and
+pause when the configured-class minimum is not met. Exit codes and details:
+**[peer skill](../../../peer/SKILL.md)**.
 
 ## Example
 
 **Batch:** Tasks T002, T003, T004 (parallel)
 
-**Dispatch (single message):** per role, a Claude `Task` + one `peer` (peer fans the
-role prompt out to every configured external harness). See **[peer skill](../../../peer/SKILL.md)**.
+**Dispatch (single message):** per role, configured host-native dispatches plus one `peer` when
+external aliases are configured. See **[peer skill](../../../peer/SKILL.md)**.
 ```
 # Per role (General / Architecture / Compliance):
-Task(general): "{role} review: batch T002-T004" ...
-Bash(background): peer -d {role_outdir} --effort {reasoning_effort} "{role} review: ..."
+Codex native delegation(role=reviewer): "{role} review: batch T002-T004" ...
+Task(subagent_type="reviewer", model={native_alias}): "{role} review: batch T002-T004" ...
+Bash(background): peer -C {workdir} -d {role_outdir} --agent reviewer --peers {external_aliases} --effort {reasoning_effort} --prompt-file {role_outdir}/prompt.md
 ```
 
 **Individual Outputs:**

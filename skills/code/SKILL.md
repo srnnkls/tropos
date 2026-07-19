@@ -104,9 +104,14 @@ Language-specific test conventions — read loqui language guidelines for test p
 ## Review Workflow
 
 1. **Detect Input Type** — scope, git rev, git range, path, or diff
-2. **Resolve Review Target** — pointers for reviewers to load code themselves
+2. **Resolve Review Target** — materialize reviewed content, requirements, and report schema
 3. **Select Reviewers** — via `/review` infrastructure (interactive or from validation.yaml)
-4. **Dispatch Reviewers in Parallel** — per role: one Claude `Task` + one `peer` (fans out to all configured external harnesses); never raw codex/gemini
+   using the strict host matrix (`codex-native` vs `opus-cli`/`sonnet-cli` on Codex;
+   `opus`/`sonnet` vs GPT peer aliases on Claude); reject same-host-family peer aliases using live
+   registry harness/family metadata
+4. **Dispatch Reviewers in Parallel** — per role: Codex delegation for `codex-native`, Claude Task
+   for each configured `opus`/`sonnet`, plus one peer fan-out when external aliases are configured;
+   never pass a host-native token to peer
 5. **Synthesize Reviews** — per `/review` infrastructure
 6. **Write Review Output** — scope review.yaml or ephemeral markdown
 7. **Present Review** — gate summary, issues by severity
@@ -114,9 +119,12 @@ Language-specific test conventions — read loqui language guidelines for test p
 
 ### Reviewer Prompt Templates
 
-All prompts use `review_target` variables. Reviewers load code themselves.
+Before dispatch, run the selected diff command and load the applicable requirements plus exact
+YAML schema. All prompts are self-contained for shell-less reviewers; commands and paths are
+supplemental.
 
-**Variables:** `{diff_cmd}`, `{range}`, `{workdir}`, `{context}`, `{paths}`
+**Variables:** `{materialized_diff}`, `{requirements}`, `{report_schema}`, `{diff_cmd}`, `{range}`,
+`{workdir}`, `{context}`, `{paths}`, `{structural_context}`, `{guidelines}`
 
 **General Review Prompt:**
 
@@ -127,10 +135,13 @@ You are the GENERAL reviewer. Your gates: Correctness, Security, Performance.
 
 Working directory: {workdir}
 
-[if diff_cmd] Run: `{diff_cmd}`
+[if diff_cmd] Shell-capable reviewers may additionally run: `{diff_cmd}`
 [if paths] Read these files: {paths}
 
 Context: {context}
+Requirements: {requirements}
+Materialized diff:
+{materialized_diff}
 
 ## Review Focus
 
@@ -146,7 +157,7 @@ No prose, no explanation, no summary. The full subagent conversation gets embedd
 into the parent session context — every extra token costs budget.
 
 ## Output Format
-Standard reviewer_report YAML - see reference/report.md
+{report_schema}
 ```
 
 **Architecture Review Prompt:**
@@ -158,10 +169,15 @@ You are the ARCHITECTURE reviewer. Your gate: Architecture.
 
 Working directory: {workdir}
 
-[if diff_cmd] Run: `{diff_cmd}`
+[if diff_cmd] Shell-capable reviewers may additionally run: `{diff_cmd}`
 [if paths] Read these files: {paths}
 
 Context: {context}
+Requirements: {requirements}
+Materialized diff:
+{materialized_diff}
+Materialized structural context:
+{structural_context}
 
 ## Structural Analysis (run these from {workdir})
 
@@ -189,7 +205,7 @@ No prose, no explanation, no summary. The full subagent conversation gets embedd
 into the parent session context — every extra token costs budget.
 
 ## Output Format
-Architecture reviewer_report YAML - see reference/report.md
+{report_schema}
 ```
 
 **Compliance Review Prompt:**
@@ -201,10 +217,15 @@ You are the COMPLIANCE reviewer. Your gate: Style.
 
 Working directory: {workdir}
 
-[if diff_cmd] Run: `{diff_cmd}`
+[if diff_cmd] Shell-capable reviewers may additionally run: `{diff_cmd}`
 [if paths] Read these files: {paths}
 
 Context: {context}
+Requirements: {requirements}
+Materialized diff:
+{materialized_diff}
+Materialized language guidelines:
+{guidelines}
 
 ## Loqui Guidelines (read these for each language in the diff)
 
@@ -233,7 +254,7 @@ No prose, no explanation, no summary. The full subagent conversation gets embedd
 into the parent session context — every extra token costs budget.
 
 ## Output Format
-Compliance reviewer_report YAML - see reference/report.md
+{report_schema}
 ```
 
 **Scope Mode Appendix (appended to each reviewer's prompt):**
@@ -246,8 +267,8 @@ For `mode: scope-batch` (batch review), append:
 Tasks in this batch: {task_ids}
 Scope directory: {scope_dir}
 
-Read `{scope_dir}/tasks.yaml` for task requirements.
-Read `{scope_dir}/review.yaml` for prior batch review history.
+The prompt already embeds the applicable task requirements and prior review context.
+Shell-capable reviewers may additionally read `{scope_dir}`.
 ```
 
 For `mode: scope-final` (final review), append:
@@ -259,10 +280,8 @@ You are performing a FINAL REVIEW of a complete scope implementation.
 
 Scope directory: {scope_dir}
 
-Read these files for full context:
-- `{scope_dir}/scope.md` — requirements and acceptance criteria
-- `{scope_dir}/tasks.yaml` — all tasks and their status
-- `{scope_dir}/review.yaml` — batch review history and deferred issues
+The prompt embeds scope requirements and acceptance criteria, task statuses, and batch/deferred
+review history. Shell-capable reviewers may additionally read `{scope_dir}`.
 
 Additional focus:
 - Scope Compliance — All requirements met? Acceptance criteria satisfied?

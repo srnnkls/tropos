@@ -1,6 +1,6 @@
 ---
 name: issue
-description: GitHub issue operations — author or update issues against a canonical template, and create PRs from a branch/issue. Authoring drafts to a git-ignored `.issues/` folder, clears a 2×2 review gate (claude sonnet+opus, peer gpt+gemini), then publishes with issue type and parent/depends-on/blocks edges. Use for "create an issue", "open an issue", "update issue #N", "draft/sketch issue for X", "file an issue", or "pr" to open a pull request.
+description: GitHub issue operations — author or update issues against a canonical template, and create PRs from a branch/issue. Authoring drafts to a git-ignored `.issues/` folder, clears a host-aware four-report gate (two host-native and two cross-host peer reviewers), then publishes with issue type and parent/depends-on/blocks edges. Use for "create an issue", "open an issue", "update issue #N", "draft/sketch issue for X", "file an issue", or "pr" to open a pull request.
 argument-hint: "[number|pr] [args]"
 allowed-tools: Bash(gh issue *), Bash(gh pr *), Bash(gh api *), Bash(gh repo view *), Bash(git branch *), Bash(git push *), Bash(git rev-parse *), Bash(git log *), Bash(git merge-base *), Bash(issue *)
 metadata:
@@ -52,7 +52,7 @@ The gh/GraphQL plumbing is wrapped by the **`issue` command** (on PATH via `mise
 |---|---|
 | `issue next` | predicted next number (the [Pre-loaded Context](#pre-loaded-context) one-liner) |
 | `issue draft <n> <type> "<title>"` | ensure `.issues/`, print `.issues/<n>-<type>-<slug>.md` |
-| `issue review <n>\|<draft>` | external half of the gate — `peer` → gpt+gemini (Claude half stays agent-native) |
+| `issue review <n>\|<draft> [--reviewers aliases] [--effort level]` | external half of the four-report gate through `peer --agent reviewer`; host-native reports stay agent-native |
 | `issue create --type T --title … --body-file F [--parent N] [--depends-on L] [--blocks L]` | publish, auto-reconcile the draft filename to the real number, apply parent/dependency edges; prints `<number>\t<url>` |
 | `issue edit <n> [--type T] [--body-file F] [--parent N] [--depends-on L] [--blocks L]` | update body/type + edges |
 | `issue verify <n>` | read-back (type, parent, blockedBy, blocking) |
@@ -73,9 +73,12 @@ The raw `gh api graphql` mutations are documented below as the reference the wra
 6. **Draft to the local `.issues/` folder** (repo-local, git-ignored — never `$TMPDIR`, the draft and its reviews persist there). Name the file `<issue-number>-<type>-<slug>.md` — e.g. `745-feature-discovery-dependency-traversal.md` (`<type>` is `feature`/`task` lowercase; `<slug>` is the kebab-cased title). `issue draft <n> <type> "<title>"` prints the path and creates `.issues/`.
    - Create: use the next issue number from `issue next`. Draft the body into `.issues/<next>-<type>-<slug>.md`.
    - Update: the number is the issue you're editing. Preserve the live body first — `gh issue view <n> --json body -q .body > ".issues/<n>-<type>-<slug>.orig.md"` — then draft into `.issues/<n>-<type>-<slug>.md`. Surface a diff (`diff ".issues/<n>-<type>-<slug>.orig.md" ".issues/<n>-<type>-<slug>.md"`) before the gate if rewriting an existing body.
-7. **Review gate (mandatory 2×2) — run before any publish.** The drafted body must clear a four-reviewer gate before it reaches GitHub. Dispatch all four in one message (see [Review gate](#review-gate-2x2-before-publish) below):
-   - **peer** — `issue review ".issues/<n>-<type>-<slug>.md"` runs the external half (`peer` → **gpt** + **gemini**), reports under `.issues/<n>-reviews/`. Pass the **draft path**, not the bare number — a bare number globs `.issues/<n>-*.md` and now errors if more than one draft shares that number.
-   - **claude** — two `Task` subagents, one on **sonnet** and one on **opus** (agent-native — `issue review` can't dispatch them; do it in the same message).
+7. **Review gate (mandatory four reports) — run before any publish.** The drafted body must clear two host-native reviews and two cross-host peer reviews before it reaches GitHub. Detect the current host, validate the external aliases with live `peer list` metadata, and dispatch all four in one message (see [Review gate](#review-gate-four-reports-before-publish) below):
+   - **Codex host** — spawn two independent `codex-native` reviewer subagents with inherited session settings, plus `issue review ".issues/<n>-<type>-<slug>.md" --reviewers opus-cli,sonnet-cli --effort high`.
+   - **Claude host** — spawn native reviewer Tasks on `opus` and `sonnet`, plus `issue review ".issues/<n>-<type>-<slug>.md" --reviewers gpt,terra --effort high`.
+   - **Other host** — block before review or publish: this fixed gate requires one of the two supported native subagent mechanisms.
+
+   Pass the **draft path**, not the bare number — a bare number globs `.issues/<n>-*.md` and errors if more than one draft shares that number. Never replace the prescribed native family with its same-host CLI peer; if a required alias or native mechanism is unavailable, stop and report it.
 
    Read all four reports, fold blocking findings back into the draft, and re-run the gate until it passes. **Do not publish until the gate passes.**
 8. **Publish (auto-reconciles the number).** `issue create` runs `gh issue create --type`, then renames the draft (and its `-reviews/` dir) to the real number before applying edges.
@@ -89,32 +92,48 @@ The `.issues/` drafts and review reports are kept (git-ignored). Use `issue purg
 
 > **Prerequisites:** `issue` on PATH (`mise run install-issue`), `gh` authenticated, and for the review gate `peer` installed (`mise run install-peer`) with its harnesses authenticated. Add `.issues/` to `.gitignore` (or `.gitignore.local`).
 
-## Review gate (2×2, before publish)
+## Review gate (four reports, before publish)
 
-No issue body reaches GitHub until it clears a 2×2 reviewer gate: two providers × two models, each reviewing the drafted `.issues/<…>.md` against [`references/template.md`](references/template.md) (section completeness, header ordering, section selection by issue type) and the target repo's own conventions (inferred from `CLAUDE.md` / `AGENTS.md` and surrounding code — naming, error handling, idioms). The gate is blocking — fold every blocking finding back into the draft and re-run until clean.
+No issue body reaches GitHub until it has four independent reports: two through the current host's native subagent mechanism and two from the other primary model family through `peer`. Every reviewer checks the drafted `.issues/<…>.md` against [`references/template.md`](references/template.md) and the target repository's conventions. This is the same strict host-routing matrix used by the implementation pipeline: a model family runs natively on its own host and through peer only when it is cross-host.
 
-| Provider | Models |
-|---|---|
-| **claude** | `sonnet`, `opus` (in-process `Task` subagents) |
-| **peer** | `gpt`, `gemini` (external, via `peer`) |
+| Current host | Two native reports | Two external peer reports |
+|---|---|---|
+| **Codex** | two independent `codex-native` reviewer subagents; inherit the session model and reasoning | live aliases `opus-cli`, `sonnet-cli` |
+| **Claude** | native reviewer Tasks on `opus`, `sonnet`; effort inherits | live Codex-family aliases `gpt`, `terra` |
+| **Other** | unsupported — block the gate and publish | do not dispatch |
 
-Dispatch all four **in one message** — the two Claude `Task`s plus a single backgrounded `peer`:
+Before dispatch, resolve the external aliases through `peer list` and verify that both are external, cross-host, reviewer-capable entries. Validate the explicit peer effort against both entries; `high` is valid for the fixed pairs above. Do not silently substitute an alias, run same-host Claude through Claude CLI, run same-host Codex through Codex CLI, or degrade the gate to fewer than four successful reports.
 
-```bash
-# Claude side — two Task subagents, model sonnet and model opus, same review prompt.
-# (dispatch via the agent's Task tool, not shell)
+Give all four reviewers the same embedded draft, canonical template, review criteria, and exact YAML output contract. The native reviews remain independent even on a Codex host where both inherit the same model: label one `native-template` with primary focus on template/metadata completeness and the other `native-feasibility` with primary focus on feasibility and repository idioms, while requiring both to perform the full review. Dispatch both native calls and one backgrounded helper call in one message:
 
-# peer side — fan out to the two external reviewers, reports into the draft's review dir.
-# Pass the draft PATH (a bare number globs .issues/<n>-*.md and errors on multiple matches):
-issue review ".issues/<n>-<type>-<slug>.md" --effort high
-# (equivalently: peer -d .issues/<n>-reviews --reviewers gpt,gemini --effort high "<prompt>")
+```text
+Codex host:
+  native: codex-native reviewer "native-template" (inherit; no model/effort override)
+  native: codex-native reviewer "native-feasibility" (inherit; no model/effort override)
+  peer:   issue review ".issues/<n>-<type>-<slug>.md" \
+            --reviewers opus-cli,sonnet-cli --effort high
+
+Claude host:
+  native: Task reviewer model=opus (inherit)
+  native: Task reviewer model=sonnet (inherit)
+  peer:   issue review ".issues/<n>-<type>-<slug>.md" \
+            --reviewers gpt,terra --effort high
 ```
 
-Review prompt (both sides): check the draft against the canonical template (required sections present, `#` header ordering correct, section selection matches the issue type) and against the repo's existing idioms (sketches must follow the codebase, not impose a foreign stack). Return blocking findings (missing/incorrect sections, sketches that contradict the codebase) separately from nits.
+`issue review` accepts `--reviewers <comma-separated-live-aliases>`; its legacy direct-call default remains `gpt,gemini` for compatibility, but the skill must always pass the host-selected cross-host pair. The helper embeds the draft and canonical template in `.issues/<number>-reviews/prompt.md`, then calls canonical peer fan-out as `peer -C <workdir> -d <review-dir> --agent reviewer --peers <aliases> --effort <level> --prompt-file <review-dir>/prompt.md`. The native prompts must use that same self-contained content and output contract:
 
-Read all four reports (the two `Task` results + the `peer` manifest's `ok` rows under `.issues/<number>-reviews/`). The gate passes when no reviewer reports a blocking finding; nits are optional. Keep the review reports in `.issues/` as the audit trail. Only then proceed to step 8 (Publish).
+```yaml
+issue_review:
+  status: pass|fail
+  blocking_findings:
+    - concise evidence-backed finding with draft section and remediation
+  nits:
+    - concise optional improvement
+```
 
-Consult the `/peer` skill for the dispatch contract, reviewer registry, and auth requirements (`codex login`, `gcloud auth application-default login`).
+Require `status: fail` exactly when `blocking_findings` is non-empty and `[]` for an empty list. Reject malformed output as an unsuccessful report rather than guessing its meaning. Read the two native results and exactly two `ok` peer report rows under `.issues/<number>-reviews/`. The gate passes only when all four reports are successful, parseable, and contain no blocking finding; nits are optional. Fold blocking findings back into the draft and re-run the entire four-report gate until clean. Keep the reports and materialized prompt in `.issues/` as the audit trail, then proceed to Publish.
+
+Consult the `/peer` skill for the live registry, dispatch contract, and harness authentication requirements.
 
 ## Issue metadata (type, parent, dependencies)
 

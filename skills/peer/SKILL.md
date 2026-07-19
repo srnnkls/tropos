@@ -1,103 +1,142 @@
 ---
 name: peer
 description: |
-  External code-review harness (`peer` bash tool): canonical model registry, idle-stall watchdog, and self-parallelising fan-out to codex/gemini. Use when dispatching external (non-Claude) reviewers from the review or implement pipelines — call `peer`/`peer <harness>` instead of `codex exec`/`pi` directly.
+  Agent-routing utility (`peer` bash tool): role-aware external tester, implementer, and reviewer dispatch plus orchestrator-native route discovery through a canonical model registry, working-directory control, idle-stall watchdog, and reviewer fan-out. Use from implement, review, continue, or loop pipelines — call `peer` or its positional harness form instead of `codex exec` or `pi` directly.
 metadata:
   type: generic
 ---
 
 # peer
 
-`peer` ships with this repo at `skills/peer/scripts/peer` (a bash script with a `#!/usr/bin/env bash`
-shebang, so it runs from any shell). It is the only sanctioned way to invoke the
-external review harnesses from the skills — never call `codex exec` / `pi` directly.
+`peer` ships at `skills/peer/scripts/peer`. It is the sanctioned way for skills to invoke
+external agents; never call `codex exec` or `pi` directly.
 
-**Install:** `mise run install-peer` symlinks it onto PATH at `~/.local/bin/peer`
-(idempotent; re-run after pulls). `~/.local/bin` is on PATH in interactive and
-non-interactive shells, so skill `Bash` shell-outs resolve `peer`.
+**Install:** `mise run install-peer` symlinks the script to `~/.local/bin/peer`
+(idempotent; re-run after pulls).
 
-## Harnesses
+## Harnesses and roles
 
-- **codex** — OpenAI Codex CLI; an *agentic* reviewer that explores the diff with tools.
-  The shared ChatGPT/Codex backend intermittently **stalls mid-request**: the client sits
-  at ~0 CPU emitting nothing, and `codex exec` does **not** self-abort. `peer` watches
-  the live stream and kills after `--idle` seconds of silence (default 120s), retries
-  once, then skips.
-- **pi** — the `pi` CLI, a *fully agentic* reviewer (explores the diff with tools) that
-  fronts two providers, selected per reviewer by the registry's `provider` field.
-  `pi --mode json` streams events, so the same fifo + idle-watchdog applies; the report is
-  the final assistant message, recovered from the stream.
-  - **`provider=google-vertex`** → the gemini model (!`peer get model gemini`) on
-    **Vertex AI** via pi's built-in provider.
-  - **`provider=openrouter`** → the glm model (!`peer get model glm`) on **OpenRouter**.
-    `--effort` maps to pi's `--thinking` level (`high` per registry, `xhigh` to escalate).
+- **codex** — OpenAI Codex CLI. For `--agent <role>`, `peer` reads
+  `agents/<role>.toml` from the target working tree and supplies its
+  `developer_instructions` as Codex configuration.
+- **pi** — Pi CLI with a provider selected by the registry. For `--agent <role>`, `peer`
+  strips the frontmatter from the target working tree's `agents/<role>.md` and appends
+  the remaining body to Pi's system prompt.
+- **claude** — Claude Code CLI in noninteractive print mode for external role execution. The
+  explicit external aliases are `opus-cli` and `sonnet-cli`; the unqualified `opus` and
+  `sonnet` aliases remain orchestrator-native. Claude CLI runs with no session
+  persistence, `dontAsk`, an exact allowed-tool set, and the stripped matching
+  `agents/<role>.md` body. Reviewer and legacy calls expose only `Read,Grep,Glob`;
+  tester/implementer calls expose and authorize `Read,Grep,Glob,Bash,Edit,Write`.
+- **Role source fallback** — Codex, Pi, and Claude first load the matching role definition
+  from the target working tree. If it has no `agents/` directory, they use the definitions
+  beside the installed peer source.
+- **Orchestrator-native routes** — registry entries with `native: true` are discoverable
+  through `peer list/get` but are never spawned by `peer`; fan-out skips them with a
+  native-spawn notice. In a Codex-hosted implementation run, `codex-native` is dispatched
+  through the native subagent API and inherits the current session's model and reasoning
+  effort. Other hosts use their corresponding native subagent mechanism.
 
-The **Claude** harness is an in-process subagent (`Task`), dispatchable only by the agent
-itself; `peer` covers the external harnesses. Don't replace `peer` with a bare `timeout`.
+Supported roles are `tester`, `implementer`, and `reviewer`:
+
+- `tester` and `implementer` are workspace-write roles, require exactly one external
+  peer, and are never retried automatically after a stall or failure.
+- `reviewer` is read-only, supports external fan-out, and retries once after a stall or
+  empty result. Pi receives only read/search/list tools; it has no shell, edit, or write
+  access.
+- Omitting `--agent` preserves legacy prompt-only review behavior: read-only with one
+  retry and no role file injected.
+
+All harnesses have an idle watchdog because their streaming clients can stall without
+self-aborting. The default hard cap is 600 seconds. Idle time auto-scales with prompt
+length from a 120-second Codex base or 180-second Pi base; explicit `--idle` overrides it.
+A Claude CLI run includes partial message events so active long generations continue to
+refresh the watchdog; only its final result event is written as the report.
+A report is accepted only after a zero harness exit without an idle kill or hard-cap
+termination; partial output from failed or terminated runs is never successful.
+Each harness runs in its own process session. Completion, failure, idle timeout, and hard
+cap cleanup terminate the whole harness process group, including surviving children.
 
 ## Canonical model registry
 
-`peer`'s registry is the single source of truth for reviewer identity. Never hardcode
-model strings in a dispatch; pass the harness/alias and let peer supply the model. The
-table below is injected live from `peer list` at skill-load — it cannot drift:
+`peer`'s compatibility-stable `reviewers.yaml` registry is the single source of truth for
+peer identity, harness, provider, model, aliases, and default effort. Never hardcode model
+strings in a dispatch. The current registry is injected live:
 
 ```!
 peer list
 ```
 
-## `peer` — fan out (primary interface for skills)
+Use `peer get <field> <id|alias>` for `id`, `model`, `harness`, `alias`, `effort`,
+`native`, or `provider`.
 
-One call fans a prompt out to every configured external reviewer concurrently, each with
-its own watchdog, writing one report file per reviewer.
-
-```bash
-peer -d {outdir} --reviewers {ids-or-aliases} --effort {reasoning} "{review_prompt}"
-```
-
-Fan-out is `peer`'s default action — no subcommand needed. (`peer run -d …` is a back-compat alias.)
-
-- `-d {outdir}` (required): directory for per-reviewer reports (`{outdir}/{reviewer-id}.yaml`).
-  The review pipeline pins `.reviews/<slug>/` (git-ignored) per run; `issue` pins `.issues/<number>-reviews/`.
-- `--reviewers` (optional): comma-separated reviewer-ids or aliases (`gpt,gemini`).
-  Omit to use every peer-runnable reviewer. `claude-*` entries are skipped with a notice
-  (dispatch those as `Task` from the agent).
-- `--effort` (optional): `minimal|low|medium|high|xhigh|max|ultra` — codex reasoning effort
-  (`max`/`ultra` are gpt-5.6-only), or pi's `--thinking` level for `provider=openrouter`
-  (google-vertex ignores it). Defaults per registry.
-- `--idle {s}` / `--cap {s}` (optional): silence timeout / hard cap (default 600). Idle
-  auto-scales as `base + 1s per 500 prompt chars`; base is harness-specific — codex 120s,
-  pi 180s. An explicit `--idle` overrides the auto-scale for every reviewer.
-
-**Output:** a TSV manifest on stdout, one row per reviewer:
-
-```
-{reviewer-id}  ok       {outdir}/{reviewer-id}.yaml
-{reviewer-id}  stalled  {outdir}/{reviewer-id}.yaml
-```
-
-Read each `ok` file for its `reviewer_report:` YAML; skip `stalled`/`error`/`auth` rows
-(note them as partial results). Exit: `0` if ≥1 report produced · `1` if none · `2` usage.
-
-## `peer <codex|pi>` — single reviewer
-
-For a single external reviewer (or non-fan-out callers). The harness names the CLI peer
-execs (`codex`, `pi`) — not the model:
+## Fan-out interface
 
 ```bash
-peer codex --effort high -o {outfile} "{prompt}"
-peer pi -o {outfile} "{prompt}"   # gemini model supplied by the registry — never pass --model
+peer -C {workdir} -d {outdir} --agent reviewer \
+  --peers {ids-or-aliases} --effort {reasoning} "{task_prompt}"
+
+peer -C {workdir} -d {outdir} --agent tester \
+  --peers {one-id-or-alias} --effort {reasoning} "{task_prompt}"
+
+peer -C {workdir} -d {outdir} --agent reviewer \
+  --peers {ids-or-aliases} --prompt-file {.peer/run/prompt.md}
 ```
 
-Both write the report to `{outfile}`. Exit: `0` report in `{outfile}` · `2` usage ·
-`3` auth/availability · `124` failed twice → skip this reviewer.
+Fan-out is the default action; `peer run ...` remains an alias.
+
+- `-C` / `--cd` sets the agent working root (default: the caller's current directory).
+- `-d` / `--out-dir` is required and receives one `{peer-id}.yaml` result per peer.
+  Relative output directories are resolved beneath the working root.
+- `--agent` selects and injects a role contract. Omit only for legacy prompt-only review.
+- Supply exactly one prompt source: a positional prompt or `--prompt-file {file}`. Relative
+  prompt-file paths resolve beneath the working root and must name a readable, non-empty
+  regular file. The file form avoids command-line size limits end-to-end: fan-out forwards
+  only its path, Codex and Claude CLI read it from stdin, and Pi uses its native `@file`
+  input.
+- `--peers` is a comma-separated list of IDs or aliases. Omit it to select every
+  external registry entry. `--reviewers` remains an exact compatibility alias.
+- `--effort` accepts `minimal|low|medium|high|xhigh|max|ultra`; omitted values come from
+  the registry. Claude CLI supports only `low|medium|high|xhigh|max`; Pi on providers
+  without configurable thinking ignores the value.
+- `--idle {seconds}` and `--cap {seconds}` override watchdog timing.
+
+Stdout is a TSV manifest, one row per external peer:
+
+```
+{peer-id}  ok       {outdir}/{peer-id}.yaml
+{peer-id}  stalled  {outdir}/{peer-id}.yaml
+```
+
+The caller owns the task-specific report schema. Read every `ok` file and treat
+`stalled`, `error`, and `auth` rows as partial or failed results. Exit status is `0` when
+at least one result was produced, `1` when none was produced, and `2` for usage errors.
+
+## Single-harness compatibility interface
+
+```bash
+peer codex -C {workdir} --agent implementer --effort high -o {outfile} "{task_prompt}"
+peer pi -C {workdir} --agent reviewer -o {outfile} "{task_prompt}"
+peer claude -C {workdir} --agent reviewer --model opus --effort high \
+  -o {outfile} --prompt-file {prompt_file}
+peer claude -C {workdir} --agent tester --model sonnet --effort high \
+  -o {outfile} "{task_prompt}"
+```
+
+The positional `peer codex|pi|claude` forms remain available for single-agent and legacy
+callers. Registry-driven callers should not pass a model directly, though `--model` and
+`--provider` remain supported for fan-out internals and compatibility. Exit status is
+`0` for a non-empty result, `2` for usage, `3` for auth/availability, and `124` after the
+role's allowed attempts produce no clean result. Relative `-o` paths are resolved beneath
+the working root.
 
 ## Dispatch contract for skills
 
-Per role, in one message: a Claude `Task` (required) **plus** one `peer` for the
-external harnesses. Then read the manifest + report files and synthesise.
-
-```
-Task(subagent_type="general", prompt={role_prompt})
-Bash(run_in_background=true):
-  peer -d {role_outdir} --reviewers {externals} --effort {reasoning} "{role_prompt}"
-```
+Resolve routing before dispatch. Send native aliases through the host orchestrator's
+native subagent API with the matching `tester`, `implementer`, or `reviewer` role. In
+Codex, `codex-native` inherits the session model and reasoning effort. Send external
+aliases through one `peer` invocation using the same role and task prompt. Composition
+belongs to the caller; peer does not require a paired native spawn. Because Pi reviewers have no shell, reviewer
+prompts must include any command-only context they need—especially a materialized diff,
+requirements, and the required report schema. They can still inspect repository files
+with read, search, find, and list tools.

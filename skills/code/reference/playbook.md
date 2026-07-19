@@ -6,19 +6,21 @@
 
 ### External Harness (Codex / Gemini) Stall
 
-`peer` owns the idle-stall watchdog, retry-once, and skip. Read `peer`'s manifest
-status per reviewer; on a skipped/stalled reviewer, warn "[Reviewer] stalled, skipped.
-Partial results." and synthesize with the rest. Exit codes and rationale:
-[peer skill](../../peer/SKILL.md). Never block the pipeline on an external harness.
+`peer` owns the idle-stall watchdog, retry-once, and skip. Read `peer`'s manifest status per
+reviewer. Standalone review may warn "[Reviewer] stalled, skipped. Partial results." and
+synthesize when another report succeeded. An implementation-owned gate instead pauses and
+deliberately redispatches until every execution class actually configured for the role has a
+successful report. Exit codes and rationale: [peer skill](../../peer/SKILL.md).
 
 ### Claude Subagent Timeout
 
 **Symptom:** Task tool returns timeout error
 
 **Response:**
-1. If other reviewers succeeded: use their results
-2. If all failed: report failure, suggest retry
-3. Never proceed with zero reviews
+1. Standalone review: if another reviewer succeeded, use its result and disclose partial coverage
+2. Implementation-owned gate: pause unless every configured execution class has a success
+3. If all failed: report failure and suggest retry
+4. Never proceed with zero reviews
 
 ---
 
@@ -52,16 +54,17 @@ Partial results." and synthesize with the rest. Exit codes and rationale:
 **Symptom:** User deselects all options
 
 **Response:**
-1. Default to a single Claude reviewer (general role; reviewer-id from `peer list`)
-2. Warn: "No reviewers selected, defaulting to Claude. Consider external reviewer for fresh perspective."
+1. Codex host with delegation → default to `codex-native`; Claude host with Task → default to `opus`
+2. If neither native mechanism exists, ask for an available external reviewer rather than inventing one
 
 ### Codex Not Available
 
 **Symptom:** `codex` command not found, or `codex login` not completed (401 / `refresh_token_invalidated`)
 
 **Response:**
-1. Warn: "Codex not available, using Claude only"
-2. Proceed with Claude reviewer
+1. Standalone review: warn "Codex not available, using Claude only" and disclose reduced coverage
+2. Implementation-owned gate: pause only when an external class was configured; all-native gates
+   do not require Codex CLI
 
 ---
 

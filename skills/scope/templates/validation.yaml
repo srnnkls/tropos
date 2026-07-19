@@ -124,6 +124,9 @@ loqui_check:
     ${NOTES_ON_CODE_QUALITY}
 
 review_config:
+  # Scope-review routing only; implementation uses config.yaml.
+  # `inherit` for all-native; otherwise peer-supported effort applied only to peer entries.
+  # opus-cli/sonnet-cli subset: low | medium | high | xhigh | max
   reasoning_effort: ${REASONING_EFFORT}
   # reviewers resolved from --reviewers / interactive selection against `peer list`
   reviewers: ${REVIEWERS}
@@ -131,7 +134,7 @@ review_config:
 review_gate:
   # Mandatory blocking gate — must be `passed` before implement/loop will execute the scope.
   status: ${STATUS}  # passed | failed (absent ⇒ not yet reviewed ⇒ not implementable)
-  reviewers: ${REVIEWERS}  # who cleared the gate (claude + external via peer)
+  reviewers: ${REVIEWERS}  # configured host-native and/or external agents that cleared the gate
   reviewed_at: ${TIMESTAMP}
   blocking_resolved: ${N}   # critical/high findings folded back before pass
   deferred_nits: []         # medium findings carried forward

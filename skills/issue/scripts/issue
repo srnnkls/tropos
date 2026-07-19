@@ -21,9 +21,9 @@
 #                                               filename to the real number and apply edges; prints
 #                                               "NUMBER<TAB>URL"
 #   issue edit NUMBER [--type T] [--body-file F] [--parent N] [--depends-on L] [--blocks L]
-#   issue review NUMBER|DRAFTFILE [--effort L]  external half of the 2x2 gate via `peer`
-#                                               (gpt+gemini); the Claude half (/review, sonnet+opus)
-#                                               is agent-native and must be dispatched by the agent
+#   issue review NUMBER|DRAFTFILE [--reviewers ALIASES] [--effort L]
+#                                               external half of the four-report gate via `peer`;
+#                                               host-native reviewers are dispatched by the agent
 #   issue purge [NUMBER]                        trash .issues/ contents (all, or just #NUMBER's)
 #
 # Exit: 0 ok · 2 usage · 3 gh/auth or lookup failure
@@ -228,11 +228,19 @@ case "$cmd" in
     print -r -- "$n" ;;
 
   review)
-    [[ -n "${1:-}" ]] || { _usage 'review NUMBER|DRAFTFILE [--effort L]'; return 2 }
+    [[ -n "${1:-}" ]] || { _usage 'review NUMBER|DRAFTFILE [--reviewers ALIASES] [--effort L]'; return 2 }
     local target=$1; shift
-    local effort=high
+    local effort=high reviewers=gpt,gemini
     while (( $# )); do
-      case "$1" in --effort) effort="$2"; shift 2 ;; *) _usage "review: unexpected '$1'"; return 2 ;; esac
+      case "$1" in
+        --reviewers)
+          [[ -n "${2:-}" ]] || { _usage 'review: --reviewers requires a comma-separated alias list'; return 2 }
+          reviewers=$2; shift 2 ;;
+        --effort)
+          [[ -n "${2:-}" ]] || { _usage 'review: --effort requires a level'; return 2 }
+          effort=$2; shift 2 ;;
+        *) _usage "review: unexpected '$1'"; return 2 ;;
+      esac
     done
     command -v peer >/dev/null 2>&1 || { _die "peer not found (mise run install-peer) — external half can't run"; return 3 }
     local draft
@@ -247,9 +255,36 @@ case "$cmd" in
     fi
     local number=${${draft:t}%%[!0-9]*}
     local outdir=".issues/${number}-reviews"; mkdir -p "$outdir"
-    local prompt="Review the GitHub issue draft at '$draft' against the canonical issue template (required sections: Goal, Definition of done; correct '#' header ordering; section selection matches the issue type) and this repo's own conventions (read CLAUDE.md / AGENTS.md and the surrounding code to infer them — naming, error handling, module layout). Implementation sketches must follow the repo's existing idioms, not impose a foreign stack. Separate BLOCKING findings (missing/incorrect sections, sketches that contradict the codebase) from nits."
-    print -u2 -- "issue review: external half (gpt+gemini) -> $outdir"
-    peer -d "$outdir" --reviewers gpt,gemini --effort "$effort" "$prompt" ;;
+    local template_file="${0:A:h:h}/references/template.md"
+    [[ -f "$template_file" ]] || { _die "canonical template not found: $template_file"; return 3 }
+    local draft_content template_content
+    draft_content=$(<"$draft")
+    template_content=$(<"$template_file")
+    local prompt="Review the GitHub issue draft below against the embedded canonical issue template and the repository's own conventions. Inspect CLAUDE.md, AGENTS.md, and surrounding code from the working directory when needed to verify naming, error handling, module layout, and feasibility. Implementation sketches must follow existing repository idioms, not impose a foreign stack.
+
+Check required sections, '#' header ordering, section selection for the issue type, completeness, internal consistency, and whether the implementation plan can be executed in this repository. A missing or incorrect required section, a contradictory or infeasible sketch, or a material mismatch with repository conventions is blocking. Keep optional polish separate as nits.
+
+Return exactly this YAML shape, with no Markdown fence or additional top-level keys. Use status: fail when blocking_findings is non-empty; otherwise use status: pass. Use [] for an empty list.
+
+issue_review:
+  status: pass|fail
+  blocking_findings:
+    - concise evidence-backed finding with draft section and remediation
+  nits:
+    - concise optional improvement
+
+<canonical_issue_template path=\"$template_file\">
+$template_content
+</canonical_issue_template>
+
+<issue_draft path=\"$draft\">
+$draft_content
+</issue_draft>"
+    local prompt_file="$outdir/prompt.md"
+    print -r -- "$prompt" > "$prompt_file" || { _die "cannot write review prompt: $prompt_file"; return 3 }
+    print -u2 -- "issue review: external reviewers ($reviewers) -> $outdir"
+    peer -C "$PWD" -d "$outdir" --agent reviewer --peers "$reviewers" \
+      --effort "$effort" --prompt-file "$prompt_file" ;;
 
   purge)
     command -v trash >/dev/null 2>&1 || { _die "trash not found — refusing to rm; install trash-cli (macOS: 'trash')"; return 3 }

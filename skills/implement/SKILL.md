@@ -1,6 +1,6 @@
 ---
 name: implement
-description: Scope execution pipeline and implementation methodology. Use for executing scopes (TDD three-phase pipeline), verifying completion, debugging, or building features from requirements.
+description: Scope execution pipeline and implementation methodology. Use for executing scopes (TDD four-phase pipeline), verifying completion, debugging, or building features from requirements.
 argument-hint: "[target]"
 allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(gh *), Bash(peer *)
 metadata:
@@ -23,7 +23,7 @@ Current branch:
 
 # Implementation & Scope Execution
 
-Executes scopes and tasks via three-phase TDD pipeline (tester → implementer → reviewer).
+Executes scopes and tasks via a four-phase TDD pipeline (tester → test review → implementer → code review).
 
 **INVARIANT: The orchestrator NEVER writes code or tests.** All code authoring — including test code — MUST be delegated to fresh subagents. This applies to ALL routes: scope execution, single tasks, file paths, and task descriptions. No exceptions.
 
@@ -32,7 +32,8 @@ Executes scopes and tasks via three-phase TDD pipeline (tester → implementer �
 ## Auto-Detect Rules
 
 **Pre-parse:** Extract these directives from `$ARGUMENTS` before pattern matching:
-- `--reviewers <aliases>` — comma-separated list from `{opus, sonnet, gpt, gemini}`. Resolution and alias table: `/review` SKILL.md "Reviewer Selection". Resolved list is passed to Phase A.5 + Phase C dispatch. If absent and `validation.yaml.review_config` is also absent, fall back to the interactive AskUserQuestion prompt (same as `/review`).
+- `--config '<assignments>'` — non-interactive implementation-agent overrides. Supported keys are `tester`, `tester_effort`, `implementer`, `implementer_effort`, `reviewer`, and `reviewer_effort`; assignments are comma-separated and reviewer sets use `+`. Resolve and validate per [reference/configuration.md](reference/configuration.md).
+- `--reviewers <aliases>` — legacy reviewer-only shorthand. Treat the comma-separated list as a `reviewer=<aliases joined with +>` implementation override; do not read or write `validation.yaml.review_config` for implementation routing.
 - `--worktree` (or bare `worktree`) — checkout the determined branch as a `git worktree add ...` instead of in-place `git switch`. See "Git Workflow" → "Procedure" step 4.
 - `--base <branch>` — base branch for new-branch creation. If absent and the branch doesn't exist, AskUserQuestion. See "Git Workflow" → "Procedure" step 3.
 - `--state <draft|open>` — PR state when auto-creating a pull request at the end of execution (default: `draft`). Only used when `$ARGUMENTS` contains an issue reference.
@@ -42,6 +43,7 @@ Apply these rules to remaining `$ARGUMENTS` in order:
 
 | Pattern | Route | Action |
 |---|---|---|
+| Starts with `config` | Configure | Resolve the scope and update its `config.yaml` per `reference/configuration.md`; preserve the current epoch |
 | "verify" or "done" | Verify | Read and follow `operations/verify.md` |
 | "debug" or "trace" | Debug | Read and follow `operations/debug.md` |
 | Matches `./scopes/*/*/` path | Execute | Read and follow `operations/execute.md` |
@@ -79,7 +81,7 @@ Options:
 
 ## When to Use
 
-- Executing a scope's tasks via three-phase pipeline
+- Executing a scope's tasks via the four-phase pipeline
 - Building features from requirements
 - Writing code or creating artifacts
 - Deciding on structure, patterns, or approach
@@ -151,9 +153,18 @@ Detect the branch source from `$ARGUMENTS` and apply the matching naming convent
 
 Even for a single task, the four-phase pipeline applies:
 
+Before the first dispatch, resolve an ephemeral agent configuration per
+`reference/configuration.md`. Supplying `--config` skips setup prompts; otherwise prompt for
+tester, implementer, and reviewer routing. Do not write a repository-level config for a direct
+task. Reload the in-memory configuration before each phase just as a scope run reloads
+`config.yaml`. Enforce same-host-family native routing during both interactive and inline setup;
+reject host-family loopback through peer and ask for edits rather than silently converting.
+
 ### Phase A: Dispatch Tester Subagent
 
-Dispatch a **fresh tester subagent** (`subagent_type: "tester"`) to write failing tests.
+Dispatch a **fresh tester agent** to write failing tests. Route `codex-native` through Codex's
+native delegation interface with inherited session settings, `opus`/`sonnet` through
+`Task(subagent_type: "tester", model: <alias>)`, and external aliases through `peer --agent tester`.
 
 - Tester reads task requirements and discovers expected behavior independently
 - Tester writes tests and verifies RED state
@@ -161,7 +172,10 @@ Dispatch a **fresh tester subagent** (`subagent_type: "tester"`) to write failin
 
 ### Phase A.5: Test Review Gate
 
-Dispatch a Claude `Task` **plus one `peer`** (which fans out to all configured external reviewers) on the test files from Phase A. Same shape as Phase C; never shell out to codex/gemini directly. External reviewers via `peer` are mandatory — read its manifest, require ≥1 external `ok`.
+Reload routing, then dispatch every configured native reviewer through its host-native mechanism
+and fan configured external reviewers through one `peer --agent reviewer` call. Require one
+success from each execution class actually configured; an all-native or all-external gate does not
+require the absent class.
 
 - Reviewers check for oracle mirroring, mock tautologies, framework tests, trivial assertions
 - Synthesize findings: a test is flagged if any harness reports `issues_found`
@@ -172,14 +186,20 @@ See dispatch template in `reference/subagent-workflow.md` — Test Review Dispat
 
 ### Phase B: Dispatch Implementer Subagent
 
-Dispatch a **fresh implementer subagent** (`subagent_type: "implementer"`) with the test-review-cleared tester report.
+Dispatch a **fresh implementer agent** with the test-review-cleared tester report. Route
+`codex-native` through Codex native delegation with inherited settings, explicit native aliases
+through `Task(subagent_type: "implementer", model: <alias>)`, and external aliases through
+`peer --agent implementer`.
 
 - Implementer makes tests pass (GREEN)
 - Implementer refactors while staying green
 
 ### Phase C: Review
 
-For single tasks, review can be done inline or via reviewer subagent(s) depending on scope.
+Review is mandatory. Reload routing and use the configured native and external reviewer set.
+
+For external tester or implementer failure, preserve partial edits, record worktree status/diff,
+mark the phase incomplete, and pause. Do not retry, roll back, or advance automatically.
 
 ### Dispatch Templates
 
@@ -213,12 +233,13 @@ When invoked via a domain skill, follow the domain-specific guidance provided.
 
 ## Reference
 
-- [operations/execute.md](operations/execute.md) — Three-phase scope execution pipeline
+- [operations/execute.md](operations/execute.md) — Four-phase scope execution pipeline
 - [operations/verify.md](operations/verify.md) — Evidence-based completion verification
 - [operations/debug.md](operations/debug.md) — Root cause tracing
 - [reference/report.md](reference/report.md) — Report format
 - [reference/review.md](reference/review.md) — Review workflow
 - [reference/checkpoint-format.md](reference/checkpoint-format.md) — Checkpoint format
+- [reference/configuration.md](reference/configuration.md) — Live implementation-agent routing
 - [reference/subagent-workflow.md](reference/subagent-workflow.md) — Subagent workflow
 - [reference/base-drift-preflight.md](reference/base-drift-preflight.md) — Base-drift / overlap gate before dispatch
 - [reference/parallel-detection.md](reference/parallel-detection.md) — Parallel detection

@@ -32,7 +32,11 @@ Routes to the appropriate review skill based on argument type.
 
 ## Auto-Detect Rules
 
-**Pre-parse:** Extract `--reviewers <aliases>` from `$ARGUMENTS` before pattern matching. Value is a comma-separated list from `{opus, sonnet, gpt, gemini}`. Resolve to models per the Reviewer Selection section. Unknown alias → ask user to pick from the table. Flag is inherited by all downstream routes (Skill/code, Skill/scope, Skill/gestalt).
+**Pre-parse:** Extract `--reviewers <aliases>` from `$ARGUMENTS` before pattern matching. The value
+is a comma-separated list of live aliases from `peer list`, including native aliases. Resolve to
+models per the Reviewer Selection section. Unknown alias → show the live table and ask the user to
+pick a valid alias. The flag is inherited by all downstream routes (Skill/code, Skill/scope,
+Skill/gestalt).
 
 Apply these rules to remaining `$ARGUMENTS` in order:
 
@@ -40,7 +44,7 @@ Apply these rules to remaining `$ARGUMENTS` in order:
 |---|---|---|
 | Numeric, `#N`, or GitHub PR URL | PR review | Read and follow `operations/pr.md` |
 | 7+ hex chars (commit SHA) | Commit review | `Skill(code, review --rev $ARGUMENTS)` |
-| `--final <name>` | Final scope review | `Skill(code, review --final $NAME)` |
+| `--final <name>` | Standalone final scope review | `Skill(code, review --final $NAME)` |
 | Matches `scopes/*/*/scope.md` or scope name | Scope review | `Skill(scope, review $SCOPE_NAME)` |
 | `gestalt` or `--structural` | Structural review | `Skill(gestalt, review $REST)` |
 | `--test-audit [path]` or path whose first component is `test` or `tests` | Test quality audit | Read and follow `operations/test-audit.md` with `$TARGET` = path or `tests` |
@@ -95,23 +99,31 @@ Canonical configuration for multi-agent review. Domain skills compose on this.
 
 ### Models & Harnesses
 
-- Claude (native subagent): `opus`, `sonnet` — dispatched via `Task`.
-- External (codex, gemini): defined and dispatched by the **[peer skill](../peer/SKILL.md)**
-  — run `peer list` for the canonical registry (id ↔ harness ↔ model ↔ alias).
+- Codex native subagent: `codex-native` — dispatched through Codex delegation with inherited
+  session model/reasoning; never through peer.
+- Claude native subagent: `opus`, `sonnet` — dispatched via Claude-host Task.
+- External peers (for example Codex and Pi): defined and dispatched by the generic
+  **[peer skill](../peer/SKILL.md)** — run `peer list` for the canonical registry
+  (id ↔ harness ↔ model ↔ alias), including `opus-cli`/`sonnet-cli` when registered.
 
 Full details: [reference/models.md](reference/models.md), [reference/harnesses.md](reference/harnesses.md), [peer skill](../peer/SKILL.md)
 
 ### Dispatch Pattern
 
-Per role, in a single message: one Claude `Task` + one `peer` that fans the role
-prompt out to all configured external reviewers. **Never shell out to codex/gemini
-directly** — `peer` owns external dispatch. Domain skill defines roles; see
+Per role, in a single message: Codex delegation for `codex-native`, Claude Tasks for
+`opus`/`sonnet`, plus one `peer --agent reviewer` only when external aliases are configured.
+**Never send a host-native token through peer or invoke an external harness directly.** Domain skill defines roles; see
 [reference/harnesses.md](reference/harnesses.md) and the [peer skill](../peer/SKILL.md).
+
+Materialize the reviewed content, requirements/context, and exact report schema into the shared
+prompt before dispatch. Git commands and workdirs are supplemental; a shell-less read-only peer
+must never receive only a command to run.
 
 ### Report Output Directory
 
-External reports go to a **git-ignored `.reviews/<slug>/`** at the repo root (mirrors the
-`issue` skill's `.issues/<number>-reviews/`), one subdirectory per review run. `peer`'s required `-d {outdir}` always points here:
+For standalone `/review` routes, external reports go to a **git-ignored `.reviews/<slug>/`** at
+the repo root (mirrors the `issue` skill's `.issues/<number>-reviews/`), one subdirectory per review
+run. `peer`'s required `-d {outdir}` points here:
 
 | Route | `<slug>` | `{outdir}` |
 |---|---|---|
@@ -122,9 +134,13 @@ External reports go to a **git-ignored `.reviews/<slug>/`** at the repo root (mi
 | Path | `path-<basename>` | `.reviews/path-<basename>/` |
 | Scope | `scope-<name>` | `.reviews/scope-<name>/` |
 
-`peer` writes `{outdir}/{reviewer-id}.yaml` per reviewer. The dispatcher `mkdir -p`s the
+`peer --agent reviewer --peers <aliases>` writes `{outdir}/{reviewer-id}.yaml` per external
+reviewer. The dispatcher `mkdir -p`s the
 slug dir and ensures `.reviews/` is in `.gitignore` (append if absent) before fanning out.
-Multi-role pipelines (`implement`) nest by role: `.reviews/<slug>/<role>/`.
+
+Implementation-owned Phase A.5, Phase C, and final reviews are not standalone `/review` runs.
+They reload the scope's `config.yaml` and write beneath
+`.peer/<scope>/<epoch>/<batch-or-final-review>/<stage-or-role>/`; they never use `.reviews/`.
 
 ### Reviewer Selection
 
@@ -143,29 +159,53 @@ model mapping is injected live from the peer registry (single source of truth, c
 peer list
 ```
 
-**Examples:**
+**Examples (Claude host):**
 - `/review --reviewers opus,gpt` → claude-opus + !`peer get id gpt`
 - `/review --reviewers opus,gpt,gemini` → claude-opus + !`peer get id gpt` + !`peer get id gemini`
-- `/implement execute --reviewers opus,gpt` → same two reviewers used for Phase A.5 + Phase C
 
 **Invalid alias:** Report unknown alias and ask user to pick from the table.
 
+**Host-incompatible alias:** Reject known same-host-family loopback too. On Codex, direct every
+registry Codex-family alias to `codex-native`; on Claude, direct every registry Claude-family peer
+alias to native `opus`/`sonnet`. Ask for an explicit corrected selection and never rewrite it.
+
 #### Interactive Fallback (no flag, no review_config)
 
-**Question 1:** Select reviewers (multiSelect):
-- claude-opus (Recommended), claude-sonnet, !`peer get id gpt` (Recommended), !`peer get id gemini` (Recommended)
+**Question 1:** Select reviewers (multiSelect) from the live `peer list` table:
+- Codex host: label `codex-native` as native and `opus-cli`/`sonnet-cli` as via peer; reject
+  host-native `opus`/`sonnet` and every registry Codex-family peer alias (`gpt`, `terra`, `luna`,
+  etc.) in favor of `codex-native`
+- Claude host: label `opus`/`sonnet` as native and GPT/Codex aliases as via peer; reject
+  `codex-native` and every registry Claude-family peer alias (including `opus-cli`/`sonnet-cli`)
+  in favor of native Claude Tasks
+- Include other external aliases from the live table according to their capabilities
 
-**Default:** claude-opus + !`peer get id gpt` + !`peer get id gemini`
+**Default:** Codex host → `codex-native`; Claude host → `opus+gpt+gemini`; otherwise require an
+explicit available selection.
 
-**Question 2:** Reasoning effort (if Codex selected): low, medium, high (Recommended)
+**Question 2:** `inherit` for any all-native selection; a peer-supported explicit effort when any
+external alias is selected. In mixed sets the effort applies only to peer entries.
 
 #### Full Model Mapping
 
 Reviewer-id ↔ harness ↔ model is the **[peer skill](../peer/SKILL.md)** registry (`peer list`).
-`claude-opus`/`claude-sonnet` map to the Claude `Task` harness; !`peer get id gpt` and !`peer get id gemini`
-to the external harnesses peer dispatches.
+Entries with `RUN-BY-PEER=no` map to their host-native mechanism (`codex-native` delegation or
+Claude Task); entries with `RUN-BY-PEER=yes` are passed by alias to
+`peer --agent reviewer --peers`. If the required host-native mechanism is unavailable, stop and
+ask for a new selection rather than substituting.
 
-Store resolved selections in `validation.yaml` under `review_config` (whether from flag, prior config, or interactive prompt).
+This host matrix is strict for persisted selections: never silently convert `opus` to `opus-cli`
+or `codex-native` to `gpt` when resuming on a different host. Classify peer aliases dynamically
+from registry harness/family metadata so new same-family aliases are rejected automatically.
+
+For scope-review routes, store resolved selections in `validation.yaml` under `review_config`
+(whether from flag, prior config, or interactive prompt). This remains review-specific metadata;
+`/implement`, `/continue`, and `/loop` use the scope's live `config.yaml` instead.
+
+Likewise, standalone `/review --final <scope>` follows this review-specific selection flow. The
+implementation pipeline must dispatch its final roles directly with `config.yaml`'s reviewer
+aliases and effort (or an explicit non-interactive handoff carrying both); it must not call the
+standalone route and accidentally reselect reviewers.
 
 ### Report Schema
 

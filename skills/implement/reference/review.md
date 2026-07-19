@@ -29,13 +29,13 @@ metadata:
   total_batches: ${N}
   batches_reviewed: ${M}
 
-# Review configuration (copied from validation.yaml)
-# Variant format: {reasoning_effort}-medium (verbosity fixed at medium)
-# Reasoning options: low | medium | high
-review_config:
-  reasoning_effort: ${REASONING_EFFORT}  # low | medium | high
-  # reviewers resolved from --reviewers / selection against `peer list`
-  reviewers: ${REVIEWERS}
+# Informational snapshot of the live implementation route used most recently.
+# Batch entries below remain the authoritative record of agents that actually ran.
+implementation_config:
+  epoch_id: ${EPOCH_ID}
+  reviewer:
+    agents: ${REVIEWER_ALIASES}
+    effort: ${REVIEWER_EFFORT}  # peer-only when mixed; inherit for all-native
 
 # Accumulated gate status across all batch reviews.
 # Gate fails if ANY batch review failed it.
@@ -67,6 +67,8 @@ batch_reviews:
     reviewers:
       # one entry per configured reviewer (see `peer list`)
       - id: {role}-{reviewer-id}
+        execution_class: native | external
+        effort: inherit | ${PEER_EFFORT}
         status: success  # or timeout | failed
         gates:
           correctness: pass
@@ -145,6 +147,8 @@ final_review:
   status: pending  # pending | in_progress | completed
   timestamp: null
   reviewers: []
+  reviewer_effort: null  # peer-only when mixed; inherit for all-native
+  native_effort: inherit
   gates:
     correctness: pending
     style: pending
@@ -181,12 +185,13 @@ notes: |
 **After each batch review (Phase C):**
 
 1. Read existing review.yaml (or create if first batch)
-2. Append new batch_reviews entry
-3. Update accumulated gates
-4. Add new issues to appropriate severity list
-5. Update deferred_issues if medium issues noted
-6. Write updated review.yaml
-7. Include in batch commit
+2. Reload the live implementation config and record its epoch/reviewer snapshot
+3. Append a new `batch_reviews` entry containing every agent actually dispatched and its outcome
+4. Update accumulated gates
+5. Add new issues to appropriate severity list
+6. Update deferred_issues if medium issues noted
+7. Write updated review.yaml
+8. Include in batch commit
 
 **After final review:**
 
@@ -211,7 +216,8 @@ notes: |
 
 | File | Purpose |
 |------|---------|
-| validation.yaml | Pre-implementation: scope quality, gates, markers |
+| validation.yaml | Pre-implementation scope quality/review only; its `review_config` never routes implementation agents |
+| config.yaml | Live tester, implementer, and reviewer routing for the current implementation epoch |
 | review.yaml | Post-implementation: code quality, batch reviews |
 | checkpoint.yaml | Session state: progress, next batch |
 | tasks.yaml | Task definitions and status |

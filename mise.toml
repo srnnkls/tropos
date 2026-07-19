@@ -66,7 +66,7 @@ fi
 """
 
 [tasks.install-peer]
-description = "Install the peer external-review wrapper onto PATH (~/.local/bin)"
+description = "Install the peer external-agent runner onto PATH (~/.local/bin)"
 run = """
 #!/usr/bin/env bash
 set -euo pipefail

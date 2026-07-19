@@ -1,8 +1,8 @@
 # Subagent-Driven Task Execution
 
-Execute scopes with proper TDD: tester writes failing tests, implementer makes them pass, reviewers validate.
+Execute scopes with proper TDD: tester writes failing tests, implementer makes them pass, reviewers validate. Any role may be native or external according to the live implementation configuration.
 
-**Core principle:** Three-phase batches with fresh subagents. No batch completes without review.
+**Core principle:** Four-phase batches with fresh agents. No batch completes without review.
 
 ---
 
@@ -19,9 +19,9 @@ Each batch executes four phases. **A batch is NOT complete until all four phases
 │  ├── Each writes failing tests (RED)                            │
 │  └── Wait for ALL testers                                       │
 │                          ↓                                      │
-│  Phase A.5: TEST REVIEW (Claude Task + one peer)            │
-│  ├── Claude Task (opus) [required]                              │
-│  ├── peer → codex + gemini (review_config/defaults) [req]   │
+│  Phase A.5: TEST REVIEW (configured host-native / external)     │
+│  ├── Configured native reviewer dispatches [if configured]      │
+│  ├── Configured external reviewers via peer [if configured]     │
 │  ├── Check: oracle mirroring, mock tautologies, assertion-free  │
 │  └── Gate: clean → Phase B | issues → re-dispatch tester(s)     │
 │                          ↓                                      │
@@ -31,10 +31,10 @@ Each batch executes four phases. **A batch is NOT complete until all four phases
 │  ├── Each makes tests pass (GREEN)                              │
 │  └── Wait for ALL implementers                                  │
 │                          ↓                                      │
-│  Phase C: REVIEWERS (per role: Claude Task + one peer)       │
-│  ├── General      — Claude Task + peer [required]           │
-│  ├── Architecture — Claude Task + peer (gestalt) [required] │
-│  ├── Compliance   — Claude Task + peer (loqui) [required]   │
+│  Phase C: REVIEWERS (configured host-native / external)         │
+│  ├── General      — configured reviewer set [required]          │
+│  ├── Architecture — configured reviewer set (gestalt) [required]│
+│  ├── Compliance   — configured reviewer set (loqui) [required]  │
 │  ├── peer fans out to all configured external harnesses     │
 │  ├── Each role reviews own gates only; wait for ALL              │
 │  └── Synthesize by role, then aggregate                          │
@@ -45,7 +45,12 @@ Each batch executes four phases. **A batch is NOT complete until all four phases
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**CRITICAL:** All four phases are mandatory. Test review (Phase A.5) and code review (Phase C) each dispatch, per role, a Claude `Task` **plus one `peer`** that fans out to the configured external harnesses (codex + gemini) — **never shell out to codex/gemini directly; never dispatch Claude alone.** Read `peer`'s manifest: require ≥1 external reviewer `ok`; if only Claude reported (peer skipped/failed), treat the phase as partial and note it. Dispatch contract: [peer skill](../../peer/SKILL.md).
+**CRITICAL:** All four phases are mandatory. Reload `config.yaml` immediately before each
+dispatch. Test review (Phase A.5) and code review (Phase C) dispatch configured native aliases
+through their host-native mechanism and external aliases through one `peer --agent reviewer`
+fan-out per role. Require at least one success from every execution class actually configured
+(native and/or external); never require an absent class. Dispatch contract:
+[peer skill](../../peer/SKILL.md).
 
 ---
 
@@ -74,6 +79,21 @@ Each batch executes four phases. **A batch is NOT complete until all four phases
    - Read `scope.md` frontmatter
    - If `status: draft`, edit frontmatter to `status: active`
    - Skip if already `active` or `done`
+
+7. **Resolve implementation-agent configuration:**
+   - Follow [reference/configuration.md](../reference/configuration.md).
+   - A top-level execution creates a new epoch in `<scope>/config.yaml`.
+   - Merge built-in defaults, the current scope config, then any inline `--config` assignments.
+   - If `--config` was supplied, validate and persist without prompting. Otherwise run interactive
+     setup, using the merged values as recommendations, then persist the selections.
+   - Under Codex with native delegation available, recommend the `codex-native`/`inherit` defaults;
+     otherwise recommend the explicit-host defaults from `reference/configuration.md`.
+   - Enforce same-host-family native routing from registry metadata: Codex rejects `opus`/`sonnet`
+     and every peer Codex-family alias (use `codex-native`; Claude family may use `*-cli`); Claude
+     rejects `codex-native` and every peer Claude-family alias (use native `opus`/`sonnet`; GPT
+     family may use peer). Apply this to interactive and inline config, stopping for edits rather
+     than silently converting.
+   - Do not use `validation.yaml.review_config`; it belongs only to pre-implementation scope review.
 
 ### 2. Pre-Implementation Gate Check
 
@@ -120,16 +140,45 @@ below), and batches run sequentially.
 
 **For each batch, execute ALL FOUR phases:**
 
+**Scope-backed mutating-stage checkpoint invariant:** Immediately before every tester,
+implementer, or fix dispatch, write one `checkpoint.incomplete_stages` entry per task using
+`reference/checkpoint-format.md`. This applies to native Tasks and external peers. Assign every
+entry a `.peer/<scope>/<epoch>/<batch>/<stage>/<task>/` report directory and capture baseline git
+status/diff evidence. After a valid stage report passes its RED/GREEN/fix gate, save the normalized
+report there and remove only that task's entry. On failure or interruption, update that entry with
+post-failure evidence and pause; never clear it merely because the dispatch process exited.
+If the first batch has no checkpoint yet, create its progress skeleton with
+`incomplete_stages: []` before adding the first marker.
+
+Also persist and advance `checkpoint.phase_cursor` before and after every phase/gate, including
+per-agent test/targeted reviews and per-role Phase C/final reviews. `incomplete_stages` has priority;
+otherwise the cursor is the authoritative resume position. Direct tasks do not create a checkpoint:
+keep the same cursor/marker state in memory and store prompts, reports, and git evidence under
+`.peer/direct/<epoch>/`.
+
 #### Phase A: Dispatch Testers
+
+For a scope run, set `phase_cursor` to `tester: in_progress` before dispatch. After all required
+tester entries clear and RED is verified, write `tester: completed`, then
+`test_review: pending`.
+
+Immediately before dispatch, reload `config.yaml.routing.tester`. Route the configured singular
+agent as described in `reference/subagent-workflow.md`:
+
+- `codex-native` → Codex native tester delegation, inheriting session model/reasoning.
+- Explicit native alias → `Task(subagent_type="tester", model="<alias>", prompt=...)`.
+- External alias → write `<stage-outdir>/prompt.md`, then run `peer -C <workdir>
+  -d <stage-outdir> --agent tester --peers <alias> --effort <effort>
+  --prompt-file <stage-outdir>/prompt.md`.
 
 **Single task:**
 ```
-Dispatch 1 tester → wait for completion
+Dispatch 1 configured tester → wait for completion
 ```
 
 **Parallel batch (N tasks):**
 ```
-Dispatch N testers in SINGLE message → wait for ALL
+Dispatch N configured testers in SINGLE message → wait for ALL
 ```
 
 Each tester:
@@ -159,19 +208,34 @@ Each tester:
 
 If any failure mode is detected → re-dispatch the tester with feedback identifying the specific problem. Do NOT proceed to Phase A.5 with contaminated tests.
 
+If an external tester fails, stalls, or produces no valid report, preserve any partial test edits,
+capture `git status --short` and the relevant `git diff`, mark Phase A incomplete, and pause for
+deliberate redispatch or `/continue`. Never retry, roll back, or advance automatically.
+
+Native tester interruption or invalid output follows the same checkpoint recovery rule. A
+parallel batch may clear successful tester entries while retaining only the failed/in-flight task
+entries.
+
 #### Phase A.5: Test Review Gate
 
 **PRECONDITION:** All Phase A testers completed with `status: success` and RED verified.
 
-Dispatch a Claude `Task` **plus one `peer`** (which fans out to all configured external harnesses) on the test files from the batch — same shape as Phase C. Never shell out to codex/gemini directly. Read `peer`'s manifest; require ≥1 external reviewer `ok` before proceeding to Phase B (if only Claude reported, treat as partial).
+Reload `config.yaml.routing.reviewer`. Dispatch `codex-native` through Codex native delegation,
+explicit native aliases through `Task(subagent_type="reviewer", model="<alias>")`, and configured
+external aliases through one `peer --agent reviewer --peers <aliases>` call. Require at least one
+success from each configured execution class before proceeding; skip peer entirely for all-native
+configuration.
+
+Set `phase_cursor` to `test_review: in_progress` and persist each configured agent's report
+directory/status before dispatch. Update results independently. On interruption, leave this cursor
+in place so recovery reruns only non-`ok` reports, not Phase A. On a clean gate write completed and
+advance to `implementer: pending`; findings advance to `tester: pending` for affected tasks only.
 
 **Collect inputs:**
 - All `test_files[*].path` from all `tester_report`s in this batch
 - Tester task descriptions (what behavior each test should verify)
 
-**Resolve reviewer config (in order):** `--reviewers` flag → `validation.yaml` `review_config` → defaults (the reviewers configured in `peer list`, selected via --reviewers / interactive).
-
-**Dispatch template:** See `reference/subagent-workflow.md` — Test Review Dispatch Template (Claude `Task` + one `peer`).
+**Dispatch template:** See `reference/subagent-workflow.md` — Test Review Dispatch Template.
 
 **Gate outcome:**
 
@@ -188,6 +252,15 @@ After re-dispatch, tester output must pass Phase A.5 again before Phase B.
 **INVARIANT:** Implementers NEVER receive tests that failed the test review gate.
 
 #### Phase B: Dispatch Implementers
+
+Set `phase_cursor` to `implementer: in_progress` before dispatch. After every task clears its
+mutating marker and GREEN is verified, write completed and create `code_review: pending` with all
+three roles pending.
+
+Immediately before dispatch, reload `config.yaml.routing.implementer`. Route the configured
+singular agent through Codex native delegation for `codex-native`, native
+`Task(subagent_type="implementer", model="<alias>")` for explicit native aliases, or external
+`peer --agent implementer` as described in `reference/subagent-workflow.md`.
 
 **PRECONDITION:** Phase A complete. Every implementer MUST receive its corresponding tester_report.
 If you have no tester_report for a task, you have not run Phase A — go back and dispatch the tester first.
@@ -208,6 +281,12 @@ Each implementer:
 - Makes tests pass (GREEN)
 - Reports: impl files, test pass output
 
+If an external implementer fails, stalls, or produces no valid report, preserve all partial edits,
+capture `git status --short` and the relevant `git diff`, mark Phase B incomplete, and pause for
+deliberate redispatch or `/continue`. Never retry, roll back, or advance automatically.
+
+Native implementer interruption or invalid output follows the same checkpoint recovery rule.
+
 #### Phase C: Dispatch Reviewers
 
 **CRITICAL:** Reviewers are mandatory. Every batch gets reviewed.
@@ -219,47 +298,62 @@ Each implementer:
 # range: <last_batch_commit>..HEAD   (for gestalt diff)
 ```
 
-**Per role, dispatch in a SINGLE message: a Claude `Task` + one `peer` (which fans out to all configured external harnesses). Never shell out to codex/gemini directly.**
+Run `diff_cmd` before dispatch and embed its materialized output in every role prompt. The command
+itself is optional supplemental context for shell-capable reviewers, never the primary input.
+
+Immediately before **each role**, reload `config.yaml.routing.reviewer`. Dispatch every configured
+native alias through its host-native mechanism and fan configured external aliases through one
+`peer --agent reviewer` call. Never invoke peer when no external class is configured, and never
+pass `codex-native` to peer.
+
+Set the Phase C cursor/role to `in_progress` before each dispatch, including per-agent report
+statuses/directories. Preserve completed roles. An interruption reruns only non-`ok` agents in the
+current role; after all roles pass, advance to the next batch's tester or to fix handling.
 
 ```
 Per role (General / Architecture / Compliance), in one message:
-  Task(subagent_type="reviewer", prompt={role_prompt})              # Claude
-  peer -d {role_outdir} --reviewers {externals} "{role_prompt}"      # codex + gemini (fans out)
-→ Wait for ALL; read each peer manifest, skip stalled/error rows
+  Codex native delegation(role=reviewer, prompt={role_prompt})     # codex-native, if configured
+  Task(subagent_type="reviewer", model={native_alias}, prompt={role_prompt})  # opus/sonnet
+  peer -C {workdir} -d {role_outdir} --agent reviewer \           # only if externals configured
+    --peers {external_aliases} --effort {reviewer_effort} \
+    --prompt-file {role_outdir}/prompt.md
+→ Wait for ALL; require ≥1 success from each configured execution class
 ```
 
 **Reviewer cascade (each role owns distinct gates):**
 
 | Role | Primary Gates | Skill | Harnesses |
 |------|---------------|-------|-----------|
-| General | Correctness, Security, Performance | `code review` | Claude `Task` + `peer` |
-| Architecture | Architecture | `gestalt` | Claude `Task` + `peer` |
-| Compliance | Style | `loqui` | Claude `Task` + `peer` |
+| General | Correctness, Security, Performance | `code review` | Configured native and/or external class |
+| Architecture | Architecture | `gestalt` | Configured native and/or external class |
+| Compliance | Style | `loqui` | Configured native and/or external class |
 
-**Reviewers receive pointers and load code themselves:**
-1. `{diff_cmd}` (e.g., `git diff <last_batch_commit>..HEAD`) — reviewer runs the command
-2. Scope directory path — reviewer reads `tasks.yaml` for requirements
-3. Workdir — reviewer runs all commands from this directory
+**Every reviewer prompt is self-contained:**
+1. Embed the materialized batch diff, not only `{diff_cmd}`.
+2. Embed the applicable task requirements and acceptance criteria from `tasks.yaml`.
+3. Embed the exact reviewer YAML output schema.
+4. Shell-capable reviewers may also receive `{diff_cmd}`, scope path, and workdir for exploration;
+   shell-less external reviewers must be able to complete from prompt contents alone.
 
 **Architecture role additionally runs:**
 - `gestalt analyze` — current hotspots, seams, coupling
 - `gestalt diff {range}` — definition-level changes
 - `gestalt diff {range} --verbose` — impact propagation
 
+Materialize these outputs into the architecture prompt for shell-less reviewers; shell-capable
+reviewers may also rerun the commands.
+
 **Compliance role additionally reads:**
 - Loqui guidelines for each language in the diff (`./skills/loqui/reference/loqui/languages/{lang}/`)
+
+Embed the applicable guideline excerpts in the compliance prompt for shell-less reviewers.
 
 **Dispatch configuration:**
 
 Dispatch reviewers per `/review` infrastructure and `code review` role definitions.
 
-**Resolve harness config (in order):**
-1. Explicit `--reviewers` flag passed to `/implement execute` (aliases from `peer list` — see `/review` SKILL.md "Reviewer Selection")
-2. `validation.yaml` `review_config` for the active scope → use those reviewers and reasoning effort
-3. Defaults: the reviewers configured in `peer list` (selected via --reviewers / interactive)
-4. External reviewers are mandatory — never Claude alone. Pass them to `peer`; read its manifest and require ≥1 external `ok` before synthesizing Phase C (if only Claude reported, treat as partial). Models/flags/effort: [peer skill](../../peer/SKILL.md).
-
-Apply the resolved config to all three roles (General, Architecture, Compliance).
+The live implementation config is the only routing source. Apply its reviewer route to all three
+roles. `validation.yaml.review_config` remains unchanged and is never consulted here.
 
 See `/review` [reference/harnesses.md](../../review/reference/harnesses.md) for dispatch templates.
 Review prompts per role: see `code review` skill Step 4.
@@ -284,9 +378,11 @@ After ALL reviewers complete:
        timestamp: <ISO_TIMESTAMP>
        commit: <SHA>
        tasks: [T001, T002]
-        reviewers:
+       reviewers:
           # one entry per configured reviewer (see `peer list`)
           - id: {role}-{reviewer-id}
+            execution_class: native | external
+            effort: inherit | <configured-peer-effort>
             status: success | timeout | failed
             gates: { correctness: pass, style: pass, ... }
        synthesized:
@@ -311,10 +407,10 @@ After ALL reviewers complete:
 ```
 | Gate         | Status | General              | Architecture | Compliance |
 |--------------|--------|----------------------|--------------|------------|
-| Correctness  | FAIL   | fail (Codex)          | —            | —          |
+| Correctness  | FAIL   | fail (gpt)            | —            | —          |
 | Style        | PASS   | —                     | —            | pass       |
 | Performance  | PASS   | pass                  | pass         | —          |
-| Security     | FAIL   | fail (Claude, Gemini) | —            | —          |
+| Security     | FAIL   | fail (opus, gemini)   | —            | —          |
 | Architecture | PASS   | —                     | pass         | —          |
 ```
 
@@ -323,10 +419,15 @@ After ALL reviewers complete:
 ### 6. Apply Review Feedback
 
 **If Critical/High issues found:**
-1. Dispatch fix subagent(s)
-2. Verify fixes with targeted review
-3. Update review.yaml with resolution
-4. Only proceed when issues resolved
+1. Reload the implementer route and create a mutating `incomplete_stages` marker per fix task
+2. Dispatch fix agent(s)
+3. Save valid fix reports, verify fixes with targeted review, then clear their markers
+4. Update review.yaml with resolution
+5. Only proceed when issues resolved; preserve failed fix markers and partial edits
+
+Set the cursor to `fix` around mutating fixes and `targeted_review` around their read-only gate.
+Persist targeted-review agent/report states. A failed targeted review returns to `fix: pending`;
+a clean result advances to the next batch or final review.
 
 **If only Medium issues:**
 1. Add to review.yaml deferred_issues
@@ -354,8 +455,16 @@ When batch completes successfully (all phases, review passed):
        number: <N+1>
        tasks: [...]
      deferred_issues: [...]  # medium severity, noted for later
-     review_config:
-       reviewers: [...]  # from validation.yaml
+     implementation_config:
+       path: ./scopes/<state>/<scope>/config.yaml
+       epoch_id: <current-epoch-id>
+     phase_cursor:
+       batch: <N+1>
+       phase: tester
+       status: pending
+       tasks: [...]
+       updated_at: <ISO_TIMESTAMP>
+     incomplete_stages: []
    ```
 4. **Commit the batch changes:**
    - Stage: implementation + tests + tasks.yaml + checkpoint.yaml + review.yaml
@@ -387,19 +496,36 @@ behind=$(git rev-list --count "HEAD..origin/<trunk>")
 
 See `reference/base-drift-preflight.md` → "Pre-PR / pre-merge sync". Do not proceed to final review while `behind > 0`.
 
-After ALL batches complete, invoke `code review` skill in **final mode**:
+After ALL batches complete, reload `config.yaml.routing.reviewer` and dispatch the final review
+directly. Do **not** invoke standalone `/review --final`: that route owns its own
+`--reviewers`/`validation.yaml.review_config`/interactive selection and must not replace the live
+implementation route. Use the configured reviewer aliases and effort unchanged:
+
+Before dispatch, materialize the complete implementation diff, scope requirements and acceptance
+criteria, task statuses, prior batch/deferred review history, and exact reviewer report schema.
+Embed them in every role prompt; workdir and git/gestalt commands are optional additions for
+shell-capable reviewers.
+
+Set `phase_cursor` to `final_review: in_progress`, with General/Architecture/Compliance report
+states and directories, before dispatch. Preserve completed roles across interruption. After all
+roles pass, write `final_review: completed`, then `phase: complete, status: completed`.
 
 ```
-/review --final <scope-name>
-```
-
-Or dispatch all roles directly (per role: Claude `Task` + one `peer`):
-
-```
+output root: .peer/<scope>/<epoch>/final-review/<role>/
 Per role (General / Architecture / Compliance), in one message:
-  Task(subagent_type="reviewer", prompt={role_prompt})         # Claude
-  peer -d {role_outdir} --reviewers {externals} "{role_prompt}"  # codex + gemini (fans out)
+  Codex native delegation(role=reviewer, prompt={role_prompt})     # codex-native, if configured
+  Task(subagent_type="reviewer", model={native_alias}, prompt={role_prompt})  # opus/sonnet
+  peer -C {workdir} -d .peer/{scope}/{epoch}/final-review/{role} --agent reviewer \ # externals only
+    --peers {external_aliases} --effort {reviewer_effort} \
+    --prompt-file .peer/{scope}/{epoch}/final-review/{role}/prompt.md
 ```
+
+Write each complete materialized role prompt to the shown `prompt.md` before dispatch; do not pass
+it positionally.
+
+Require at least one success from each execution class configured for every role. Record the
+aliases and effort actually used in `review.yaml.final_review`; never prompt for a second reviewer
+selection. An all-native `codex-native` default performs no peer call.
 
 **Final review checks:**
 - All scope requirements met (cross-reference scope.md)
@@ -415,6 +541,8 @@ final_review:
   status: completed
   timestamp: <ISO_TIMESTAMP>
   reviewers: [{role}-{reviewer-id}, …]  # from `peer list`
+  reviewer_effort: <configured-peer-effort-or-inherit>
+  native_effort: inherit
   gates: { correctness: pass, style: pass, ... }
   scope_compliance:
     all_tasks_complete: true
@@ -478,15 +606,19 @@ The `issue pr` operation handles pushing the branch, building the PR title/body 
 
 ## Subagent Configuration
 
-| Role | Claude Task subagent_type | Skill |
-|------|--------------------------|-------|
+| Role | Native Task subagent_type | Skill |
+|------|---------------------------|-------|
 | Tester | tester | test |
 | Implementer | implementer | implement |
 | General Reviewer | reviewer | code review |
 | Architecture Reviewer | reviewer | gestalt |
 | Compliance Reviewer | reviewer | loqui |
 
-**External reviewers:** the `subagent_type` column applies to Claude native `Task` calls only. codex/gemini are dispatched via **`peer`** (no subagent type), which carries the role via the prompt and fans out to all configured external harnesses.
+On Codex, `codex-native` uses native delegation and Claude-family roles use `opus-cli`/`sonnet-cli`
+through peer. On Claude, `opus`/`sonnet` use the table's Task type and GPT-family roles use
+registered Codex aliases through peer. External aliases use
+`peer --agent tester|implementer|reviewer`; peer loads the matching agent contract. Store reports
+under `.peer/<scope>/<epoch>/<batch>/<stage>/` as defined in `reference/configuration.md`.
 
 ---
 
@@ -510,7 +642,7 @@ The `issue pr` operation handles pushing the branch, building the PR title/body 
 - **Skip the test review gate (Phase A.5 — every batch's tests must be reviewed)**
 - **Skip the code reviewer phase (Phase C — every batch must be reviewed)**
 - Pass tests to the implementer without first clearing Phase A.5
-- Use sonnet/explore for task subagents (always general)
+- Bypass the configured agent alias for any phase
 - Dispatch parallel subagents on same file
 - Let implementer write tests (tester's job)
 - Ignore failed pre-impl gates for Initiatives
@@ -523,9 +655,9 @@ The `issue pr` operation handles pushing the branch, building the PR title/body 
 - Re-dispatch tester with clarification
 
 **If reviewers timeout:**
-- Continue with available reviews (minimum 1)
+- Continue collecting available reports, but do not pass until every configured execution class has a success
 - Note partial results in output
-- Consider re-running batch
+- Pause for deliberate redispatch when the minimum is not met
 
 ---
 
@@ -534,35 +666,35 @@ The `issue pr` operation handles pushing the branch, building the PR title/body 
 ```
 [Load scope, create TodoWrite, checkout branch]
 
-Batch 1: Task 1 (single task)
+Batch 1: Task 1 (single task; example config: opus + gpt + gemini reviewers)
 ├── Phase A: Dispatch tester
 │   └── Tester: Wrote 3 tests, all failing (RED)
-├── Phase A.5: Dispatch reviewers (Claude Task + peer → configured harnesses in parallel)
-│   ├── Claude: Clean
-│   ├── Codex: Clean
-│   └── Gemini: Clean — no oracle mirroring or tautologies
+├── Phase A.5: Dispatch configured host-native + external routes
+│   ├── opus: Clean
+│   ├── gpt: Clean
+│   └── gemini: Clean — no oracle mirroring or tautologies
 ├── Phase B: Dispatch implementer + tester report
 │   └── Implementer: Made tests pass (GREEN)
 ├── Phase C: Dispatch reviewers (3 in parallel)
-│   ├── Claude: approved, no issues
-│   ├── Codex: approved, 1 minor issue
-│   └── Gemini: approved, no issues
+│   ├── opus: approved, no issues
+│   ├── gpt: approved, 1 minor issue
+│   └── gemini: approved, no issues
 ├── Synthesize: 1 minor issue (note for later)
 └── Commit: feat(cache): add caching layer
 
 Batch 2: Tasks 2, 3, 4 (parallel batch — independent, different files)
 ├── Phase A: Dispatch 3 testers (single message)
 │   └── All testers complete with failing tests
-├── Phase A.5: Dispatch reviewers (Claude Task + peer → configured harnesses in parallel, all 3 test files)
-│   ├── Synthesized: Task 2 tests — oracle mirroring detected (flagged by Codex)
+├── Phase A.5: Dispatch configured reviewers in parallel (all 3 test files)
+│   ├── Synthesized: Task 2 tests — oracle mirroring detected (flagged by gpt)
 │   ├── Re-dispatch Task 2 tester with finding
 │   └── Task 2 re-tester: Clean on second attempt
 ├── Phase B: Dispatch 3 implementers (single message)
 │   └── All implementers complete, tests passing
 ├── Phase C: Dispatch reviewers (3 in parallel)
-│   ├── Claude: changes_requested, 1 critical
-│   ├── Codex: changes_requested, 1 critical (same issue)
-│   └── Gemini: approved
+│   ├── opus: changes_requested, 1 critical
+│   ├── gpt: changes_requested, 1 critical (same issue)
+│   └── gemini: approved
 ├── Synthesize: 1 critical issue (found by 2 reviewers)
 ├── Fix: Dispatch fix subagent → verify
 └── Commit: feat(api): add endpoints for tasks 2, 3, 4

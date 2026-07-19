@@ -10,7 +10,7 @@ Structural analysis reviewer using gestalt code intelligence.
 - Evaluates how changes propagate through the dependency graph
 - Reports on coupling, centrality, cycle introduction, seam violations
 - Runs multiple gestalt commands to build a structural picture
-- Works on Claude (native subagent) and external reviewers (codex/gemini via peer) — both have full tool access
+- Works on Claude (native subagent) and external reviewers (via peer); both have full inspection access, while reviewer mode remains read-only and cannot mutate the workspace
 
 ---
 
@@ -57,4 +57,3 @@ gestalt callees <symbol>                # What does a changed symbol call?
 gestalt refs <symbol>                   # All references to a changed symbol
 gestalt rank --file <changed-file>      # Centrality of symbols in changed files
 ```
-

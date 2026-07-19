@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
-# peer - external code-review harness: registry-driven reviewer dispatch, idle-stall
-# watchdog, self-parallelising fan-out to codex and pi. Identity lives in reviewers.yaml;
-# peer maps it to CLI flags.
+# peer - external-agent harness: registry-driven dispatch, role loading, idle-stall
+# watchdog, and self-parallelising fan-out to codex and pi. Identity lives in
+# reviewers.yaml for wire compatibility; peer maps it to CLI flags.
 set +m
 
-REGISTRY="${PEER_REGISTRY:-$(dirname "$(realpath "${BASH_SOURCE[0]}")")/reviewers.yaml}"
+SCRIPT_DIR=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
+REGISTRY="${PEER_REGISTRY:-$SCRIPT_DIR/reviewers.yaml}"
+DEFAULT_AGENTS_DIR="$SCRIPT_DIR/../../../agents"
+AGENTS_DIR="${PEER_AGENTS_DIR:-}"
 command -v yq >/dev/null 2>&1 || { printf '%s\n' "peer: yq not found" >&2; exit 3; }
 [[ -r "$REGISTRY" ]] || { printf '%s\n' "peer: registry not readable at $REGISTRY" >&2; exit 3; }
 
@@ -30,23 +33,72 @@ _peer_validate() {
   return 0
 }
 
+_peer_validate_agent() {
+  case "$1" in
+    ''|tester|implementer|reviewer) ;;
+    *) printf '%s\n' "peer: invalid --agent '$1' (expected: tester, implementer, or reviewer)" >&2; return 2 ;;
+  esac
+}
+
+_peer_validate_claude_effort() {
+  case "$1" in
+    low|medium|high|xhigh|max) ;;
+    *) printf '%s\n' "peer: invalid Claude --effort '$1' (expected: low, medium, high, xhigh, or max)" >&2; return 2 ;;
+  esac
+}
+
+_peer_codex_role_config() {
+  local source="$AGENTS_DIR/$1.toml" value
+  [[ -r "$source" ]] || { printf '%s\n' "peer: Codex role definition not readable at $source" >&2; return 3; }
+  value=$(yq -p toml -o=json -I=0 '.developer_instructions' "$source") || return 3
+  [[ "$value" != null && "$value" != '""' ]] || {
+    printf '%s\n' "peer: Codex role definition has no developer_instructions: $source" >&2
+    return 3
+  }
+  printf 'developer_instructions=%s\n' "$value"
+}
+
+_peer_markdown_role_body() {
+  local source="$AGENTS_DIR/$1.md"
+  [[ -r "$source" ]] || { printf '%s\n' "peer: Markdown role definition not readable at $source" >&2; return 3; }
+  awk '
+    NR == 1 && $0 == "---" { frontmatter = 1; next }
+    frontmatter && $0 == "---" { frontmatter = 0; next }
+    !frontmatter { print }
+  ' "$source"
+}
+
+_peer_terminate_group() {
+  local pgid=$1
+  kill -TERM -- "-$pgid" 2>/dev/null || return 0
+  sleep 1
+  kill -KILL -- "-$pgid" 2>/dev/null
+}
+
+SESSION_EXEC='import os,sys
+cwd=sys.argv[1]
+argv=sys.argv[2:]
+os.chdir(cwd)
+os.setsid()
+os.execvp(argv[0], argv)'
+
 cmd="${1:-}"
 
 # --- peer list -----------------------------------------------------------------------
 if [[ "$cmd" == list ]]; then
-  printf '%-18s %-7s %-11s %-26s %-7s %s\n' REVIEWER-ID HARNESS PROVIDER MODEL ALIAS RUN-BY-PEER
+  printf '%-18s %-7s %-11s %-26s %-7s %s\n' PEER-ID HARNESS PROVIDER MODEL ALIAS RUN-BY-PEER
   for id in "${IDS[@]}"; do
-    [[ ${NATIVE[$id]} == yes ]] && runnable='no (agent Task)' || runnable=yes
+    [[ ${NATIVE[$id]} == yes ]] && runnable='no (orchestrator-native)' || runnable=yes
     printf '%-18s %-7s %-11s %-26s %-7s %s\n' "$id" "${HARNESS[$id]}" "${PROVIDER[$id]}" "${MODEL[$id]}" "${ALIAS[$id]}" "$runnable"
   done
   exit 0
 fi
 
-# --- peer get: one registry field for a reviewer (id|alias) — for doc injection -------
+# --- peer get: one registry field for a peer (id|alias) — for doc injection -----------
 if [[ "$cmd" == get ]]; then
   shift
   field="${1:-}"; tok="${2:-}"
-  gid=$(_peer_resolve "$tok") || { printf '%s\n' "peer get: unknown reviewer '$tok'" >&2; exit 2; }
+  gid=$(_peer_resolve "$tok") || { printf '%s\n' "peer get: unknown peer '$tok'" >&2; exit 2; }
   case "$field" in
     id)      printf '%s\n' "$gid" ;;
     model)   printf '%s\n' "${MODEL[$gid]}" ;;
@@ -60,20 +112,23 @@ if [[ "$cmd" == get ]]; then
   exit 0
 fi
 
-# --- parallel fan-out over external harnesses — the DEFAULT action -------------------
-if [[ "$cmd" != codex && "$cmd" != pi ]]; then
+# --- parallel fan-out over external agents — the DEFAULT action ----------------------
+if [[ "$cmd" != codex && "$cmd" != pi && "$cmd" != claude ]]; then
   if [[ -z "$cmd" ]]; then
-    printf '%s\n' "usage: peer [-d OUTDIR] [--reviewers id|alias,...] [--effort L] [--idle S] [--cap S] PROMPT   (parallel fan-out — default)" >&2
-    printf '%s\n' "       peer <codex|pi> -o OUTFILE [--model M] [...] PROMPT   (single reviewer)" >&2
+    printf '%s\n' "usage: peer -d OUTDIR [--peers id|alias,...] [--agent tester|implementer|reviewer] [-C DIR] [...] [PROMPT | --prompt-file FILE]" >&2
+    printf '%s\n' "       peer <codex|pi|claude> -o OUTFILE [--agent tester|implementer|reviewer] [-C DIR] [...] [PROMPT | --prompt-file FILE]" >&2
     printf '%s\n' "       peer list | peer get <id|model|harness|alias|effort|native> <id|alias>" >&2
     exit 0
   fi
   [[ "$cmd" == run ]] && shift
-  outdir=""; reviewers=""; effort=""; idle=120; idle_set=0; cap=600
+  outdir=""; peers=""; agent=""; workdir="$PWD"; prompt_file=""; effort=""; idle=120; idle_set=0; cap=600
   while (( $# )); do
     case "$1" in
       -d|--out-dir)  outdir="$2"; shift 2 ;;
-      --reviewers)   reviewers="$2"; shift 2 ;;
+      --peers|--reviewers) peers="$2"; shift 2 ;;
+      --agent)       agent="$2"; shift 2 ;;
+      -C|--cd)       workdir="$2"; shift 2 ;;
+      --prompt-file) prompt_file="$2"; shift 2 ;;
       --effort)      effort="$2"; shift 2 ;;
       --idle)        idle="$2"; idle_set=1; shift 2 ;;
       --cap)         cap="$2"; shift 2 ;;
@@ -83,31 +138,59 @@ if [[ "$cmd" != codex && "$cmd" != pi ]]; then
     esac
   done
   prompt="$*"
-  [[ -n "$outdir" && -n "$prompt" ]] || {
-    printf '%s\n' "usage: peer -d OUTDIR [--reviewers id|alias,...] [--effort L] [--idle S] [--cap S] PROMPT" >&2
+  [[ -n "$outdir" ]] || {
+    printf '%s\n' "usage: peer -d OUTDIR [--peers id|alias,...] [--agent tester|implementer|reviewer] [-C DIR] [--effort L] [--idle S] [--cap S] [PROMPT | --prompt-file FILE]" >&2
     exit 2
   }
+  if { [[ -n "$prompt" ]] && [[ -n "$prompt_file" ]]; } || { [[ -z "$prompt" ]] && [[ -z "$prompt_file" ]]; }; then
+    printf '%s\n' "peer: provide exactly one prompt source: positional PROMPT or --prompt-file FILE" >&2
+    exit 2
+  fi
+  _peer_validate_agent "$agent" || exit 2
   _peer_validate "$effort" "$idle" "$cap" || exit 2
+  workdir=$(cd "$workdir" 2>/dev/null && pwd -P) || { printf '%s\n' "peer: workdir is not accessible: $workdir" >&2; exit 2; }
+  if [[ -n "$prompt_file" ]]; then
+    case "$prompt_file" in /*) ;; *) prompt_file="$workdir/$prompt_file" ;; esac
+    [[ -f "$prompt_file" && -r "$prompt_file" && -s "$prompt_file" ]] || { printf '%s\n' "peer: prompt file is not a readable non-empty regular file: $prompt_file" >&2; exit 2; }
+  fi
+  case "$outdir" in /*) ;; *) outdir="$workdir/$outdir" ;; esac
   mkdir -p "$outdir" || exit 2
 
-  want=(); ran=(); declare -A PID; ok=0
+  want=(); selected=(); ran=(); declare -A PID; ok=0
 
-  if [[ -n "$reviewers" ]]; then
-    IFS=',' read -ra want <<< "$reviewers"
+  if [[ -n "$peers" ]]; then
+    IFS=',' read -ra want <<< "$peers"
   else
     for id in "${IDS[@]}"; do [[ ${NATIVE[$id]} == no ]] && want+=( "$id" ); done
   fi
 
   for tok in "${want[@]}"; do
-    id=$(_peer_resolve "$tok") || { printf '%s\n' "peer: unknown reviewer '$tok' (see: peer list)" >&2; exit 2; }
+    id=$(_peer_resolve "$tok") || { printf '%s\n' "peer: unknown peer '$tok' (see: peer list)" >&2; exit 2; }
     if [[ ${NATIVE[$id]} == yes ]]; then
-      printf '%s\n' "peer: '$id' is agent-native (Claude Task) — dispatch from the agent, skipping here" >&2
+      printf '%s\n' "peer: '$id' is orchestrator-native — spawn it through the host's native subagent API, skipping here" >&2
       continue
     fi
+    selected+=( "$id" )
+  done
+
+  if [[ "$agent" == tester || "$agent" == implementer ]] && (( ${#selected[@]} != 1 )); then
+    printf '%s\n' "peer: --agent $agent requires exactly one external peer (got ${#selected[@]})" >&2
+    exit 2
+  fi
+  for id in "${selected[@]}"; do
+    if [[ ${HARNESS[$id]} == claude ]]; then
+      e="${effort:-${EFFORT[$id]}}"; [[ "$e" == - ]] && e=high
+      _peer_validate_claude_effort "$e" || exit 2
+    fi
+  done
+  agent_arg=(); [[ -n "$agent" ]] && agent_arg=( --agent "$agent" )
+  prompt_arg=( "$prompt" ); [[ -n "$prompt_file" ]] && prompt_arg=( --prompt-file "$prompt_file" )
+  for id in "${selected[@]}"; do
     e="${effort:-${EFFORT[$id]}}"; [[ "$e" == - ]] && e=high
     idle_arg=(); (( idle_set )) && idle_arg=( --idle "$idle" )
-    peer "${HARNESS[$id]}" --provider "${PROVIDER[$id]}" --model "${MODEL[$id]}" --effort "$e" \
-         "${idle_arg[@]}" --cap "$cap" -o "$outdir/$id.yaml" "$prompt" &
+    "$SCRIPT_DIR/peer" "${HARNESS[$id]}" -C "$workdir" "${agent_arg[@]}" \
+         --provider "${PROVIDER[$id]}" --model "${MODEL[$id]}" --effort "$e" \
+         "${idle_arg[@]}" --cap "$cap" -o "$outdir/$id.yaml" "${prompt_arg[@]}" &
     PID[$id]=$!
     ran+=( "$id" )
   done
@@ -120,12 +203,15 @@ if [[ "$cmd" != codex && "$cmd" != pi ]]; then
   (( ok > 0 )) && exit 0 || exit 1
 fi
 
-# --- single harness: codex|pi (also the unit the fan-out dispatches to) ---------------
+# --- single harness: codex|pi|claude (also the unit fan-out dispatches to) ------------
 harness="$cmd"; shift
-effort=high; model=""; outfile=""; idle=120; idle_set=0; cap=600; provider=""
+effort=high; model=""; outfile=""; agent=""; workdir="$PWD"; prompt_file=""; idle=120; idle_set=0; cap=600; provider=""
 while (( $# )); do
   case "$1" in
     -o|--out)   outfile="$2"; shift 2 ;;
+    --agent)     agent="$2"; shift 2 ;;
+    -C|--cd)     workdir="$2"; shift 2 ;;
+    --prompt-file) prompt_file="$2"; shift 2 ;;
     --effort)   effort="$2"; shift 2 ;;
     --model)    model="$2"; shift 2 ;;
     --provider) provider="$2"; shift 2 ;;
@@ -137,16 +223,35 @@ while (( $# )); do
   esac
 done
 prompt="$*"
-[[ -n "$harness" && -n "$outfile" && -n "$prompt" ]] || {
-  printf '%s\n' "usage: peer <codex|pi> -o OUTFILE [--model M] [--effort L] [--idle S] [--cap S] PROMPT" >&2
-  printf '%s\n' "       peer -d OUTDIR [--reviewers ...] PROMPT   (parallel fan-out — the default)" >&2
+[[ -n "$harness" && -n "$outfile" ]] || {
+  printf '%s\n' "usage: peer <codex|pi|claude> -o OUTFILE [--agent tester|implementer|reviewer] [-C DIR] [--model M] [--effort L] [--idle S] [--cap S] [PROMPT | --prompt-file FILE]" >&2
+  printf '%s\n' "       peer -d OUTDIR [--peers ...] [PROMPT | --prompt-file FILE]   (parallel fan-out — the default)" >&2
   exit 2
 }
+if { [[ -n "$prompt" ]] && [[ -n "$prompt_file" ]]; } || { [[ -z "$prompt" ]] && [[ -z "$prompt_file" ]]; }; then
+  printf '%s\n' "peer: provide exactly one prompt source: positional PROMPT or --prompt-file FILE" >&2
+  exit 2
+fi
+workdir=$(cd "$workdir" 2>/dev/null && pwd -P) || { printf '%s\n' "peer: workdir is not accessible: $workdir" >&2; exit 2; }
+if [[ -n "$prompt_file" ]]; then
+  case "$prompt_file" in /*) ;; *) prompt_file="$workdir/$prompt_file" ;; esac
+  [[ -f "$prompt_file" && -r "$prompt_file" && -s "$prompt_file" ]] || { printf '%s\n' "peer: prompt file is not a readable non-empty regular file: $prompt_file" >&2; exit 2; }
+  prompt_size=$(wc -c < "$prompt_file")
+else
+  prompt_size=${#prompt}
+fi
+_peer_validate_agent "$agent" || exit 2
 # Idle base is harness-specific: gemini-on-Vertex's legitimate mid-generation silence runs
 # longer than codex's, so pi gets 180s vs codex's 120s before the prompt-size scaling.
-(( idle_set )) || { _base=$([[ "$harness" == pi ]] && printf 180 || printf 120); _auto=$(( _base + ${#prompt} / 500 )); idle=$(( _auto > cap ? cap : _auto )); }
+(( idle_set )) || { _base=$([[ "$harness" == pi ]] && printf 180 || printf 120); _auto=$(( _base + prompt_size / 500 )); idle=$(( _auto > cap ? cap : _auto )); }
 _peer_validate "$effort" "$idle" "$cap" || exit 2
+[[ "$harness" == claude ]] && { _peer_validate_claude_effort "$effort" || exit 2; }
+case "$outfile" in /*) ;; *) outfile="$workdir/$outfile" ;; esac
+if [[ -z "$AGENTS_DIR" ]]; then
+  [[ -d "$workdir/agents" ]] && AGENTS_DIR="$workdir/agents" || AGENTS_DIR="$DEFAULT_AGENTS_DIR"
+fi
 
+execution_role="${agent:-reviewer}"
 case "$harness" in
   codex)  bin=codex ;;
   pi)     bin=pi
@@ -154,58 +259,142 @@ case "$harness" in
             _def=$(yq -r '.defaults.pi // ""' "$REGISTRY")
             [[ -n "$_def" ]] && { model="${MODEL[$_def]}"; : "${provider:=${PROVIDER[$_def]}}"; }
           fi ;;
-  *) printf '%s\n' "peer: unknown harness '$harness' (use codex|pi, or 'list'/'run')" >&2; exit 2 ;;
+  claude) bin=claude ;;
+  *) printf '%s\n' "peer: unknown harness '$harness' (use codex|pi|claude, or 'list'/'run')" >&2; exit 2 ;;
 esac
 command -v "$bin" >/dev/null 2>&1 || { printf '%s\n' "peer: $bin not found" >&2; exit 3; }
+
+sandbox=read-only; attempts=2
+pi_tools=( --tools read,grep,find,ls )
+claude_tools=Read,Grep,Glob
+if [[ "$execution_role" == tester || "$execution_role" == implementer ]]; then
+  sandbox=workspace-write; attempts=1
+  pi_tools=( --tools read,bash,edit,write,grep,find,ls )
+  claude_tools=Read,Grep,Glob,Bash,Edit,Write
+fi
+
+codex_role_config=""; pi_role_body=""; claude_role_body=""
+if [[ -n "$agent" ]]; then
+  if [[ "$harness" == codex ]]; then
+    codex_role_config=$(_peer_codex_role_config "$agent") || exit $?
+  elif [[ "$harness" == pi ]]; then
+    pi_role_body=$(_peer_markdown_role_body "$agent") || exit $?
+    [[ -n "$pi_role_body" ]] || { printf '%s\n' "peer: Pi role definition has no body: $AGENTS_DIR/$agent.md" >&2; exit 3; }
+  else
+    claude_role_body=$(_peer_markdown_role_body "$agent") || exit $?
+    [[ -n "$claude_role_body" ]] || { printf '%s\n' "peer: Claude role definition has no body: $AGENTS_DIR/$agent.md" >&2; exit 3; }
+  fi
+fi
+if [[ "$execution_role" == reviewer ]]; then
+  read_only_boundary="This is a read-only review assignment. Do not create, edit, delete, move, or format files. Shell, edit, and write tools are unavailable."
+  [[ -n "$pi_role_body" ]] && pi_role_body+=$'\n\n'
+  pi_role_body+="$read_only_boundary"
+  if [[ -n "$claude_role_body" ]]; then
+    claude_role_body+=$'\n\n'
+    claude_role_body+="$read_only_boundary"
+  fi
+fi
 
 pi_thinking=false
 [[ "$harness" == pi && -n "$provider" ]] && \
   pi_thinking=$(prov="$provider" yq -r '.providers[strenv(prov)].thinking // false' "$REGISTRY")
+
+codex_stdin=/dev/null; pi_stdin=/dev/null; claude_stdin=/dev/null
+codex_prompt=( "$prompt" ); pi_prompt=( "$prompt" ); claude_prompt=( "$prompt" )
+if [[ -n "$prompt_file" ]]; then
+  codex_stdin="$prompt_file"
+  codex_prompt=( - ); pi_prompt=( "@$prompt_file" )
+  claude_stdin="$prompt_file"; claude_prompt=()
+fi
 
 # peer communicates via OUTFILE + exit code + stderr; its stdout is not part of the
 # contract. Scope fd1 to /dev/null for the run so no harness/job chatter leaks into a
 # caller that captures our stdout. (A block redirect, not `exec` - `exec` would persist
 # into the calling shell.)
 {
-for attempt in 1 2; do
+for (( attempt=1; attempt<=attempts; attempt++ )); do
   : >| "$outfile"
   fifo="${TMPDIR:-/tmp}/peer.$$.${outfile##*/}.$attempt.$RANDOM"
   mkfifo "$fifo" 2>/dev/null || { printf '%s\n' "peer: cannot create fifo" >&2; exit 1; }
 
   # Both harnesses are agentic and STREAM into the fifo so the idle watchdog applies.
-  # </dev/null is load-bearing: these CLIs read stdin and block forever when it isn't
-  # EOF'd (backgrounded under a non-EOF tool pipe), emitting nothing the watchdog would
-  # then misread as a stall.
+  # Positional prompts keep stdin at EOF. Prompt files use Codex's documented '-' stdin,
+  # Pi's documented @file form, and Claude print mode's pipe input, so contents never
+  # enter argv.
   if [[ "$harness" == codex ]]; then
-    a=( exec -s read-only --skip-git-repo-check --json -o "$outfile" -c "model_reasoning_effort=$effort" )
+    a=( exec -C "$workdir" -s "$sandbox" --skip-git-repo-check --json -o "$outfile" -c "model_reasoning_effort=$effort" )
+    [[ -n "$codex_role_config" ]] && a+=( -c "$codex_role_config" )
     [[ -n "$model" ]] && a+=( -m "$model" )
-    codex "${a[@]}" "$prompt" </dev/null >"$fifo" 2>&1 &
-  else
+    python3 -c "$SESSION_EXEC" "$workdir" codex "${a[@]}" "${codex_prompt[@]}" \
+      <"$codex_stdin" >"$fifo" 2>&1 &
+  elif [[ "$harness" == pi ]]; then
     _targs=(); [[ "$pi_thinking" == true ]] && _targs=( --thinking "$effort" )
-    pi -p --mode json --provider "$provider" --model "$model" "${_targs[@]}" "$prompt" </dev/null >"$fifo" 2>&1 &
+    _role_args=(); [[ -n "$pi_role_body" ]] && _role_args=( --append-system-prompt "$pi_role_body" )
+    python3 -c "$SESSION_EXEC" "$workdir" pi -p --mode json --provider "$provider" \
+      --model "$model" "${pi_tools[@]}" "${_role_args[@]}" "${_targs[@]}" \
+      "${pi_prompt[@]}" <"$pi_stdin" >"$fifo" 2>&1 &
+  else
+    c=( -p --output-format stream-json --include-partial-messages --verbose \
+        --no-session-persistence \
+        --permission-mode dontAsk --tools "$claude_tools" --allowedTools "$claude_tools" \
+        --effort "$effort" )
+    [[ -n "$model" ]] && c+=( --model "$model" )
+    [[ -n "$claude_role_body" ]] && c+=( --append-system-prompt "$claude_role_body" )
+    python3 -c "$SESSION_EXEC" "$workdir" claude "${c[@]}" "${claude_prompt[@]}" \
+      <"$claude_stdin" >"$fifo" 2>&1 &
   fi
   hpid=$!
 
-  ( sleep "$cap"; kill -TERM "$hpid" 2>/dev/null ) &
+  cap_marker="$fifo.cap"
+  (
+    sleep "$cap"
+    : >| "$cap_marker"
+    _peer_terminate_group "$hpid"
+  ) &
   capper=$!
 
   log=""
   exec 3<"$fifo"
-  while IFS= read -t "$idle" -r -u 3 line; do
-    log+="$line"$'\n'
+  read_status=0
+  while true; do
+    if IFS= read -t "$idle" -r -u 3 line; then
+      log+="$line"$'\n'
+    else
+      read_status=$?
+      break
+    fi
   done
   exec 3<&-
 
   stalled=0
+  (( read_status > 128 )) && stalled=1
   if kill -0 "$hpid" 2>/dev/null; then
     stalled=1
-    kill -TERM "$hpid" 2>/dev/null; sleep 1; kill -KILL "$hpid" 2>/dev/null
   fi
-  wait "$hpid" 2>/dev/null
-  kill "$capper" 2>/dev/null; wait "$capper" 2>/dev/null
-  rm -f "$fifo" 2>/dev/null
+  terminated=0
+  if (( stalled == 1 )) && [[ ! -e "$cap_marker" ]]; then
+    _peer_terminate_group "$hpid"
+    terminated=1
+  fi
+  wait "$hpid" 2>/dev/null; harness_rc=$?
+  if (( terminated == 0 )) && [[ ! -e "$cap_marker" ]]; then
+    _peer_terminate_group "$hpid"
+    terminated=1
+  fi
+  capped=0
+  if [[ -e "$cap_marker" ]]; then
+    capped=1
+    wait "$capper" 2>/dev/null
+  else
+    kill "$capper" 2>/dev/null
+    wait "$capper" 2>/dev/null
+  fi
+  rm -f "$fifo" "$cap_marker" 2>/dev/null
 
-  if [[ "$harness" == pi && $stalled -eq 0 ]]; then
+  (( capped == 1 )) && printf '%s\n' "peer: $harness reached the ${cap}s hard cap" >&2
+  (( harness_rc != 0 )) && printf '%s\n' "peer: $harness exited with status $harness_rc" >&2
+
+  if [[ "$harness" == pi && $stalled -eq 0 && $capped -eq 0 && $harness_rc -eq 0 ]]; then
     printf '%s\n' "$log" | OUTFILE="$outfile" python3 -c '
 import os,sys,json
 last=None
@@ -221,22 +410,40 @@ if last:
     text="".join(p.get("text","") for p in last["content"] if isinstance(p,dict) and p.get("type")=="text")
     if text.strip(): open(os.environ["OUTFILE"],"w").write(text)
 '
+  elif [[ "$harness" == claude && $stalled -eq 0 && $capped -eq 0 && $harness_rc -eq 0 ]]; then
+    printf '%s\n' "$log" | OUTFILE="$outfile" python3 -c '
+import os,sys,json
+last=None
+for ln in sys.stdin:
+    ln=ln.strip()
+    if not ln: continue
+    try: d=json.loads(ln)
+    except Exception: continue
+    if d.get("type")=="result" and d.get("is_error") is not True:
+        result=d.get("result")
+        if isinstance(result,str) and result.strip(): last=result
+if last is not None:
+    open(os.environ["OUTFILE"],"w").write(last)
+'
   fi
 
-  # A produced report proves the harness authed and ran — succeed before any auth scan.
-  # Scanning the stream for auth strings earlier misfires when the model's OWN output
-  # quotes them (e.g. reviewing auth-handling code), classifying a clean run as auth.
-  if (( stalled == 0 )) && [[ -s "$outfile" ]]; then
+  # Only a clean harness exit may publish a report. A cap, idle kill, or non-zero exit
+  # invalidates partial output, which is especially important for mutating roles.
+  if (( stalled == 0 && capped == 0 && harness_rc == 0 )) && [[ -s "$outfile" ]]; then
     exit 0
   fi
 
-  if printf '%s\n' "$log" | grep -qiE 'unauthenticated|permission[_ ]denied|status[^0-9]{0,6}40[13]\b|\b40[13][[:space:]]+(unauthorized|forbidden)|invalid_grant|invalid_rapt|invalid_api_key|incorrect[_ ]api[_ ]key|no api key found|authentication[_ ](error|failed)|not[_ ]authenticated|refresh_token_invalidated|could not be refreshed|could not[^"]{0,40}credential|application default credentials|reauthenticat|token (has[_ ])?(been[_ ])?(expired|revoked)'; then
+  if printf '%s\n' "$log" | grep -qiE 'unauthenticated|permission[_ ]denied|status[^0-9]{0,6}40[13]\b|\b40[13][[:space:]]+(unauthorized|forbidden)|invalid_grant|invalid_rapt|invalid_api_key|incorrect[_ ]api[_ ]key|no api key found|authentication[_ ](error|failed|required)|not[_ ]authenticated|not[ _-]+logged[ _-]+in|please run[^"[:cntrl:]]{0,80}\blogin\b|refresh_token_invalidated|could not be refreshed|could not[^"]{0,40}credential|application default credentials|reauthenticat|token (has[_ ])?(been[_ ])?(expired|revoked)'; then
     printf '%s\n' "peer: $harness reported an auth/availability error - configure the harness itself" >&2
     exit 3
   fi
-  (( attempt == 1 )) && printf '%s\n' "peer: $harness stalled/failed (no clean report) - retrying once" >&2
+  (( attempt < attempts )) && printf '%s\n' "peer: $harness stalled/failed (no clean report) - retrying once" >&2
 done
 
-printf '%s\n' "peer: $harness failed twice - skip this reviewer" >&2
+if (( attempts == 1 )); then
+  printf '%s\n' "peer: $harness failed (no clean $execution_role report) - no automatic retry for mutating agents" >&2
+else
+  printf '%s\n' "peer: $harness failed twice - skip this peer" >&2
+fi
 exit 124
 } >/dev/null

@@ -23,7 +23,19 @@ Multi-perspective scope review using parallel subagent dispatch.
 
 ### Step 2: Select Reviewers
 
-Select reviewers per `/review` infrastructure. See `/review` SKILL.md "Reviewer Selection (Interactive)" for prompts and model mapping.
+Select reviewers per the unified `/review` host matrix and live registry metadata:
+
+- Codex host: native `codex-native`; cross-host Claude family through peer
+  (`opus-cli`/`sonnet-cli`); reject native `opus`/`sonnet` and every registry Codex-family peer
+  alias.
+- Claude host: native `opus`/`sonnet`; cross-host GPT/Codex family through peer; reject
+  `codex-native` and every registry Claude-family peer alias.
+- Allow unrelated peer families when available. Never silently convert an incompatible selection.
+
+All-native selections use effort `inherit`. If any peer is selected, choose an explicit effort
+supported by every selected peer. Validate `opus-cli`/`sonnet-cli` against their contract subset
+`low|medium|high|xhigh|max`; in mixed sets the effort applies only to peers and native dispatches
+inherit.
 
 ### Step 3: Dispatch Reviewers in Parallel
 
@@ -48,18 +60,27 @@ Evaluate against these gates:
 5. **Design Depth** - Are alternatives substantiated, invariants testable? (n/a if no design.md)
 
 ## Output Format
-Return a YAML reviewer_report (see Report Schema below).
+Return the exact YAML reviewer_report schema embedded below.
 ```
 
-**In a single message**, dispatch the Claude subagent and `peer` together:
+Append the exact Reviewer Report schema from this document to the materialized prompt, then save it
+as `.reviews/scope-<name>/prompt.md`.
+
+**In a single message**, dispatch the configured mechanisms:
 
 ```
-Task(subagent_type="general", prompt={review_prompt})              # Claude — agent-native
-Bash(run_in_background=true):                                      # codex + gemini — peer fans out (agentic)
-  peer -d {outdir} --reviewers {external_aliases} --effort {reasoning} "{review_prompt}"
+Codex native delegation(role=reviewer, prompt={review_prompt})  # codex-native on Codex
+Task(subagent_type="reviewer", model={native_alias}, prompt={review_prompt})  # opus/sonnet on Claude
+Bash(run_in_background=true):                                  # only when externals configured
+  peer -C {workdir} -d .reviews/scope-{name} --agent reviewer \
+    --peers {external_aliases} --effort {peer_effort} \
+    --prompt-file .reviews/scope-{name}/prompt.md
 ```
 
-Read the TSV manifest `peer` prints; pull each `ok` report file, skip `stalled`/`error`/`auth` rows (note them as partial results). Full contract in the **[peer skill](../../../peer/SKILL.md)**.
+Never pass host-native aliases to peer. Read the TSV manifest when peer ran; pull each `ok` report
+file and note failed rows. The mandatory gate requires one success from every execution class
+actually configured. Full contract: **[review](../../review/SKILL.md)** and
+**[peer](../../peer/SKILL.md)**.
 
 ### Step 4: Synthesize Reviews
 
@@ -95,7 +116,7 @@ When invoked standalone (`/scope review <name>`) the same gate semantics apply �
 
 ## Reviewer Roles
 
-### Claude Reviewer (Context-Aware)
+### Host-Native Reviewer (Context-Aware)
 
 - Cross-references with similar features in codebase
 - Checks against project terminology and patterns
@@ -224,15 +245,10 @@ synthesized_report:
 
 ### Timeout Handling
 
-**Codex timeout / error:**
-1. Continue with completed reviews
-2. Add warning: "[Reviewer] timed out or errored, partial results"
-3. Proceed with synthesis using available data
-
-**Claude subagent timeout:**
-1. If Codex succeeded: use Codex results only
-2. If both failed: report failure, suggest retry
-3. Never proceed with zero reviews
+**Configured reviewer timeout / error:**
+1. Keep completed reports and mark the failed agent partial
+2. Do not pass the mandatory scope gate until every configured execution class has a success
+3. Deliberately redispatch the missing class; never proceed with zero reviews
 
 ### Parse Failures
 
@@ -241,7 +257,8 @@ synthesized_report:
 
 ### No Reviewers Selected
 
-Default to a single Claude reviewer (see `peer list`).
+Codex host defaults to `codex-native`; Claude host defaults to native `opus` plus configured
+cross-host GPT peers. If neither native mechanism is available, ask for explicit registry aliases.
 
 ### Scope Not Found
 
@@ -249,4 +266,5 @@ List available scopes, ask user to specify. Suggest closest match for typos.
 
 ### Conflicting Reviews
 
-Gate status = FAIL (conservative). Show which reviewers failed. Include both perspectives. Deduplicate by semantic similarity, mark `found_by: [both]` for higher confidence.
+Gate status = FAIL (conservative). Show which reviewers failed. Include all completed perspectives,
+deduplicate by semantic similarity, and record the actual reviewer aliases in `found_by`.

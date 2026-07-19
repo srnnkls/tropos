@@ -13,13 +13,13 @@ Extract YAML from all reviewer outputs, including role-specific extensions (`str
 ### 2. Group by Role
 
 Aggregate harness results within each role first:
-- General: Claude + external (codex/gemini) harnesses
-- Architecture: Claude + external (codex/gemini) harnesses
-- Compliance: Claude + external (codex/gemini) harnesses
+- General: all configured host-native and/or external agents
+- Architecture: all configured host-native and/or external agents
+- Compliance: all configured host-native and/or external agents
 
 ### 3. Merge Issues Within Role
 
-- Deduplicate across Claude + external (codex/gemini) harnesses within each role
+- Deduplicate across all completed configured agents within each role
 
 ### 4. Merge Issues Across Roles
 
@@ -33,6 +33,8 @@ Aggregate harness results within each role first:
   - Architecture: Architecture
   - Compliance: Style
 - Gate fails if ANY harness within the owning role fails it; record which harness(es) failed
+- For implementation-owned gates, synthesis is eligible only after each execution class actually
+  configured for the role has at least one successful report
 
 ### 6. Aggregate Severity
 

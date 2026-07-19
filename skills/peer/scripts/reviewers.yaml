@@ -31,6 +31,24 @@ reviewers:
     alias: glm
     effort: high
     native: false
+  - id: claude-opus-cli
+    harness: claude
+    model: opus
+    alias: opus-cli
+    effort: high
+    native: false
+  - id: claude-sonnet-cli
+    harness: claude
+    model: sonnet
+    alias: sonnet-cli
+    effort: high
+    native: false
+  - id: codex-native
+    harness: codex
+    model: inherit
+    alias: codex-native
+    effort: inherit
+    native: true
   - id: claude-opus
     harness: claude
     model: opus
