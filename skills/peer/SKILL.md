@@ -104,13 +104,38 @@ Fan-out is the default action; `peer run ...` remains an alias.
 Stdout is a TSV manifest, one row per external peer:
 
 ```
-{peer-id}  ok       {outdir}/{peer-id}.yaml
-{peer-id}  stalled  {outdir}/{peer-id}.yaml
+{peer-id}  ok         {outdir}/{peer-id}.yaml
+{peer-id}  misconfig  {outdir}/{peer-id}.yaml
+{peer-id}  stalled    {outdir}/{peer-id}.yaml
 ```
 
-The caller owns the task-specific report schema. Read every `ok` file and treat
-`stalled`, `error`, and `auth` rows as partial or failed results. Exit status is `0` when
-at least one result was produced, `1` when none was produced, and `2` for usage errors.
+The caller owns the task-specific report schema. Read every `ok` file; every other status
+means no report was produced and the file is empty. Exit status is `0` when at least one
+result was produced, `1` when none was produced, and `2` for usage errors.
+
+## Failure classification
+
+A failed dispatch reports one status, and each names a different fix. Do not read a
+`misconfig` row as a credential, timeout, or reachability problem.
+
+| Status | Meaning | Exit | Fix |
+|---|---|---|---|
+| `misconfig` | the harness cannot serve this model or provider | 2 | correct `reviewers.yaml` |
+| `auth` | the harness rejected its stored credentials | 3 | re-run that harness's login flow |
+| `limit` | rate or quota limit | 4 | retry later |
+| `stalled` | idle watchdog or hard cap fired | 124 | retry, or raise `--idle`/`--cap` |
+| `error` | any other unclean exit | 124 | read the peer's stderr line |
+
+Two properties make these statuses trustworthy:
+
+- Classification reads only harness-emitted error records. Prompt text, tool output, and
+  the agent's own report never reach the classifier, so reviewing authentication code
+  cannot produce an `auth` row.
+- Model and provider are checked against the harness before dispatch, so a registry
+  mistake fails in seconds instead of consuming the full cap twice. The checks stay silent
+  when the harness's model list is unavailable or stale.
+
+`skills/peer/scripts/peer-classify-test` covers both properties.
 
 ## Single-harness compatibility interface
 
@@ -124,11 +149,13 @@ peer claude -C {workdir} --agent tester --model sonnet --effort high \
 ```
 
 The positional `peer codex|pi|claude` forms remain available for single-agent and legacy
-callers. Registry-driven callers should not pass a model directly, though `--model` and
-`--provider` remain supported for fan-out internals and compatibility. Exit status is
-`0` for a non-empty result, `2` for usage, `3` for auth/availability, and `124` after the
-role's allowed attempts produce no clean result. Relative `-o` paths are resolved beneath
-the working root.
+callers. Registry-driven callers should not pass a model directly, though `--model`, `--provider`,
+and `--peer-id` remain supported for fan-out internals and compatibility. Exit status
+follows the failure-classification table above: `0` for a non-empty result, `2` for usage
+and misconfiguration, `3` for auth, `4` for a rate or quota limit, and `124` after the
+role's allowed attempts produce no clean result. Only `stalled` and `error` are retried;
+a misconfigured, unauthenticated, or rate-limited harness fails immediately. Relative `-o`
+paths are resolved beneath the working root.
 
 ## Dispatch contract for skills
 
@@ -136,7 +163,12 @@ Resolve routing before dispatch. Send native aliases through the host orchestrat
 native subagent API with the matching `tester`, `implementer`, or `reviewer` role. In
 Codex, `codex-native` inherits the session model and reasoning effort. Send external
 aliases through one `peer` invocation using the same role and task prompt. Composition
-belongs to the caller; peer does not require a paired native spawn. Because Pi reviewers have no shell, reviewer
+belongs to the caller; peer does not require a paired native spawn.
+
+Peer tells each agent its registry id, so a peer asked for a `reviewer_id` can state the
+right one. Treat the result filename and manifest row as the authoritative provenance
+regardless: they are assigned by peer, whereas a self-declared id is unverifiable. Do not
+void a substantive report solely because its self-declared id is wrong. Because Pi reviewers have no shell, reviewer
 prompts must include any command-only context they need—especially a materialized diff,
 requirements, and the required report schema. They can still inspect repository files
 with read, search, find, and list tools.

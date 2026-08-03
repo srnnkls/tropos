@@ -50,12 +50,17 @@ _peer_validate_claude_effort() {
 _peer_codex_role_config() {
   local source="$AGENTS_DIR/$1.toml" value
   [[ -r "$source" ]] || { printf '%s\n' "peer: Codex role definition not readable at $source" >&2; return 3; }
-  value=$(yq -p toml -o=json -I=0 '.developer_instructions' "$source") || return 3
-  [[ "$value" != null && "$value" != '""' ]] || {
+  value=$(yq -p toml -o=y -r '.developer_instructions // ""' "$source") || return 3
+  [[ -n "$value" ]] || {
     printf '%s\n' "peer: Codex role definition has no developer_instructions: $source" >&2
     return 3
   }
-  printf 'developer_instructions=%s\n' "$value"
+  printf '%s' "$value"
+}
+
+_peer_identity() {
+  [[ -n "$1" ]] || return 0
+  printf '%s' "You are dispatched as peer '$1'. Whenever a report asks you to identify yourself - reviewer_id, peer id, or any equivalent field - use exactly this string: $1. Never substitute a model name, a role name, or another peer's id."
 }
 
 _peer_markdown_role_body() {
@@ -81,6 +86,43 @@ argv=sys.argv[2:]
 os.chdir(cwd)
 os.setsid()
 os.execvp(argv[0], argv)'
+
+_peer_preflight_codex() {
+  local model=$1 slugs
+  [[ -n "$model" ]] || return 0
+  slugs=$(CACHE="${CODEX_HOME:-$HOME/.codex}/models_cache.json" python3 -c '
+import datetime,json,os,sys
+try: d=json.load(open(os.environ["CACHE"]))
+except Exception: sys.exit(1)
+fetched=(d.get("fetched_at") or "").replace("Z","+00:00")
+try: age=datetime.datetime.now(datetime.timezone.utc)-datetime.datetime.fromisoformat(fetched)
+except Exception: sys.exit(1)
+if age > datetime.timedelta(days=1): sys.exit(1)
+print("\n".join(s for s in (m.get("slug") for m in d.get("models") or []) if s))') || return 0
+  [[ -n "$slugs" ]] || return 0
+  grep -qxF -- "$model" <<< "$slugs" && return 0
+  printf '%s\n' "peer: codex does not offer model '$model' to this account" >&2
+  printf '%s\n' "peer: available now: $(tr '\n' ' ' <<< "$slugs")" >&2
+  printf '%s\n' "peer: fix the model in $REGISTRY - the codex session itself is valid" >&2
+  return 2
+}
+
+_peer_preflight_pi() {
+  local provider=$1 model=$2 list
+  [[ -n "$provider" && -n "$model" ]] || return 0
+  list=$(pi --list-models 2>/dev/null) || return 0
+  [[ -n "$list" ]] || return 0
+  if ! awk -v p="$provider" '$1==p{found=1} END{exit !found}' <<< "$list"; then
+    printf '%s\n' "peer: pi has no provider '$provider' (has: $(awk 'NR>1{print $1}' <<< "$list" | sort -u | tr '\n' ' '))" >&2
+    printf '%s\n' "peer: fix the provider in $REGISTRY - the pi installation itself is valid" >&2
+    return 2
+  fi
+  # pi accepts and strips a redundant "<provider>/" prefix on the model name.
+  awk -v p="$provider" -v m="${model#"$provider/"}" '$1==p && $2==m{found=1} END{exit !found}' <<< "$list" && return 0
+  printf '%s\n' "peer: pi provider '$provider' does not offer model '${model#"$provider/"}'" >&2
+  printf '%s\n' "peer: fix the model in $REGISTRY - the pi installation itself is valid" >&2
+  return 2
+}
 
 cmd="${1:-}"
 
@@ -189,7 +231,7 @@ if [[ "$cmd" != codex && "$cmd" != pi && "$cmd" != claude ]]; then
     e="${effort:-${EFFORT[$id]}}"; [[ "$e" == - ]] && e=high
     idle_arg=(); (( idle_set )) && idle_arg=( --idle "$idle" )
     "$SCRIPT_DIR/peer" "${HARNESS[$id]}" -C "$workdir" "${agent_arg[@]}" \
-         --provider "${PROVIDER[$id]}" --model "${MODEL[$id]}" --effort "$e" \
+         --provider "${PROVIDER[$id]}" --model "${MODEL[$id]}" --effort "$e" --peer-id "$id" \
          "${idle_arg[@]}" --cap "$cap" -o "$outdir/$id.yaml" "${prompt_arg[@]}" &
     PID[$id]=$!
     ran+=( "$id" )
@@ -197,7 +239,7 @@ if [[ "$cmd" != codex && "$cmd" != pi && "$cmd" != claude ]]; then
 
   for id in "${ran[@]}"; do
     wait "${PID[$id]}"; rc=$?
-    case $rc in 0) st=ok; (( ok++ )) ;; 124) st=stalled ;; 3) st=auth ;; *) st=error ;; esac
+    case $rc in 0) st=ok; (( ok++ )) ;; 2) st=misconfig ;; 3) st=auth ;; 4) st=limit ;; 124) st=stalled ;; *) st=error ;; esac
     printf '%s\t%s\t%s\n' "$id" "$st" "$outdir/$id.yaml"
   done
   (( ok > 0 )) && exit 0 || exit 1
@@ -205,7 +247,7 @@ fi
 
 # --- single harness: codex|pi|claude (also the unit fan-out dispatches to) ------------
 harness="$cmd"; shift
-effort=high; model=""; outfile=""; agent=""; workdir="$PWD"; prompt_file=""; idle=120; idle_set=0; cap=600; provider=""
+effort=high; model=""; outfile=""; agent=""; workdir="$PWD"; prompt_file=""; idle=120; idle_set=0; cap=600; provider=""; peer_id=""
 while (( $# )); do
   case "$1" in
     -o|--out)   outfile="$2"; shift 2 ;;
@@ -215,6 +257,7 @@ while (( $# )); do
     --effort)   effort="$2"; shift 2 ;;
     --model)    model="$2"; shift 2 ;;
     --provider) provider="$2"; shift 2 ;;
+    --peer-id)  peer_id="$2"; shift 2 ;;
     --idle)     idle="$2"; idle_set=1; shift 2 ;;
     --cap)      cap="$2"; shift 2 ;;
     --) shift; break ;;
@@ -263,6 +306,10 @@ case "$harness" in
   *) printf '%s\n' "peer: unknown harness '$harness' (use codex|pi|claude, or 'list'/'run')" >&2; exit 2 ;;
 esac
 command -v "$bin" >/dev/null 2>&1 || { printf '%s\n' "peer: $bin not found" >&2; exit 3; }
+case "$harness" in
+  codex) _peer_preflight_codex "$model" || exit 2 ;;
+  pi)    _peer_preflight_pi "$provider" "$model" || exit 2 ;;
+esac
 
 sandbox=read-only; attempts=2
 pi_tools=( --tools read,grep,find,ls )
@@ -293,6 +340,23 @@ if [[ "$execution_role" == reviewer ]]; then
     claude_role_body+=$'\n\n'
     claude_role_body+="$read_only_boundary"
   fi
+fi
+identity=$(_peer_identity "$peer_id")
+if [[ -n "$identity" ]]; then
+  case "$harness" in
+    codex) _body=codex_role_config ;;
+    pi)    _body=pi_role_body ;;
+    *)     _body=claude_role_body ;;
+  esac
+  if [[ -n "${!_body}" ]]; then
+    printf -v "$_body" '%s\n\n%s' "${!_body}" "$identity"
+  else
+    printf -v "$_body" '%s' "$identity"
+  fi
+fi
+if [[ "$harness" == codex && -n "$codex_role_config" ]]; then
+  codex_role_config="developer_instructions=$(printf '%s' "$codex_role_config" |
+    python3 -c 'import json,sys; sys.stdout.write(json.dumps(sys.stdin.read()))')"
 fi
 
 pi_thinking=false
@@ -345,99 +409,71 @@ for (( attempt=1; attempt<=attempts; attempt++ )); do
   fi
   hpid=$!
 
-  cap_marker="$fifo.cap"
-  (
-    sleep "$cap"
-    : >| "$cap_marker"
-    _peer_terminate_group "$hpid"
-  ) &
-  capper=$!
-
+  # The cap must stay a deadline on this loop. `set +m` puts a background timer in peer's
+  # own process group, so killing it reaps the subshell but orphans its `sleep`, which then
+  # holds peer's inherited fds and blocks piping callers for the full cap.
   log=""
   exec 3<"$fifo"
-  read_status=0
+  capped=0; stalled=0
+  SECONDS=0
   while true; do
-    if IFS= read -t "$idle" -r -u 3 line; then
+    remaining=$(( cap - SECONDS ))
+    if (( remaining <= 0 )); then capped=1; break; fi
+    if IFS= read -t "$(( remaining < idle ? remaining : idle ))" -r -u 3 line; then
       log+="$line"$'\n'
     else
-      read_status=$?
+      (( $? > 128 )) && { (( SECONDS >= cap )) && capped=1 || stalled=1; }
       break
     fi
   done
   exec 3<&-
 
-  stalled=0
-  (( read_status > 128 )) && stalled=1
   if kill -0 "$hpid" 2>/dev/null; then
-    stalled=1
+    (( capped )) || stalled=1
   fi
-  terminated=0
-  if (( stalled == 1 )) && [[ ! -e "$cap_marker" ]]; then
-    _peer_terminate_group "$hpid"
-    terminated=1
-  fi
+  (( stalled || capped )) && _peer_terminate_group "$hpid"
   wait "$hpid" 2>/dev/null; harness_rc=$?
-  if (( terminated == 0 )) && [[ ! -e "$cap_marker" ]]; then
-    _peer_terminate_group "$hpid"
-    terminated=1
-  fi
-  capped=0
-  if [[ -e "$cap_marker" ]]; then
-    capped=1
-    wait "$capper" 2>/dev/null
-  else
-    kill "$capper" 2>/dev/null
-    wait "$capper" 2>/dev/null
-  fi
-  rm -f "$fifo" "$cap_marker" 2>/dev/null
-
-  (( capped == 1 )) && printf '%s\n' "peer: $harness reached the ${cap}s hard cap" >&2
-  (( harness_rc != 0 )) && printf '%s\n' "peer: $harness exited with status $harness_rc" >&2
-
-  if [[ "$harness" == pi && $stalled -eq 0 && $capped -eq 0 && $harness_rc -eq 0 ]]; then
-    printf '%s\n' "$log" | OUTFILE="$outfile" python3 -c '
-import os,sys,json
-last=None
-for ln in sys.stdin:
-    ln=ln.strip()
-    if not ln: continue
-    try: d=json.loads(ln)
-    except Exception: continue
-    m=d.get("message")
-    if isinstance(m,dict) and m.get("role")=="assistant" and m.get("content"):
-        last=m
-if last:
-    text="".join(p.get("text","") for p in last["content"] if isinstance(p,dict) and p.get("type")=="text")
-    if text.strip(): open(os.environ["OUTFILE"],"w").write(text)
-'
-  elif [[ "$harness" == claude && $stalled -eq 0 && $capped -eq 0 && $harness_rc -eq 0 ]]; then
-    printf '%s\n' "$log" | OUTFILE="$outfile" python3 -c '
-import os,sys,json
-last=None
-for ln in sys.stdin:
-    ln=ln.strip()
-    if not ln: continue
-    try: d=json.loads(ln)
-    except Exception: continue
-    if d.get("type")=="result" and d.get("is_error") is not True:
-        result=d.get("result")
-        if isinstance(result,str) and result.strip(): last=result
-if last is not None:
-    open(os.environ["OUTFILE"],"w").write(last)
-'
-  fi
+  _peer_terminate_group "$hpid"
+  rm -f "$fifo" 2>/dev/null
 
   # Only a clean harness exit may publish a report. A cap, idle kill, or non-zero exit
   # invalidates partial output, which is especially important for mutating roles.
-  if (( stalled == 0 && capped == 0 && harness_rc == 0 )) && [[ -s "$outfile" ]]; then
-    exit 0
-  fi
+  publish=0
+  (( stalled == 0 && capped == 0 && harness_rc == 0 )) && publish=1
+  verdict=$(printf '%s\n' "$log" |
+    HARNESS="$harness" OUTFILE="$outfile" PUBLISH="$publish" python3 "$SCRIPT_DIR/peer-classify.py")
+  outcome="${verdict%%$'\t'*}"; detail="${verdict#*$'\t'}"
+  [[ -n "$outcome" ]] || { outcome=error; detail="peer could not parse the $harness event stream"; }
 
-  if printf '%s\n' "$log" | grep -qiE 'unauthenticated|permission[_ ]denied|status[^0-9]{0,6}40[13]\b|\b40[13][[:space:]]+(unauthorized|forbidden)|invalid_grant|invalid_rapt|invalid_api_key|incorrect[_ ]api[_ ]key|no api key found|authentication[_ ](error|failed|required)|not[_ ]authenticated|not[ _-]+logged[ _-]+in|please run[^"[:cntrl:]]{0,80}\blogin\b|refresh_token_invalidated|could not be refreshed|could not[^"]{0,40}credential|application default credentials|reauthenticat|token (has[_ ])?(been[_ ])?(expired|revoked)'; then
-    printf '%s\n' "peer: $harness reported an auth/availability error - configure the harness itself" >&2
-    exit 3
+  if (( capped )); then
+    outcome=capped
+  elif (( stalled )) && [[ "$outcome" == ok || "$outcome" == error ]]; then
+    outcome=stalled
+  elif [[ "$outcome" == ok ]] && { (( harness_rc != 0 )) || [[ ! -s "$outfile" ]]; }; then
+    outcome=error
   fi
-  (( attempt < attempts )) && printf '%s\n' "peer: $harness stalled/failed (no clean report) - retrying once" >&2
+  [[ "$outcome" == ok ]] && exit 0
+  : >| "$outfile"
+
+  case "$outcome" in
+    misconfig)
+      printf '%s\n' "peer: $harness cannot serve this request as configured - ${detail:-no usable model or provider}" >&2
+      printf '%s\n' "peer: this is a peer configuration fault, not a credential, timeout, or reachability fault" >&2
+      exit 2 ;;
+    auth)
+      printf '%s\n' "peer: $harness rejected its stored credentials - re-run the harness login flow${detail:+ - $detail}" >&2
+      exit 3 ;;
+    limit)
+      printf '%s\n' "peer: $harness hit a rate or quota limit - retry later${detail:+ - $detail}" >&2
+      exit 4 ;;
+    capped)
+      printf '%s\n' "peer: $harness reached the ${cap}s hard cap${detail:+ - $detail}" >&2 ;;
+    stalled)
+      printf '%s\n' "peer: $harness produced no output for ${idle}s and was terminated" >&2 ;;
+    error)
+      printf '%s\n' "peer: $harness produced no clean report (exit $harness_rc)${detail:+ - $detail}" >&2 ;;
+  esac
+  (( attempt < attempts )) && printf '%s\n' "peer: retrying $harness once" >&2
 done
 
 if (( attempts == 1 )); then

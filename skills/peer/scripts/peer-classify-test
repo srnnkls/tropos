@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# Run: skills/peer/scripts/peer-classify-test
+set -uo pipefail
+
+CLASSIFY="$(dirname "$(realpath "${BASH_SOURCE[0]}")")/peer-classify.py"
+tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+fails=0
+
+check() {
+  local name=$1 harness=$2 want=$3 stream=$4 got
+  got=$(printf '%s\n' "$stream" |
+    HARNESS="$harness" OUTFILE="$tmp/out" PUBLISH=1 python3 "$CLASSIFY" | cut -f1)
+  if [[ "$got" == "$want" ]]; then
+    printf 'ok    %s\n' "$name"
+  else
+    printf 'FAIL  %s: want %s, got %s\n' "$name" "$want" "$got"; (( fails++ ))
+  fi
+}
+
+# The regression: a run whose prompt, tool output, and report all discuss authentication
+# must not be classified from that content.
+check 'auth words in prompt and report are not an auth failure' pi ok \
+'{"type":"message_end","message":{"role":"user","content":[{"type":"text","text":"Why would a service report that a user is not authenticated?"}]}}
+{"type":"message_end","message":{"role":"assistant","stopReason":"stop","content":[{"type":"text","text":"Because the token has expired or the api key is invalid_api_key."}]}}'
+
+check 'sandbox permission-denied in tool output is not an auth failure' codex ok \
+'{"type":"item.completed","item":{"type":"command_execution","aggregated_output":"touch: /etc/x: Permission denied"}}
+{"type":"item.completed","item":{"id":"i0","type":"agent_message","text":"done"}}'
+
+check 'codex model not entitled is misconfig' codex misconfig \
+'{"type":"error","message":"{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The '"'"'gpt-5.6-codex'"'"' model is not supported when using Codex with a ChatGPT account.\"}}"}'
+
+check 'vertex unknown model is misconfig' pi misconfig \
+'{"type":"message_end","message":{"role":"assistant","stopReason":"error","content":[],"errorMessage":"{\"error\":{\"message\":\"Publisher model gemini-nope was not found or your project does not have access to it.\",\"code\":404,\"status\":\"Not Found\"}}"}}'
+
+check 'pi unknown provider is misconfig' pi misconfig \
+'Error: Unknown provider "nope". Use --list-models to see available providers/models.'
+
+check 'expired credentials are auth' codex auth \
+'{"type":"turn.failed","error":{"message":"{\"status\":401,\"error\":{\"message\":\"Your refresh_token is invalid; please run codex login again.\"}}"}}'
+
+check 'quota exhaustion is a limit, not auth' pi limit \
+'{"type":"message_end","message":{"role":"assistant","stopReason":"error","content":[],"errorMessage":"{\"error\":{\"code\":429,\"message\":\"Quota exceeded for requests\"}}"}}'
+
+check 'claude error result is reported, not swallowed' claude error \
+'{"type":"result","is_error":true,"subtype":"execution_failed","result":"the tool loop aborted"}'
+
+printf 'PUBLISH=0 must not write a report ... '
+printf '%s\n' '{"type":"result","is_error":false,"result":"report body"}' |
+  HARNESS=claude OUTFILE="$tmp/nopub" PUBLISH=0 python3 "$CLASSIFY" >/dev/null
+[[ -e "$tmp/nopub" ]] && { printf 'FAIL\n'; (( fails++ )); } || printf 'ok\n'
+
+printf '\n%s\n' "$( ((fails)) && echo "$fails failing" || echo 'all passing')"
+exit $(( fails > 0 ))
