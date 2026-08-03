@@ -10,7 +10,7 @@ metadata:
 ## Pre-loaded Context
 
 Current branch:
-!`git branch --show-current 2>/dev/null`
+!`git branch --show-current 2>/dev/null || true`
 
 Next issue number (predicted; for the `.issues/` draft filename on **create**):
 !`gh api 'repos/{owner}/{repo}/issues?state=all&per_page=1' --jq '(.[0].number // 0) + 1' 2>/dev/null || echo "?"`

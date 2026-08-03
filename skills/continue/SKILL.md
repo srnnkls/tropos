@@ -10,16 +10,16 @@ metadata:
 ## Pre-loaded Context
 
 Active scopes:
-!`find scopes -maxdepth 3 -name scope.md 2>/dev/null`
+!`find scopes -maxdepth 3 -name scope.md 2>/dev/null || true`
 
 Checkpoints:
-!`find scopes -name checkpoint.yaml -maxdepth 3 2>/dev/null`
+!`find scopes -name checkpoint.yaml -maxdepth 3 2>/dev/null || true`
 
 Git status:
-!`git status --short 2>/dev/null`
+!`git status --short 2>/dev/null || true`
 
 Current branch:
-!`git branch --show-current 2>/dev/null`
+!`git branch --show-current 2>/dev/null || true`
 
 # Continue Skill
 

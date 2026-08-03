@@ -10,7 +10,7 @@ metadata:
 ## Pre-loaded Context
 
 Current branch:
-!`git branch --show-current 2>/dev/null`
+!`git branch --show-current 2>/dev/null || true`
 
 Status:
 !`git status --short 2>/dev/null | head -10`

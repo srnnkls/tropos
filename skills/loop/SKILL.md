@@ -20,13 +20,13 @@ Active todos:
 !`cat .claude/todos.json 2>/dev/null | jq -r '.[] | "[" + .status + "] " + .content' 2>/dev/null`
 
 Git status:
-!`git status --short 2>/dev/null`
+!`git status --short 2>/dev/null || true`
 
 Current branch:
-!`git branch --show-current 2>/dev/null`
+!`git branch --show-current 2>/dev/null || true`
 
 Recent commits:
-!`git log --oneline -5 2>/dev/null`
+!`git log --oneline -5 2>/dev/null || true`
 
 # Autonomous Implementation Loop
 

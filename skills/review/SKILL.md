@@ -10,19 +10,19 @@ metadata:
 ## Pre-loaded Context
 
 Git status:
-!`git status --short 2>/dev/null`
+!`git status --short 2>/dev/null || true`
 
 Recent commits:
-!`git log --oneline -5 2>/dev/null`
+!`git log --oneline -5 2>/dev/null || true`
 
 Current branch:
-!`git branch --show-current 2>/dev/null`
+!`git branch --show-current 2>/dev/null || true`
 
 Active scopes:
-!`find scopes -maxdepth 3 -name scope.md 2>/dev/null`
+!`find scopes -maxdepth 3 -name scope.md 2>/dev/null || true`
 
 Open PRs:
-!`gh pr list --limit 5 --json number,title,headRefName --jq '.[] | "#\(.number) \(.title) (\(.headRefName))"' 2>/dev/null`
+!`gh pr list --limit 5 --json number,title,headRefName --jq '.[] | "#\(.number) \(.title) (\(.headRefName))"' 2>/dev/null || true`
 
 # Review Dispatcher
 

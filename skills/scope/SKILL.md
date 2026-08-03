@@ -10,10 +10,10 @@ metadata:
 ## Pre-loaded Context
 
 Active scopes:
-!`find scopes -maxdepth 3 -name scope.md 2>/dev/null`
+!`find scopes -maxdepth 3 -name scope.md 2>/dev/null || true`
 
 Current branch:
-!`git branch --show-current 2>/dev/null`
+!`git branch --show-current 2>/dev/null || true`
 
 # Scope Dispatcher
 

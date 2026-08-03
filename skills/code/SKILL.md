@@ -9,7 +9,7 @@ metadata:
 ## Pre-loaded Context
 
 Git status:
-!`git status --short 2>/dev/null`
+!`git status --short 2>/dev/null || true`
 
 Languages detected:
 !`find . -maxdepth 3 -name "*.py" -o -name "*.go" -o -name "*.rs" -o -name "*.ts" -o -name "*.js" 2>/dev/null`

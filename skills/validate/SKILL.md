@@ -10,7 +10,7 @@ metadata:
 ## Pre-loaded Context
 
 Uncommitted:
-!`git status --short 2>/dev/null`
+!`git status --short 2>/dev/null || true`
 
 # Validate Dispatcher
 
