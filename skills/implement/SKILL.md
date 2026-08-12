@@ -178,8 +178,13 @@ success from each execution class actually configured; an all-native or all-exte
 require the absent class.
 
 - Reviewers check for oracle mirroring, mock tautologies, framework tests, trivial assertions
-- Synthesize findings: a test is flagged if any harness reports `issues_found`
-- If issues found → re-dispatch tester with specific feedback; repeat until clean
+- Triage findings before acting on them per
+  [review synthesis](../review/reference/synthesis.md) — a test is flagged only when a
+  reported issue names a concrete failure mode against the actual test: a probe that passes
+  when it should not, an oracle that cannot fire, a false failure for a design-conformant
+  implementation. `issues_found` alone does not flag a test
+- If flagged → re-dispatch tester with the verified findings. Converge in one round; a second
+  round requires a new verified failure mode, and anything else is recorded as residual
 - **Gate:** Implementer NEVER receives tests that failed this review
 
 See dispatch template in `reference/subagent-workflow.md` — Test Review Dispatch Template.

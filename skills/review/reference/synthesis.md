@@ -26,13 +26,40 @@ Aggregate harness results within each role first:
 - Deduplicate by location + description similarity
 - Preserve role attribution
 
+### 4.5 Triage for Validity
+
+Reviewer output is evidence, not a verdict. Every merged issue clears this bar before it
+reaches gate aggregation; the synthesizer owns the disposition.
+
+Accept an issue only when it names a concrete failure mode checkable against the reviewed
+artifact — an input that yields the wrong output, a check that cannot fire, a false failure
+for a conformant implementation. Verify the gate-blocking ones against the artifact before
+they fail a gate; an issue that survives only as prose is not yet an issue.
+
+Disposition these as `residual` rather than opening a fix round:
+
+- ever-narrower edge cases with no reachable input
+- speculative hardening of a check that already has falsification evidence
+- questions an earlier round or another reviewer already grounded
+- the design restated as a defect
+- rewrites of conformant code to a different but equivalent shape
+
+`found_by` count is agreement, not validity — reviewers sharing a wrong assumption about the
+requirements agree loudly. A single verified issue outranks three unverified concurring ones.
+
+Report volume tracks reasoning effort, not defect density, and high-effort reviewers reliably
+produce refinement spirals past the first round. Converge in one fix round unless a later
+round surfaces a new verified failure mode; round count is a cost, not a quality signal.
+
 ### 5. Aggregate Gates
 
 - Each role owns its gates:
   - General: Correctness, Security, Performance
   - Architecture: Architecture
   - Compliance: Style
-- Gate fails if ANY harness within the owning role fails it; record which harness(es) failed
+- Gate fails if ANY harness within the owning role fails it on an issue that cleared triage;
+  record which harness(es) failed. A reported failure whose issues all landed in `residual`
+  does not fail the gate — record it in `residual` with the reason instead
 - For implementation-owned gates, synthesis is eligible only after each execution class actually
   configured for the role has at least one successful report
 

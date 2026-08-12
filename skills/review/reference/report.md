@@ -83,6 +83,15 @@ synthesized_report:
       description: "SQL injection via unsanitized user input"
       suggestion: "Use parameterized queries"
       found_by: [{reviewer-id}, …]  # reviewer-ids come from `peer list`
+      verified: "How the failure mode was confirmed against the artifact"
+
+  residual:
+    - gate: correctness
+      location: "src/api/handler.ts:112"
+      description: "Reported issue that did not clear triage"
+      found_by: [{reviewer-id}, …]
+      reason: unreachable_input | already_falsified | already_grounded | design_as_defect | equivalent_rewrite
+      evidence: "What rules the report out"
 
   strengths:
     - "Clear separation of concerns"
@@ -112,6 +121,9 @@ synthesized_report:
 | `critical` | Bugs, security issues, data corruption — must fix before merge |
 | `high` | Significant issues, unclear behavior — should fix before merge |
 | `medium` | Style issues, minor improvements — can merge, follow-up |
+
+Severity is assigned after triage. Issues in `residual` carry no severity and never fail a
+gate; see [synthesis.md](synthesis.md) for the validity bar.
 
 ---
 

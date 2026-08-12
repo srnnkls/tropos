@@ -628,7 +628,7 @@ under `.peer/<scope>/<epoch>/<batch>/<stage>/` as defined in `reference/configur
 |------|------|------------------|
 | Pre-impl gate | Before any dispatch | Block if Initiative gates failed |
 | RED verification | After Phase A | Structural: `failure_output` non-empty, shows failures (not errors), fails because feature missing |
-| **Test review** | **After Phase A, before Phase B** | **Re-dispatch tester(s) with finding; repeat until clean** |
+| **Test review** | **After Phase A, before Phase B** | **Triage findings, re-dispatch tester(s) with the verified ones; converge in one round** |
 | GREEN verification | After Phase B | `test_output` non-empty, all tests pass, no errors/warnings |
 | **Batch review** | **After Phase B (all implementers)** | **Fix before next batch** |
 | Final review | After all batches | Address gaps |

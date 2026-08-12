@@ -105,8 +105,10 @@ Add clarification session to `validation.yaml`. Update markers (close resolved, 
 
 This review is the **mandatory blocking gate** a scope must clear before implementation (the scope-level analog of the `issue` skill's 2×2 gate before publish). Write the outcome to `validation.yaml` under `review_gate`:
 
-- **No `critical`/`high` issue from any reviewer** → `review_gate.status: passed` (record reviewers, timestamp, `blocking_resolved`, and any deferred `medium` nits). Report "Ready for implementation."
-- **Any `critical`/`high` issue** → `review_gate.status: failed`. Report "Address critical/high issues, then re-run /scope review." Fold the findings back into `scope.md` / `tasks.yaml` / `design.md` and re-run until clean.
+Triage findings before they gate anything, per [review synthesis](../../review/reference/synthesis.md): a `critical`/`high` issue blocks only when it names a concrete defect in the scope — a requirement that contradicts another, a task with no achievable acceptance criterion, a dependency that cannot be satisfied. Reviewer agreement is not validity. Findings that only narrow, restate, or re-litigate a grounded question are recorded as deferred nits and do not fail the gate.
+
+- **No triaged `critical`/`high` issue** → `review_gate.status: passed` (record reviewers, timestamp, `blocking_resolved`, and any deferred `medium` nits). Report "Ready for implementation."
+- **Any triaged `critical`/`high` issue** → `review_gate.status: failed`. Report "Address critical/high issues, then re-run /scope review." Fold the findings back into `scope.md` / `tasks.yaml` / `design.md` and re-run. Converge in one round; a further round requires a newly surfaced verified defect, and each round beyond the first records what forced it.
 
 `implement`/`loop` will not execute a scope whose `review_gate.status` is absent or `failed` (enforced at `implement/operations/execute.md` Step 2).
 

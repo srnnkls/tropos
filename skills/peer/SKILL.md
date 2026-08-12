@@ -172,3 +172,32 @@ void a substantive report solely because its self-declared id is wrong. Because 
 prompts must include any command-only context they need—especially a materialized diff,
 requirements, and the required report schema. They can still inspect repository files
 with read, search, find, and list tools.
+
+## Report triage
+
+A peer report is evidence, not a verdict. The caller owns disposition and is the last
+check before a finding becomes work. Manifest status describes dispatch, not content: an
+`ok` row means a report exists, never that its findings hold.
+
+Accept a finding only when it names a concrete failure mode checkable against the artifact
+under review — an input that yields the wrong output, a check that cannot fire, a false
+failure for a conformant implementation. Verify the load-bearing ones empirically before
+they gate anything; a finding that survives only as prose is not yet a finding.
+
+Disposition these as residual records or reject them with the evidence, without opening a
+fix round:
+
+- ever-narrower edge cases with no reachable input
+- speculative hardening of a check that already has falsification evidence
+- questions an earlier round or another peer already grounded
+- the design restated as a defect
+
+Report volume tracks reasoning effort, not defect density, and high-effort peers reliably
+produce refinement spirals past the first round. Converge in one fix round unless a later
+round surfaces a new verified failure mode; round count is a cost, not a quality signal.
+Fan-out exists to get independent angles on the first round, not to accumulate rounds — a
+finding's `found_by` count is agreement, not validity.
+
+For multi-reviewer runs this bar is the triage step of
+[review synthesis](../review/reference/synthesis.md), which owns the `residual` dispositions
+and the rule that only triaged issues fail a gate.

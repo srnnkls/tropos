@@ -203,18 +203,25 @@ Dispatch contract, flags, exit codes: **[peer skill](../../peer/SKILL.md)**.
 
 **Synthesis for Phase A.5:**
 - Merge `findings` across all harnesses by `(test_file, test_name)`
-- A test is flagged if **any** harness reports `issues_found` for it
 - Dedup findings that describe the same anti-pattern on the same test
+- Triage the merged findings per [review synthesis](../../review/reference/synthesis.md). A
+  test is flagged only when a finding names a concrete failure mode against the actual test:
+  a probe that passes when it should not, an oracle that cannot fire, a false failure for a
+  design-conformant implementation. `issues_found` alone does not flag a test, and the number
+  of harnesses reporting it is agreement rather than validity
+- Record findings that do not clear triage as residual on the report; they never flag a test
 - Timeout handling: continue with completed reviews; note partial results; never proceed with zero reviews
 
 **Gate logic after test_review_reports merged:**
 
 - `status: clean` → proceed to Phase B
 - `status: issues_found` → for each affected test file:
-  1. Re-dispatch its tester with the `findings` for that file as explicit feedback
+  1. Re-dispatch its tester with the triaged `findings` for that file as explicit feedback
   2. Wait for re-dispatched tester(s) to complete
   3. Run Phase A.5 again on the re-written tests
-  4. Repeat until all test files are clean
+  4. Converge in one round. A further round requires a finding that names a new verified
+     failure mode; findings that only narrow or restate a prior round are residual, and the
+     file is clean. Report every round beyond the first with what forced it
 - Only dispatch Phase B once ALL test files pass the gate
 
 **INVARIANT:** Never dispatch an implementer with tests that have `status: issues_found` in their test review.
