@@ -2,7 +2,7 @@
 name: scope
 description: Unified scope lifecycle. Auto-detects operation from argument or presents selection menu. Routes to create, review, update, done, or list. Creation clears a mandatory multi-agent review gate before the scope is implementable.
 argument-hint: "[operation|name] [scope-name]"
-allowed-tools: Bash(find *), Bash(git branch *), Bash(git log *), Bash(git status *), Bash(git diff *)
+allowed-tools: Bash(find *), Bash(git branch *), Bash(git log *), Bash(git status *), Bash(git diff *), Bash(git worktree list *)
 metadata:
   type: domain
 ---
@@ -10,7 +10,7 @@ metadata:
 ## Pre-loaded Context
 
 Active scopes:
-!`find scopes -maxdepth 3 -name scope.md 2>/dev/null || true`
+!`find "$(git worktree list --porcelain | awk 'NR==1{print $2}')/scopes" -maxdepth 3 -name scope.md 2>/dev/null || true`
 
 Current branch:
 !`git branch --show-current 2>/dev/null || true`
@@ -21,6 +21,20 @@ Routes to the appropriate operation based on argument or context.
 
 > **Protocol:** [dispatch/protocol.md](../dispatch/protocol.md)
 > **Reference:** See [reference/review.md](reference/review.md) for review workflow, [reference/update.md](reference/update.md) for update workflow, [reference/operations.md](reference/operations.md) for done/list, [reference/issue.md](reference/issue.md) for publishing a scope as a GitHub issue tree.
+
+---
+
+## Scope Location (All Operations)
+
+Scopes live in the main worktree at `<repo-root>/scopes/`. A linked worktree never holds its own copy — of `scopes/` or of the skill files themselves.
+
+Resolve the root before creating, locating, or writing any scope file:
+
+```bash
+root=$(git worktree list --porcelain | awk 'NR==1{print $2}')
+```
+
+To make a scope reachable as `./scopes/` from inside a worktree, add `scopes/  symlink` to `.worktreeinclude` at the repo root and run `git worktreeinclude apply` in the worktree (see [../git/reference/worktree.md](../git/reference/worktree.md)). Copying is never the answer — two copies diverge and the branch commits the wrong one.
 
 ---
 
@@ -313,7 +327,8 @@ and peer effort in `validation.yaml.review_config`.
 New scopes are created under the `draft` lifecycle directory. They are moved to `active` on first work (see Resume Workflow / `update`) and to `done` via `/scope done`.
 
 ```bash
-mkdir -p ./scopes/draft/[scope-name]/
+root=$(git worktree list --porcelain | awk 'NR==1{print $2}')
+mkdir -p "$root/scopes/draft/[scope-name]/"
 ```
 
 **Lifecycle layout:**

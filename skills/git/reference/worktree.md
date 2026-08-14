@@ -101,7 +101,24 @@ cd "$path"
 
 If the branch already exists, omit `-b`/`$BASE` and run the base-drift preflight after entering the worktree.
 
-### 3. Run Project Setup
+### 3. Link Ignored Repo-Root State
+
+Ignored files the worktree needs — `scopes/`, `mise.local.toml`, local resources — are linked from the main worktree, never copied:
+
+```bash
+git worktreeinclude apply
+```
+
+Entries live in `.worktreeinclude` at the repo root, one `<path> <mode>` pair per line:
+
+```
+mise.local.toml  symlink
+scopes/          symlink
+```
+
+If the file is missing or lacks an entry the worktree needs, add the entry at the repo root, then re-run `apply`.
+
+### 4. Run Project Setup
 
 Auto-detect and run appropriate setup:
 
@@ -114,7 +131,7 @@ if [ -f pyproject.toml ]; then pip install -e .; fi
 if [ -f go.mod ]; then go mod download; fi
 ```
 
-### 4. Verify Clean Baseline
+### 5. Verify Clean Baseline
 
 Run tests to ensure worktree starts clean:
 
@@ -127,7 +144,7 @@ npm test / cargo test / pytest / go test ./...
 
 **If tests pass:** Report ready.
 
-### 5. Report Location
+### 6. Report Location
 
 ```
 Worktree ready at <full-path>
@@ -146,6 +163,7 @@ Ready to implement <feature-name>
 | Both exist | Use `.worktrees/` |
 | Neither exists | Check config then ask user |
 | Not in .gitignore | Add it immediately + commit |
+| Worktree needs `scopes/` or other ignored state | `git worktreeinclude apply` (symlink, never copy) |
 | Tests fail | Report failures + ask |
 
 ---
@@ -153,6 +171,7 @@ Ready to implement <feature-name>
 ## Red Flags
 
 **Never:**
+- Copy `scopes/`, skill directories, or any repo-root state into a worktree — symlink via `.worktreeinclude`
 - Create worktree without .gitignore verification (project-local)
 - Skip baseline test verification
 - Proceed with failing tests without asking
