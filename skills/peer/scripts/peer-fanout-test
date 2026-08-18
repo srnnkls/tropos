@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+# Run: skills/peer/scripts/peer-fanout-test
+set -uo pipefail
+
+SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+PEER="$SCRIPT_DIR/peer"
+tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+fails=0
+
+# Two pi peers over one stub harness: 'sound' names a model the stub enumerates, 'unsound'
+# names one it does not, so 'unsound' is a genuine registry fault on its own terms.
+cat >"$tmp/registry.yaml" <<'REG'
+reviewers:
+  - id: sound
+    harness: pi
+    provider: stubprov
+    model: good-model
+    alias: sound
+    effort: "-"
+    native: false
+  - id: unsound
+    harness: pi
+    provider: stubprov
+    model: missing-model
+    alias: unsound
+    effort: "-"
+    native: false
+defaults:
+  pi: sound
+REG
+
+mkdir -p "$tmp/bin"
+cat >"$tmp/bin/pi" <<'STUB'
+#!/usr/bin/env bash
+for a in "$@"; do [[ "$a" == --list-models ]] || continue
+  printf '%s\n' 'provider  model  context  max-out  thinking  images' \
+    'stubprov  good-model  1.0M  65.5K  yes  yes'
+  exit 0
+done
+if [[ "$STUB_MODE" == denied ]]; then
+  printf '%s\n' '{"type":"message_end","message":{"role":"assistant","stopReason":"error","content":[],"errorMessage":"failed to initialize in-process app-server client: Operation not permitted (os error 1)"}}'
+  exit 1
+fi
+if [[ "$STUB_MODE" == server_403 ]]; then
+  printf '%s\n' '{"type":"message_end","message":{"role":"assistant","stopReason":"error","content":[],"errorMessage":"{\"error\":{\"code\":403,\"status\":\"PERMISSION_DENIED\",\"message\":\"Permission denied on resource project tropos-dev.\"}}"}}'
+  exit 1
+fi
+printf '%s\n' '{"type":"message_end","message":{"role":"assistant","stopReason":"stop","content":[{"type":"text","text":"OK"}]}}'
+STUB
+chmod +x "$tmp/bin/pi"
+
+run() {
+  STUB_MODE="$1" PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
+    "$PEER" -d "$tmp/out.$1" --cap 30 'ping' 2>/dev/null
+}
+
+want_row() {
+  local name=$1 manifest=$2 want=$3
+  if grep -qF -- "$want" <<< "$manifest"; then
+    printf 'ok    %s\n' "$name"
+  else
+    printf 'FAIL  %s: no row %q\n      manifest: %s\n' "$name" "$want" "${manifest:-<empty>}"
+    (( fails++ ))
+  fi
+}
+
+# The regression: one peer denied by the environment makes its sibling's 'fix your
+# registry' verdict unsafe, however specific that verdict looks in isolation.
+denied=$(run denied)
+want_row 'denied sibling is not reported as misconfig' "$denied" "$(printf 'unsound\tblocked')"
+
+# The control that keeps the downgrade honest: with no denial in the run, the same
+# registry fault must still be called a registry fault.
+clean=$(run clean)
+want_row 'genuine misconfig survives an unrestricted run' "$clean" "$(printf 'unsound\tmisconfig')"
+want_row 'healthy peer still reports ok'                  "$clean" "$(printf 'sound\tok')"
+
+# A server refusing the caller says PERMISSION_DENIED too, and that is a real credential
+# fault with a login flow behind it. Downgrading it to 'blocked' would send an operator to
+# re-run unrestricted forever, since an unrestricted run reproduces it unchanged.
+server=$(run server_403)
+want_row 'server-side 403 stays an auth fault' "$server" "$(printf 'sound\tauth')"
+
+printf '\n%s\n' "$( ((fails)) && echo "$fails failing" || echo 'all passing')"
+exit $(( fails > 0 ))

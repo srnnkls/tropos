@@ -106,6 +106,7 @@ Stdout is a TSV manifest, one row per external peer:
 ```
 {peer-id}  ok         {outdir}/{peer-id}.yaml
 {peer-id}  misconfig  {outdir}/{peer-id}.yaml
+{peer-id}  blocked    {outdir}/{peer-id}.yaml
 {peer-id}  stalled    {outdir}/{peer-id}.yaml
 ```
 
@@ -121,39 +122,29 @@ A failed dispatch reports one status, and each names a different fix. Do not rea
 | Status | Meaning | Exit | Fix |
 |---|---|---|---|
 | `misconfig` | the harness cannot serve this model or provider | 2 | correct `reviewers.yaml` |
+| `blocked` | a peer in this run was denied an operation, so this row's cause is unverified | 2 or 3 | re-run unrestricted, then re-read the row |
 | `auth` | the harness rejected its stored credentials | 3 | re-run that harness's login flow |
 | `limit` | rate or quota limit | 4 | retry later |
 | `stalled` | idle watchdog or hard cap fired | 124 | retry, or raise `--idle`/`--cap` |
 | `error` | any other unclean exit | 124 | read the peer's stderr line |
 
-Two properties make these statuses trustworthy:
+Three properties make these statuses trustworthy:
 
 - Classification reads only harness-emitted error records. Prompt text, tool output, and
   the agent's own report never reach the classifier, so reviewing authentication code
   cannot produce an `auth` row.
 - Model and provider are checked against the harness before dispatch, so a registry
   mistake fails in seconds instead of consuming the full cap twice. The checks stay silent
-  when the harness's model list is unavailable or stale. A preflight that cannot enumerate
-  the harness at all says so on stderr and dispatches anyway instead of reporting
-  `misconfig`: an unreadable catalog is evidence about the environment, never about
-  `reviewers.yaml`.
+  when the harness's model list is unavailable or stale, and a preflight that cannot
+  enumerate the harness at all dispatches anyway rather than reporting `misconfig`: an
+  unreadable catalog is evidence about the environment, never about `reviewers.yaml`.
+- A fan-out's peers share one environment, so they share one blast radius. Once any of
+  them is denied an operation, every sibling `misconfig` and `auth` row in that run is
+  relabelled `blocked` — a restricted harness names a specific file or credential to fix,
+  and that name is unearned. Only an unrestricted re-run can make one a finding again.
 
-`skills/peer/scripts/peer-classify-test` and `skills/peer/scripts/peer-preflight-test`
-cover these properties.
-
-### Correlated failures within one fan-out
-
-A fan-out shares one environment, so its peers share one blast radius. When any peer in a
-run fails with an explicit permission or capability error — `Operation not permitted`, a
-denied path, a blocked network call — treat every other failure in that same run as
-suspect whatever status it reports, and re-dispatch the survivors once in the unrestricted
-environment before believing their stated cause. A restricted harness can fail with a
-specific, confident, wrong diagnosis, and a peer naming a file to fix is not evidence that
-the file is wrong. One cause with several symptoms is the ordinary case; handling the
-siblings of a known-environmental failure differently from each other is the tell that a
-diagnosis was taken on trust. Never propagate a peer-supplied cause into a gate or scope
-record until it has been reproduced unrestricted — record what was observed, which is that
-the peer returned no report.
+`peer-classify-test`, `peer-preflight-test`, and `peer-fanout-test` beside the script cover
+these properties.
 
 ## Single-harness compatibility interface
 

@@ -80,6 +80,15 @@ _peer_terminate_group() {
   kill -KILL -- "-$pgid" 2>/dev/null
 }
 
+# Markers of a harness denied an operation by its surroundings - a sandbox, an unreadable
+# HOME, a read-only mount - rather than refused by a server. Matched only against peer's
+# own diagnostics, which carry peer's messages and harness error records; a peer's report
+# and its tool output never reach them, so reviewing sandbox code cannot trip this.
+# Deliberately errno-shaped: a server saying "Permission denied on resource" or
+# PERMISSION_DENIED is a credential fault with a login flow behind it, and an unrestricted
+# re-run reproduces it unchanged, so it must keep its own status rather than become blocked.
+ENV_DENIAL='not permitted|eperm|eacces|erofs|read-only file system|os error 1|no provider table'
+
 SESSION_EXEC='import os,sys
 cwd=sys.argv[1]
 argv=sys.argv[2:]
@@ -206,7 +215,9 @@ if [[ "$cmd" != codex && "$cmd" != pi && "$cmd" != claude ]]; then
   case "$outdir" in /*) ;; *) outdir="$workdir/$outdir" ;; esac
   mkdir -p "$outdir" || exit 2
 
-  want=(); selected=(); ran=(); declare -A PID; ok=0
+  want=(); selected=(); ran=(); declare -A PID STATUS; ok=0
+  diagdir=$(mktemp -d "${TMPDIR:-/tmp}/peer.diag.XXXXXX") || { printf '%s\n' "peer: cannot create diagnostic dir" >&2; exit 1; }
+  trap 'rm -rf "$diagdir"' EXIT
 
   if [[ -n "$peers" ]]; then
     IFS=',' read -ra want <<< "$peers"
@@ -240,7 +251,7 @@ if [[ "$cmd" != codex && "$cmd" != pi && "$cmd" != claude ]]; then
     idle_arg=(); (( idle_set )) && idle_arg=( --idle "$idle" )
     "$SCRIPT_DIR/peer" "${HARNESS[$id]}" -C "$workdir" "${agent_arg[@]}" \
          --provider "${PROVIDER[$id]}" --model "${MODEL[$id]}" --effort "$e" --peer-id "$id" \
-         "${idle_arg[@]}" --cap "$cap" -o "$outdir/$id.yaml" "${prompt_arg[@]}" &
+         "${idle_arg[@]}" --cap "$cap" -o "$outdir/$id.yaml" "${prompt_arg[@]}" 2>"$diagdir/$id" &
     PID[$id]=$!
     ran+=( "$id" )
   done
@@ -248,7 +259,27 @@ if [[ "$cmd" != codex && "$cmd" != pi && "$cmd" != claude ]]; then
   for id in "${ran[@]}"; do
     wait "${PID[$id]}"; rc=$?
     case $rc in 0) st=ok; (( ok++ )) ;; 2) st=misconfig ;; 3) st=auth ;; 4) st=limit ;; 124) st=stalled ;; *) st=error ;; esac
-    printf '%s\t%s\t%s\n' "$id" "$st" "$outdir/$id.yaml"
+    STATUS[$id]=$st
+    cat "$diagdir/$id" >&2
+  done
+
+  # The peers of a run share one environment, so they share one blast radius. Once any of
+  # them is denied an operation, no sibling's misconfig or auth row is a finding any more:
+  # a restricted harness names a specific file or credential to fix, and that name is
+  # unearned. Downgrade instead of handing a caller a confident wrong remedy - a run that
+  # buries a real registry fault under 'blocked' costs one unrestricted re-run, while the
+  # reverse costs an edit to a correct file.
+  if grep -qiE "$ENV_DENIAL" "$diagdir"/* 2>/dev/null; then
+    for id in "${ran[@]}"; do
+      case "${STATUS[$id]}" in misconfig|auth) STATUS[$id]=blocked ;; esac
+    done
+    printf '%s\n' "peer: a peer in this run was denied an operation, so this environment is restricted" >&2
+    printf '%s\n' "peer: sibling misconfig and auth rows became 'blocked' - they are not verdicts on $REGISTRY or on stored credentials" >&2
+    printf '%s\n' "peer: re-run without the restriction before acting on any of them" >&2
+  fi
+
+  for id in "${ran[@]}"; do
+    printf '%s\t%s\t%s\n' "$id" "${STATUS[$id]}" "$outdir/$id.yaml"
   done
   (( ok > 0 )) && exit 0 || exit 1
 fi
