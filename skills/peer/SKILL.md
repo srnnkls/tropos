@@ -133,9 +133,27 @@ Two properties make these statuses trustworthy:
   cannot produce an `auth` row.
 - Model and provider are checked against the harness before dispatch, so a registry
   mistake fails in seconds instead of consuming the full cap twice. The checks stay silent
-  when the harness's model list is unavailable or stale.
+  when the harness's model list is unavailable or stale. A preflight that cannot enumerate
+  the harness at all says so on stderr and dispatches anyway instead of reporting
+  `misconfig`: an unreadable catalog is evidence about the environment, never about
+  `reviewers.yaml`.
 
-`skills/peer/scripts/peer-classify-test` covers both properties.
+`skills/peer/scripts/peer-classify-test` and `skills/peer/scripts/peer-preflight-test`
+cover these properties.
+
+### Correlated failures within one fan-out
+
+A fan-out shares one environment, so its peers share one blast radius. When any peer in a
+run fails with an explicit permission or capability error — `Operation not permitted`, a
+denied path, a blocked network call — treat every other failure in that same run as
+suspect whatever status it reports, and re-dispatch the survivors once in the unrestricted
+environment before believing their stated cause. A restricted harness can fail with a
+specific, confident, wrong diagnosis, and a peer naming a file to fix is not evidence that
+the file is wrong. One cause with several symptoms is the ordinary case; handling the
+siblings of a known-environmental failure differently from each other is the tell that a
+diagnosis was taken on trust. Never propagate a peer-supplied cause into a gate or scope
+record until it has been reproduced unrestricted — record what was observed, which is that
+the peer returned no report.
 
 ## Single-harness compatibility interface
 

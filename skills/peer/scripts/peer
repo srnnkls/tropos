@@ -112,13 +112,21 @@ _peer_preflight_pi() {
   [[ -n "$provider" && -n "$model" ]] || return 0
   list=$(pi --list-models 2>/dev/null) || return 0
   [[ -n "$list" ]] || return 0
-  if ! awk -v p="$provider" '$1==p{found=1} END{exit !found}' <<< "$list"; then
+  # pi answers --list-models with a login notice and two documentation paths - and still
+  # exits 0 - whenever it cannot read its credentials. Only the tabular form enumerates
+  # providers; any other shape says nothing about the registry and must not condemn it.
+  if ! awk 'NR==1{exit !($1=="provider" && $2=="model")}' <<< "$list"; then
+    printf '%s\n' "peer: pi returned no provider table, so its providers could not be enumerated" >&2
+    printf '%s\n' "peer: this is an environment or credential fault, not a $REGISTRY error - dispatching so pi reports its own cause" >&2
+    return 0
+  fi
+  if ! awk -v p="$provider" 'NR>1 && $1==p{found=1} END{exit !found}' <<< "$list"; then
     printf '%s\n' "peer: pi has no provider '$provider' (has: $(awk 'NR>1{print $1}' <<< "$list" | sort -u | tr '\n' ' '))" >&2
     printf '%s\n' "peer: fix the provider in $REGISTRY - the pi installation itself is valid" >&2
     return 2
   fi
   # pi accepts and strips a redundant "<provider>/" prefix on the model name.
-  awk -v p="$provider" -v m="${model#"$provider/"}" '$1==p && $2==m{found=1} END{exit !found}' <<< "$list" && return 0
+  awk -v p="$provider" -v m="${model#"$provider/"}" 'NR>1 && $1==p && $2==m{found=1} END{exit !found}' <<< "$list" && return 0
   printf '%s\n' "peer: pi provider '$provider' does not offer model '${model#"$provider/"}'" >&2
   printf '%s\n' "peer: fix the model in $REGISTRY - the pi installation itself is valid" >&2
   return 2

@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# Run: skills/peer/scripts/peer-preflight-test
+set -uo pipefail
+
+SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+PEER="$SCRIPT_DIR/peer"
+tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+fails=0
+
+# A pi stub whose --list-models output is selected per case, and whose dispatch always
+# succeeds — so any non-zero peer exit is attributable to the preflight alone.
+mkdir -p "$tmp/bin"
+cat >"$tmp/bin/pi" <<'STUB'
+#!/usr/bin/env bash
+for a in "$@"; do [[ "$a" == --list-models ]] || continue
+  case "$STUB_MODE" in
+    notice)
+      printf '%s\n' 'No models available. Use /login to log into a provider via OAuth or API key. See:' \
+        '  /opt/pi/node_modules/@earendil-works/pi-coding-agent/docs/providers.md' \
+        '  /opt/pi/node_modules/@earendil-works/pi-coding-agent/docs/models.md'
+      exit 0 ;;
+    table_other_provider)
+      printf '%s\n' 'provider  model  context  max-out  thinking  images' \
+        'openrouter  z-ai/glm-5.2  1.0M  131.1K  yes  no'
+      exit 0 ;;
+    table_other_model)
+      printf '%s\n' 'provider  model  context  max-out  thinking  images' \
+        'google-vertex  gemini-2.5-pro  1.0M  65.5K  yes  yes'
+      exit 0 ;;
+    table_match)
+      printf '%s\n' 'provider  model  context  max-out  thinking  images' \
+        'google-vertex  gemini-3.5-flash  1.0M  65.5K  yes  yes'
+      exit 0 ;;
+  esac
+done
+printf '%s\n' '{"type":"message_end","message":{"role":"assistant","stopReason":"stop","content":[{"type":"text","text":"OK"}]}}'
+STUB
+chmod +x "$tmp/bin/pi"
+
+# want_rc, want_stderr_substring, reject_stderr_substring ('' to skip)
+check() {
+  local name=$1 mode=$2 want_rc=$3 want=$4 reject=$5 rc err out="$tmp/out.$2"
+  err=$(STUB_MODE="$mode" PATH="$tmp/bin:$PATH" \
+    "$PEER" pi -o "$out" --provider google-vertex --model gemini-3.5-flash \
+    --cap 30 --idle 10 'ping' 2>&1 >/dev/null)
+  rc=$?
+  local bad=()
+  (( rc == want_rc )) || bad+=("exit $rc (want $want_rc)")
+  [[ -n "$want" && "$err" != *"$want"* ]] && bad+=("stderr missing '$want'")
+  [[ -n "$reject" && "$err" == *"$reject"* ]] && bad+=("stderr must not contain '$reject'")
+  if (( ${#bad[@]} == 0 )); then
+    printf 'ok    %s\n' "$name"
+  else
+    printf 'FAIL  %s: %s\n      stderr: %s\n' "$name" "$(IFS='; '; echo "${bad[*]}")" "${err:-<empty>}"
+    (( fails++ ))
+  fi
+}
+
+# The regression: a credential-less pi prints a login notice plus documentation paths and
+# still exits 0. Those paths are not a provider list, and blaming the registry for them
+# sends the operator to edit a file that is already correct.
+check 'unusable enumeration does not blame the registry' notice 0 \
+  'no provider table' 'fix the provider in'
+
+# The genuine detections the notice case must not weaken.
+check 'absent provider in a real table is misconfig'  table_other_provider 2 "has no provider 'google-vertex'" ''
+check 'absent model in a real table is misconfig'     table_other_model    2 "does not offer model 'gemini-3.5-flash'" ''
+check 'matching provider and model dispatches'        table_match          0 '' 'peer:'
+
+printf '\n%s\n' "$( ((fails)) && echo "$fails failing" || echo 'all passing')"
+exit $(( fails > 0 ))
