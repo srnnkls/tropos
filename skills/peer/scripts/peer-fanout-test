@@ -7,26 +7,24 @@ PEER="$SCRIPT_DIR/peer"
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 fails=0
 
-# Two pi peers over one stub harness: 'sound' names a model the stub enumerates, 'unsound'
-# names one it does not, so 'unsound' is a genuine registry fault on its own terms.
 cat >"$tmp/registry.yaml" <<'REG'
 reviewers:
-  - id: sound
+  - id: model-known
     harness: pi
     provider: stubprov
     model: good-model
-    alias: sound
+    alias: model-known
     effort: "-"
     native: false
-  - id: unsound
+  - id: model-absent
     harness: pi
     provider: stubprov
     model: missing-model
-    alias: unsound
+    alias: model-absent
     effort: "-"
     native: false
 defaults:
-  pi: sound
+  pi: model-known
 REG
 
 mkdir -p "$tmp/bin"
@@ -64,22 +62,15 @@ want_row() {
   fi
 }
 
-# The regression: one peer denied by the environment makes its sibling's 'fix your
-# registry' verdict unsafe, however specific that verdict looks in isolation.
 denied=$(run denied)
-want_row 'denied sibling is not reported as misconfig' "$denied" "$(printf 'unsound\tblocked')"
+want_row 'sibling of an errno denial is not reported as misconfig' "$denied" "$(printf 'model-absent\tblocked')"
 
-# The control that keeps the downgrade honest: with no denial in the run, the same
-# registry fault must still be called a registry fault.
 clean=$(run clean)
-want_row 'genuine misconfig survives an unrestricted run' "$clean" "$(printf 'unsound\tmisconfig')"
-want_row 'healthy peer still reports ok'                  "$clean" "$(printf 'sound\tok')"
+want_row 'genuine misconfig survives an unrestricted run' "$clean" "$(printf 'model-absent\tmisconfig')"
+want_row 'healthy peer still reports ok'                  "$clean" "$(printf 'model-known\tok')"
 
-# A server refusing the caller says PERMISSION_DENIED too, and that is a real credential
-# fault with a login flow behind it. Downgrading it to 'blocked' would send an operator to
-# re-run unrestricted forever, since an unrestricted run reproduces it unchanged.
 server=$(run server_403)
-want_row 'server-side 403 stays an auth fault' "$server" "$(printf 'sound\tauth')"
+want_row 'server-side PERMISSION_DENIED stays an auth fault' "$server" "$(printf 'model-known\tauth')"
 
 printf '\n%s\n' "$( ((fails)) && echo "$fails failing" || echo 'all passing')"
 exit $(( fails > 0 ))

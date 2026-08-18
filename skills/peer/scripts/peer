@@ -80,14 +80,7 @@ _peer_terminate_group() {
   kill -KILL -- "-$pgid" 2>/dev/null
 }
 
-# Markers of a harness denied an operation by its surroundings - a sandbox, an unreadable
-# HOME, a read-only mount - rather than refused by a server. Matched only against peer's
-# own diagnostics, which carry peer's messages and harness error records; a peer's report
-# and its tool output never reach them, so reviewing sandbox code cannot trip this.
-# Deliberately errno-shaped: a server saying "Permission denied on resource" or
-# PERMISSION_DENIED is a credential fault with a login flow behind it, and an unrestricted
-# re-run reproduces it unchanged, so it must keep its own status rather than become blocked.
-ENV_DENIAL='not permitted|eperm|eacces|erofs|read-only file system|os error 1|no provider table'
+ERRNO_DENIAL='not permitted|eperm|eacces|erofs|read-only file system|os error 1|no provider table'
 
 SESSION_EXEC='import os,sys
 cwd=sys.argv[1]
@@ -121,9 +114,6 @@ _peer_preflight_pi() {
   [[ -n "$provider" && -n "$model" ]] || return 0
   list=$(pi --list-models 2>/dev/null) || return 0
   [[ -n "$list" ]] || return 0
-  # pi answers --list-models with a login notice and two documentation paths - and still
-  # exits 0 - whenever it cannot read its credentials. Only the tabular form enumerates
-  # providers; any other shape says nothing about the registry and must not condemn it.
   if ! awk 'NR==1{exit !($1=="provider" && $2=="model")}' <<< "$list"; then
     printf '%s\n' "peer: pi returned no provider table, so its providers could not be enumerated" >&2
     printf '%s\n' "peer: this is an environment or credential fault, not a $REGISTRY error - dispatching so pi reports its own cause" >&2
@@ -263,13 +253,7 @@ if [[ "$cmd" != codex && "$cmd" != pi && "$cmd" != claude ]]; then
     cat "$diagdir/$id" >&2
   done
 
-  # The peers of a run share one environment, so they share one blast radius. Once any of
-  # them is denied an operation, no sibling's misconfig or auth row is a finding any more:
-  # a restricted harness names a specific file or credential to fix, and that name is
-  # unearned. Downgrade instead of handing a caller a confident wrong remedy - a run that
-  # buries a real registry fault under 'blocked' costs one unrestricted re-run, while the
-  # reverse costs an edit to a correct file.
-  if grep -qiE "$ENV_DENIAL" "$diagdir"/* 2>/dev/null; then
+  if grep -qiE "$ERRNO_DENIAL" "$diagdir"/* 2>/dev/null; then
     for id in "${ran[@]}"; do
       case "${STATUS[$id]}" in misconfig|auth) STATUS[$id]=blocked ;; esac
     done
