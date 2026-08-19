@@ -214,3 +214,9 @@ Full details: [reference/report.md](reference/report.md)
 ### Synthesis
 
 Full details: [reference/synthesis.md](reference/synthesis.md)
+
+### Landing the Outcome
+
+The confirmed `issues:` of a synthesized report land through the **[`fcp` skill](../fcp/SKILL.md)** —
+fix, commit, push in one pass, `--report` pointing at the run's `.reviews/<slug>/`. On a PR,
+[`fcprr`](../fcprr/SKILL.md) extends that chain with the per-thread reply and resolve.

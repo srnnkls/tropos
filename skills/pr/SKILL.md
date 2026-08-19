@@ -1,6 +1,6 @@
 ---
 name: pr
-description: GitHub PR review-comment operations. `comments` assesses each review comment (relevant vs outdated, valid vs invalid) and proposes an action; `fcprr` closes the threads you've addressed (fix + commit + push + reply + resolve) by delegating to the `fcprr` skill. Use for "pr comments", "assess PR feedback", "review PR comments", "reply to a PR comment", "resolve a thread", or "fcprr".
+description: GitHub PR review-comment operations. `comments` assesses each review comment (relevant vs outdated, valid vs invalid) and proposes an action; `fcprr` closes the threads you've addressed (fcp — fix + commit + push — then reply + resolve) by delegating to the `fcprr` skill. Use for "pr comments", "assess PR feedback", "review PR comments", "reply to a PR comment", "resolve a thread", or "fcprr".
 argument-hint: "[comments [N] | fcprr <args>]"
 allowed-tools: Bash(gh api *), Bash(gh pr *), Bash(gh review *), Bash(gh repo view *), Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git rev-parse *), Bash(git branch *)
 metadata:
@@ -37,7 +37,7 @@ If a block printed `no-pr`, ask the user for the PR number before continuing.
 Two operations on a pull request's review feedback:
 
 - **`comments`** — assess every review comment and say what to do about it.
-- **`fcprr`** — close the addressworthy threads: fix + commit + push + reply + resolve. Delegates to the `fcprr` skill.
+- **`fcprr`** — close the addressworthy threads: `fcp` (fix + commit + push), then reply + resolve. Delegates to the `fcprr` skill.
 
 Requires the `gh-review` extension (`gh extension install srnnkls/gh-review`), exposed as `gh review`.
 
@@ -85,7 +85,7 @@ Close with a two-bullet verdict: comments to address, comments to dismiss.
 
 Once the verdict is set, close every unresolved thread in one pass — no relevant thread is left open, whether or not anything was addressed:
 
-- **Accepted** threads route through the full `fcprr` (fix + commit + push + reply + resolve): invoke Skill `fcprr` with `--comment <node_id>` per accepted thread, plus `--reply` and `-m`. It applies the fixes, commits and pushes once, then replies to and resolves each thread.
+- **Accepted** threads route through the full `fcprr` (fcp + reply + resolve): invoke Skill `fcprr` with `--comment <node_id>` per accepted thread, plus `--reply` and `-m`. It applies the fixes, commits and pushes once, then replies to and resolves each thread.
 - **Dismissed** threads route through `fcprr --resolve-only` — no fix, commit, or push: reply with the dismissal rationale and resolve. When the verdict is *all dismiss* (nothing to address), this resolve-only pass is the whole close-out.
 
 Threads you defer or flag needs-discussion stay open. See [operations/fcprr.md](operations/fcprr.md).
@@ -94,9 +94,9 @@ Threads you defer or flag needs-discussion stay open. See [operations/fcprr.md](
 
 ## `fcprr` — close the addressed threads
 
-**f**ix + **c**ommit + **p**ush + **r**eply + **r**esolve, over every addressworthy comment. Delegates to the `fcprr` skill; see [operations/fcprr.md](operations/fcprr.md).
+**fcp** (fix + commit + push) + **r**eply + **r**esolve, over every addressworthy comment. Delegates to the `fcprr` skill, which runs the `fcp` skill for the first three steps; see [operations/fcprr.md](operations/fcprr.md).
 
-Order is load-bearing — the fixes land first, the commit must pass hooks before the push, the push must land before the reply (so the referenced SHA exists on the remote), and the reply precedes the resolve. A failure at any step stops the rest.
+Order is load-bearing — `fcp` must land the commit on the remote before the reply names its SHA, and the reply precedes the resolve. A failure at any step stops the rest.
 
 Dismissed threads take the `--resolve-only` path — the `rr` of `(fcp)rr` — skipping fix, commit, and push: reply the rationale, resolve.
 
