@@ -73,13 +73,13 @@ Bash(run_in_background=true):
 Write the complete materialized shared prompt to `{role_outdir}/prompt.md` before dispatch. Using
 the prompt file avoids argv-size limits for embedded diffs and schemas.
 
-For standalone `/review`, `{role_outdir}` is the per-run review home under `.reviews/<slug>/`,
-pinned by the review skill's **Report Output Directory** section, not invented per dispatch.
+`{role_outdir}` always comes from `peer path`, never from a hand-assembled string — see the
+canonical [report layout](../../peer/SKILL.md#report-layout--peer). For standalone `/review` the
+review skill's **Report Output Directory** section pins the subject and stage.
 
-For implementation-owned test, batch, and final review, reload the scope's `config.yaml` and use
-`.peer/<scope>/<epoch>/<batch-or-final-review>/<stage-or-role>/`. Those calls carry the configured
-aliases and effort directly and never write to `.reviews/` or consult
-`validation.yaml.review_config`.
+For implementation-owned test, batch, and final review, reload the scope's `config.yaml`, use the
+scope name as `<subject>`, and share one `<run>` across the round. Those calls carry the configured
+aliases and effort directly and never consult `validation.yaml.review_config`.
 
 Read the TSV manifest `peer` prints; pull each `ok` report file, skip stalled/error/auth
 rows (note them as partial results). Full contract — flags, manifest, exit codes — in the

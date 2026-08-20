@@ -1,6 +1,6 @@
 ---
 name: fcp
-description: Land the fixes for a local review — fix, commit, push. Applies the fix for every confirmed finding of a code review (in-context or from a `.reviews/<slug>/` report), commits once behind the hook gate, and pushes. Use for "fcp", "apply the review findings", "fix and push the review issues"; `fcprr` composes on it for PR threads.
+description: Land the fixes for a local review — fix, commit, push. Applies the fix for every confirmed finding of a code review (in-context or from a `.peer/` report directory), commits once behind the hook gate, and pushes. Use for "fcp", "apply the review findings", "fix and push the review issues"; `fcprr` composes on it for PR threads.
 argument-hint: "[--issue <id>…] [--report <path>] [-m <msg>] [paths…]"
 allowed-tools: Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git status *), Bash(git rev-parse *), Bash(git branch *)
 metadata:
@@ -28,7 +28,7 @@ Everything addressed in one run rides **one commit**: the fix set is applied tog
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--issue <id>` | every confirmed finding | Restrict to specific finding ids (`C1`, `H2`, …) from the synthesized report; repeat once per finding. |
-| `--report <path>` | findings in context | Synthesized report or `.reviews/<slug>/` directory to read findings from when they aren't already in the conversation. |
+| `--report <path>` | findings in context | Synthesized report or `.peer/<subject>/<run>/<stage>/` report directory to read findings from when they aren't already in the conversation. |
 | `-m, --message <text>` | derived | Commit message (conventional commit format). |
 | `[paths…]` | already-staged | Files to stage before committing. With none, commits whatever is already staged. |
 
@@ -38,7 +38,7 @@ Everything addressed in one run rides **one commit**: the fix set is applied tog
 
 ### 1. Resolve the fix set
 
-The findings come from the review already in context, or from `--report <path>` (a synthesized report, or a `.reviews/<slug>/` directory of per-reviewer reports — see [`review` reference/report.md](../review/reference/report.md)).
+The findings come from the review already in context, or from `--report <path>` (a synthesized report, or a `.peer/<subject>/<run>/<stage>/` directory of per-reviewer reports — see [`review` reference/report.md](../review/reference/report.md)).
 
 Address every **confirmed** finding — the entries under `issues:`, which cleared triage. Entries under `residual:` were ruled out and are not fixed. `--issue <id>` narrows that set further.
 

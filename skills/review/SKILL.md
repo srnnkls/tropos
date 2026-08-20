@@ -121,26 +121,29 @@ must never receive only a command to run.
 
 ### Report Output Directory
 
-For standalone `/review` routes, external reports go to a **git-ignored `.reviews/<slug>/`** at
-the repo root (mirrors the `issue` skill's `.issues/<number>-reviews/`), one subdirectory per review
-run. `peer`'s required `-d {outdir}` points here:
+Every review — standalone or implementation-owned — writes into `.peer/`, under the canonical
+[report layout](../peer/SKILL.md#report-layout--peer). Never assemble the path by hand; `peer path`
+constructs it, creates it, and keeps `.peer/` gitignored.
 
-| Route | `<slug>` | `{outdir}` |
+For a standalone `/review` run the route determines `<subject>` and the stage is `review`, or
+`review-<role>` when several roles fan out in one run:
+
+| Route | `<subject>` | `{outdir}` |
 |---|---|---|
-| PR | `pr-<number>` | `.reviews/pr-<number>/` |
-| Commit | `commit-<sha7>` | `.reviews/commit-<sha7>/` |
-| Branch diff | `diff-<base>..<target>` (sanitised) | `.reviews/diff-<base>..<target>/` |
-| Uncommitted | `working` | `.reviews/working/` |
-| Path | `path-<basename>` | `.reviews/path-<basename>/` |
-| Scope | `scope-<name>` | `.reviews/scope-<name>/` |
+| PR | `pr-<number>` | `$(peer path pr-<number> review)` |
+| Commit | `commit-<sha7>` | `$(peer path commit-<sha7> review)` |
+| Branch diff | `diff-<base>..<target>` (sanitised) | `$(peer path diff-<base>..<target> review)` |
+| Uncommitted | `working` | `$(peer path working review)` |
+| Path | `path-<basename>` | `$(peer path path-<basename> review)` |
+| Scope | `scope-<name>` | `$(peer path scope-<name> review)` |
 
-`peer --agent reviewer --peers <aliases>` writes `{outdir}/{reviewer-id}.yaml` per external
-reviewer. The dispatcher `mkdir -p`s the
-slug dir and ensures `.reviews/` is in `.gitignore` (append if absent) before fanning out.
+Each run mints a fresh `<run>`, so re-reviewing the same subject never overwrites the previous
+round's evidence. `peer --agent reviewer --peers <aliases>` writes `{outdir}/{reviewer-id}.yaml`
+per external reviewer beside the materialized `{outdir}/prompt.md`.
 
-Implementation-owned Phase A.5, Phase C, and final reviews are not standalone `/review` runs.
-They reload the scope's `config.yaml` and write beneath
-`.peer/<scope>/<epoch>/<batch-or-final-review>/<stage-or-role>/`; they never use `.reviews/`.
+Implementation-owned Phase A.5, Phase C, and final reviews are not standalone `/review` runs:
+they reload the scope's `config.yaml` and use the scope name as `<subject>` with one `<run>`
+shared across the round.
 
 ### Reviewer Selection
 
@@ -218,5 +221,5 @@ Full details: [reference/synthesis.md](reference/synthesis.md)
 ### Landing the Outcome
 
 The confirmed `issues:` of a synthesized report land through the **[`fcp` skill](../fcp/SKILL.md)** —
-fix, commit, push in one pass, `--report` pointing at the run's `.reviews/<slug>/`. On a PR,
+fix, commit, push in one pass, `--report` pointing at the run's report directory. On a PR,
 [`fcprr`](../fcprr/SKILL.md) extends that chain with the per-thread reply and resolve.

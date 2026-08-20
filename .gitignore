@@ -2,5 +2,5 @@
 *.local.toml
 .worktrees/
 .peer/
-.reviews/
+.issues/
 skills/loqui/reference/loqui

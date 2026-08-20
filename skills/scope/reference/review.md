@@ -63,8 +63,9 @@ Evaluate against these gates:
 Return the exact YAML reviewer_report schema embedded below.
 ```
 
-Append the exact Reviewer Report schema from this document to the materialized prompt, then save it
-as `.reviews/scope-<name>/prompt.md`.
+Append the exact Reviewer Report schema from this document to the materialized prompt. Mint the
+report directory with `outdir=$(peer path scope-{name} review)` and save the prompt as
+`{outdir}/prompt.md`.
 
 **In a single message**, dispatch the configured mechanisms:
 
@@ -72,9 +73,9 @@ as `.reviews/scope-<name>/prompt.md`.
 Codex native delegation(role=reviewer, prompt={review_prompt})  # codex-native on Codex
 Task(subagent_type="reviewer", model={native_alias}, prompt={review_prompt})  # opus/sonnet on Claude
 Bash(run_in_background=true):                                  # only when externals configured
-  peer -C {workdir} -d .reviews/scope-{name} --agent reviewer \
+  peer -C {workdir} -d {outdir} --agent reviewer \
     --peers {external_aliases} --effort {peer_effort} \
-    --prompt-file .reviews/scope-{name}/prompt.md
+    --prompt-file {outdir}/prompt.md
 ```
 
 Never pass host-native aliases to peer. Read the TSV manifest when peer ran; pull each `ok` report
