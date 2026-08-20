@@ -2,7 +2,7 @@
 name: issue
 description: GitHub issue operations — author or update issues against a canonical template, and create PRs from a branch/issue. Authoring drafts to a git-ignored `.issues/` folder, clears a host-aware four-report gate (two host-native and two cross-host peer reviewers), then publishes with issue type and parent/depends-on/blocks edges. Use for "create an issue", "open an issue", "update issue #N", "draft/sketch issue for X", "file an issue", or "pr" to open a pull request.
 argument-hint: "[number|pr] [args]"
-allowed-tools: Bash(gh issue *), Bash(gh pr *), Bash(gh api *), Bash(gh repo view *), Bash(git branch *), Bash(git push *), Bash(git rev-parse *), Bash(git log *), Bash(git merge-base *), Bash(issue *)
+allowed-tools: Bash(gh issue *), Bash(gh pr *), Bash(gh api *), Bash(gh repo view *), Bash(git branch *), Bash(git push *), Bash(git rev-parse *), Bash(git log *), Bash(git merge-base *), Bash(issue *), Bash(peer *)
 metadata:
   type: domain
 ---
@@ -52,11 +52,11 @@ The gh/GraphQL plumbing is wrapped by the **`issue` command** (on PATH via `mise
 |---|---|
 | `issue next` | predicted next number (the [Pre-loaded Context](#pre-loaded-context) one-liner) |
 | `issue draft <n> <type> "<title>"` | ensure `.issues/`, print `.issues/<n>-<type>-<slug>.md` |
-| `issue review <n>\|<draft> --reviewers aliases [--effort level]` | external half of the four-report gate through `peer --agent reviewer`; host-native reports stay agent-native. `--reviewers` is required — there is no safe default, since the correct pair depends on the host |
+| `issue review <n>\|<draft> --reviewers aliases [--effort level]` | external half of the four-report gate through `peer --agent reviewer`; reports land in `.peer/issue-<n>/<run>/issue-review/`. `--reviewers` is required — there is no safe default, since the correct pair depends on the host |
 | `issue create --type T --title … --body-file F [--parent N] [--depends-on L] [--blocks L]` | publish, auto-reconcile the draft filename to the real number, apply parent/dependency edges; prints `<number>\t<url>` |
 | `issue edit <n> [--type T] [--body-file F] [--parent N] [--depends-on L] [--blocks L]` | update body/type + edges |
 | `issue verify <n>` | read-back (type, parent, blockedBy, blocking) |
-| `issue purge [<n>]` | `trash` `.issues/` contents (all, or one issue's drafts+reviews) |
+| `issue purge [<n>]` | `trash` the drafts in `.issues/` and the reports in `.peer/issue-*` (all, or one issue's) |
 
 The raw `gh api graphql` mutations are documented below as the reference the wrapper implements.
 
@@ -70,7 +70,7 @@ The raw `gh api graphql` mutations are documented below as the reference the wra
 3. **Draft the issue body.** Use the section order in `references/template.md`. For implementation sketches, follow [`references/sketches.md`](references/sketches.md) — illustrative shapes (signatures, not bodies) written in the repo's own idioms.
 4. **Title format.** `<Module> — <short summary>` with an em-dash (—), not a hyphen. Examples: `Discovery — dependency traversal from activities to tables`, `Catalog — migration catalog with priority, stats, and export`.
 5. **Determine issue type, parent, and dependencies (depends-on / blocks) before submitting** (see [Issue metadata](#issue-metadata-type-parent-dependencies) below). If the user hasn't specified type or parent, ask via `AskUserQuestion` — don't guess. Ask about depends-on / blocks only when the body sketch hints at sequencing between issues; skip for standalone work. For updates, inspect the existing metadata first via `gh api graphql` and only change what the user asked to change.
-6. **Draft to the local `.issues/` folder** (repo-local, git-ignored — never `$TMPDIR`, the draft and its reviews persist there). Name the file `<issue-number>-<type>-<slug>.md` — e.g. `745-feature-discovery-dependency-traversal.md` (`<type>` is `feature`/`task` lowercase; `<slug>` is the kebab-cased title). `issue draft <n> <type> "<title>"` prints the path and creates `.issues/`.
+6. **Draft to the local `.issues/` folder** (repo-local, git-ignored — never `$TMPDIR`). `.issues/` holds drafts and nothing else; review reports live under `.peer/` (see [Review gate](#review-gate-four-reports-before-publish)). `issue draft` adds `.issues/` to `.gitignore` when absent. Name the file `<issue-number>-<type>-<slug>.md` — e.g. `745-feature-discovery-dependency-traversal.md` (`<type>` is `feature`/`task` lowercase; `<slug>` is the kebab-cased title). `issue draft <n> <type> "<title>"` prints the path and creates `.issues/`.
    - Create: use the next issue number from `issue next`. Draft the body into `.issues/<next>-<type>-<slug>.md`.
    - Update: the number is the issue you're editing. Preserve the live body first — `gh issue view <n> --json body -q .body > ".issues/<n>-<type>-<slug>.orig.md"` — then draft into `.issues/<n>-<type>-<slug>.md`. Surface a diff (`diff ".issues/<n>-<type>-<slug>.orig.md" ".issues/<n>-<type>-<slug>.md"`) before the gate if rewriting an existing body.
 7. **Review gate (mandatory four reports) — run before any publish.** The drafted body must clear two host-native reviews and two cross-host peer reviews before it reaches GitHub. Detect the current host, validate the external aliases with live `peer list` metadata, and dispatch all four in one message (see [Review gate](#review-gate-four-reports-before-publish) below):
@@ -81,16 +81,16 @@ The raw `gh api graphql` mutations are documented below as the reference the wra
    Pass the **draft path**, not the bare number — a bare number globs `.issues/<n>-*.md` and errors if more than one draft shares that number. Never replace the prescribed native family with its same-host CLI peer; if a required alias or native mechanism is unavailable, stop and report it.
 
    Read all four reports, fold blocking findings back into the draft, and re-run the gate until it passes. **Do not publish until the gate passes.**
-8. **Publish (auto-reconciles the number).** `issue create` runs `gh issue create --type`, then renames the draft (and its `-reviews/` dir) to the real number before applying edges.
+8. **Publish (auto-reconciles the number).** `issue create` runs `gh issue create --type`, then renames the draft — and its `.peer/issue-<predicted>/` report tree — to the real number before applying edges.
    - Create: `issue create --type "<Feature|Task>" --title "..." --body-file ".issues/<next>-<type>-<slug>.md" [--parent <n>] [--depends-on <a,b>] [--blocks <c,d>]` → prints `<number>\t<url>`.
    - Update: `issue edit <n> [--type "<Feature|Task>"] --body-file ".issues/<n>-<type>-<slug>.md" [--parent …] [--depends-on …] [--blocks …]`. No reconciliation — `<n>` is already real.
 
    `issue create/edit` fold the parent and depends-on/blocks edges in (step 9) so this is usually the only publish call. Verify with `issue verify <number>`.
 9. **Edges, if not folded into publish.** `issue create/edit --parent/--depends-on/--blocks` set them already; otherwise apply them directly — `issue parent <parent#> <child#>`, `issue depends-on <n> <dep#,…>`, `issue blocks <n> <target#,…>` (these wrap the `addSubIssue` / `addBlockedBy` GraphQL mutations documented below).
 
-The `.issues/` drafts and review reports are kept (git-ignored). Use `issue purge [<n>]` to clear them when done.
+Drafts stay in `.issues/` and review reports in `.peer/issue-<n>/`, both git-ignored. Use `issue purge [<n>]` to clear both when done.
 
-> **Prerequisites:** `issue` on PATH (`mise run install-issue`), `gh` authenticated, and for the review gate `peer` installed (`mise run install-peer`) with its harnesses authenticated. Add `.issues/` to `.gitignore` (or `.gitignore.local`).
+> **Prerequisites:** `issue` on PATH (`mise run install-issue`), `gh` authenticated, and for the review gate `peer` installed (`mise run install-peer`) with its harnesses authenticated. `issue draft` and `peer path` add `.issues/` and `.peer/` to `.gitignore` themselves.
 
 ## Review gate (four reports, before publish)
 
@@ -120,7 +120,7 @@ Claude host:
             --reviewers gpt,terra --effort high
 ```
 
-`issue review` requires `--reviewers <comma-separated-live-aliases>` — it has no default, because the correct pair depends on the host and a wrong one silently degrades the gate. The helper embeds the draft and canonical template in `.issues/<number>-reviews/prompt.md`, then calls canonical peer fan-out as `peer -C <workdir> -d <review-dir> --agent reviewer --peers <aliases> --effort <level> --prompt-file <review-dir>/prompt.md`. The native prompts must use that same self-contained content and output contract:
+`issue review` requires `--reviewers <comma-separated-live-aliases>` — it has no default, because the correct pair depends on the host and a wrong one silently degrades the gate. The helper mints the report directory with `peer path issue-<number> issue-review`, embeds the draft and canonical template in its `prompt.md`, then calls canonical peer fan-out as `peer -C <workdir> -d <review-dir> --agent reviewer --peers <aliases> --effort <level> --prompt-file <review-dir>/prompt.md`. The native prompts must use that same self-contained content and output contract:
 
 ```yaml
 issue_review:
@@ -131,7 +131,7 @@ issue_review:
     - concise optional improvement
 ```
 
-Require `status: fail` exactly when `blocking_findings` is non-empty and `[]` for an empty list. Reject malformed output as an unsuccessful report rather than guessing its meaning. Read the two native results and exactly two `ok` peer report rows under `.issues/<number>-reviews/`. The gate passes only when all four reports are successful, parseable, and contain no blocking finding that clears triage; nits are optional. Triage per [review synthesis](../review/reference/synthesis.md): a blocking finding counts only when it names a concrete defect in the draft — a missing section the template requires, a claim the draft contradicts, an unresolvable reference. Reviewer agreement is not validity, and findings that only narrow or restate a grounded point are demoted to nits. Fold triaged blocking findings back into the draft and re-run the entire four-report gate. Converge in one round; a further round requires a newly surfaced verified defect. Keep the reports and materialized prompt in `.issues/` as the audit trail, then proceed to Publish.
+Require `status: fail` exactly when `blocking_findings` is non-empty and `[]` for an empty list. Reject malformed output as an unsuccessful report rather than guessing its meaning. Read the two native results and exactly two `ok` peer report rows under the run's `.peer/issue-<number>/<run>/issue-review/`. The gate passes only when all four reports are successful, parseable, and contain no blocking finding that clears triage; nits are optional. Triage per [review synthesis](../review/reference/synthesis.md): a blocking finding counts only when it names a concrete defect in the draft — a missing section the template requires, a claim the draft contradicts, an unresolvable reference. Reviewer agreement is not validity, and findings that only narrow or restate a grounded point are demoted to nits. Fold triaged blocking findings back into the draft and re-run the entire four-report gate. Converge in one round; a further round requires a newly surfaced verified defect. Each gate round mints a fresh `<run>`, so an earlier round's evidence is never overwritten. Keep the reports and materialized prompt as the audit trail, then proceed to Publish.
 
 Consult the `/peer` skill for the live registry, dispatch contract, and harness authentication requirements.
 

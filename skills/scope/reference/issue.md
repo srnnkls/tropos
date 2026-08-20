@@ -86,6 +86,6 @@ Run `issue verify <n>` on the root (and spot-check a couple of leaves) to read b
 ## Notes
 
 - **Delegation, not duplication.** The `issue` skill owns body authoring, the template, the 2×2 gate, and the GraphQL plumbing. This operation owns only the tree: derivation, ordering, and edge wiring. Don't re-implement issue authoring here.
-- **`.issues/` drafts** for every node persist (git-ignored) as the audit trail — one `<number>-<type>-<slug>.md` plus its `-reviews/` dir per issue. Use `issue purge` to clear them when done.
+- **`.issues/` drafts** for every node persist (git-ignored) as the audit trail — one `<number>-<type>-<slug>.md` per issue, with its review reports under `.peer/issue-<number>/`. Use `issue purge` to clear both when done.
 - **Idempotency / re-runs.** If a scope was already partly published (e.g., a prior run failed at Level 3), prefer `gh issue list` to detect existing issues by title before re-creating; ask the user whether to resume or start fresh rather than producing duplicates.
 - **Prerequisites** are the `issue` skill's: `issue` on PATH (`mise run install-issue`), `gh` authenticated, `peer` installed for the gate, `.issues/` git-ignored.

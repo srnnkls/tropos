@@ -23,8 +23,9 @@
 #   issue edit NUMBER [--type T] [--body-file F] [--parent N] [--depends-on L] [--blocks L]
 #   issue review NUMBER|DRAFTFILE --reviewers ALIASES [--effort L]
 #                                               external half of the four-report gate via `peer`;
+#                                               reports land in .peer/issue-NUMBER/<run>/issue-review/;
 #                                               host-native reviewers are dispatched by the agent
-#   issue purge [NUMBER]                        trash .issues/ contents (all, or just #NUMBER's)
+#   issue purge [NUMBER]                        trash drafts in .issues/ and reports in .peer/issue-*
 #
 # Exit: 0 ok · 2 usage · 3 gh/auth or lookup failure
 emulate -L zsh
@@ -73,6 +74,16 @@ _node_id() {
 
 _kebab() {
   print -r -- "${1:l}" | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//; s/-+/-/g'
+}
+
+_ensure_ignored() {
+  local root gi
+  root=$(git rev-parse --show-toplevel 2>/dev/null) || return 0
+  gi="$root/.gitignore"
+  grep -qxF '.issues/' "$gi" 2>/dev/null && return 0
+  [[ -s "$gi" && -n "$(tail -c1 "$gi")" ]] && print -n $'\n' >>"$gi"
+  print -r -- '.issues/' >>"$gi" 2>/dev/null
+  return 0
 }
 
 # --- edges ---------------------------------------------------------------------------
@@ -144,7 +155,9 @@ _reconcile() {  # bodyfile actual
   tail=${base#$digits}
   local newf="$dir/${actual}${tail}"
   mv -- "$f" "$newf" 2>/dev/null || newf=$f
-  [[ -d "$dir/${digits}-reviews" ]] && mv -- "$dir/${digits}-reviews" "$dir/${actual}-reviews" 2>/dev/null
+  # Review reports are keyed by the predicted number too; keep the audit trail addressable.
+  [[ -d ".peer/issue-${digits}" && ! -e ".peer/issue-${actual}" ]] &&
+    mv -- ".peer/issue-${digits}" ".peer/issue-${actual}" 2>/dev/null
   print -r -- "$newf"
 }
 
@@ -181,6 +194,7 @@ case "$cmd" in
   draft)
     [[ -n "${3:-}" ]] || { _usage 'draft NUMBER TYPE "TITLE"'; return 2 }
     mkdir -p .issues || { _die "cannot create .issues/"; return 3 }
+    _ensure_ignored
     print -r -- ".issues/$1-${2:l}-$(_kebab "$3").md" ;;
 
   create)
@@ -258,7 +272,8 @@ case "$cmd" in
       draft=${hits[1]}
     fi
     local number=${${draft:t}%%[!0-9]*}
-    local outdir=".issues/${number}-reviews"; mkdir -p "$outdir"
+    local outdir; outdir=$(peer path "issue-${number}" issue-review) || {
+      _die "peer path failed — cannot mint a report dir for issue-${number}"; return 3 }
     local template_file="${0:A:h:h}/references/template.md"
     [[ -f "$template_file" ]] || { _die "canonical template not found: $template_file"; return 3 }
     local draft_content template_content
@@ -292,17 +307,16 @@ $draft_content
 
   purge)
     command -v trash >/dev/null 2>&1 || { _die "trash not found — refusing to rm; install trash-cli (macOS: 'trash')"; return 3 }
-    [[ -d .issues ]] || { print -u2 -- "issue: no .issues/ to purge"; return 0 }
     local -a hits
     if [[ -n "${1:-}" ]]; then
-      hits=( .issues/${1}-*(N) )
-      (( ${#hits} )) || { print -u2 -- "issue: nothing matching #$1 in .issues/"; return 0 }
+      hits=( .issues/${1}-*(N) .peer/issue-${1}(N) )
+      (( ${#hits} )) || { print -u2 -- "issue: nothing matching #$1 in .issues/ or .peer/"; return 0 }
     else
-      hits=( .issues/*(ND) )
-      (( ${#hits} )) || { print -u2 -- "issue: .issues/ already empty"; return 0 }
+      hits=( .issues/*(ND) .peer/issue-*(ND) )
+      (( ${#hits} )) || { print -u2 -- "issue: nothing to purge"; return 0 }
     fi
     trash -- "${hits[@]}" || { _die "trash failed"; return 3 }
-    print -r -- "purged ${#hits} entr$( (( ${#hits} == 1 )) && print -n y || print -n ies ) from .issues/" ;;
+    print -r -- "purged ${#hits} entr$( (( ${#hits} == 1 )) && print -n y || print -n ies ) from .issues/ and .peer/" ;;
 
   *) _usage "unknown subcommand '$cmd' (try: issue help)"; return 2 ;;
 esac
