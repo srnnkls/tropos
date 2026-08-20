@@ -26,6 +26,47 @@ _peer_resolve() {
   return 1
 }
 
+# --- canonical report layout: .peer/<subject>/<run>/<stage>/ -------------------------
+PEER_LAYOUT='.peer/<subject>/<run>/<stage>/'
+
+_peer_run_id() {
+  printf '%s-%s\n' "$(date -u +%Y%m%dT%H%M%SZ)" \
+    "$(LC_ALL=C tr -dc 'a-f0-9' </dev/urandom | head -c6)"
+}
+
+_peer_valid_seg() { [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; }
+_peer_valid_run() { [[ "$1" =~ ^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}$ ]]; }
+
+# Callers must invoke this before creating or dispatching anything: a rejected path must not
+# leave a directory behind.
+_peer_check_layout() {
+  local p=${1%/} rest; local -a seg=()
+  if [[ "$p" != */.peer/* && "$p" != */.peer ]]; then
+    printf '%s\n' "peer: '$p' is outside .peer/ - dispatch artifacts belong in $PEER_LAYOUT (peer path <subject> <stage>)" >&2
+    return 0
+  fi
+  rest=${p##*/.peer/}
+  [[ "$rest" == "$p" ]] && rest=""
+  IFS=/ read -ra seg <<< "$rest"
+  (( ${#seg[@]} == 3 )) \
+    && _peer_valid_seg "${seg[0]}" && _peer_valid_run "${seg[1]}" && _peer_valid_seg "${seg[2]}" \
+    && return 0
+  printf '%s\n' "peer: '$p' is not a canonical report dir - expected $PEER_LAYOUT" >&2
+  printf '%s\n' "peer: found ${#seg[@]} segment(s) below .peer/, need exactly 3 (run looks like 20260820T101112Z-a1b2c3)" >&2
+  printf '%s\n' "peer: mint one with: peer path <subject> <stage> [--run <run>]" >&2
+  return 2
+}
+
+_peer_ensure_ignored() {
+  local root gi
+  root=$(git -C "$1" rev-parse --show-toplevel 2>/dev/null) || return 0
+  gi="$root/.gitignore"
+  grep -qxF '.peer/' "$gi" 2>/dev/null && return 0
+  [[ -s "$gi" && -n "$(tail -c1 "$gi")" ]] && printf '\n' >>"$gi"
+  printf '%s\n' '.peer/' >>"$gi" 2>/dev/null
+  return 0
+}
+
 _peer_validate() {
   case "$1" in ''|minimal|low|medium|high|xhigh|max|ultra) ;; *) printf '%s\n' "peer: invalid --effort '$1' (expected: minimal, low, medium, high, xhigh, max, or ultra)" >&2; return 2 ;; esac
   { [[ "$2" =~ ^[0-9]+$ ]] && (( 10#$2 >= 1 )); } || { printf '%s\n' "peer: invalid --idle '$2' (expected a positive integer of seconds)" >&2; return 2; }
@@ -143,6 +184,45 @@ if [[ "$cmd" == list ]]; then
   exit 0
 fi
 
+# --- peer run-id / peer path: the only sanctioned way to name a report dir -----------
+if [[ "$cmd" == run-id ]]; then
+  _peer_run_id
+  exit 0
+fi
+
+if [[ "$cmd" == path ]]; then
+  shift
+  run=""; workdir="$PWD"; pos=()
+  while (( $# )); do
+    case "$1" in
+      --run)   run="${2:-}"; shift 2 ;;
+      -C|--cd) workdir="${2:-}"; shift 2 ;;
+      -*) printf '%s\n' "peer path: unknown flag $1" >&2; exit 2 ;;
+      *)  pos+=( "$1" ); shift ;;
+    esac
+  done
+  (( ${#pos[@]} == 2 )) || {
+    printf '%s\n' "usage: peer path <subject> <stage> [--run <run>] [-C DIR]" >&2
+    printf '%s\n' "       prints (and creates) $PEER_LAYOUT — mints <run> when omitted" >&2
+    exit 2
+  }
+  subject="${pos[0]}"; stage="${pos[1]}"
+  [[ -n "$run" ]] || run=$(_peer_run_id)
+  for _s in "$subject" "$stage"; do
+    _peer_valid_seg "$_s" || {
+      printf '%s\n' "peer path: invalid segment '$_s' (need [A-Za-z0-9][A-Za-z0-9._-]*)" >&2; exit 2; }
+  done
+  _peer_valid_run "$run" || {
+    printf '%s\n' "peer path: invalid --run '$run' (expected 20260820T101112Z-a1b2c3)" >&2; exit 2; }
+  workdir=$(cd "$workdir" 2>/dev/null && pwd -P) || {
+    printf '%s\n' "peer path: workdir is not accessible: $workdir" >&2; exit 2; }
+  dir="$workdir/.peer/$subject/$run/$stage"
+  mkdir -p "$dir" || exit 2
+  _peer_ensure_ignored "$workdir"
+  printf '%s\n' "$dir"
+  exit 0
+fi
+
 # --- peer get: one registry field for a peer (id|alias) — for doc injection -----------
 if [[ "$cmd" == get ]]; then
   shift
@@ -166,7 +246,8 @@ if [[ "$cmd" != codex && "$cmd" != pi && "$cmd" != claude ]]; then
   if [[ -z "$cmd" ]]; then
     printf '%s\n' "usage: peer -d OUTDIR [--peers id|alias,...] [--agent tester|implementer|reviewer] [-C DIR] [...] [PROMPT | --prompt-file FILE]" >&2
     printf '%s\n' "       peer <codex|pi|claude> -o OUTFILE [--agent tester|implementer|reviewer] [-C DIR] [...] [PROMPT | --prompt-file FILE]" >&2
-    printf '%s\n' "       peer list | peer get <id|model|harness|alias|effort|native> <id|alias>" >&2
+    printf '%s\n' "       peer path <subject> <stage> [--run <run>] [-C DIR]   (mint the canonical report dir)" >&2
+    printf '%s\n' "       peer run-id | peer list | peer get <id|model|harness|alias|effort|native> <id|alias>" >&2
     exit 0
   fi
   [[ "$cmd" == run ]] && shift
@@ -203,6 +284,7 @@ if [[ "$cmd" != codex && "$cmd" != pi && "$cmd" != claude ]]; then
     [[ -f "$prompt_file" && -r "$prompt_file" && -s "$prompt_file" ]] || { printf '%s\n' "peer: prompt file is not a readable non-empty regular file: $prompt_file" >&2; exit 2; }
   fi
   case "$outdir" in /*) ;; *) outdir="$workdir/$outdir" ;; esac
+  _peer_check_layout "$outdir" || exit 2
   mkdir -p "$outdir" || exit 2
 
   want=(); selected=(); ran=(); declare -A PID STATUS; ok=0
@@ -313,6 +395,7 @@ _peer_validate_agent "$agent" || exit 2
 _peer_validate "$effort" "$idle" "$cap" || exit 2
 [[ "$harness" == claude ]] && { _peer_validate_claude_effort "$effort" || exit 2; }
 case "$outfile" in /*) ;; *) outfile="$workdir/$outfile" ;; esac
+_peer_check_layout "${outfile%/*}" || exit 2
 if [[ -z "$AGENTS_DIR" ]]; then
   [[ -d "$workdir/agents" ]] && AGENTS_DIR="$workdir/agents" || AGENTS_DIR="$DEFAULT_AGENTS_DIR"
 fi

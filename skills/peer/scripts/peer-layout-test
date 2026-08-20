@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+# Run: skills/peer/scripts/peer-layout-test
+set -uo pipefail
+
+SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+PEER="$SCRIPT_DIR/peer"
+tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+tmp=$(cd "$tmp" && pwd -P)   # peer resolves workdirs with `pwd -P`; compare like for like
+fails=0
+
+ok()   { printf 'ok    %s\n' "$1"; }
+bad()  { printf 'FAIL  %s\n      %s\n' "$1" "$2"; (( fails++ )); }
+
+want_ok() {  # NAME EXPECTED-EXIT -- CMD...
+  local name=$1 want=$2; shift 3
+  local out rc
+  out=$("$@" 2>&1); rc=$?
+  (( rc == want )) && ok "$name" || bad "$name" "exit $rc (want $want): ${out:-<empty>}"
+}
+
+want_out() {  # NAME PATTERN -- CMD...
+  local name=$1 pat=$2; shift 3
+  local out
+  out=$("$@" 2>&1)
+  [[ "$out" =~ $pat ]] && ok "$name" || bad "$name" "output ${out:-<empty>} !~ $pat"
+}
+
+mkdir -p "$tmp/repo" && git -C "$tmp/repo" init -q 2>/dev/null
+
+# --- run-id -------------------------------------------------------------------------
+want_out 'run-id is an epoch stamp plus a short random suffix' \
+  '^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}$' -- "$PEER" run-id
+
+a=$("$PEER" run-id); b=$("$PEER" run-id)
+[[ "$a" != "$b" ]] && ok 'run-id is unique per call' || bad 'run-id is unique per call' "both $a"
+
+# --- path: minting and shape --------------------------------------------------------
+want_out 'path prints the canonical three-segment report dir' \
+  "^$tmp/repo/\.peer/issue-745/[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}/issue-review$" \
+  -- "$PEER" path issue-745 issue-review -C "$tmp/repo"
+
+run=$("$PEER" run-id)
+d=$("$PEER" path auth-system "$run" --stage b3-tester-T003 -C "$tmp/repo" 2>/dev/null)
+[[ -z "$d" ]] || bad 'path rejects a stray --stage flag' "accepted: $d"
+[[ -z "$d" ]] && ok 'path rejects a stray --stage flag'
+
+d=$("$PEER" path auth-system b3-tester-T003 --run "$run" -C "$tmp/repo")
+[[ "$d" == "$tmp/repo/.peer/auth-system/$run/b3-tester-T003" ]] \
+  && ok 'path honours an explicit --run' || bad 'path honours an explicit --run' "got $d"
+[[ -d "$d" ]] && ok 'path creates the report dir' || bad 'path creates the report dir' "missing $d"
+
+# --- path: gitignore --------------------------------------------------------------
+grep -qxF '.peer/' "$tmp/repo/.gitignore" 2>/dev/null \
+  && ok 'path ensures .peer/ is gitignored' \
+  || bad 'path ensures .peer/ is gitignored' "$(cat "$tmp/repo/.gitignore" 2>/dev/null)"
+
+before=$(cat "$tmp/repo/.gitignore")
+"$PEER" path other-subject some-stage -C "$tmp/repo" >/dev/null
+[[ "$(cat "$tmp/repo/.gitignore")" == "$before" ]] \
+  && ok 'path does not duplicate the gitignore entry' \
+  || bad 'path does not duplicate the gitignore entry' "$(cat "$tmp/repo/.gitignore")"
+
+# --- path: segment validation -------------------------------------------------------
+want_ok 'path rejects a slash in a segment'      2 -- "$PEER" path 'a/b' stage -C "$tmp/repo"
+want_ok 'path rejects a dot-dot segment'         2 -- "$PEER" path '..' stage -C "$tmp/repo"
+want_ok 'path rejects a leading-dot segment'     2 -- "$PEER" path '.hidden' stage -C "$tmp/repo"
+want_ok 'path rejects an empty segment'          2 -- "$PEER" path '' stage -C "$tmp/repo"
+want_ok 'path rejects a malformed --run'         2 -- "$PEER" path subj stage --run 'not-a-run' -C "$tmp/repo"
+want_ok 'path requires both subject and stage'   2 -- "$PEER" path subj -C "$tmp/repo"
+want_ok 'path accepts a dotted review slug'      0 -- "$PEER" path 'diff-main..feat' review -C "$tmp/repo"
+
+# --- dispatch: -d conformance under .peer/ -------------------------------------------
+# Layout is validated before any dispatch work, so these need no harness stubs.
+deep="$tmp/repo/.peer/subj/$run/stage/extra"
+want_ok 'fan-out rejects a four-segment .peer outdir' 2 \
+  -- "$PEER" -d "$deep" --peers model-known 'ping'
+[[ -d "$deep" ]] && bad 'a rejected outdir is not created' "created $deep" \
+                 || ok 'a rejected outdir is not created'
+
+want_ok 'fan-out rejects a two-segment .peer outdir' 2 \
+  -- "$PEER" -d "$tmp/repo/.peer/subj/$run" --peers model-known 'ping'
+
+want_ok 'fan-out rejects a .peer outdir with a malformed run segment' 2 \
+  -- "$PEER" -d "$tmp/repo/.peer/subj/whenever/stage" --peers model-known 'ping'
+
+want_ok 'single-harness rejects a non-conforming .peer outfile' 2 \
+  -- "$PEER" pi -o "$tmp/repo/.peer/subj/$run/stage/extra/x.yaml" 'ping'
+
+# A path with no .peer component stays out of the convention's jurisdiction.
+want_ok 'a non-.peer outdir is not layout-checked' 2 \
+  -- "$PEER" -d "$tmp/repo/scratch/anything/at/all" --peers nope 'ping'
+grep -q 'unknown peer' <(  # reached peer resolution, i.e. passed layout validation
+  "$PEER" -d "$tmp/repo/scratch/anything/at/all" --peers nope 'ping' 2>&1
+) && ok 'a non-.peer outdir reaches peer resolution' \
+  || bad 'a non-.peer outdir reaches peer resolution' 'failed before resolution'
+
+# --- .peer-relative dirs resolve against the workdir ---------------------------------
+want_ok 'a conforming relative .peer outdir is accepted through to resolution' 2 \
+  -- "$PEER" -C "$tmp/repo" -d ".peer/subj/$run/stage" --peers nope 'ping'
+grep -q 'unknown peer' <(
+  "$PEER" -C "$tmp/repo" -d ".peer/subj/$run/stage" --peers nope 'ping' 2>&1
+) && ok 'a conforming relative .peer outdir passes validation' \
+  || bad 'a conforming relative .peer outdir passes validation' 'rejected before resolution'
+
+grep -q 'outside .peer/' <(
+  "$PEER" -d "$tmp/repo/scratch/anything" --peers nope 'ping' 2>&1
+) && ok 'a non-.peer outdir is flagged on stderr' \
+  || bad 'a non-.peer outdir is flagged on stderr' 'no notice emitted'
+
+grep -q 'outside .peer/' <(
+  "$PEER" -C "$tmp/repo" -d ".peer/subj/$run/stage" --peers nope 'ping' 2>&1
+) && bad 'a conforming .peer outdir is not flagged' 'notice emitted anyway' \
+  || ok 'a conforming .peer outdir is not flagged'
+
+printf '\n%s\n' "$( ((fails)) && echo "$fails failing" || echo 'all passing')"
+exit $(( fails > 0 ))

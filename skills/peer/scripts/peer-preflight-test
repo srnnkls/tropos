@@ -35,10 +35,15 @@ printf '%s\n' '{"type":"message_end","message":{"role":"assistant","stopReason":
 STUB
 chmod +x "$tmp/bin/pi"
 
+# Dispatch through the canonical report layout, as every real caller does, so the stderr
+# assertions below see only preflight diagnostics.
+run=$("$PEER" run-id)
+
 check() {
-  local name=$1 mode=$2 want_rc=$3 want_stderr=$4 reject_stderr=$5 rc err out="$tmp/out.$2"
+  local name=$1 mode=$2 want_rc=$3 want_stderr=$4 reject_stderr=$5 rc err dir
+  dir=$("$PEER" path preflight "$2" --run "$run" -C "$tmp")
   err=$(STUB_MODE="$mode" PATH="$tmp/bin:$PATH" \
-    "$PEER" pi -o "$out" --provider google-vertex --model gemini-3.5-flash \
+    "$PEER" pi -o "$dir/report.yaml" --provider google-vertex --model gemini-3.5-flash \
     --cap 30 --idle 10 'ping' 2>&1 >/dev/null)
   rc=$?
   local bad=()

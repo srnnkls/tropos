@@ -47,9 +47,12 @@ printf '%s\n' '{"type":"message_end","message":{"role":"assistant","stopReason":
 STUB
 chmod +x "$tmp/bin/pi"
 
+fanout_run=$("$PEER" run-id)
+
 run() {
+  local dir; dir=$("$PEER" path fanout "$1" --run "$fanout_run" -C "$tmp")
   STUB_MODE="$1" PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
-    "$PEER" -d "$tmp/out.$1" --cap 30 'ping' 2>/dev/null
+    "$PEER" -d "$dir" --cap 30 'ping' 2>/dev/null
 }
 
 want_row() {

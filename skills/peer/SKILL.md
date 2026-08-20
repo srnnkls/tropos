@@ -70,6 +70,48 @@ peer list
 Use `peer get <field> <id|alias>` for `id`, `model`, `harness`, `alias`, `effort`,
 `native`, or `provider`.
 
+## Report layout — `.peer/`
+
+`.peer/` holds every artifact a peer dispatch produces, for every caller. This section is its
+only specification; skills reference it rather than restating a shape.
+
+```
+.peer/<subject>/<run>/<stage>/
+```
+
+Exactly three segments below `.peer/` — never two, never four. A dispatch that needs to
+distinguish itself from a sibling extends the `<stage>` name with a `-`; it does not open a
+new directory level.
+
+| Segment | Is | Examples |
+|---|---|---|
+| `<subject>` | what the work is about | `auth-system` (scope), `issue-745`, `pr-312`, `working`, `direct` |
+| `<run>` | one dispatch session, minted once per gate round | `20260820T101112Z-a1b2c3` |
+| `<stage>` | the specific dispatch within that run | `b3-tester-T003`, `b3-test-review`, `final-review-arch`, `issue-review`, `review` |
+
+Each leaf directory holds the materialized `prompt.md` and one `{peer-id}.yaml` per external
+peer. Native reports are written alongside them by the orchestrator, so a run's evidence is
+complete in one place.
+
+Never assemble these paths by hand. `peer path` is the sanctioned constructor: it validates
+every segment, creates the directory, and appends `.peer/` to the repository's `.gitignore`
+when absent.
+
+```bash
+run=$(peer run-id)                                   # 20260820T101112Z-a1b2c3
+dir=$(peer path auth-system b3-tester-T003 --run "$run")
+# ... write $dir/prompt.md ...
+peer -C "$workdir" -d "$dir" --agent tester --peers glm --prompt-file "$dir/prompt.md"
+```
+
+Omit `--run` and `peer path` mints one; pass the same `--run` to group every stage of a round
+under a single session. `-C {dir}` roots the `.peer/` tree somewhere other than the current
+directory.
+
+`peer` rejects a non-conforming `-d` or `-o` path under any `.peer/` root with exit `2`, before
+it creates anything or dispatches. A path outside `.peer/` is outside this convention and is
+not checked. `peer-layout-test` covers the constructor and the rejections.
+
 ## Fan-out interface
 
 ```bash
@@ -80,14 +122,15 @@ peer -C {workdir} -d {outdir} --agent tester \
   --peers {one-id-or-alias} --effort {reasoning} "{task_prompt}"
 
 peer -C {workdir} -d {outdir} --agent reviewer \
-  --peers {ids-or-aliases} --prompt-file {.peer/run/prompt.md}
+  --peers {ids-or-aliases} --prompt-file {outdir}/prompt.md
 ```
 
 Fan-out is the default action; `peer run ...` remains an alias.
 
 - `-C` / `--cd` sets the agent working root (default: the caller's current directory).
-- `-d` / `--out-dir` is required and receives one `{peer-id}.yaml` result per peer.
-  Relative output directories are resolved beneath the working root.
+- `-d` / `--out-dir` is required and receives one `{peer-id}.yaml` result per peer. Relative
+  output directories are resolved beneath the working root. Get it from `peer path` — see
+  [Report layout](#report-layout--peer).
 - `--agent` selects and injects a role contract. Omit only for legacy prompt-only review.
 - Supply exactly one prompt source: a positional prompt or `--prompt-file {file}`. Relative
   prompt-file paths resolve beneath the working root and must name a readable, non-empty
