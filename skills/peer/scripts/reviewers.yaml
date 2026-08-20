@@ -17,10 +17,10 @@ reviewers:
     alias: luna
     effort: high
     native: false
-  - id: gemini-3.5-flash
+  - id: gemini-3.7-flash
     harness: pi
     provider: google-vertex
-    model: gemini-3.5-flash
+    model: gemini-3.7-flash
     alias: gemini
     effort: "-"
     native: false
@@ -67,4 +67,4 @@ providers:
     thinking: true
 
 defaults:
-  pi: gemini-3.5-flash
+  pi: gemini-3.7-flash
