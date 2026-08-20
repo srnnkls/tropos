@@ -21,7 +21,7 @@
 #                                               filename to the real number and apply edges; prints
 #                                               "NUMBER<TAB>URL"
 #   issue edit NUMBER [--type T] [--body-file F] [--parent N] [--depends-on L] [--blocks L]
-#   issue review NUMBER|DRAFTFILE [--reviewers ALIASES] [--effort L]
+#   issue review NUMBER|DRAFTFILE --reviewers ALIASES [--effort L]
 #                                               external half of the four-report gate via `peer`;
 #                                               host-native reviewers are dispatched by the agent
 #   issue purge [NUMBER]                        trash .issues/ contents (all, or just #NUMBER's)
@@ -228,9 +228,9 @@ case "$cmd" in
     print -r -- "$n" ;;
 
   review)
-    [[ -n "${1:-}" ]] || { _usage 'review NUMBER|DRAFTFILE [--reviewers ALIASES] [--effort L]'; return 2 }
+    [[ -n "${1:-}" ]] || { _usage 'review NUMBER|DRAFTFILE --reviewers ALIASES [--effort L]'; return 2 }
     local target=$1; shift
-    local effort=high reviewers=gpt,gemini
+    local effort=high reviewers=
     while (( $# )); do
       case "$1" in
         --reviewers)
@@ -242,6 +242,10 @@ case "$cmd" in
         *) _usage "review: unexpected '$1'"; return 2 ;;
       esac
     done
+    [[ -n "$reviewers" ]] || {
+      _usage 'review: --reviewers is required — pass the host-selected cross-host pair (Codex host: opus-cli,sonnet-cli · Claude host: gpt,terra)'
+      return 2
+    }
     command -v peer >/dev/null 2>&1 || { _die "peer not found (mise run install-peer) — external half can't run"; return 3 }
     local draft
     if [[ -f "$target" ]]; then

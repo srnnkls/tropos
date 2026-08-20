@@ -52,7 +52,7 @@ The gh/GraphQL plumbing is wrapped by the **`issue` command** (on PATH via `mise
 |---|---|
 | `issue next` | predicted next number (the [Pre-loaded Context](#pre-loaded-context) one-liner) |
 | `issue draft <n> <type> "<title>"` | ensure `.issues/`, print `.issues/<n>-<type>-<slug>.md` |
-| `issue review <n>\|<draft> [--reviewers aliases] [--effort level]` | external half of the four-report gate through `peer --agent reviewer`; host-native reports stay agent-native |
+| `issue review <n>\|<draft> --reviewers aliases [--effort level]` | external half of the four-report gate through `peer --agent reviewer`; host-native reports stay agent-native. `--reviewers` is required — there is no safe default, since the correct pair depends on the host |
 | `issue create --type T --title … --body-file F [--parent N] [--depends-on L] [--blocks L]` | publish, auto-reconcile the draft filename to the real number, apply parent/dependency edges; prints `<number>\t<url>` |
 | `issue edit <n> [--type T] [--body-file F] [--parent N] [--depends-on L] [--blocks L]` | update body/type + edges |
 | `issue verify <n>` | read-back (type, parent, blockedBy, blocking) |
@@ -120,7 +120,7 @@ Claude host:
             --reviewers gpt,terra --effort high
 ```
 
-`issue review` accepts `--reviewers <comma-separated-live-aliases>`; its legacy direct-call default remains `gpt,gemini` for compatibility, but the skill must always pass the host-selected cross-host pair. The helper embeds the draft and canonical template in `.issues/<number>-reviews/prompt.md`, then calls canonical peer fan-out as `peer -C <workdir> -d <review-dir> --agent reviewer --peers <aliases> --effort <level> --prompt-file <review-dir>/prompt.md`. The native prompts must use that same self-contained content and output contract:
+`issue review` requires `--reviewers <comma-separated-live-aliases>` — it has no default, because the correct pair depends on the host and a wrong one silently degrades the gate. The helper embeds the draft and canonical template in `.issues/<number>-reviews/prompt.md`, then calls canonical peer fan-out as `peer -C <workdir> -d <review-dir> --agent reviewer --peers <aliases> --effort <level> --prompt-file <review-dir>/prompt.md`. The native prompts must use that same self-contained content and output contract:
 
 ```yaml
 issue_review:
