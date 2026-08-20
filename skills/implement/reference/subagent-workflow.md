@@ -126,7 +126,7 @@ Task (tester): "Write tests for Task N3" ...
 Wait for ALL testers to complete before dispatching Phase A.5.
 
 For an external tester, use
-`.peer/<scope-or-direct>/<epoch>/<batch>/tester/<task-id>/` as its output directory. If peer fails,
+`$(peer path <scope-or-direct> b<batch>-tester-<task-id> --run <run>)` as its output directory. If peer fails,
 stalls, or returns no valid `tester_report`, preserve partial edits, capture worktree status/diff,
 mark Phase A incomplete, and pause. Do not retry, roll back, or proceed.
 
@@ -195,7 +195,7 @@ Bash(run_in_background=true):
     --effort {reviewer_effort} --prompt-file {outdir}/prompt.md
 ```
 
-Use `.peer/<scope-or-direct>/<epoch>/<batch>/test-review/` for `{outdir}`. Wait for all Tasks and
+Use `$(peer path <scope-or-direct> b<batch>-test-review --run <run>)` for `{outdir}`. Wait for all Tasks and
 `peer` when external aliases were configured; read each `ok` row of peer's manifest. The gate
 requires one valid report from each execution class actually configured.
 Write the complete shared prompt to `{outdir}/prompt.md` before dispatch.
@@ -287,7 +287,7 @@ Task (implementer): "Implement Task N3" + tester_3_report
 Wait for ALL implementers to complete before dispatching reviewers.
 
 For an external implementer, use
-`.peer/<scope-or-direct>/<epoch>/<batch>/implementer/<task-id>/` as its output directory. If peer
+`$(peer path <scope-or-direct> b<batch>-implementer-<task-id> --run <run>)` as its output directory. If peer
 fails, stalls, or returns no valid report, preserve partial edits, capture worktree status/diff,
 mark Phase B incomplete, and pause. Do not retry, roll back, or proceed.
 

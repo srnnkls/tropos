@@ -69,29 +69,29 @@ checkpoint:
     reports:
       - agent: opus
         status: ok  # pending | in_progress | ok | failed
-        report_dir: .peer/auth-system/20260719T123456Z-a1b2c3/3/test-review
+        report_dir: .peer/auth-system/20260719T123456Z-a1b2c3/b3-test-review
         report_file: opus.yaml
       - agent: gpt
         status: failed
-        report_dir: .peer/auth-system/20260719T123456Z-a1b2c3/3/test-review
+        report_dir: .peer/auth-system/20260719T123456Z-a1b2c3/b3-test-review
         report_file: gpt.yaml
     # Used by code_review and final_review. Preserve completed roles independently.
     roles:
       general:
         status: completed  # pending | in_progress | completed | failed
-        report_dir: .peer/auth-system/20260719T123456Z-a1b2c3/3/review/general
+        report_dir: .peer/auth-system/20260719T123456Z-a1b2c3/b3-review-general
         reports:
           - {agent: opus, status: ok}
           - {agent: gpt, status: ok}
       architecture:
         status: in_progress
-        report_dir: .peer/auth-system/20260719T123456Z-a1b2c3/3/review/architecture
+        report_dir: .peer/auth-system/20260719T123456Z-a1b2c3/b3-review-architecture
         reports:
           - {agent: opus, status: ok}
           - {agent: gpt, status: failed}
       compliance:
         status: pending
-        report_dir: .peer/auth-system/20260719T123456Z-a1b2c3/3/review/compliance
+        report_dir: .peer/auth-system/20260719T123456Z-a1b2c3/b3-review-compliance
         reports: []
 
   # Recovery markers for mutating tester/implementer/fix dispatches. Empty at a clean gate.
@@ -100,7 +100,7 @@ checkpoint:
       task: T003
       phase: implementer  # tester | implementer | fix
       agent: gpt
-      report_dir: .peer/auth-system/20260719T123456Z-a1b2c3/3/implementer/T003
+      report_dir: .peer/auth-system/20260719T123456Z-a1b2c3/b3-implementer-T003
       status: failed  # in_progress | failed
       started_at: 2026-07-19T12:45:00Z
       updated_at: 2026-07-19T12:47:00Z

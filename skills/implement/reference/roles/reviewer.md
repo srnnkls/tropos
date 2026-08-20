@@ -118,7 +118,7 @@ peer -C <workdir> -d <role-outdir> --agent reviewer \
   --prompt-file <role-outdir>/prompt.md
 ```
 
-Use a git-ignored `.peer/<scope>/<epoch>/<batch>/review/<role>/` as `<role-outdir>`. Record the
+Use `<role-outdir>=$(peer path <scope> b<batch>-review-<role> --run <run>)`. Record the
 reviewers actually used in `review.yaml`. A config edit affects the next dispatch, not reviewers
 already running. Materialize the batch diff, requirements, and schema into each role prompt so a
 shell-less peer can complete it; save that prompt as `<role-outdir>/prompt.md` before dispatch.

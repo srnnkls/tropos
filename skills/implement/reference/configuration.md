@@ -25,13 +25,15 @@ routing:
     effort: inherit
 ```
 
-- A new top-level `/implement` execution creates a new epoch ID and timestamps.
+- A new top-level `/implement` execution mints a new epoch ID with `peer run-id` and fresh
+  timestamps. That ID is the `<run>` segment of every report directory the execution produces, so
+  one run's evidence stays addressable as a unit.
 - `/implement config <scope>` changes routing within the current epoch; preserve `id` and
   `started_at`, and refresh `updated_at`. Resolve `<scope>` by path or unique scope name; ask for
   the target only when it is missing or ambiguous. If no config exists, create an epoch.
 - `/continue` and `/loop` reuse the current epoch and read this file before every dispatch.
-- Direct tasks use the same resolved structure in memory, generate an ephemeral epoch ID for
-  report paths, and do not create repository-level configuration.
+- Direct tasks use the same resolved structure in memory, mint an ephemeral epoch ID the same way
+  for report paths, and do not create repository-level configuration.
 
 ## Setup and Overrides
 
@@ -142,13 +144,26 @@ record that native entries used `inherit` and pass the configured reviewer effor
   routes, convert the configured `+`-separated input to peer's comma-separated alias list and fan
   all configured external aliases through one peer call per review role.
 
-Write implementation peer reports beneath
-`.peer/<scope-or-direct>/<epoch>/<batch>/<stage>/`, adding task or review-role subdirectories when
-multiple dispatches would otherwise collide.
+Implementation peer reports follow the canonical
+[report layout](../../peer/SKILL.md#report-layout--peer): `.peer/<subject>/<run>/<stage>/`, always
+three segments. `<subject>` is the scope name (or `direct`), `<run>` is minted once per pipeline
+run with `peer run-id` and reused by every stage of it, and `<stage>` carries the batch, phase, and
+task or review role joined with `-`:
 
-Keep each materialized prompt as `prompt.md` inside its report directory (including
-`.peer/direct/<epoch>/...` for direct tasks). Always use `--prompt-file`; never pass an
-implementation pipeline prompt positionally, because embedded diffs/schemas may exceed argv limits.
+| Dispatch | `<stage>` |
+|---|---|
+| tester for task T003 in batch 3 | `b3-tester-T003` |
+| implementer for task T003 in batch 3 | `b3-implementer-T003` |
+| batch 3 test review | `b3-test-review` |
+| batch 3 code review, architecture role | `b3-review-architecture` |
+| final review, compliance role | `final-review-compliance` |
+
+Mint every one with `peer path <subject> <stage> --run <run>`; never assemble the path by hand and
+never add a fourth level to separate colliding dispatches — extend `<stage>` instead.
+
+Keep each materialized prompt as `prompt.md` inside its report directory. Always use
+`--prompt-file`; never pass an implementation pipeline prompt positionally, because embedded
+diffs/schemas may exceed argv limits.
 
 Reviewer failures follow the review gate's partial-result policy. Require at least one successful
 report from every execution class actually configured for that gate: native when any native alias
@@ -164,4 +179,4 @@ marker described in [checkpoint-format.md](checkpoint-format.md) immediately bef
 update it immediately after success or failure. Use the assigned `.peer` report directory for both
 routes; peer writes external reports there, while the orchestrator stores a native report there
 before clearing the marker. Direct tasks create no checkpoint: keep equivalent markers/evidence in
-memory and store their artifacts beneath `.peer/direct/<epoch>/`.
+memory and store their artifacts beneath `.peer/direct/<run>/<stage>/`.

@@ -143,7 +143,7 @@ below), and batches run sequentially.
 **Scope-backed mutating-stage checkpoint invariant:** Immediately before every tester,
 implementer, or fix dispatch, write one `checkpoint.incomplete_stages` entry per task using
 `reference/checkpoint-format.md`. This applies to native Tasks and external peers. Assign every
-entry a `.peer/<scope>/<epoch>/<batch>/<stage>/<task>/` report directory and capture baseline git
+entry a `.peer/<scope>/<run>/b<batch>-<stage>-<task>/` report directory and capture baseline git
 status/diff evidence. After a valid stage report passes its RED/GREEN/fix gate, save the normalized
 report there and remove only that task's entry. On failure or interruption, update that entry with
 post-failure evidence and pause; never clear it merely because the dispatch process exited.
@@ -154,7 +154,7 @@ Also persist and advance `checkpoint.phase_cursor` before and after every phase/
 per-agent test/targeted reviews and per-role Phase C/final reviews. `incomplete_stages` has priority;
 otherwise the cursor is the authoritative resume position. Direct tasks do not create a checkpoint:
 keep the same cursor/marker state in memory and store prompts, reports, and git evidence under
-`.peer/direct/<epoch>/`.
+`.peer/direct/<run>/<stage>/`.
 
 #### Phase A: Dispatch Testers
 
@@ -511,13 +511,13 @@ states and directories, before dispatch. Preserve completed roles across interru
 roles pass, write `final_review: completed`, then `phase: complete, status: completed`.
 
 ```
-output root: .peer/<scope>/<epoch>/final-review/<role>/
+outdir=$(peer path {scope} final-review-{role} --run {run})
 Per role (General / Architecture / Compliance), in one message:
   Codex native delegation(role=reviewer, prompt={role_prompt})     # codex-native, if configured
   Task(subagent_type="reviewer", model={native_alias}, prompt={role_prompt})  # opus/sonnet
-  peer -C {workdir} -d .peer/{scope}/{epoch}/final-review/{role} --agent reviewer \ # externals only
+  peer -C {workdir} -d {outdir} --agent reviewer \                 # externals only
     --peers {external_aliases} --effort {reviewer_effort} \
-    --prompt-file .peer/{scope}/{epoch}/final-review/{role}/prompt.md
+    --prompt-file {outdir}/prompt.md
 ```
 
 Write each complete materialized role prompt to the shown `prompt.md` before dispatch; do not pass
@@ -618,7 +618,7 @@ On Codex, `codex-native` uses native delegation and Claude-family roles use `opu
 through peer. On Claude, `opus`/`sonnet` use the table's Task type and GPT-family roles use
 registered Codex aliases through peer. External aliases use
 `peer --agent tester|implementer|reviewer`; peer loads the matching agent contract. Store reports
-under `.peer/<scope>/<epoch>/<batch>/<stage>/` as defined in `reference/configuration.md`.
+under `.peer/<scope>/<run>/<stage>/` as defined in `reference/configuration.md`.
 
 ---
 

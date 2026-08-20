@@ -281,7 +281,7 @@ Reloading config.yaml reviewer aliases + effort for final review.
 ```
 
 Run the implementation final-review procedure directly with those aliases and effort, writing
-external reports beneath `.peer/<scope>/<epoch>/final-review/`. Do not hand off to standalone
+external reports beneath `.peer/<scope>/<run>/final-review-<role>/`. Do not hand off to standalone
 `/review --final`, read `validation.yaml.review_config`, or prompt for reviewer selection.
 
 ---
