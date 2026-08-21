@@ -42,12 +42,9 @@ The findings come from the review already in context, or from `--report <path>` 
 
 Address every **confirmed** finding — the entries under `issues:`, which cleared triage. Entries under `residual:` were ruled out and are not fixed. `--issue <id>` narrows that set further.
 
-Two exclusions from the fix set:
+Two exclusions: a `needs decision:` suggestion goes to the user unfixed (it wants API surface, a new type, or a signature change — never invent the design to close it), and a narrower variant of an already-fixed finding is residual unless it names a trigger the earlier fix left reachable.
 
-- A finding whose `suggestion` reads `needs decision:` needs public API surface, a new type, or a signature change. Report it to the user with its constraint and leave it unfixed — never invent the design to close it.
-- A finding already fixed in a prior run and re-reported as a narrower variant. Either the earlier fix left the trigger reachable, in which case fix that trigger, or it didn't, in which case the variant is residual.
-
-Each fix is the smallest change that removes the failure mode, applied at the shared root rather than per caller. Hardening the finding doesn't name is out of scope.
+Each fix is the smallest change at the shared root, not per caller. Hardening the finding doesn't name is out of scope.
 
 With no findings resolvable, stop and ask which review to work from.
 

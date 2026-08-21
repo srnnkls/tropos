@@ -126,16 +126,13 @@ supplemental.
 **Variables:** `{materialized_diff}`, `{requirements}`, `{report_schema}`, `{diff_cmd}`, `{range}`,
 `{workdir}`, `{context}`, `{paths}`, `{structural_context}`, `{guidelines}`, `{finding_bar}`
 
-`{finding_bar}` is the block injected below, verbatim. Every role prompt carries it, native and
-external alike — it is what keeps a review converging in one fix round instead of dripping one
-assertion per round.
+`{finding_bar}` is the block below, verbatim, in every role prompt — native and external alike.
+Empty block → read [`/review` reference/finding-bar.md](../review/reference/finding-bar.md) before
+dispatching.
 
 <finding_bar>
 !`cat ~/.claude/skills/review/reference/finding-bar.md 2>/dev/null || cat skills/review/reference/finding-bar.md 2>/dev/null || true`
 </finding_bar>
-
-Source: [`/review` reference/finding-bar.md](../review/reference/finding-bar.md). If the block above
-came back empty, read that file before dispatching — no reviewer prompt goes out without it.
 
 **General Review Prompt:**
 

@@ -41,7 +41,6 @@ When dispatched as a **test reviewer** (before implementers), check test files f
 1. Load the repository's test-audit guidance for the anti-patterns and the coverage-sufficiency rule.
 2. Read each test file provided
 3. Apply anti-pattern checks: oracle mirroring, mock tautologies, framework tests, trivial assertions, defective oracles (wrong signal consumed, state leaked between cases)
-   - Thin coverage is not an anti-pattern. Flag a guarantee no test can fail on; never a missing permutation of a guarantee already covered.
 4. Report findings in the schema requested by the task prompt.
 
 ### Phase C: Code Review
@@ -62,11 +61,10 @@ Report only evidence-backed findings, including severity, location, impact, and 
 
 The task prompt carries the full bar; it holds whether or not the prompt repeats it.
 
-- A finding names a reachable trigger and the wrong outcome it produces. Neither one → not a finding.
-- Group by mechanism. When the change touches a state machine — publication, sealing, invalidation, recovery, verification — enumerate its states and transitions first and report every defect in it as one finding. One transition per round costs a fix round per assertion.
-- `suggestion` is the smallest change that removes the failure mode, at the shared root rather than per caller. When it would need new public API surface, a new type, or a signature change, prefix it `needs decision:` and describe the constraint instead of designing it.
-- Sufficiency: documented guarantees holding under representative falsifiers, with confirmed reachable failures fixed, is done. Further permutations, observability, telemetry precision, and provenance formalism are deferred work — not gate failures.
-- Out of bounds: unreachable edge cases, hardening already-falsified checks, equivalent rewrites of conformant code, the design restated as a defect, label mismatches over a verifiably correct artifact, and narrower variants of a finding an earlier round already fixed.
+- A finding names a reachable trigger and the wrong outcome it produces. Neither → not a finding.
+- Group by mechanism: a change touching a state machine — publication, sealing, invalidation, recovery, verification — gets its transitions enumerated first and reported as one finding. One transition per round costs a fix round per assertion.
+- `suggestion` is the smallest change at the shared root, not per caller. Needing new API surface, a type, or a signature change → prefix `needs decision:` and state the constraint instead of designing it.
+- Out of bounds: unreachable edge cases, already-falsified checks, equivalent rewrites of conformant code, the design restated as a defect, label mismatches over a verifiably correct artifact, narrower variants of an already-fixed finding, and permutations past the representative falsifiers a guarantee needs.
 - Five verified findings beat forty candidates. A candidate that costs a verification round and dies is a net loss.
 
 ## Issue Severity

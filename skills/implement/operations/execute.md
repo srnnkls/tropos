@@ -422,15 +422,10 @@ After ALL reviewers complete:
 
 ### 6. Apply Review Feedback
 
-**Triage before dispatching anything.** Findings are evidence, not a work queue: run
-`/review` [reference/synthesis.md](../../review/reference/synthesis.md) §4.5–4.6 first. Batch by
-mechanism — issues touching the same state machine are swept and fixed together, never one
-transition per round. Issues whose `suggestion` reads `needs decision:` go to the user, not to a
-fix agent.
-
-**Round budget: two fix rounds per batch.** A third opens only for a verified failure mode in a
-component no prior round examined. Otherwise stop, record the survivors as `residual`, and report
-to the user — a third round of narrower variants is churn, not quality.
+**Triage before dispatching anything.** Findings are evidence, not a work queue: apply
+`/review` [reference/synthesis.md](../../review/reference/synthesis.md) §4.5–4.6 — validity bar,
+batch by mechanism, two fix rounds per batch, `needs decision:` to the user rather than to a fix
+agent.
 
 **If Critical/High issues found:**
 1. Reload the implementer route and create a mutating `incomplete_stages` marker per fix task
@@ -663,7 +658,6 @@ under `.peer/<scope>/<run>/<stage>/` as defined in `reference/configuration.md`.
 - Batch commits across multiple batches
 - **Let subagents return prose around YAML reports (context explosion risk)**
 - Open a fix round on one transition of a state machine before sweeping the whole machine
-- Dispatch a fix agent for a finding whose suggestion reads `needs decision:`
 - Run a third fix round on narrower variants of an already-fixed finding
 
 **If tester can't write tests:**
