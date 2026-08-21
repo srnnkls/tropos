@@ -44,6 +44,25 @@ Signals:
 - Asserts type rather than value
 - "Obviously true given the types" — no behavior under test
 
+### 5. Defective oracle
+
+Test consumes the wrong signal, leaks state between cases, or passes for a reason unrelated to the
+behavior it names — it can accuse a correct implementation or absolve a broken one.
+
+Signals:
+- Consumes a different injected fault/fixture than the one it names
+- Marker, temp, or global state carried over from a previous case
+- Passes when the named behavior is reverted
+
+---
+
+## Not an anti-pattern
+
+Do not report thin coverage as a defect. A guarantee covered by a small set of representative
+falsifiers is sufficient; more permutations of the same guarantee are deferred work. Flag a
+*missing guarantee* — no test can fail if this documented behavior breaks — never a missing
+permutation, and never ask for exhaustive enumeration of an input, syscall, or interleaving space.
+
 ---
 
 ## Workflow
@@ -68,6 +87,9 @@ Signals:
 - ...
 
 ## Trivial assertions (N)
+- ...
+
+## Defective oracles (N)
 - ...
 
 ## Clean (N tests, no issues)

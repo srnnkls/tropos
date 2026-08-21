@@ -51,6 +51,28 @@ Report volume tracks reasoning effort, not defect density, and high-effort revie
 produce refinement spirals past the first round. Converge in one fix round unless a later
 round surfaces a new verified failure mode; round count is a cost, not a quality signal.
 
+### 4.6 Convergence
+
+Two fix rounds per subject. A third round opens only for a verified failure mode in a component
+no prior round examined — never for a narrower variant of something already fixed. At that point,
+stop and hand the user the surviving `residual` list with a recommendation, rather than dispatching
+again.
+
+Batch by mechanism, not by assertion. When two or more issues touch the same state machine —
+publication, sealing, invalidation, recovery, verification, any ordered protocol over persisted or
+shared state — do not open a fix round on the first one. Enumerate that machine's states and
+transitions, sweep it once, and fix the whole set together. Rediscovering an adjacent state three
+rounds later is a synthesis failure, not a reviewer win.
+
+An issue whose `suggestion` carries `needs decision:` does not enter a fix round. Surface it to the
+user with the constraint that forces it; a fix agent must never invent public API surface to close
+a finding.
+
+Apply the finding bar's sufficiency cutoff at the gate too: the scope ships when its documented
+guarantees hold under representative falsifiers and confirmed reachable failures are fixed.
+Additional permutations, observability, and telemetry precision are `residual` — reason
+`deferred_hardening` — until production integration or an observed failure demands them.
+
 ### 5. Aggregate Gates
 
 - Each role owns its gates:

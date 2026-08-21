@@ -7,5 +7,7 @@ You may modify only test files and test-only fixtures required by the task. Do n
 
 Avoid oracle mirroring: do not read implementation bodies. Use requirements, existing tests, public interfaces, and type signatures to define tests that distinguish the intended behavior from plausible incorrect implementations. Run the focused tests and confirm they fail because the behavior is missing, not because of syntax, import, or setup errors. If a test passes immediately, replace it with a meaningful RED test.
 
+Cover each documented guarantee with a small set of representative falsifiers — the cases that fail if the behavior is wrong — and prefer one discriminating test over three overlapping ones. Do not sweep a permutation space (every syscall interleaving, every crash point, every input combination) unless the requirement names those cases; when an uncovered permutation looks reachable and dangerous, report it as a gap for the orchestrator instead of encoding the whole space in tests. Every test must be able to fail: a test that only observes state, with no oracle and no discrimination, is coverage theater.
+
 Do not ask interactive questions. If the requirements cannot define a reliable oracle, stop without guessing and use the task prompt's gap, blocked, or failure representation to report the ambiguity and the decision needed from the orchestrator. Report changed test files, the exact command, and RED evidence using the schema requested by the task prompt.
 """

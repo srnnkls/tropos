@@ -177,7 +177,7 @@ and fan configured external reviewers through one `peer --agent reviewer` call. 
 success from each execution class actually configured; an all-native or all-external gate does not
 require the absent class.
 
-- Reviewers check for oracle mirroring, mock tautologies, framework tests, trivial assertions
+- Reviewers check for oracle mirroring, mock tautologies, framework tests, trivial assertions, defective oracles
 - Triage findings before acting on them per
   [review synthesis](../review/reference/synthesis.md) — a test is flagged only when a
   reported issue names a concrete failure mode against the actual test: a probe that passes

@@ -67,7 +67,7 @@ Options:
 - Branch diff: Review all changes since diverging from base branch
 - Uncommitted: Review staged and unstaged modifications
 - Structural: Gestalt-driven structural review — topology, blast radius, targeted questions
-- Test quality: Audit tests for oracle mirroring, mock tautologies, framework tests, trivial assertions
+- Test quality: Audit tests for oracle mirroring, mock tautologies, framework tests, trivial assertions, defective oracles
 ```
 
 With "Other" covering: scope review, path review, or custom target.
@@ -94,6 +94,7 @@ Canonical configuration for multi-agent review. Domain skills compose on this.
 
 > **Reference:** See [reference/models.md](reference/models.md) for models,
 > [reference/harnesses.md](reference/harnesses.md) for dispatch templates,
+> [reference/finding-bar.md](reference/finding-bar.md) for the admission bar every role prompt carries,
 > [reference/report.md](reference/report.md) for YAML schemas,
 > [reference/synthesis.md](reference/synthesis.md) for merge algorithm.
 
@@ -115,8 +116,8 @@ Per role, in a single message: Codex delegation for `codex-native`, Claude Tasks
 **Never send a host-native token through peer or invoke an external harness directly.** Domain skill defines roles; see
 [reference/harnesses.md](reference/harnesses.md) and the [peer skill](../peer/SKILL.md).
 
-Materialize the reviewed content, requirements/context, and exact report schema into the shared
-prompt before dispatch. Git commands and workdirs are supplemental; a shell-less read-only peer
+Materialize the reviewed content, requirements/context, exact report schema, and the verbatim
+[finding bar](reference/finding-bar.md) into the shared prompt before dispatch. Git commands and workdirs are supplemental; a shell-less read-only peer
 must never receive only a command to run.
 
 ### Report Output Directory

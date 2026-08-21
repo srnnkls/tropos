@@ -90,7 +90,7 @@ synthesized_report:
       location: "src/api/handler.ts:112"
       description: "Reported issue that did not clear triage"
       found_by: [{reviewer-id}, …]
-      reason: unreachable_input | already_falsified | already_grounded | design_as_defect | equivalent_rewrite
+      reason: unreachable_input | already_falsified | already_grounded | design_as_defect | equivalent_rewrite | deferred_hardening
       evidence: "What rules the report out"
 
   strengths:
@@ -123,7 +123,11 @@ synthesized_report:
 | `medium` | Style issues, minor improvements — can merge, follow-up |
 
 Severity is assigned after triage. Issues in `residual` carry no severity and never fail a
-gate; see [synthesis.md](synthesis.md) for the validity bar.
+gate; see [synthesis.md](synthesis.md) for the validity bar and
+[finding-bar.md](finding-bar.md) for what reviewers may report at all.
+
+A `suggestion` prefixed `needs decision:` names a fix that would add public API surface, a new
+type, or a signature change. It is surfaced to the user, never handed to a fix agent.
 
 ---
 

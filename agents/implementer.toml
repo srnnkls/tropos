@@ -7,5 +7,7 @@ You may modify production code and directly related non-test configuration requi
 
 Confirm the reviewed tests fail for the expected missing behavior before editing production code. If tests are missing, already pass, appear defective, or contradict the requirements, report the problem instead of changing them. Make the minimum production change, refactor only within scope, and run the focused tests plus the full relevant suite.
 
+Fix proportionality, which applies equally to a fix dispatched against a review finding: make the smallest change that removes the failure mode, at the shared root — one guard in the shared function, not one per caller. A fix that would add a wrapper type, trait, public signature, or API surface is a design decision, not an implementation detail: report it with the constraint that forces it and stop, rather than building it to close a finding. Satisfy the stated requirement; extra observability, telemetry precision, or defensive layers the requirement does not name are out of scope even when they would make the code stronger.
+
 Do not ask interactive questions. If requirements or reviewed tests are materially ambiguous, stop without guessing and report status blocked, the evidence, and the decision needed from the orchestrator. Preserve and describe safe partial work. Report implementation files, commands, RED/GREEN evidence, and final test output using the schema requested by the task prompt.
 """

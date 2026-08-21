@@ -246,6 +246,8 @@ advance to `implementer: pending`; findings advance to `tester: pending` for aff
 | Mock tautologies | Re-dispatch affected tester(s) with specific finding |
 | Framework tests | Re-dispatch affected tester(s) with specific finding |
 | Trivial assertions | Re-dispatch affected tester(s) with specific finding |
+| Defective oracle (wrong signal consumed, state leaked between cases) | Re-dispatch affected tester(s) with specific finding |
+| Thin coverage of an already-guaranteed behavior | Not a finding — proceed to Phase B |
 
 After re-dispatch, tester output must pass Phase A.5 again before Phase B.
 
@@ -332,7 +334,9 @@ Per role (General / Architecture / Compliance), in one message:
 1. Embed the materialized batch diff, not only `{diff_cmd}`.
 2. Embed the applicable task requirements and acceptance criteria from `tasks.yaml`.
 3. Embed the exact reviewer YAML output schema.
-4. Shell-capable reviewers may also receive `{diff_cmd}`, scope path, and workdir for exploration;
+4. Embed the verbatim [finding bar](../../review/reference/finding-bar.md) — the admission,
+   grouping, fix-sizing, and sufficiency rules that keep the round count down.
+5. Shell-capable reviewers may also receive `{diff_cmd}`, scope path, and workdir for exploration;
    shell-less external reviewers must be able to complete from prompt contents alone.
 
 **Architecture role additionally runs:**
@@ -417,6 +421,16 @@ After ALL reviewers complete:
 `—` = not in scope for this role. On failure, parenthetical = which harness(es) failed.
 
 ### 6. Apply Review Feedback
+
+**Triage before dispatching anything.** Findings are evidence, not a work queue: run
+`/review` [reference/synthesis.md](../../review/reference/synthesis.md) §4.5–4.6 first. Batch by
+mechanism — issues touching the same state machine are swept and fixed together, never one
+transition per round. Issues whose `suggestion` reads `needs decision:` go to the user, not to a
+fix agent.
+
+**Round budget: two fix rounds per batch.** A third opens only for a verified failure mode in a
+component no prior round examined. Otherwise stop, record the survivors as `residual`, and report
+to the user — a third round of narrower variants is churn, not quality.
 
 **If Critical/High issues found:**
 1. Reload the implementer route and create a mutating `incomplete_stages` marker per fix task
@@ -630,7 +644,7 @@ under `.peer/<scope>/<run>/<stage>/` as defined in `reference/configuration.md`.
 | RED verification | After Phase A | Structural: `failure_output` non-empty, shows failures (not errors), fails because feature missing |
 | **Test review** | **After Phase A, before Phase B** | **Triage findings, re-dispatch tester(s) with the verified ones; converge in one round** |
 | GREEN verification | After Phase B | `test_output` non-empty, all tests pass, no errors/warnings |
-| **Batch review** | **After Phase B (all implementers)** | **Fix before next batch** |
+| **Batch review** | **After Phase B (all implementers)** | **Triage, batch by mechanism, fix before next batch; two rounds max** |
 | Final review | After all batches | Address gaps |
 
 ---
@@ -648,6 +662,9 @@ under `.peer/<scope>/<run>/<stage>/` as defined in `reference/configuration.md`.
 - Ignore failed pre-impl gates for Initiatives
 - Batch commits across multiple batches
 - **Let subagents return prose around YAML reports (context explosion risk)**
+- Open a fix round on one transition of a state machine before sweeping the whole machine
+- Dispatch a fix agent for a finding whose suggestion reads `needs decision:`
+- Run a third fix round on narrower variants of an already-fixed finding
 
 **If tester can't write tests:**
 - Don't skip to implementer

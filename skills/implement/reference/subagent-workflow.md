@@ -147,7 +147,8 @@ an external harness directly, or use
 ```
 Review these test files for quality issues before implementation proceeds.
 
-Read `./skills/review/operations/test-audit.md` for the four anti-patterns to check.
+Read `./skills/review/operations/test-audit.md` for the anti-patterns to check and for what is
+explicitly not one (thin coverage of an already-guaranteed behavior).
 
 **Test files to review:**
 [list each path from tester_reports[*].test_files[*].path]
@@ -157,7 +158,7 @@ Read `./skills/review/operations/test-audit.md` for the four anti-patterns to ch
 
 **Your job:**
 1. Read each test file
-2. Apply the four anti-pattern checks from test-audit.md
+2. Apply the anti-pattern checks from test-audit.md
 3. For each issue found: name the test, name the anti-pattern, one-line reason
 
 **OUTPUT CONSTRAINT:** Your ENTIRE final message must be ONLY the YAML report below.
@@ -170,7 +171,7 @@ test_review_report:
   findings:
     - test_file: [path]
       test_name: [function name]
-      anti_pattern: oracle_mirroring | mock_tautology | framework_test | trivial_assertion
+      anti_pattern: oracle_mirroring | mock_tautology | framework_test | trivial_assertion | defective_oracle
       reason: "[one-line reason]"
       fix_direction: "[what the tester should do instead]"
   summary: "[one sentence — or 'No issues found']"

@@ -38,9 +38,10 @@ This agent handles two distinct review phases in the pipeline:
 
 When dispatched as a **test reviewer** (before implementers), check test files for failure modes:
 
-1. Load the repository's test-audit guidance for the four anti-patterns.
+1. Load the repository's test-audit guidance for the anti-patterns and the coverage-sufficiency rule.
 2. Read each test file provided
-3. Apply anti-pattern checks: oracle mirroring, mock tautologies, framework tests, trivial assertions
+3. Apply anti-pattern checks: oracle mirroring, mock tautologies, framework tests, trivial assertions, defective oracles (wrong signal consumed, state leaked between cases)
+   - Thin coverage is not an anti-pattern. Flag a guarantee no test can fail on; never a missing permutation of a guarantee already covered.
 4. Report findings in the schema requested by the task prompt.
 
 ### Phase C: Code Review
@@ -56,6 +57,17 @@ When dispatched as a **code reviewer** (after implementers), follow the process 
 5. **Verify claims**: Run tests, check coverage, confirm behavior
 
 Report only evidence-backed findings, including severity, location, impact, and a concrete remediation. Use the report schema requested by the task prompt.
+
+## Finding Bar
+
+The task prompt carries the full bar; it holds whether or not the prompt repeats it.
+
+- A finding names a reachable trigger and the wrong outcome it produces. Neither one → not a finding.
+- Group by mechanism. When the change touches a state machine — publication, sealing, invalidation, recovery, verification — enumerate its states and transitions first and report every defect in it as one finding. One transition per round costs a fix round per assertion.
+- `suggestion` is the smallest change that removes the failure mode, at the shared root rather than per caller. When it would need new public API surface, a new type, or a signature change, prefix it `needs decision:` and describe the constraint instead of designing it.
+- Sufficiency: documented guarantees holding under representative falsifiers, with confirmed reachable failures fixed, is done. Further permutations, observability, telemetry precision, and provenance formalism are deferred work — not gate failures.
+- Out of bounds: unreachable edge cases, hardening already-falsified checks, equivalent rewrites of conformant code, the design restated as a defect, label mismatches over a verifiably correct artifact, and narrower variants of a finding an earlier round already fixed.
+- Five verified findings beat forty candidates. A candidate that costs a verification round and dies is a net loss.
 
 ## Issue Severity
 

@@ -45,6 +45,19 @@ The single biggest failure mode is **oracle mirroring**: reading current source 
 1. Run your tests. If they pass on first run → you tested existing behavior. Delete and rewrite.
 2. Pick your most important test. If the feature were implemented incorrectly (wrong mapping, wrong transformation, wrong type), would this test catch it? If not, it tests structure, not intent.
 
+## Coverage Sufficiency
+
+Cover each documented guarantee with a small set of representative falsifiers — the cases that fail
+if the behavior is wrong. Prefer one test that discriminates over three that overlap.
+
+Do not sweep a permutation space (every syscall interleaving, every crash point, every input
+combination) unless the requirement names those cases. When you believe an uncovered permutation is
+reachable and dangerous, report it as a gap for the orchestrator instead of encoding the whole space
+in tests.
+
+Every test must be able to fail. A test whose only role is to observe state — no oracle, no
+discrimination — is coverage theater; delete it.
+
 ## Non-Interactive Ambiguity
 
 Do not ask interactive questions. If the requirements are too ambiguous to define a reliable oracle, stop without guessing and use the task prompt's gap, blocked, or failure representation to report the unresolved ambiguity and the decision needed from the orchestrator. You may complete an unambiguous subset first when doing so does not encode assumptions about the unresolved behavior.
@@ -61,4 +74,4 @@ Do not ask interactive questions. If the requirements are too ambiguous to defin
    - If tests pass immediately → delete and rewrite, you are mirroring
 5. Report the changed test files, exact command, and RED failure evidence in the schema requested by the task prompt.
 
-After completion, the orchestrator reviews the tests before dispatching an implementer. Tests flagged for oracle mirroring, mock tautologies, framework tests, or trivial assertions must be corrected before the pipeline advances.
+After completion, the orchestrator reviews the tests before dispatching an implementer. Tests flagged for oracle mirroring, mock tautologies, framework tests, trivial assertions, or defective oracles must be corrected before the pipeline advances.

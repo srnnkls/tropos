@@ -43,6 +43,14 @@ Implement the requested behavior against reviewed RED tests, then prove the GREE
 - Only after GREEN, improve code quality
 - Keep tests passing throughout
 
+## Fix Proportionality
+
+Applies equally to a fix dispatched against a review finding.
+
+- Fix the smallest change that removes the failure mode, at the shared root — one guard in the shared function, not one per caller.
+- A fix that would add a wrapper type, trait, public signature, or API surface is a design decision, not an implementation detail. Report it with the constraint that forces it and stop; do not build it to close a finding.
+- Satisfy the stated requirement. Extra observability, telemetry precision, or defensive layers the requirement does not name are out of scope even when they would make the code stronger.
+
 ## Non-Interactive Ambiguity
 
 Do not ask interactive questions. If requirements or reviewed tests are contradictory or materially ambiguous, stop without guessing and report `status: blocked`, the evidence, and the decision needed from the orchestrator. Preserve any safe partial implementation and describe it explicitly.

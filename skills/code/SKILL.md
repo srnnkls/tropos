@@ -124,7 +124,18 @@ YAML schema. All prompts are self-contained for shell-less reviewers; commands a
 supplemental.
 
 **Variables:** `{materialized_diff}`, `{requirements}`, `{report_schema}`, `{diff_cmd}`, `{range}`,
-`{workdir}`, `{context}`, `{paths}`, `{structural_context}`, `{guidelines}`
+`{workdir}`, `{context}`, `{paths}`, `{structural_context}`, `{guidelines}`, `{finding_bar}`
+
+`{finding_bar}` is the block injected below, verbatim. Every role prompt carries it, native and
+external alike — it is what keeps a review converging in one fix round instead of dripping one
+assertion per round.
+
+<finding_bar>
+!`cat ~/.claude/skills/review/reference/finding-bar.md 2>/dev/null || cat skills/review/reference/finding-bar.md 2>/dev/null || true`
+</finding_bar>
+
+Source: [`/review` reference/finding-bar.md](../review/reference/finding-bar.md). If the block above
+came back empty, read that file before dispatching — no reviewer prompt goes out without it.
 
 **General Review Prompt:**
 
@@ -150,6 +161,8 @@ Materialized diff:
 3. **Security** - Input validation, secrets, injection risks
 
 Leave architecture and style to specialized reviewers.
+
+{finding_bar}
 
 ## Output Constraint
 Your ENTIRE final message must be ONLY the YAML report below.
@@ -199,6 +212,8 @@ Materialized structural context:
 
 Leave correctness, security, and style to other reviewers.
 
+{finding_bar}
+
 ## Output Constraint
 Your ENTIRE final message must be ONLY the YAML report below.
 No prose, no explanation, no summary. The full subagent conversation gets embedded
@@ -247,6 +262,8 @@ Materialized language guidelines:
 5. **Anti-patterns** — Any items from the language README checklist?
 
 Leave correctness, security, and performance to other reviewers.
+
+{finding_bar}
 
 ## Output Constraint
 Your ENTIRE final message must be ONLY the YAML report below.
@@ -358,5 +375,6 @@ Additional focus:
 - [reference/checklist.md](reference/checklist.md) - Review checklist
 - `/review` [reference/models.md](../review/reference/models.md) - Available models
 - `/review` [reference/harnesses.md](../review/reference/harnesses.md) - Harness dispatch templates
+- `/review` [reference/finding-bar.md](../review/reference/finding-bar.md) - Admission bar carried in every role prompt
 - `/review` [reference/report.md](../review/reference/report.md) - YAML report schemas
 - `/review` [reference/synthesis.md](../review/reference/synthesis.md) - Synthesis algorithm

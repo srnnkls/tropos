@@ -88,6 +88,8 @@ implementer_report:
 
 **4. Exact reviewer YAML report schema**
 
+**5. Verbatim finding bar** — [`/review` reference/finding-bar.md](../../../review/reference/finding-bar.md)
+
 ## Responsibilities
 
 1. Review all changes from the batch together
@@ -120,8 +122,9 @@ peer -C <workdir> -d <role-outdir> --agent reviewer \
 
 Use `<role-outdir>=$(peer path <scope> b<batch>-review-<role> --run <run>)`. Record the
 reviewers actually used in `review.yaml`. A config edit affects the next dispatch, not reviewers
-already running. Materialize the batch diff, requirements, and schema into each role prompt so a
-shell-less peer can complete it; save that prompt as `<role-outdir>/prompt.md` before dispatch.
+already running. Materialize the batch diff, requirements, schema, and finding bar into each role
+prompt so a shell-less peer can complete it; save that prompt as `<role-outdir>/prompt.md` before
+dispatch.
 
 ## When Reviewers Run
 
