@@ -1,7 +1,7 @@
 ---
 name: pr
-description: GitHub PR review-comment operations. `comments` assesses each review comment (relevant vs outdated, valid vs invalid) and proposes an action; `fcprr` closes the threads you've addressed (fcp — fix + commit + push — then reply + resolve) by delegating to the `fcprr` skill. Use for "pr comments", "assess PR feedback", "review PR comments", "reply to a PR comment", "resolve a thread", or "fcprr".
-argument-hint: "[comments [N] | fcprr <args>]"
+description: GitHub PR review-comment operations. `comments` assesses each review comment (relevant vs outdated, valid vs invalid) and proposes an action; `tfcprr` closes the threads you've addressed (tfcp — triage + fix + commit + push — then reply + resolve) by delegating to the `tfcprr` skill. Use for "pr comments", "assess PR feedback", "review PR comments", "reply to a PR comment", "resolve a thread", or "tfcprr".
+argument-hint: "[comments [N] | tfcprr <args>]"
 allowed-tools: Bash(gh api *), Bash(gh pr *), Bash(gh review *), Bash(gh repo view *), Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git rev-parse *), Bash(git branch *)
 metadata:
   type: domain
@@ -9,26 +9,26 @@ metadata:
 
 ## Pre-loaded Context
 
-PR comment context, fetched at skill-load for the `comments` route. The PR is `$ARGUMENTS` (a bare number, or after a leading `comments` token) or the current branch's PR. Each block is fail-safe: with no PR resolvable it prints `no-pr`. The `fcprr` route skips these blocks — it delegates to the `fcprr` skill via [operations/fcprr.md](operations/fcprr.md).
+PR comment context, fetched at skill-load for the `comments` route. The PR is `$ARGUMENTS` (a bare number, or after a leading `comments` token) or the current branch's PR. Each block is fail-safe: with no PR resolvable it prints `no-pr`. The `tfcprr` route skips these blocks — it delegates to the `tfcprr` skill via [operations/tfcprr.md](operations/tfcprr.md).
 
 > Dynamic `!` blocks only execute in this SKILL.md, not in Read-loaded operation files — which is why the comment fetch lives here, not in an operation.
 
-These are inline `!` blocks (single-line, like the role-model skill) — the form proven to expand `$ARGUMENTS` at load. Each re-resolves the PR independently and skips the `fcprr` route.
+These are inline `!` blocks (single-line, like the role-model skill) — the form proven to expand `$ARGUMENTS` at load. Each re-resolves the PR independently and skips the `tfcprr` route.
 
 PR metadata:
-!`A="$ARGUMENTS"; case "$A" in fcprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; gh pr view "$PR" --json number,title,state,headRefName,headRefOid,baseRefName,url 2>/dev/null || echo no-pr`
+!`A="$ARGUMENTS"; case "$A" in tfcprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; gh pr view "$PR" --json number,title,state,headRefName,headRefOid,baseRefName,url 2>/dev/null || echo no-pr`
 
-Inline review comments (node_id feeds `fcprr --comment`; original_line anchors the relevant-vs-outdated check):
-!`A="$ARGUMENTS"; case "$A" in fcprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null); gh api "repos/$REPO/pulls/$PR/comments" --paginate --jq '.[] | {node_id, user: .user.login, path, line, original_line, side, in_reply_to_id, body}' 2>/dev/null || echo no-pr`
+Inline review comments (node_id feeds `tfcprr --comment`; original_line anchors the relevant-vs-outdated check):
+!`A="$ARGUMENTS"; case "$A" in tfcprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null); gh api "repos/$REPO/pulls/$PR/comments" --paginate --jq '.[] | {node_id, user: .user.login, path, line, original_line, side, in_reply_to_id, body}' 2>/dev/null || echo no-pr`
 
 Thread resolution map (unresolved head comments with their node ids; resolved threads collapse, don't re-litigate):
-!`A="$ARGUMENTS"; case "$A" in fcprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; gh review comments "$PR" --unresolved --ids --flat 2>/dev/null | head -60 || true`
+!`A="$ARGUMENTS"; case "$A" in tfcprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; gh review comments "$PR" --unresolved --ids --flat 2>/dev/null | head -60 || true`
 
 Review bodies and conversation comments (not line-anchored):
-!`A="$ARGUMENTS"; case "$A" in fcprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null); echo "== review bodies =="; gh api "repos/$REPO/pulls/$PR/reviews" --jq '.[] | select(.body != "") | {user: .user.login, state, body}' 2>/dev/null; echo "== conversation =="; gh api "repos/$REPO/issues/$PR/comments" --jq '.[] | {user: .user.login, body}' 2>/dev/null || echo no-pr`
+!`A="$ARGUMENTS"; case "$A" in tfcprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null); echo "== review bodies =="; gh api "repos/$REPO/pulls/$PR/reviews" --jq '.[] | select(.body != "") | {user: .user.login, state, body}' 2>/dev/null; echo "== conversation =="; gh api "repos/$REPO/issues/$PR/comments" --jq '.[] | {user: .user.login, body}' 2>/dev/null || echo no-pr`
 
 HEAD diff:
-!`A="$ARGUMENTS"; case "$A" in fcprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; gh pr diff "$PR" 2>/dev/null | head -800 || echo no-pr`
+!`A="$ARGUMENTS"; case "$A" in tfcprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; gh pr diff "$PR" 2>/dev/null | head -800 || echo no-pr`
 
 If a block printed `no-pr`, ask the user for the PR number before continuing.
 
@@ -37,7 +37,7 @@ If a block printed `no-pr`, ask the user for the PR number before continuing.
 Two operations on a pull request's review feedback:
 
 - **`comments`** — assess every review comment and say what to do about it.
-- **`fcprr`** — close the addressworthy threads: `fcp` (fix + commit + push), then reply + resolve. Delegates to the `fcprr` skill.
+- **`tfcprr`** — close the addressworthy threads: `tfcp` (triage + fix + commit + push), then reply + resolve. Delegates to the `tfcprr` skill.
 
 Requires the `gh-review` extension (`gh extension install srnnkls/gh-review`), exposed as `gh review`.
 
@@ -51,7 +51,7 @@ Apply to `$ARGUMENTS` in order, first match wins:
 
 | Pattern | Route | Action |
 |---|---|---|
-| `fcprr` (with or without args) | Close addressed threads | Read and follow [operations/fcprr.md](operations/fcprr.md) |
+| `tfcprr` (with or without args) | Close addressed threads | Read and follow [operations/tfcprr.md](operations/tfcprr.md) |
 | `comments`, a bare PR number, or empty | Assess comments | This file — `comments` below |
 
 ---
@@ -85,20 +85,20 @@ Close with a two-bullet verdict: comments to address, comments to dismiss.
 
 Once the verdict is set, close every unresolved thread in one pass — no relevant thread is left open, whether or not anything was addressed:
 
-- **Accepted** threads route through the full `fcprr` (fcp + reply + resolve): invoke Skill `fcprr` with `--comment <node_id>` per accepted thread, plus `--reply` and `-m`. It applies the fixes, commits and pushes once, then replies to and resolves each thread.
-- **Dismissed** threads route through `fcprr --resolve-only` — no fix, commit, or push: reply with the dismissal rationale and resolve. When the verdict is *all dismiss* (nothing to address), this resolve-only pass is the whole close-out.
+- **Accepted** threads route through the full `tfcprr` (tfcp + reply + resolve): invoke Skill `tfcprr` with `--comment <node_id>` per accepted thread, plus `--reply` and `-m`. It triages the accepted set, applies and pushes the fixes in one commit, then replies to and resolves each thread it fixed — a thread its triage lands `residual` or `needs decision` stays open.
+- **Dismissed** threads route through `tfcprr --resolve-only` — no fix, commit, or push: reply with the dismissal rationale and resolve. When the verdict is *all dismiss* (nothing to address), this resolve-only pass is the whole close-out.
 
-Threads you defer or flag needs-discussion stay open. See [operations/fcprr.md](operations/fcprr.md).
+Threads you defer or flag needs-discussion stay open. See [operations/tfcprr.md](operations/tfcprr.md).
 
 ---
 
-## `fcprr` — close the addressed threads
+## `tfcprr` — close the addressed threads
 
-**fcp** (fix + commit + push) + **r**eply + **r**esolve, over every addressworthy comment. Delegates to the `fcprr` skill, which runs the `fcp` skill for the first three steps; see [operations/fcprr.md](operations/fcprr.md).
+*tfcp* (triage + fix + commit + push) + *r*eply + *r*esolve, over every addressworthy comment. Delegates to the `tfcprr` skill, which runs the `tfcp` skill for the first four steps; see [operations/tfcprr.md](operations/tfcprr.md).
 
-Order is load-bearing — `fcp` must land the commit on the remote before the reply names its SHA, and the reply precedes the resolve. A failure at any step stops the rest.
+Order is load-bearing — triage decides what gets touched, `tfcp` must land the commit on the remote before the reply names its SHA, and the reply precedes the resolve. A failure at any step stops the rest.
 
-Dismissed threads take the `--resolve-only` path — the `rr` of `(fcp)rr` — skipping fix, commit, and push: reply the rationale, resolve.
+Dismissed threads take the `--resolve-only` path — the `rr` of `(tfcp)rr` — skipping triage, fix, commit, and push: reply the rationale, resolve. Your `comments` verdict already dispositioned them.
 
 ---
 

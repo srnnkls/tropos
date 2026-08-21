@@ -221,6 +221,8 @@ Full details: [reference/synthesis.md](reference/synthesis.md)
 
 ### Landing the Outcome
 
-The confirmed `issues:` of a synthesized report land through the **[`fcp` skill](../fcp/SKILL.md)** —
-fix, commit, push in one pass, `--report` pointing at the run's report directory. On a PR,
-[`fcprr`](../fcprr/SKILL.md) extends that chain with the per-thread reply and resolve.
+The confirmed `issues:` of a synthesized report land through the [`tfcp` skill](../tfcp/SKILL.md) —
+triage, fix, commit, push in one pass, `--report` pointing at the run's report directory. Synthesis
+already dispositioned those findings (step 4.5), so `tfcp`'s triage carries the verdicts through
+rather than re-opening them. On a PR,
+[`tfcprr`](../tfcprr/SKILL.md) extends that chain with the per-thread reply and resolve.

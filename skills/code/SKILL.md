@@ -356,7 +356,7 @@ Additional focus:
 **Related skills:**
 - `implement` - Generic implementation methodology and scope execution pipeline
 - `review` - Generic review infrastructure (models, harnesses, reports, synthesis)
-- `fcp` - Lands a review's confirmed findings (fix + commit + push)
+- `tfcp` - Lands a review's confirmed findings (triage + fix + commit + push)
 - `test` - Generic TDD methodology
 - `gestalt` - Architecture reviewer uses for structural analysis
 - `loqui` - Compliance reviewer uses for language guidelines
