@@ -94,8 +94,9 @@ peer. Native reports are written alongside them by the orchestrator, so a run's 
 complete in one place.
 
 Never assemble these paths by hand. `peer path` is the sanctioned constructor: it validates
-every segment, creates the directory, and appends `.peer/` to the repository's `.gitignore`
-when absent.
+every segment and creates the directory. It touches nothing else — ignoring `.peer/` is the
+repository's own business, and no peer command writes to `.gitignore`, the exclude file, or
+any other git state.
 
 ```bash
 run=$(peer run-id)                                   # 20260820T101112Z-a1b2c3

@@ -26,6 +26,7 @@ want_out() {  # NAME PATTERN -- CMD...
 }
 
 mkdir -p "$tmp/repo" && git -C "$tmp/repo" init -q 2>/dev/null
+pristine_exclude=$(cat "$tmp/repo/.git/info/exclude" 2>/dev/null)   # git seeds a template here
 
 # --- run-id -------------------------------------------------------------------------
 want_out 'run-id is an epoch stamp plus a short random suffix' \
@@ -49,16 +50,19 @@ d=$("$PEER" path auth-system b3-tester-T003 --run "$run" -C "$tmp/repo")
   && ok 'path honours an explicit --run' || bad 'path honours an explicit --run' "got $d"
 [[ -d "$d" ]] && ok 'path creates the report dir' || bad 'path creates the report dir' "missing $d"
 
-# --- path: gitignore --------------------------------------------------------------
-grep -qxF '.peer/' "$tmp/repo/.gitignore" 2>/dev/null \
-  && ok 'path ensures .peer/ is gitignored' \
-  || bad 'path ensures .peer/ is gitignored' "$(cat "$tmp/repo/.gitignore" 2>/dev/null)"
-
-before=$(cat "$tmp/repo/.gitignore")
+# --- path: hands off the repo's git state -------------------------------------------
 "$PEER" path other-subject some-stage -C "$tmp/repo" >/dev/null
-[[ "$(cat "$tmp/repo/.gitignore")" == "$before" ]] \
-  && ok 'path does not duplicate the gitignore entry' \
-  || bad 'path does not duplicate the gitignore entry' "$(cat "$tmp/repo/.gitignore")"
+[[ ! -e "$tmp/repo/.gitignore" ]] \
+  && ok 'path never writes .gitignore' \
+  || bad 'path never writes .gitignore' "$(cat "$tmp/repo/.gitignore")"
+
+[[ "$(cat "$tmp/repo/.git/info/exclude" 2>/dev/null)" == "$pristine_exclude" ]] \
+  && ok 'path never writes .git/info/exclude' \
+  || bad 'path never writes .git/info/exclude' "$(cat "$tmp/repo/.git/info/exclude")"
+
+[[ -z "$(git -C "$tmp/repo" diff --stat)" && -z "$(git -C "$tmp/repo" diff --cached --stat)" ]] \
+  && ok 'path leaves the index and worktree untouched' \
+  || bad 'path leaves the index and worktree untouched' "$(git -C "$tmp/repo" status --short)"
 
 # --- path: segment validation -------------------------------------------------------
 want_ok 'path rejects a slash in a segment'      2 -- "$PEER" path 'a/b' stage -C "$tmp/repo"
