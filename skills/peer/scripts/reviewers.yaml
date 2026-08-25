@@ -67,6 +67,8 @@ reviewers:
 providers:
   openrouter:
     thinking: true
+  google-vertex:
+    thinking: true
 
 defaults:
   pi: gemini-3.7-flash
