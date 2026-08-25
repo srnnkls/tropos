@@ -45,8 +45,17 @@ Supported roles are `tester`, `implementer`, and `reviewer`:
 - `tester` and `implementer` are workspace-write roles, require exactly one external
   peer, and are never retried automatically after a stall or failure.
 - `reviewer` is read-only, supports external fan-out, and retries once after a stall or
-  empty result. Pi receives only read/search/list tools; it has no shell, edit, or write
-  access.
+  empty result. Codex enforces read-only itself with `-s read-only`. Pi and Claude get the
+  same shell behind a `sandbox-exec` profile that denies every write to the work tree —
+  reads go everywhere, writes land only in temp and harness state dirs — so a reviewer can
+  run `git show`, `git log -S`, blame, and a test binary that writes nothing.
+- Pi's tool allowlist has no per-command form and Claude's `--allowedTools` patterns do not
+  gate `Bash` in print mode, so the sandbox is the whole boundary. `peer` refuses a Pi or
+  Claude reviewer when `sandbox-exec` is missing rather than hand out an ungated shell.
+- A reviewer that still cannot reach the artifact — an unfetchable remote, a revision that
+  is not local — is instructed to report the review blocked and name what is missing.
+  Without that instruction a peer reconstructs the change from commit messages and file
+  names and reports green gates over a diff it never saw.
 - Omitting `--agent` preserves legacy prompt-only review behavior: read-only with one
   retry and no role file injected.
 

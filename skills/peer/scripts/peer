@@ -113,6 +113,29 @@ _peer_markdown_role_body() {
   ' "$source"
 }
 
+# Codex enforces its own read-only sandbox. Pi has no per-command tool gate, and Claude's
+# --allowedTools patterns do not gate Bash in print mode, so their reviewers only get a shell
+# behind an OS sandbox. The trailing workdir deny outranks the temp-dir allows above it, which
+# is what keeps a work tree that itself lives under /tmp read-only.
+_peer_readonly_profile() {
+  cat <<PROFILE
+(version 1)
+(allow default)
+(deny file-write*)
+(allow file-write*
+  (subpath "/tmp")
+  (subpath "/private/tmp")
+  (subpath "/private/var/folders")
+  (subpath "/dev")
+  (subpath "$HOME/.pi")
+  (subpath "$HOME/.claude")
+  (subpath "$HOME/.cache")
+  (subpath "$HOME/Library/Caches")
+  (subpath "$HOME/Library/Application Support"))
+(deny file-write* (subpath "$1"))
+PROFILE
+}
+
 _peer_terminate_group() {
   local pgid=$1
   kill -TERM -- "-$pgid" 2>/dev/null || return 0
@@ -418,10 +441,19 @@ esac
 sandbox=read-only; attempts=2
 pi_tools=( --tools read,grep,find,ls )
 claude_tools=Read,Grep,Glob
+sandbox_wrap=()
 if [[ "$execution_role" == tester || "$execution_role" == implementer ]]; then
   sandbox=workspace-write; attempts=1
   pi_tools=( --tools read,bash,edit,write,grep,find,ls )
   claude_tools=Read,Grep,Glob,Bash,Edit,Write
+elif [[ "$harness" != codex ]]; then
+  command -v sandbox-exec >/dev/null 2>&1 || {
+    printf '%s\n' "peer: sandbox-exec not found - a $harness reviewer's shell has nothing holding it read-only" >&2
+    exit 3
+  }
+  sandbox_wrap=( sandbox-exec -p "$(_peer_readonly_profile "$workdir")" )
+  pi_tools=( --tools read,bash,grep,find,ls )
+  claude_tools=Read,Grep,Glob,Bash
 fi
 
 codex_role_config=""; pi_role_body=""; claude_role_body=""
@@ -437,13 +469,12 @@ if [[ -n "$agent" ]]; then
   fi
 fi
 if [[ "$execution_role" == reviewer ]]; then
-  read_only_boundary="This is a read-only review assignment. Do not create, edit, delete, move, or format files. Shell, edit, and write tools are unavailable."
-  [[ -n "$pi_role_body" ]] && pi_role_body+=$'\n\n'
-  pi_role_body+="$read_only_boundary"
-  if [[ -n "$claude_role_body" ]]; then
-    claude_role_body+=$'\n\n'
-    claude_role_body+="$read_only_boundary"
-  fi
+  read_only_boundary="This is a read-only review assignment. You have a shell, and the work tree is enforced read-only underneath it: every write, edit, move, or stage attempt fails with 'Operation not permitted'. Use the shell to reach the artifact - diffs, logs, blame, test runs that write nothing. Commands that refresh git's index, git status among them, can fail on a read-only work tree; pass --no-optional-locks or establish the same fact another way.
+If the artifact stays out of reach - a remote you cannot fetch, a revision that is not here - report the review blocked, name what is missing, and emit no gates, findings, or strengths. Reconstructing the change from commit messages, file names, or surrounding prose and reporting it as reviewed is a fabricated report."
+  for _b in pi_role_body claude_role_body; do
+    [[ -n "${!_b}" ]] && printf -v "$_b" '%s\n\n%s' "${!_b}" "$read_only_boundary" \
+                      || printf -v "$_b" '%s' "$read_only_boundary"
+  done
 fi
 identity=$(_peer_identity "$peer_id")
 if [[ -n "$identity" ]]; then
@@ -498,7 +529,7 @@ for (( attempt=1; attempt<=attempts; attempt++ )); do
   elif [[ "$harness" == pi ]]; then
     _targs=(); [[ "$pi_thinking" == true ]] && _targs=( --thinking "$effort" )
     _role_args=(); [[ -n "$pi_role_body" ]] && _role_args=( --append-system-prompt "$pi_role_body" )
-    python3 -c "$SESSION_EXEC" "$workdir" pi -p --mode json --provider "$provider" \
+    python3 -c "$SESSION_EXEC" "$workdir" "${sandbox_wrap[@]}" pi -p --mode json --provider "$provider" \
       --model "$model" "${pi_tools[@]}" "${_role_args[@]}" "${_targs[@]}" \
       "${pi_prompt[@]}" <"$pi_stdin" >"$fifo" 2>&1 &
   else
@@ -508,7 +539,7 @@ for (( attempt=1; attempt<=attempts; attempt++ )); do
         --effort "$effort" )
     [[ -n "$model" ]] && c+=( --model "$model" )
     [[ -n "$claude_role_body" ]] && c+=( --append-system-prompt "$claude_role_body" )
-    python3 -c "$SESSION_EXEC" "$workdir" claude "${c[@]}" "${claude_prompt[@]}" \
+    python3 -c "$SESSION_EXEC" "$workdir" "${sandbox_wrap[@]}" claude "${c[@]}" "${claude_prompt[@]}" \
       <"$claude_stdin" >"$fifo" 2>&1 &
   fi
   hpid=$!

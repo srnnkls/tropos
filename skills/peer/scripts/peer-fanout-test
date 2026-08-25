@@ -42,6 +42,8 @@ for a in "$@"; do [[ "$a" == --list-models ]] || continue
     'stubprov  good-model  1.0M  65.5K  yes  yes'
   exit 0
 done
+[[ -n "${ARGV_DUMP:-}" ]] && printf '%s\n' "$@" >"$ARGV_DUMP"
+[[ -n "${PROBE_WRITE:-}" ]] && touch "$PROBE_WRITE" 2>/dev/null
 if [[ "$STUB_MODE" == denied ]]; then
   printf '%s\n' '{"type":"message_end","message":{"role":"assistant","stopReason":"error","content":[],"errorMessage":"failed to initialize in-process app-server client: Operation not permitted (os error 1)"}}'
   exit 1
@@ -53,6 +55,13 @@ fi
 printf '%s\n' '{"type":"message_end","message":{"role":"assistant","stopReason":"stop","content":[{"type":"text","text":"OK"}]}}'
 STUB
 chmod +x "$tmp/bin/pi"
+
+cat >"$tmp/bin/claude" <<'STUB'
+#!/usr/bin/env bash
+[[ -n "${ARGV_DUMP:-}" ]] && printf '%s\n' "$@" >"$ARGV_DUMP"
+printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"OK"}'
+STUB
+chmod +x "$tmp/bin/claude"
 
 fanout_run=$("$PEER" run-id)
 
@@ -94,6 +103,40 @@ got=$(get provider model-renamed)
 [[ -z "$got" ]] \
   && printf 'ok    an entry with no provider keeps its later fields aligned\n' \
   || { printf 'FAIL  an entry with no provider keeps its later fields aligned: provider=%q\n' "$got"; (( fails++ )); }
+
+# --- every reviewer is told the work tree under its shell is read-only ------------------
+boundary_dir=$("$PEER" path fanout boundary --run "$fanout_run" -C "$tmp")
+boundary_want='enforced read-only'
+want_boundary() {  # NAME HARNESS EXTRA-ARGS...
+  local name=$1 harness=$2; shift 2
+  local dump="$tmp/argv.$harness"
+  ARGV_DUMP="$dump" PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
+    "$PEER" "$harness" -o "$boundary_dir/$harness.yaml" --cap 30 "$@" 'ping' >/dev/null 2>&1
+  if grep -qF "$boundary_want" "$dump" 2>/dev/null; then
+    printf 'ok    %s\n' "$name"
+  else
+    printf 'FAIL  %s: no %q in %s argv\n' "$name" "$boundary_want" "$harness"; (( fails++ ))
+  fi
+}
+want_boundary 'a pi reviewer is told its work tree is read-only'     pi --provider stubprov --model good-model
+want_boundary 'a claude reviewer is told its work tree is read-only' claude --model stub-model
+
+# --- the sandbox, not the prompt, is what holds a reviewer off the work tree ------------
+probe_dir=$("$PEER" path fanout sandbox --run "$fanout_run" -C "$tmp")
+probe_run() {  # ROLE-ARGS...
+  local probe="$tmp/probe.${1:-reviewer}"; rm -f "$probe"
+  PROBE_WRITE="$probe" PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
+    "$PEER" pi -o "$probe_dir/${1:-reviewer}.yaml" -C "$tmp" --provider stubprov \
+    --model good-model --cap 30 "${@:2}" 'ping' >/dev/null 2>&1
+  [[ -e "$probe" ]] && echo wrote || echo denied
+}
+[[ "$(probe_run reviewer)" == denied ]] \
+  && printf 'ok    a reviewer cannot write into its own work tree\n' \
+  || { printf 'FAIL  a reviewer cannot write into its own work tree: the harness wrote\n'; (( fails++ )); }
+
+[[ "$(probe_run tester --agent tester)" == wrote ]] \
+  && printf 'ok    a tester keeps write access to its work tree\n' \
+  || { printf 'FAIL  a tester keeps write access to its work tree: the harness was blocked\n'; (( fails++ )); }
 
 printf '\n%s\n' "$( ((fails)) && echo "$fails failing" || echo 'all passing')"
 exit $(( fails > 0 ))

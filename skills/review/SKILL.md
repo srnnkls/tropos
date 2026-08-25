@@ -117,8 +117,9 @@ Per role, in a single message: Codex delegation for `codex-native`, Claude Tasks
 [reference/harnesses.md](reference/harnesses.md) and the [peer skill](../peer/SKILL.md).
 
 Materialize the reviewed content, requirements/context, exact report schema, and the verbatim
-[finding bar](reference/finding-bar.md) into the shared prompt before dispatch. Git commands and workdirs are supplemental; a shell-less read-only peer
-must never receive only a command to run.
+[finding bar](reference/finding-bar.md) into the shared prompt before dispatch. A peer reviewer
+has a shell over a read-only work tree and can run git itself, so commands and workdirs extend
+the prompt rather than replace it — send the diff and let the peer verify around it.
 
 ### Report Output Directory
 
