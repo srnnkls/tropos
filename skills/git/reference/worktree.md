@@ -103,11 +103,27 @@ If the branch already exists, omit `-b`/`$BASE` and run the base-drift preflight
 
 ### 3. Link Ignored Repo-Root State
 
-Ignored files the worktree needs — `scopes/`, `mise.local.toml`, local resources — are linked from the main worktree, never copied:
+Ignored files the worktree needs — `scopes/`, `mise.local.toml`, local resources — are linked from the main worktree, never copied. Three things have to hold, and each fails quietly when it doesn't.
+
+#### 3a. The path must be gitignored
+
+`git worktreeinclude` never touches tracked files. A tracked path listed in `.worktreeinclude` resolves to zero leaves and produces nothing at the target — `apply` still exits `0`, and under `--quiet` (what the hook runs) you see no trace at all.
 
 ```bash
-git worktreeinclude apply
+git check-ignore -q scopes || echo "scopes/ is tracked — worktreeinclude will skip it"
 ```
+
+A tracked `scopes/` gets committed onto the feature branch, and from then on the branch carries a frozen copy while the main worktree keeps editing the live one. Fix it at the repo root *before* cutting the branch:
+
+```bash
+git rm -r --cached scopes
+printf '/scopes/\n' >> .gitignore
+git commit -m "chore: untrack scopes/"
+```
+
+Doing it afterwards is worse than useless — the branch still points at a commit containing the copy, and amending the base to remove it orphans the branch from trunk.
+
+#### 3b. The entry needs an explicit `symlink`
 
 Entries live in `.worktreeinclude` at the repo root, one `<path> <mode>` pair per line:
 
@@ -116,7 +132,34 @@ mise.local.toml  symlink
 scopes/          symlink
 ```
 
-If the file is missing or lacks an entry the worktree needs, add the entry at the repo root, then re-run `apply`.
+`copy` is the default mode. A bare `scopes/` line duplicates the tree instead of linking it — the drift this whole section exists to prevent. When a path matches both a copy-mode and a symlink-mode pattern, symlink wins.
+
+The include file is read from the *source* worktree, the one `--from auto` picks. Adding an entry inside the linked worktree does nothing; add it at the repo root, then re-run `apply`.
+
+#### 3c. Verify the result, not the exit code
+
+```bash
+git worktreeinclude apply
+[ -L scopes ] || echo "scopes/ is not a symlink"
+```
+
+Exit `0` does not mean anything was linked. `apply` is a no-op success when `.worktreeinclude` is absent from the source worktree, and when the repo has only one worktree. Exit `3` means conflicts — the target already holds differing content; resolve it or pass `--force`.
+
+#### 3d. Keep it linked across branch switches
+
+`apply` runs only when something runs it. In a repo using `hk`, a post-checkout hook re-links after every switch:
+
+```pkl
+["post-checkout"] {
+  steps {
+    ["worktreeinclude"] {
+      check = "git worktreeinclude apply --quiet"
+    }
+  }
+}
+```
+
+Then `hk install`. Without a hook, `apply` by hand after `worktree add` — some shells wrap `git worktree add` to do this automatically, so check before assuming it didn't run.
 
 ### 4. Run Project Setup
 
@@ -164,6 +207,11 @@ Ready to implement <feature-name>
 | Neither exists | Check config then ask user |
 | Not in .gitignore | Add it immediately + commit |
 | Worktree needs `scopes/` or other ignored state | `git worktreeinclude apply` (symlink, never copy) |
+| `scopes/` is tracked | Untrack + ignore at the root **before** cutting the branch |
+| `.worktreeinclude` entry has no mode | Add `symlink` — bare entries copy |
+| `apply` exits 0 | Prove nothing: check `[ -L scopes ]` |
+| `apply` exits 3 | Conflict — resolve target, or `--force` |
+| Repo uses `hk` | Add the post-checkout `worktreeinclude` step |
 | Tests fail | Report failures + ask |
 
 ---
@@ -172,6 +220,9 @@ Ready to implement <feature-name>
 
 **Never:**
 - Copy `scopes/`, skill directories, or any repo-root state into a worktree — symlink via `.worktreeinclude`
+- Write a `.worktreeinclude` entry without a mode — the default is `copy`
+- Read `git worktreeinclude apply` exiting 0 as proof the link exists
+- Cut a feature branch while `scopes/` is still tracked
 - Create worktree without .gitignore verification (project-local)
 - Skip baseline test verification
 - Proceed with failing tests without asking
