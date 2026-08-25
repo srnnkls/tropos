@@ -23,7 +23,7 @@ Task(subagent_type="reviewer", model="{claude-model}", prompt="{prompt}")
 
 `{claude-model}` is the model selected for this review run (resolved at dispatch time, never hardcoded).
 
-`opus`/`sonnet` are Claude-host-native aliases. Registered `opus-cli`/`sonnet-cli` are distinct
+`opus`/`sonnet` are Claude-host-native aliases. Registered `opus-peer`/`sonnet-peer` are distinct
 external Claude CLI aliases and run through peer (reviewer dispatch is read-only; tester and
 implementer dispatch may mutate).
 

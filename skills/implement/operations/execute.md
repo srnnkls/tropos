@@ -89,7 +89,7 @@ fan-out per role. Require at least one success from every execution class actual
    - Under Codex with native delegation available, recommend the `codex-native`/`inherit` defaults;
      otherwise recommend the explicit-host defaults from `reference/configuration.md`.
    - Enforce same-host-family native routing from registry metadata: Codex rejects `opus`/`sonnet`
-     and every peer Codex-family alias (use `codex-native`; Claude family may use `*-cli`); Claude
+     and every peer Codex-family alias (use `codex-native`; Claude family may use `*-peer`); Claude
      rejects `codex-native` and every peer Claude-family alias (use native `opus`/`sonnet`; GPT
      family may use peer). Apply this to interactive and inline config, stopping for edits rather
      than silently converting.
@@ -623,7 +623,7 @@ The `issue pr` operation handles pushing the branch, building the PR title/body 
 | Architecture Reviewer | reviewer | gestalt |
 | Compliance Reviewer | reviewer | loqui |
 
-On Codex, `codex-native` uses native delegation and Claude-family roles use `opus-cli`/`sonnet-cli`
+On Codex, `codex-native` uses native delegation and Claude-family roles use `opus-peer`/`sonnet-peer`
 through peer. On Claude, `opus`/`sonnet` use the table's Task type and GPT-family roles use
 registered Codex aliases through peer. External aliases use
 `peer --agent tester|implementer|reviewer`; peer loads the matching agent contract. Store reports

@@ -105,7 +105,7 @@ Canonical configuration for multi-agent review. Domain skills compose on this.
 - Claude native subagent: `opus`, `sonnet` — dispatched via Claude-host Task.
 - External peers (for example Codex and Pi): defined and dispatched by the generic
   **[peer skill](../peer/SKILL.md)** — run `peer list` for the canonical registry
-  (id ↔ harness ↔ model ↔ alias), including `opus-cli`/`sonnet-cli` when registered.
+  (id ↔ harness ↔ model ↔ alias), including `opus-peer`/`sonnet-peer` when registered.
 
 Full details: [reference/models.md](reference/models.md), [reference/harnesses.md](reference/harnesses.md), [peer skill](../peer/SKILL.md)
 
@@ -176,11 +176,11 @@ alias to native `opus`/`sonnet`. Ask for an explicit corrected selection and nev
 #### Interactive Fallback (no flag, no review_config)
 
 **Question 1:** Select reviewers (multiSelect) from the live `peer list` table:
-- Codex host: label `codex-native` as native and `opus-cli`/`sonnet-cli` as via peer; reject
+- Codex host: label `codex-native` as native and `opus-peer`/`sonnet-peer` as via peer; reject
   host-native `opus`/`sonnet` and every registry Codex-family peer alias (`gpt`, `terra`, `luna`,
   etc.) in favor of `codex-native`
 - Claude host: label `opus`/`sonnet` as native and GPT/Codex aliases as via peer; reject
-  `codex-native` and every registry Claude-family peer alias (including `opus-cli`/`sonnet-cli`)
+  `codex-native` and every registry Claude-family peer alias (including `opus-peer`/`sonnet-peer`)
   in favor of native Claude Tasks
 - Include other external aliases from the live table according to their capabilities
 
@@ -198,7 +198,7 @@ Claude Task); entries with `RUN-BY-PEER=yes` are passed by alias to
 `peer --agent reviewer --peers`. If the required host-native mechanism is unavailable, stop and
 ask for a new selection rather than substituting.
 
-This host matrix is strict for persisted selections: never silently convert `opus` to `opus-cli`
+This host matrix is strict for persisted selections: never silently convert `opus` to `opus-peer`
 or `codex-native` to `gpt` when resuming on a different host. Classify peer aliases dynamically
 from registry harness/family metadata so new same-family aliases are rejected automatically.
 

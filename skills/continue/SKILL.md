@@ -95,8 +95,8 @@ Do not report progress or dispatch any phase until the live config exists and is
 
 Enforce same-host-family native routing before resuming. On Codex, reject `opus`/`sonnet` and every
 peer alias whose live registry harness/family is Codex; use `codex-native`, while Claude-family
-`*-cli` may run through peer. On Claude, reject `codex-native` and every peer alias whose registry
-harness/family is Claude (including `opus-cli`/`sonnet-cli`); use native `opus`/`sonnet`, while
+`*-peer` may run through peer. On Claude, reject `codex-native` and every peer alias whose registry
+harness/family is Claude (including `opus-peer`/`sonnet-peer`); use native `opus`/`sonnet`, while
 GPT/Codex-family aliases may run through peer. If an alias is host-incompatible, stop and ask the user to edit
 `/implement config <scope>`; never silently convert or substitute. `codex-native` may appear in
 `peer list` with `native=true` for discovery but is never peer-dispatched.

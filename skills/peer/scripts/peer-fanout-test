@@ -23,6 +23,13 @@ reviewers:
     alias: model-absent
     effort: "-"
     native: false
+  - id: model-renamed
+    harness: codex
+    model: some-model
+    alias: renamed
+    was: [old-id, old-alias]
+    effort: high
+    native: false
 defaults:
   pi: model-known
 REG
@@ -52,7 +59,7 @@ fanout_run=$("$PEER" run-id)
 run() {
   local dir; dir=$("$PEER" path fanout "$1" --run "$fanout_run" -C "$tmp")
   STUB_MODE="$1" PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
-    "$PEER" -d "$dir" --cap 30 'ping' 2>/dev/null
+    "$PEER" -d "$dir" --peers model-known,model-absent --cap 30 'ping' 2>/dev/null
 }
 
 want_row() {
@@ -74,6 +81,19 @@ want_row 'healthy peer still reports ok'                  "$clean" "$(printf 'mo
 
 server=$(run server_403)
 want_row 'server-side PERMISSION_DENIED stays an auth fault' "$server" "$(printf 'model-known\tauth')"
+
+# --- retired names keep resolving, and an absent provider must not shift the fields ---
+get() { PEER_REGISTRY="$tmp/registry.yaml" "$PEER" get "$1" "$2" 2>/dev/null; }
+for retired in old-id old-alias; do
+  got=$(get id "$retired")
+  [[ "$got" == model-renamed ]] \
+    && printf 'ok    retired name %s resolves to its current id\n' "$retired" \
+    || { printf 'FAIL  retired name %s resolves to its current id: got %q\n' "$retired" "$got"; (( fails++ )); }
+done
+got=$(get provider model-renamed)
+[[ -z "$got" ]] \
+  && printf 'ok    an entry with no provider keeps its later fields aligned\n' \
+  || { printf 'FAIL  an entry with no provider keeps its later fields aligned: provider=%q\n' "$got"; (( fails++ )); }
 
 printf '\n%s\n' "$( ((fails)) && echo "$fails failing" || echo 'all passing')"
 exit $(( fails > 0 ))

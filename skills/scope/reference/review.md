@@ -26,14 +26,14 @@ Multi-perspective scope review using parallel subagent dispatch.
 Select reviewers per the unified `/review` host matrix and live registry metadata:
 
 - Codex host: native `codex-native`; cross-host Claude family through peer
-  (`opus-cli`/`sonnet-cli`); reject native `opus`/`sonnet` and every registry Codex-family peer
+  (`opus-peer`/`sonnet-peer`); reject native `opus`/`sonnet` and every registry Codex-family peer
   alias.
 - Claude host: native `opus`/`sonnet`; cross-host GPT/Codex family through peer; reject
   `codex-native` and every registry Claude-family peer alias.
 - Allow unrelated peer families when available. Never silently convert an incompatible selection.
 
 All-native selections use effort `inherit`. If any peer is selected, choose an explicit effort
-supported by every selected peer. Validate `opus-cli`/`sonnet-cli` against their contract subset
+supported by every selected peer. Validate `opus-peer`/`sonnet-peer` against their contract subset
 `low|medium|high|xhigh|max`; in mixed sets the effort applies only to peers and native dispatches
 inherit.
 

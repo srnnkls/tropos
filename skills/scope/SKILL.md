@@ -310,13 +310,13 @@ Configure scope-reviewers per the unified `/review` host matrix (see `/review` S
 2. Interactive AskUserQuestion prompt (fallback)
 
 On Codex, default/recommend `codex-native`; reject all registry Codex-family peer aliases and
-native `opus`/`sonnet`, while allowing cross-host `opus-cli`/`sonnet-cli`. On Claude,
+native `opus`/`sonnet`, while allowing cross-host `opus-peer`/`sonnet-peer`. On Claude,
 default/recommend native `opus` plus cross-host GPT peers; reject `codex-native` and all registry
 Claude-family peer aliases. Label/filter menu choices dynamically from registry harness/family
 metadata, and never silently convert a rejected selection.
 
 All-native sets use effort `inherit`. When any peer alias is selected, require one explicit effort
-supported by every selected peer; for `opus-cli`/`sonnet-cli`, the allowed subset is
+supported by every selected peer; for `opus-peer`/`sonnet-peer`, the allowed subset is
 `low|medium|high|xhigh|max`. Native entries in a mixed set still inherit. Store resolved selections
 and peer effort in `validation.yaml.review_config`.
 

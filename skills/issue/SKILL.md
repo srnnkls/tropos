@@ -74,7 +74,7 @@ The raw `gh api graphql` mutations are documented below as the reference the wra
    - Create: use the next issue number from `issue next`. Draft the body into `.issues/<next>-<type>-<slug>.md`.
    - Update: the number is the issue you're editing. Preserve the live body first — `gh issue view <n> --json body -q .body > ".issues/<n>-<type>-<slug>.orig.md"` — then draft into `.issues/<n>-<type>-<slug>.md`. Surface a diff (`diff ".issues/<n>-<type>-<slug>.orig.md" ".issues/<n>-<type>-<slug>.md"`) before the gate if rewriting an existing body.
 7. **Review gate (mandatory four reports) — run before any publish.** The drafted body must clear two host-native reviews and two cross-host peer reviews before it reaches GitHub. Detect the current host, validate the external aliases with live `peer list` metadata, and dispatch all four in one message (see [Review gate](#review-gate-four-reports-before-publish) below):
-   - **Codex host** — spawn two independent `codex-native` reviewer subagents with inherited session settings, plus `issue review ".issues/<n>-<type>-<slug>.md" --reviewers opus-cli,sonnet-cli --effort high`.
+   - **Codex host** — spawn two independent `codex-native` reviewer subagents with inherited session settings, plus `issue review ".issues/<n>-<type>-<slug>.md" --reviewers opus-peer,sonnet-peer --effort high`.
    - **Claude host** — spawn native reviewer Tasks on `opus` and `sonnet`, plus `issue review ".issues/<n>-<type>-<slug>.md" --reviewers gpt,terra --effort high`.
    - **Other host** — block before review or publish: this fixed gate requires one of the two supported native subagent mechanisms.
 
@@ -98,7 +98,7 @@ No issue body reaches GitHub until it has four independent reports: two through 
 
 | Current host | Two native reports | Two external peer reports |
 |---|---|---|
-| **Codex** | two independent `codex-native` reviewer subagents; inherit the session model and reasoning | live aliases `opus-cli`, `sonnet-cli` |
+| **Codex** | two independent `codex-native` reviewer subagents; inherit the session model and reasoning | live aliases `opus-peer`, `sonnet-peer` |
 | **Claude** | native reviewer Tasks on `opus`, `sonnet`; effort inherits | live Codex-family aliases `gpt`, `terra` |
 | **Other** | unsupported — block the gate and publish | do not dispatch |
 
@@ -111,7 +111,7 @@ Codex host:
   native: codex-native reviewer "native-template" (inherit; no model/effort override)
   native: codex-native reviewer "native-feasibility" (inherit; no model/effort override)
   peer:   issue review ".issues/<n>-<type>-<slug>.md" \
-            --reviewers opus-cli,sonnet-cli --effort high
+            --reviewers opus-peer,sonnet-peer --effort high
 
 Claude host:
   native: Task reviewer model=opus (inherit)

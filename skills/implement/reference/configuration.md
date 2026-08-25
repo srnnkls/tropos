@@ -74,10 +74,10 @@ Validate before writing or dispatching:
 - Native explicit aliases `opus` and `sonnet` are Claude-host-native Task routes. They are valid
   only when the current host exposes that Task mechanism.
 - Resolve external aliases and supported effort values against `peer list`/the peer contract.
-- `opus-cli` and `sonnet-cli`, when present in `peer list`, are external Claude CLI routes through
+- `opus-peer` and `sonnet-peer`, when present in `peer list`, are external Claude CLI routes through
   peer and are valid for tester, implementer, and reviewer. The Codex-host default nevertheless
   remains all `codex-native`.
-- Validate `opus-cli`/`sonnet-cli` effort against the Claude CLI subset
+- Validate `opus-peer`/`sonnet-peer` effort against the Claude CLI subset
   `low|medium|high|xhigh|max`. For a fan-out containing multiple external aliases, the configured
   effort must be supported by every selected peer.
 - `inherit` is required for singular host-native routes (`codex-native`, `opus`, or `sonnet`) and
@@ -103,17 +103,17 @@ Apply this host-routing matrix during setup, validation, and resume:
 
 | Current host | GPT-family role | Claude-family role |
 |---|---|---|
-| Codex | `codex-native` native delegation (inherit session) | external `opus-cli`/`sonnet-cli` via peer |
+| Codex | `codex-native` native delegation (inherit session) | external `opus-peer`/`sonnet-peer` via peer |
 | Claude | external `gpt`/other Codex alias via peer | native `opus`/`sonnet` Task |
 
 Enforce same-host-family native routing using live registry metadata:
 
-- Under Codex, reject `opus`/`sonnet` (suggest `opus-cli`/`sonnet-cli`) **and** reject every
+- Under Codex, reject `opus`/`sonnet` (suggest `opus-peer`/`sonnet-peer`) **and** reject every
   peer-runnable GPT/Codex-family alias whose registry harness/family is Codex (for example `gpt`,
   `terra`, or `luna`); direct that family to `codex-native`.
 - Under Claude, reject `codex-native` (suggest a registered GPT/Codex peer alias) **and** reject
   every peer-runnable Claude-family alias whose registry harness/family is Claude (including
-  `opus-cli`/`sonnet-cli`); direct that family to native `opus`/`sonnet`.
+  `opus-peer`/`sonnet-peer`); direct that family to native `opus`/`sonnet`.
 - Allow cross-family routes and unrelated peer families when their role capabilities permit.
 
 Stop and ask the user to edit the live config; never silently convert or substitute. Apply these

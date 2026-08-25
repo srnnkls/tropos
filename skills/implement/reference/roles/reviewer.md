@@ -34,7 +34,7 @@ delegation for `codex-native`, one Task per configured Claude-host-native alias,
 **Registry / models:** `peer list` (see the [peer skill](../../../peer/SKILL.md)).
 
 **CRITICAL:** Per role, dispatch all configured host-native calls and any external `peer` in the
-same message. Never pass `codex-native`, `opus`, or `sonnet` to peer; `opus-cli`/`sonnet-cli` are
+same message. Never pass `codex-native`, `opus`, or `sonnet` to peer; `opus-peer`/`sonnet-peer` are
 distinct external aliases.
 
 ## Purpose
@@ -107,7 +107,7 @@ execution-routing source; never use `checkpoint.yaml` or `validation.yaml.review
 
 Dispatch `codex-native` through Codex native delegation with inherited settings. Dispatch
 `opus`/`sonnet` through `Task(subagent_type="reviewer", model=<alias>, ...)`. Dispatch all external
-aliases (`gpt`, `gemini`, `opus-cli`, `sonnet-cli`, and other peer registry entries) together only
+aliases (`gpt`, `gemini`, `opus-peer`, `sonnet-peer`, and other peer registry entries) together only
 when configured:
 
 Filter these choices through the strict host matrix: Codex rejects registry Codex-family peer

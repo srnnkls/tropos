@@ -22,7 +22,7 @@ The `{role_review_prompt}` is the role-specific prompt from the domain skill (e.
 
 For `codex-native`, use Codex's native delegation interface and inherit the current session model
 and reasoning. Never pass that reserved token to peer. `opus`/`sonnet` remain Claude-host-native;
-`opus-cli`/`sonnet-cli` from `peer list` are external Claude CLI routes (read-only when dispatched
+`opus-peer`/`sonnet-peer` from `peer list` are external Claude CLI routes (read-only when dispatched
 with `--agent reviewer`). Under Codex reject `opus`/`sonnet` and registry Codex-family peer aliases
 in favor of `codex-native`. Under Claude reject `codex-native` and registry Claude-family peer
 aliases in favor of native `opus`/`sonnet`. Cross-family peer routes remain valid.

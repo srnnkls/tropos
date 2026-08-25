@@ -257,7 +257,7 @@ case "$cmd" in
       esac
     done
     [[ -n "$reviewers" ]] || {
-      _usage 'review: --reviewers is required — pass the host-selected cross-host pair (Codex host: opus-cli,sonnet-cli · Claude host: gpt,terra)'
+      _usage 'review: --reviewers is required — pass the host-selected cross-host pair (Codex host: opus-peer,sonnet-peer · Claude host: gpt,terra)'
       return 2
     }
     command -v peer >/dev/null 2>&1 || { _die "peer not found (mise run install-peer) — external half can't run"; return 3 }

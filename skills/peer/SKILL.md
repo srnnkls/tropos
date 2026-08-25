@@ -23,11 +23,14 @@ external agents; never call `codex exec` or `pi` directly.
   strips the frontmatter from the target working tree's `agents/<role>.md` and appends
   the remaining body to Pi's system prompt.
 - **claude** — Claude Code CLI in noninteractive print mode for external role execution. The
-  explicit external aliases are `opus-cli` and `sonnet-cli`; the unqualified `opus` and
+  explicit external aliases are `opus-peer` and `sonnet-peer`; the unqualified `opus` and
   `sonnet` aliases remain orchestrator-native. Claude CLI runs with no session
   persistence, `dontAsk`, an exact allowed-tool set, and the stripped matching
   `agents/<role>.md` body. Reviewer and legacy calls expose only `Read,Grep,Glob`;
   tester/implementer calls expose and authorize `Read,Grep,Glob,Bash,Edit,Write`.
+- **Retired names** — a registry entry may carry `was: [...]` listing ids and aliases it used
+  to answer to. `peer` still resolves them and warns on stderr which current id it picked, so
+  an unmigrated caller keeps working. `peer list` shows only current names.
 - **Role source fallback** — Codex, Pi, and Claude first load the matching role definition
   from the target working tree. If it has no `agents/` directory, they use the definitions
   beside the installed peer source.

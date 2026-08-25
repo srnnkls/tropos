@@ -11,18 +11,27 @@ AGENTS_DIR="${PEER_AGENTS_DIR:-}"
 command -v yq >/dev/null 2>&1 || { printf '%s\n' "peer: yq not found" >&2; exit 3; }
 [[ -r "$REGISTRY" ]] || { printf '%s\n' "peer: registry not readable at $REGISTRY" >&2; exit 3; }
 
-IDS=(); declare -A HARNESS MODEL ALIAS EFFORT NATIVE PROVIDER
-while IFS=$'\t' read -r _id _h _m _a _e _n _p; do
+IDS=(); declare -A HARNESS MODEL ALIAS EFFORT NATIVE PROVIDER WAS
+while IFS='|' read -r _id _h _m _a _e _n _p _w; do
   [[ -n "$_id" ]] || continue
   IDS+=("$_id")
-  HARNESS[$_id]=$_h; MODEL[$_id]=$_m; ALIAS[$_id]=$_a; EFFORT[$_id]=$_e; PROVIDER[$_id]=$_p
+  HARNESS[$_id]=$_h; MODEL[$_id]=$_m; ALIAS[$_id]=$_a; EFFORT[$_id]=$_e; PROVIDER[$_id]=$_p; WAS[$_id]=$_w
   [[ "$_n" == true ]] && NATIVE[$_id]=yes || NATIVE[$_id]=no
-done < <(yq -r '.reviewers[] | [.id,.harness,.model,.alias,.effort,.native,(.provider // "")] | @tsv' "$REGISTRY")
+done < <(yq -r '.reviewers[] | [.id,.harness,.model,.alias,.effort,(.native | tostring),(.provider // ""),((.was // []) | join(","))] | join("|")' "$REGISTRY")
 
 _peer_resolve() {
-  local t=$1 id
+  local t=$1 id old
   [[ -n ${HARNESS[$t]:-} ]] && { printf '%s\n' "$t"; return 0; }
   for id in "${IDS[@]}"; do [[ ${ALIAS[$id]} == "$t" ]] && { printf '%s\n' "$id"; return 0; }; done
+  for id in "${IDS[@]}"; do
+    IFS=',' read -ra _was <<< "${WAS[$id]}"
+    for old in "${_was[@]}"; do
+      [[ -n "$old" && "$old" == "$t" ]] || continue
+      printf '%s\n' "peer: '$t' is a retired name for '$id' (alias ${ALIAS[$id]}) - update the caller" >&2
+      printf '%s\n' "$id"
+      return 0
+    done
+  done
   return 1
 }
 

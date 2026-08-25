@@ -106,7 +106,7 @@ Language-specific test conventions — read loqui language guidelines for test p
 1. **Detect Input Type** — scope, git rev, git range, path, or diff
 2. **Resolve Review Target** — materialize reviewed content, requirements, and report schema
 3. **Select Reviewers** — via `/review` infrastructure (interactive or from validation.yaml)
-   using the strict host matrix (`codex-native` vs `opus-cli`/`sonnet-cli` on Codex;
+   using the strict host matrix (`codex-native` vs `opus-peer`/`sonnet-peer` on Codex;
    `opus`/`sonnet` vs GPT peer aliases on Claude); reject same-host-family peer aliases using live
    registry harness/family metadata
 4. **Dispatch Reviewers in Parallel** — per role: Codex delegation for `codex-native`, Claude Task
