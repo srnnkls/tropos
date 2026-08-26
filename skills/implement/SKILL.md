@@ -160,6 +160,13 @@ task. Reload the in-memory configuration before each phase just as a scope run r
 `config.yaml`. Enforce same-host-family native routing during both interactive and inline setup;
 reject host-family loopback through peer and ask for edits rather than silently converting.
 
+A bare `Task(subagent_type: "tester"|"implementer"|"reviewer")` may be rerouted to a
+proxy-served model by `peer route` before it reaches the subagent — the transcript still names
+the role, so read `peer route show` for what actually runs, taking the status column rather
+than the peer as the answer. `peer route set <role>=<peer>` steers the whole working tree, not
+one dispatch, so clear it when the run ends. Naming a generated definition directly
+(`tester-gpt`) bypasses routing.
+
 ### Phase A: Dispatch Tester Subagent
 
 Dispatch a **fresh tester agent** to write failing tests. Route `codex-native` through Codex's

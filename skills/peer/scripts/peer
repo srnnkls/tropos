@@ -11,13 +11,14 @@ AGENTS_DIR="${PEER_AGENTS_DIR:-}"
 command -v yq >/dev/null 2>&1 || { printf '%s\n' "peer: yq not found" >&2; exit 3; }
 [[ -r "$REGISTRY" ]] || { printf '%s\n' "peer: registry not readable at $REGISTRY" >&2; exit 3; }
 
-IDS=(); declare -A HARNESS MODEL ALIAS EFFORT NATIVE PROVIDER WAS
-while IFS='|' read -r _id _h _m _a _e _n _p _w; do
+IDS=(); declare -A HARNESS MODEL ALIAS EFFORT NATIVE PROVIDER WAS PROXY
+while IFS='|' read -r _id _h _m _a _e _n _p _w _x; do
   [[ -n "$_id" ]] || continue
   IDS+=("$_id")
   HARNESS[$_id]=$_h; MODEL[$_id]=$_m; ALIAS[$_id]=$_a; EFFORT[$_id]=$_e; PROVIDER[$_id]=$_p; WAS[$_id]=$_w
   [[ "$_n" == true ]] && NATIVE[$_id]=yes || NATIVE[$_id]=no
-done < <(yq -r '.reviewers[] | [.id,.harness,.model,.alias,.effort,(.native | tostring),(.provider // ""),((.was // []) | join(","))] | join("|")' "$REGISTRY")
+  [[ "$_x" == true ]] && PROXY[$_id]=yes || PROXY[$_id]=no
+done < <(yq -r '.reviewers[] | [.id,.harness,.model,.alias,.effort,(.native | tostring),(.provider // ""),((.was // []) | join(",")),((.proxy // false) | tostring)] | join("|")' "$REGISTRY")
 
 _peer_resolve() {
   local t=$1 id old
@@ -198,10 +199,10 @@ cmd="${1:-}"
 
 # --- peer list -----------------------------------------------------------------------
 if [[ "$cmd" == list ]]; then
-  printf '%-18s %-7s %-11s %-26s %-7s %s\n' PEER-ID HARNESS PROVIDER MODEL ALIAS RUN-BY-PEER
+  printf '%-18s %-7s %-13s %-24s %-11s %-11s %s\n' PEER-ID HARNESS PROVIDER MODEL ALIAS ROUTABLE RUN-BY-PEER
   for id in "${IDS[@]}"; do
     [[ ${NATIVE[$id]} == yes ]] && runnable='no (orchestrator-native)' || runnable=yes
-    printf '%-18s %-7s %-11s %-26s %-7s %s\n' "$id" "${HARNESS[$id]}" "${PROVIDER[$id]}" "${MODEL[$id]}" "${ALIAS[$id]}" "$runnable"
+    printf '%-18s %-7s %-13s %-24s %-11s %-11s %s\n' "$id" "${HARNESS[$id]}" "${PROVIDER[$id]}" "${MODEL[$id]}" "${ALIAS[$id]}" "${PROXY[$id]}" "$runnable"
   done
   exit 0
 fi
@@ -244,6 +245,32 @@ if [[ "$cmd" == path ]]; then
   exit 0
 fi
 
+# --- peer route: native subagent routing (registry default, tree override, hook) ------
+if [[ "$cmd" == route ]]; then
+  shift
+  workdir="$PWD"; args=()
+  while (( $# )); do
+    case "$1" in
+      -C|--cd) workdir="${2:-}"; shift 2 ;;
+      *)       args+=( "$1" ); shift ;;
+    esac
+  done
+  workdir=$(cd "$workdir" 2>/dev/null && pwd -P) || {
+    printf '%s\n' "peer route: workdir is not accessible: $workdir" >&2; exit 2; }
+  # Claude resolves subagent_type from <project>/.claude/agents and the Claude config dir —
+  # never from <project>/agents, so the hook must not consult the work tree.
+  route_agents="$AGENTS_DIR"
+  if [[ -z "$route_agents" ]]; then
+    if [[ "${args[0]:-}" == sync ]]; then
+      route_agents="$DEFAULT_AGENTS_DIR"
+    else
+      route_agents="$workdir/.claude/agents:${CLAUDE_CONFIG_DIR:-$HOME/.claude}/agents:$DEFAULT_AGENTS_DIR"
+    fi
+  fi
+  exec python3 "$SCRIPT_DIR/peer-route.py" \
+    --registry "$REGISTRY" --agents-dir "$route_agents" --workdir "$workdir" "${args[@]}"
+fi
+
 # --- peer get: one registry field for a peer (id|alias) — for doc injection -----------
 if [[ "$cmd" == get ]]; then
   shift
@@ -257,7 +284,8 @@ if [[ "$cmd" == get ]]; then
     effort)  printf '%s\n' "${EFFORT[$gid]}" ;;
     native)   printf '%s\n' "${NATIVE[$gid]}" ;;
     provider) printf '%s\n' "${PROVIDER[$gid]}" ;;
-    *) printf '%s\n' "peer get: unknown field '$field' (id|model|harness|alias|effort|native|provider)" >&2; exit 2 ;;
+    proxy)    printf '%s\n' "${PROXY[$gid]}" ;;
+    *) printf '%s\n' "peer get: unknown field '$field' (id|model|harness|alias|effort|native|provider|proxy)" >&2; exit 2 ;;
   esac
   exit 0
 fi
@@ -269,6 +297,7 @@ if [[ "$cmd" != codex && "$cmd" != pi && "$cmd" != claude ]]; then
     printf '%s\n' "       peer <codex|pi|claude> -o OUTFILE [--agent tester|implementer|reviewer] [-C DIR] [...] [PROMPT | --prompt-file FILE]" >&2
     printf '%s\n' "       peer path <subject> <stage> [--run <run>] [-C DIR]   (mint the canonical report dir)" >&2
     printf '%s\n' "       peer run-id | peer list | peer get <id|model|harness|alias|effort|native> <id|alias>" >&2
+    printf '%s\n' "       peer route <hook|sync|show|set ROLE=PEER|clear> [-C DIR]   (native subagent routing)" >&2
     exit 0
   fi
   [[ "$cmd" == run ]] && shift

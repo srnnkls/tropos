@@ -80,7 +80,71 @@ peer list
 ```
 
 Use `peer get <field> <id|alias>` for `id`, `model`, `harness`, `alias`, `effort`,
-`native`, or `provider`.
+`native`, `provider`, or `proxy`. The `ROUTABLE` column is `proxy` — the peers
+[`peer route`](#native-routing--peer-route) can send a native subagent to.
+
+## Native routing — `peer route`
+
+A registry entry with `proxy: true` names a model the `claude-codex` proxy serves, so it can
+run as a native subagent instead of a subprocess. `Task(model=...)` accepts only Anthropic
+aliases, so the model is carried by an agent definition rather than a dispatch argument.
+
+```bash
+peer route sync                     # materialise agents/<role>-<alias>.md, one per proxy peer
+peer route show [-C DIR]            # effective role -> peer, and where each came from
+peer route set reviewer=terra [-C DIR]
+peer route clear [-C DIR]
+```
+
+`routing:` in `reviewers.yaml` is the standing default; `.peer/routing` under the working
+root overrides it for every session in that tree. `inherit` leaves a role on the session
+model, and every role ships as `inherit` — routing is opt-in, per tree or by editing the
+registry. `set` rejects a peer without `proxy: true`; a `routing:` value edited into the
+registry is not checked until `show` reports it as `inactive: not proxy-served`.
+
+`show` prints role, peer, where the value came from, and whether the route can actually fire —
+`active`, or `inactive:` with the reason. Read the status, not the peer: a route reports a peer
+whether or not anything will swap.
+
+Nothing routes until the hook is registered. `peer route hook` is a `PreToolUse` hook on
+`Task|Agent` and lives in Claude's settings, not in this repo:
+
+```json
+{ "matcher": "Task|Agent",
+  "hooks": [{"type": "command", "command": "peer route hook -C \"$CLAUDE_PROJECT_DIR\""}] }
+```
+
+Without that entry `set` and `show` still report routes while every dispatch stays on Claude.
+
+The hook rewrites `subagent_type` to the routed definition through `updatedInput` and logs the
+swap on stderr — the transcript still shows the requested role, so that line is the only
+provenance a reader gets. It abstains from the permission decision, so it can never weaken
+another hook's `deny`.
+
+It declines silently — leaving the dispatch on the Claude agent — when no proxy is
+configured, the proxy fails `/healthz`, the role is unrouted, the routed peer is not
+proxy-served, the payload is malformed, or the generated definition is missing. A rewrite the
+session cannot serve would kill the subagent outright, so every uncertain case falls through
+instead. Definitions are looked up where Claude resolves them — `<project>/.claude/agents`,
+then `$CLAUDE_CONFIG_DIR/agents` — never `<project>/agents`, which Claude never reads.
+
+Generated definitions are the role file with `name:` and `model:` rewritten and the body
+copied whole. Edit the role definition and re-run `sync`; edits to a generated file are lost.
+`sync` reconciles rather than appends: it renders every (role, proxy peer) before writing any,
+writes each atomically, and deletes any marked generated file the current registry no longer
+produces — so dropping `proxy:` from a peer or renaming an alias cannot strand a live
+definition. A role file it cannot read or parse fails the whole run and leaves the previous
+definitions untouched.
+
+`peer-route-test` covers the rewrite, the declines including malformed payload shapes,
+generation, reconciliation, and drift in both directions between the registry and the
+committed definitions.
+
+Two things the native path does not carry over from a `peer` dispatch. Registry `effort` is
+ignored — an agent definition has no reasoning-effort field, so a routed subagent runs at the
+session default. And a routed reviewer gets its role's tool list but not the `sandbox-exec`
+profile that `peer --agent reviewer` imposes, so its shell can write. Route a reviewer to a
+proxy peer only where a writable reviewer shell is acceptable.
 
 ## Report layout — `.peer/`
 

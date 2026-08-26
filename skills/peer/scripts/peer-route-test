@@ -1,0 +1,295 @@
+#!/usr/bin/env bash
+# Run: skills/peer/scripts/peer-route-test
+set -uo pipefail
+
+SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+PEER="$SCRIPT_DIR/peer"
+tmp=$(mktemp -d) && tmp=$(cd "$tmp" && pwd -P) || tmp=""
+[[ -n "$tmp" && -d "$tmp" && "$tmp" != "$PWD" && "$tmp" != "/" ]] || {
+  printf 'FAIL  refusing to run: temp dir resolved to %s\n' "${tmp:-<empty>}"; exit 1; }
+fails=0
+
+ok()  { printf 'ok    %s\n' "$1"; }
+bad() { printf 'FAIL  %s\n      %s\n' "$1" "$2"; (( fails++ )); }
+
+want_out() {  # NAME PATTERN -- CMD...
+  local name=$1 pat=$2; shift 3
+  local out; out=$("$@" 2>&1)
+  [[ "$out" =~ $pat ]] && ok "$name" || bad "$name" "output ${out:-<empty>} !~ $pat"
+}
+
+want_ok() {  # NAME EXPECTED-EXIT -- CMD...
+  local name=$1 want=$2; shift 3
+  local out rc; out=$("$@" 2>&1); rc=$?
+  (( rc == want )) && ok "$name" || bad "$name" "exit $rc (want $want): ${out:-<empty>}"
+}
+
+# A decline is only safe if it emits nothing, exits 0, and did not crash on the way.
+declines() {  # NAME PAYLOAD [ENV=VAL...]
+  local name=$1 body=$2; shift 2
+  local out err rc
+  err="$tmp/decline.err"
+  out=$(printf '%s' "$body" | env "$@" "$PEER" route hook -C "$repo" 2>"$err"); rc=$?
+  if [[ -n "$out" ]];                        then bad "$name" "emitted $out"
+  elif (( rc != 0 ));                        then bad "$name" "exit $rc"
+  elif grep -q Traceback "$err";             then bad "$name" "crashed: $(tail -1 "$err")"
+  else ok "$name"; fi
+}
+
+# --- fixtures ------------------------------------------------------------------------
+repo="$tmp/repo"; mkdir -p "$repo"
+agents="$tmp/agents"; mkdir -p "$agents"
+cat > "$agents/tester.md" <<'EOF'
+---
+name: tester
+description: Write tests and verify completeness
+tools: Glob, Grep, Read, Bash
+skills: test
+color: green
+---
+
+## Role
+
+Write failing tests first.
+EOF
+cat > "$agents/reviewer.md" <<'EOF'
+---
+name: reviewer
+description: Review changes, provide actionable feedback
+tools: Glob, Grep, Read, Bash
+color: yellow
+---
+
+## Role
+
+Review, do not fix.
+EOF
+cat > "$agents/implementer.md" <<'EOF'
+---
+name: implementer
+description: Implement task requirements following TDD
+tools: Glob, Grep, Read, Bash, Edit
+color: blue
+---
+
+## Role
+
+Make the tests pass.
+EOF
+
+# A stand-in proxy: any 200 on /healthz is enough for the reachability probe.
+srv="$tmp/srv"; mkdir -p "$srv"; printf '{"ok":true}' > "$srv/healthz"
+python3 -u -m http.server 0 --directory "$srv" >"$tmp/srv.log" 2>&1 &
+srv_pid=$!
+trap 'kill "$srv_pid" 2>/dev/null; rm -rf "$tmp"' EXIT
+for _ in $(seq 40); do
+  port=$(sed -n 's/.*port \([0-9]*\).*/\1/p' "$tmp/srv.log" | head -1)
+  [[ -n "${port:-}" ]] && break
+  sleep 0.05
+done
+[[ -n "${port:-}" ]] || { printf 'FAIL  fixture proxy never reported a port\n'; exit 1; }
+UP="http://127.0.0.1:$port"
+DOWN="http://127.0.0.1:1"          # nothing listens on port 1
+
+payload() {  # SUBAGENT-TYPE
+  printf '{"hook_event_name":"PreToolUse","tool_name":"Task","tool_input":{"subagent_type":"%s","prompt":"p","description":"d"}}' "$1"
+}
+
+roles=$(yq -r '.routing | keys | .[]' "$SCRIPT_DIR/reviewers.yaml" | wc -l | tr -d ' ')
+proxies=$(yq -r '[.reviewers[] | select(.proxy)] | length' "$SCRIPT_DIR/reviewers.yaml")
+expected_count=$(( roles * proxies ))
+
+export PEER_AGENTS_DIR="$agents"
+
+# --- sync: generated identity ---------------------------------------------------------
+"$PEER" route sync >/dev/null 2>&1
+gen="$agents/tester-gpt.md"
+[[ -f "$gen" ]] && ok 'sync generates a per-peer agent definition' \
+                || bad 'sync generates a per-peer agent definition' "missing $gen"
+
+want_out 'a generated definition names the registry model' \
+  '^model: gpt-5\.6-sol$' -- grep -m1 '^model:' "$gen"
+
+want_out 'a generated definition renames the agent, not the role' \
+  '^name: tester-gpt$' -- grep -m1 '^name:' "$gen"
+
+want_out 'a generated definition inherits the role tool list' \
+  '^tools: Glob, Grep, Read, Bash$' -- grep -m1 '^tools:' "$gen"
+
+grep -q 'Write failing tests first' "$gen" \
+  && ok 'a generated definition carries the role body verbatim' \
+  || bad 'a generated definition carries the role body verbatim' 'body missing'
+
+grep -qi 'generated' "$gen" \
+  && ok 'a generated definition is marked as generated' \
+  || bad 'a generated definition is marked as generated' 'no generated marker'
+
+# --- sync: reconciliation and failure reporting ----------------------------------------
+# Generated files are committed, so anything sync leaves behind ships as a live definition.
+orphan="$agents/tester-retired.md"
+cp "$gen" "$orphan"
+"$PEER" route sync >/dev/null 2>&1
+[[ -e "$orphan" ]] && bad 'sync removes a generated definition the registry no longer produces' \
+                          "$orphan survived" \
+                   || ok 'sync removes a generated definition the registry no longer produces'
+
+handwritten="$agents/tester-handwritten.md"
+printf -- '---\nname: tester-handwritten\n---\n\nMine.\n' > "$handwritten"
+"$PEER" route sync >/dev/null 2>&1
+[[ -e "$handwritten" ]] && ok 'sync leaves an unmarked definition alone' \
+                        || bad 'sync leaves an unmarked definition alone' "$handwritten was removed"
+rm -f "$handwritten"
+
+before=$(cat "$gen")
+broken="$tmp/broken"; mkdir -p "$broken"
+printf -- '---\nname: tester\nno closing delimiter\n' > "$broken/tester.md"
+out=$(PEER_AGENTS_DIR="$broken" "$PEER" route sync 2>&1); rc=$?
+if grep -q Traceback <<< "$out"; then
+  bad 'sync reports a malformed role file instead of crashing' "traceback: $(tail -1 <<< "$out")"
+elif (( rc == 0 )); then
+  bad 'sync reports a malformed role file instead of crashing' 'exit 0 on a malformed role'
+elif ! grep -q 'tester' <<< "$out"; then
+  bad 'sync reports a malformed role file instead of crashing' "message does not name the file: $out"
+else ok 'sync reports a malformed role file instead of crashing'; fi
+
+[[ "$(cat "$gen")" == "$before" ]] \
+  && ok 'a failed sync leaves the previous definition intact' \
+  || bad 'a failed sync leaves the previous definition intact' "$gen was rewritten or truncated"
+
+empty="$tmp/empty"; mkdir -p "$empty"
+out=$(PEER_AGENTS_DIR="$empty" "$PEER" route sync 2>&1); rc=$?
+{ (( rc != 0 )) && [[ -n "$out" ]] && ! grep -q Traceback <<< "$out"; } \
+  && ok 'sync names the role source it could not read' \
+  || bad 'sync names the role source it could not read' "exit $rc, output ${out:-<empty>}"
+
+"$PEER" route sync >/dev/null 2>&1   # restore the fixture
+
+# --- show / set / clear ---------------------------------------------------------------
+want_out 'show reports the registry default for a role' \
+  'tester.*inherit.*registry' -- "$PEER" route show -C "$repo"
+
+"$PEER" route set tester=luna -C "$repo" >/dev/null 2>&1
+want_out 'set overrides a role for this working root' \
+  'tester.*codex-gpt5\.6-luna.*override' -- "$PEER" route show -C "$repo"
+
+[[ -f "$repo/.peer/routing" ]] && ok 'set writes the override beside the dispatch artifacts' \
+                               || bad 'set writes the override beside the dispatch artifacts' 'no .peer/routing'
+
+# `show` is what /implement reads for "what actually runs", so a route that cannot fire
+# must not read as one that will.
+want_out 'show marks a route inactive when no proxy is configured' \
+  'tester.*inactive' -- env -u ANTHROPIC_BASE_URL "$PEER" route show -C "$repo"
+
+want_out 'show marks a route active when the proxy answers' \
+  'tester.*active' -- env ANTHROPIC_BASE_URL="$UP" "$PEER" route show -C "$repo"
+
+"$PEER" route clear -C "$repo" >/dev/null 2>&1
+want_out 'clear restores the registry default' \
+  'tester.*inherit.*registry' -- "$PEER" route show -C "$repo"
+
+want_ok 'set rejects an unknown role'  2 -- "$PEER" route set nonsense=gpt -C "$repo"
+want_ok 'set rejects an unknown peer'  2 -- "$PEER" route set tester=nonsense -C "$repo"
+
+# A clear that cannot remove the override must not report the route as gone.
+"$PEER" route set tester=gpt -C "$repo" >/dev/null 2>&1
+chmod a-w "$repo/.peer"
+out=$("$PEER" route clear -C "$repo" 2>&1); rc=$?
+chmod u+w "$repo/.peer"
+{ (( rc != 0 )) && [[ -n "$out" ]]; } \
+  && ok 'clear reports a removal it could not perform' \
+  || bad 'clear reports a removal it could not perform' "exit $rc, output ${out:-<empty>}"
+"$PEER" route clear -C "$repo" >/dev/null 2>&1
+
+# --- hook: the shipped default routes nothing ------------------------------------------
+declines 'hook no-ops on the shipped registry defaults' "$(payload tester)" ANTHROPIC_BASE_URL="$UP"
+
+# --- hook: the rewrite, once a role is routed ------------------------------------------
+"$PEER" route set tester=gpt -C "$repo" >/dev/null 2>&1
+out=$(payload tester | ANTHROPIC_BASE_URL="$UP" "$PEER" route hook -C "$repo" 2>/dev/null)
+grep -q '"subagent_type": *"tester-gpt"' <<< "$out" \
+  && ok 'hook rewrites a routed subagent_type' \
+  || bad 'hook rewrites a routed subagent_type' "got ${out:-<empty>}"
+
+grep -q '"prompt": *"p"' <<< "$out" \
+  && ok 'hook preserves the rest of the tool input' \
+  || bad 'hook preserves the rest of the tool input' "got ${out:-<empty>}"
+
+grep -q 'permissionDecision' <<< "$out" \
+  && bad 'hook abstains from the permission decision' "claimed a decision: $out" \
+  || ok 'hook abstains from the permission decision'
+
+err=$(payload tester | ANTHROPIC_BASE_URL="$UP" "$PEER" route hook -C "$repo" 2>&1 >/dev/null)
+[[ -n "$err" ]] && ok 'hook logs the swap for provenance' \
+               || bad 'hook logs the swap for provenance' 'nothing on stderr'
+
+# --- hook: the definition must be where Claude resolves subagents -----------------------
+# Claude reads ~/.claude/agents and <project>/.claude/agents — never <project>/agents.
+homed="$tmp/home"; mkdir -p "$homed/.claude"
+cp -R "$agents" "$homed/.claude/agents"
+proj="$tmp/proj"; mkdir -p "$proj/agents"
+"$PEER" route set tester=gpt -C "$proj" >/dev/null 2>&1
+out=$(payload tester | env -u PEER_AGENTS_DIR CLAUDE_CONFIG_DIR="$homed/.claude" \
+        ANTHROPIC_BASE_URL="$UP" "$PEER" route hook -C "$proj" 2>/dev/null)
+grep -q '"subagent_type": *"tester-gpt"' <<< "$out" \
+  && ok 'hook finds the definition in the Claude config dir, not the work tree' \
+  || bad 'hook finds the definition in the Claude config dir, not the work tree' "got ${out:-<empty>}"
+
+mkdir -p "$proj/.claude/agents"
+cp "$homed/.claude/agents/tester-gpt.md" "$proj/.claude/agents/"
+out=$(payload tester | env -u PEER_AGENTS_DIR CLAUDE_CONFIG_DIR="$tmp/nowhere" \
+        ANTHROPIC_BASE_URL="$UP" "$PEER" route hook -C "$proj" 2>/dev/null)
+grep -q '"subagent_type": *"tester-gpt"' <<< "$out" \
+  && ok 'hook finds the definition in the project .claude/agents' \
+  || bad 'hook finds the definition in the project .claude/agents' "got ${out:-<empty>}"
+
+# --- hook: every reason to leave the dispatch alone ------------------------------------
+declines 'hook no-ops when the proxy is unreachable'    "$(payload tester)"  ANTHROPIC_BASE_URL="$DOWN"
+declines 'hook no-ops when no proxy is configured'      "$(payload tester)"  -u ANTHROPIC_BASE_URL
+declines 'hook no-ops for an unrouted subagent type'    "$(payload Explore)" ANTHROPIC_BASE_URL="$UP"
+declines 'hook no-ops on an unparseable payload'        'not json'           ANTHROPIC_BASE_URL="$UP"
+
+for shape in 'null' '[]' '"str"' '3' \
+             '{"tool_name":"Task","tool_input":{"subagent_type":["tester"]}}' \
+             '{"tool_name":"Task","tool_input":{"subagent_type":null}}'; do
+  declines "hook no-ops on a payload shaped $shape" "$shape" ANTHROPIC_BASE_URL="$UP"
+done
+
+"$PEER" route set reviewer=gpt -C "$repo" >/dev/null 2>&1
+mv "$agents/reviewer-gpt.md" "$tmp/parked.md" 2>/dev/null
+declines 'hook no-ops when the target definition is missing' "$(payload reviewer)" ANTHROPIC_BASE_URL="$UP"
+mv "$tmp/parked.md" "$agents/reviewer-gpt.md" 2>/dev/null
+"$PEER" route clear -C "$repo" >/dev/null 2>&1
+
+# --- the repo's own generated definitions are current ---------------------------------
+# Generated files are committed, so a registry edit without a re-sync ships a stale model.
+real_agents="$SCRIPT_DIR/../../../agents"
+fresh="$tmp/fresh"; mkdir -p "$fresh"
+for role in $(yq -r '.routing | keys | .[]' "$SCRIPT_DIR/reviewers.yaml"); do
+  [[ -f "$real_agents/$role.md" ]] && cp "$real_agents/$role.md" "$fresh/"
+done
+sync_out=$(PEER_AGENTS_DIR="$fresh" "$PEER" route sync 2>&1); sync_rc=$?
+(( sync_rc == 0 )) && ok 'a fresh sync of the committed roles succeeds' \
+                  || bad 'a fresh sync of the committed roles succeeds' "exit $sync_rc: $sync_out"
+
+compared=0; drift=""
+for generated in "$fresh"/*-*.md; do
+  [[ -e "$generated" ]] || continue
+  (( compared++ ))
+  committed="$real_agents/$(basename "$generated")"
+  cmp -s "$generated" "$committed" || drift+="$(basename "$generated") "
+done
+# The reverse walk is what catches an orphan: a committed generated file no sync produces.
+for committed in "$real_agents"/*-*.md; do
+  [[ -e "$committed" ]] || continue
+  grep -q 'generated by `peer route sync`' "$committed" || continue
+  [[ -e "$fresh/$(basename "$committed")" ]] || drift+="$(basename "$committed")(orphan) "
+done
+(( compared == expected_count )) \
+  && ok "a fresh sync produces every routed definition ($expected_count)" \
+  || bad "a fresh sync produces every routed definition ($expected_count)" "compared $compared"
+
+[[ -z "$drift" ]] && ok 'committed definitions match a fresh sync' \
+                  || bad 'committed definitions match a fresh sync' "stale: $drift(run: peer route sync)"
+
+printf '\n%s\n' "$( ((fails)) && echo "$fails failing" || echo 'all passing')"
+exit $(( fails > 0 ))
