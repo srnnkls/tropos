@@ -4,7 +4,10 @@ set -uo pipefail
 
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 PEER="$SCRIPT_DIR/peer"
-tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+tmp=$(mktemp -d) || tmp=""
+[[ -n "$tmp" && -d "$tmp" && "$tmp" != "$PWD" && "$tmp" != "/" ]] || {
+  printf 'FAIL  refusing to run: temp dir resolved to %s\n' "${tmp:-<empty>}"; exit 1; }
+trap 'rm -rf "$tmp"' EXIT
 fails=0
 
 mkdir -p "$tmp/bin"
