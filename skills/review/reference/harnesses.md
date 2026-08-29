@@ -12,11 +12,14 @@ Full codebase access via tools; understands project conventions from CLAUDE.md; 
 
 ```
 Task(
-  subagent_type="reviewer",
-  model="{native_alias}",
+  subagent_type="reviewer",          # or "reviewer-{alias}" for a ROUTABLE=yes alias
+  model="{native_alias}",            # omit entirely for the routable form
   prompt="{role_review_prompt}"
 )
 ```
+
+A recorded effort other than `inherit` appends to the subagent name
+(`reviewer[-{alias}]-{effort}`), since Task has no effort argument.
 
 The `{role_review_prompt}` is the role-specific prompt from the domain skill (e.g., code review Step 4).
 
@@ -25,7 +28,9 @@ and reasoning. Never pass that reserved token to peer. `opus`/`sonnet` remain Cl
 `opus-peer`/`sonnet-peer` from `peer list` are external Claude CLI routes (read-only when dispatched
 with `--agent reviewer`). Under Codex reject `opus`/`sonnet` and registry Codex-family peer aliases
 in favor of `codex-native`. Under Claude reject `codex-native` and registry Claude-family peer
-aliases in favor of native `opus`/`sonnet`. Cross-family peer routes remain valid.
+aliases in favor of native `opus`/`sonnet`. Cross-family routes remain valid: a `ROUTABLE=yes`
+alias dispatches as `Task(subagent_type="reviewer-<alias>")` with no model, everything else
+through peer.
 
 ### Expected Behavior
 
@@ -54,8 +59,7 @@ directly as in-process Tasks; `peer` handles only external aliases.
 
 ## Dispatch Pattern
 
-Per role, in a single message: Codex delegation for `codex-native`, one Task per configured
-Claude-host-native reviewer, plus one `peer` only when external reviewers are configured.
+For implementation-owned review, launch every role's Codex delegation, native Tasks, routable Tasks, and external peer fan-out in one assistant message. Standalone review may use only the selected role.
 
 Build a self-contained prompt before fan-out: materialize and embed the review target (including
 the actual git diff), applicable requirements/context, and exact output schema. Workdirs and git
@@ -64,6 +68,7 @@ commands are supplemental for shell-capable reviewers; some read-only peers have
 ```
 Codex native delegation(role=reviewer, prompt={role_review_prompt})  # codex-native on Codex
 Task(subagent_type="reviewer", model={native_alias}, prompt={role_review_prompt})
+Task(subagent_type="reviewer-{routable_alias}", prompt={role_review_prompt})  # ROUTABLE=yes, no model
 Bash(run_in_background=true):
   # Only when external aliases are configured:
   peer -C {workdir} -d {role_outdir} --agent reviewer --peers {external_aliases} \
@@ -77,9 +82,7 @@ the prompt file avoids argv-size limits for embedded diffs and schemas.
 canonical [report layout](../../peer/SKILL.md#report-layout--peer). For standalone `/review` the
 review skill's **Report Output Directory** section pins the subject and stage.
 
-For implementation-owned test, batch, and final review, reload the scope's `config.yaml`, use the
-scope name as `<subject>`, and share one `<run>` across the round. Those calls carry the configured
-aliases and effort directly and never consult `validation.yaml.review_config`.
+Implementation-owned batch and integration review use the batch routing snapshot, the scope name as `<subject>`, and one shared `<run>` for the wave. They never consult `validation.yaml.review_config`.
 
 Read the TSV manifest `peer` prints; pull each `ok` report file, skip stalled/error/auth
 rows (note them as partial results). Full contract — flags, manifest, exit codes — in the

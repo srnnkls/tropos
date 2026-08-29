@@ -130,6 +130,16 @@ For simple edits, modify XML directly.
 - Keep references one level deep from SKILL.md
 - Add table of contents to files over 100 lines
 
+### Single Source of Truth
+
+Give every procedure, policy list, schema, routing matrix, gate definition, and failure-mode catalog one canonical skill or bundled resource.
+
+- Link to or load the canonical source from every consumer. Do not copy, paraphrase, or maintain a second version.
+- Keep role files and prompts to activation, mutation boundaries, canonical-resource pointers, and output contracts.
+- If a subagent cannot read a required canonical resource, it reports a gap instead of reconstructing the policy.
+- Generated artifacts may repeat canonical content only when a generator owns them. Edit the source and regenerate.
+- When a rule already appears in several maintained files, centralize it before changing its behavior.
+
 ---
 
 ## Workflows and Feedback Loops
@@ -401,6 +411,8 @@ reader = PdfReader("file.pdf")
 - [ ] Consistent terminology
 - [ ] Concrete examples
 - [ ] References one level deep
+- [ ] Every maintained policy or contract has one canonical source
+- [ ] Consumers link to or load canonical resources instead of restating them
 - [ ] Clear workflow steps
 
 ### Code and Scripts

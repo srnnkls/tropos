@@ -120,6 +120,11 @@ Claude host:
             --reviewers gpt,terra --effort high
 ```
 
+`gpt`/`terra` are `ROUTABLE=yes`, so a Claude host could also run them as native subagents. This
+gate deliberately does not: the fourth report is worth more from a separate process with peer's
+own read-only shell than from a subagent sharing this session's tooling. That is a choice specific
+to this gate, not the classification `/implement` and `/review` apply.
+
 `issue review` requires `--reviewers <comma-separated-live-aliases>` — it has no default, because the correct pair depends on the host and a wrong one silently degrades the gate. The helper mints the report directory with `peer path issue-<number> issue-review`, embeds the draft and canonical template in its `prompt.md`, then calls canonical peer fan-out as `peer -C <workdir> -d <review-dir> --agent reviewer --peers <aliases> --effort <level> --prompt-file <review-dir>/prompt.md`. The native prompts must use that same self-contained content and output contract:
 
 ```yaml

@@ -1,6 +1,6 @@
 ---
 name: dispatch
-description: Intent router. Auto-detects execution mode from context and routes to the appropriate skill.
+description: Intent router. Routes explicit workflow requests and leaves ordinary work in direct execution.
 argument-hint: "[target]"
 allowed-tools: Bash(find *), Bash(git status *), Bash(git branch *)
 metadata:
@@ -23,55 +23,40 @@ Current branch:
 
 # Intent Router
 
-Routes user intent to the appropriate execution skill.
+Workflow skills are explicit opt-ins. A file path or task description stays in direct current-agent execution.
 
----
-
-## Auto-Detect Rules
+## Routes
 
 Apply these rules to `$ARGUMENTS` in order:
 
-| Pattern | Route | Action |
-|---|---|---|
-| "continue" or "resume" | Resume | `Skill(continue, $ARGUMENTS)` |
-| "debug" or "trace" | Debug | `Skill(implement, debug $ARGUMENTS)` |
-| "test" or "tdd" | TDD | `Skill(test, $ARGUMENTS)` |
-| "verify" or "done" | Verify | `Skill(implement, verify $ARGUMENTS)` |
-| Matches `./scopes/*/*/` path | Execute | `Skill(implement, $ARGUMENTS)` |
-| Checkpoint in pre-loaded context | Resume | `Skill(continue)` |
-| Exactly one active scope (no checkpoint) | Execute | `Skill(implement)` |
-| File path or task description | Implement | `Skill(implement, $ARGUMENTS)` |
-| No argument | Menu | See fallback |
+| Pattern | Action |
+|---|---|
+| `continue` or `resume` | `Skill(continue, $ARGUMENTS)` |
+| `implement ...` | `Skill(implement, $REST)` |
+| `debug` or `trace` | `Skill(implement, debug $REST)` |
+| `test` or `tdd` | `Skill(test, $REST)` |
+| `verify` or `done` | `Skill(implement, verify $REST)` |
+| Explicit scope path | `Skill(implement, $ARGUMENTS)` |
+| File path or task description | Execute directly; do not invoke `implement` |
+| No argument | Ask which explicit workflow to run |
 
----
+A checkpoint or active scope is context, not permission to resume or implement. Require an explicit route.
 
-## Menu Fallback
+## Menu
 
-When no argument or ambiguous, use **AskUserQuestion**:
+When no route is named, use AskUserQuestion:
 
-```
+```text
 Header: Dispatch
-Question: What would you like to execute?
+Question: Which workflow should run?
 multiSelect: false
 Options:
-- Scope execution: Execute active scope with TDD pipeline (tester → implementer → reviewer)
-- Continue: Resume scope implementation from checkpoint
-- Implement: Single implementation task with language guidelines
-- TDD: Write failing test first, then implement (RED-GREEN-REFACTOR)
-- Verify: Evidence-based verification before claiming done
+- Implement: Strict delegated RED → GREEN → review
+- Continue: Resume an interrupted implementation scope
+- Test: Run explicit RED-GREEN-REFACTOR
+- Verify: Verify completion from current evidence
 ```
 
-With "Other" covering: debug (root cause tracing).
+With “Other” covering debug or direct execution.
 
-**Routing by selection:**
-
-| Selection | Action |
-|---|---|
-| Scope execution | `Skill(implement)` |
-| Continue | `Skill(continue)` |
-| Implement | `Skill(implement)` |
-| TDD | `Skill(test)` |
-| Verify | `Skill(implement, verify)` |
-| Other: debug | `Skill(implement, debug)` |
-
-> **Protocol:** [dispatch/protocol.md](protocol.md)
+> Protocol: [protocol.md](protocol.md)

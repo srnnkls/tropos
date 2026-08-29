@@ -264,7 +264,7 @@ if [[ "$cmd" == route ]]; then
     if [[ "${args[0]:-}" == sync ]]; then
       route_agents="$DEFAULT_AGENTS_DIR"
     else
-      route_agents="$workdir/.claude/agents:${CLAUDE_CONFIG_DIR:-$HOME/.claude}/agents:$DEFAULT_AGENTS_DIR"
+      route_agents="$workdir/.claude/agents:${CLAUDE_CONFIG_DIR:-$HOME/.claude}/agents"
     fi
   fi
   exec python3 "$SCRIPT_DIR/peer-route.py" \
@@ -297,7 +297,7 @@ if [[ "$cmd" != codex && "$cmd" != pi && "$cmd" != claude ]]; then
     printf '%s\n' "       peer <codex|pi|claude> -o OUTFILE [--agent tester|implementer|reviewer] [-C DIR] [...] [PROMPT | --prompt-file FILE]" >&2
     printf '%s\n' "       peer path <subject> <stage> [--run <run>] [-C DIR]   (mint the canonical report dir)" >&2
     printf '%s\n' "       peer run-id | peer list | peer get <id|model|harness|alias|effort|native> <id|alias>" >&2
-    printf '%s\n' "       peer route <hook|sync|show|set ROLE=PEER|clear> [-C DIR]   (native subagent routing)" >&2
+    printf '%s\n' "       peer route <hook|sync|show|check ROLE=PEER|set ROLE=PEER|clear> [-C DIR]   (native subagent routing)" >&2
     exit 0
   fi
   [[ "$cmd" == run ]] && shift

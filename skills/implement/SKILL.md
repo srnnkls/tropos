@@ -1,6 +1,6 @@
 ---
 name: implement
-description: Scope execution pipeline and implementation methodology. Use for executing scopes (TDD four-phase pipeline), verifying completion, debugging, or building features from requirements.
+description: Strict delegated RED → GREEN → review workflow. Use only when explicitly invoked for a task, scope, verification, or debugging.
 argument-hint: "[target]"
 allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(gh *), Bash(peer *)
 metadata:
@@ -21,240 +21,95 @@ Git status:
 Current branch:
 !`git branch --show-current 2>/dev/null || true`
 
-# Implementation & Scope Execution
+# Strict Implementation
 
-Executes scopes and tasks via a four-phase TDD pipeline (tester → test review → implementer → code review).
+Explicit `/implement` is the high-assurance path. Ordinary requests do not enter it automatically.
 
-**INVARIANT: The orchestrator NEVER writes code or tests.** All code authoring — including test code — MUST be delegated to fresh subagents. This applies to ALL routes: scope execution, single tasks, file paths, and task descriptions. No exceptions.
+The orchestrator coordinates and verifies. Fresh subagents write tests and production code. Every task follows RED → GREEN → review; no independent pre-implementation test-review phase exists.
 
----
+## Routes
 
-## Auto-Detect Rules
+Pre-parse `--config`, `--worktree`, `--base`, `--state`, and GitHub issue references as documented in [configuration.md](reference/configuration.md) and [execute.md](operations/execute.md).
 
-**Pre-parse:** Extract these directives from `$ARGUMENTS` before pattern matching:
-- `--config '<assignments>'` — non-interactive implementation-agent overrides. Supported keys are `tester`, `tester_effort`, `implementer`, `implementer_effort`, `reviewer`, and `reviewer_effort`; assignments are comma-separated and reviewer sets use `+`. Resolve and validate per [reference/configuration.md](reference/configuration.md).
-- `--reviewers <aliases>` — legacy reviewer-only shorthand. Treat the comma-separated list as a `reviewer=<aliases joined with +>` implementation override; do not read or write `validation.yaml.review_config` for implementation routing.
-- `--worktree` (or bare `worktree`) — checkout the determined branch as a `git worktree add ...` instead of in-place `git switch`. See "Git Workflow" → "Procedure" step 4.
-- `--base <branch>` — base branch for new-branch creation. If absent and the branch doesn't exist, AskUserQuestion. See "Git Workflow" → "Procedure" step 3.
-- `--state <draft|open>` — PR state when auto-creating a pull request at the end of execution (default: `draft`). Only used when `$ARGUMENTS` contains an issue reference.
-- `gh:<n>`, `#<n>`, or a GitHub issue URL — flags GitHub-issue branch naming AND enables auto-PR creation after final review. See "Git Workflow" → "Branch Determination" and `operations/execute.md` Step 10.
-
-Apply these rules to remaining `$ARGUMENTS` in order:
-
-| Pattern | Route | Action |
-|---|---|---|
-| Starts with `config` | Configure | Resolve the scope and update its `config.yaml` per `reference/configuration.md`; preserve the current epoch |
-| "verify" or "done" | Verify | Read and follow `operations/verify.md` |
-| "debug" or "trace" | Debug | Read and follow `operations/debug.md` |
-| Matches `./scopes/*/*/` path | Execute | Read and follow `operations/execute.md` |
-| Exactly one active scope | Execute | Read and follow `operations/execute.md` |
-| File path or task description | Direct | Use methodology below |
-| No argument | Menu | See fallback |
-
----
-
-## Menu Fallback
-
-When no argument or ambiguous, use **AskUserQuestion**:
-
-```
-Header: Implement
-Question: What would you like to do?
-multiSelect: false
-Options:
-- Scope execution: Execute active scope with TDD pipeline (tester → implementer → reviewer)
-- Verify: Evidence-based verification before claiming done
-- Debug: Root cause tracing for a bug or failure
-- Implement: Single implementation task with methodology below
-```
-
-**Routing by selection:**
-
-| Selection | Action |
+| Target | Action |
 |---|---|
-| Scope execution | Read and follow `operations/execute.md` |
-| Verify | Read and follow `operations/verify.md` |
-| Debug | Read and follow `operations/debug.md` |
-| Implement | Use methodology below |
+| `config ...` | Update the selected scope's implementation routing |
+| `verify` or `done` | Follow [verify.md](operations/verify.md) |
+| `debug` or `trace` | Follow [debug.md](operations/debug.md) |
+| Scope path or unique active scope | Follow [execute.md](operations/execute.md) |
+| File path or task description | Run the single-task pipeline below |
+| Missing or ambiguous | Ask for the target |
 
----
+Invoking this skill is the opt-in. Do not downgrade an explicit task to direct current-agent authoring.
 
-## When to Use
+## Branch Gate
 
-- Executing a scope's tasks via the four-phase pipeline
-- Building features from requirements
-- Writing code or creating artifacts
-- Deciding on structure, patterns, or approach
-- Designing domain models or data structures
-- Verifying completion or debugging failures
+Never dispatch mutating agents on `main`, `master`, or an unrelated branch.
 
----
+- Scope: use `feat/<scope-name>` unless the scope records another branch.
+- GitHub issue: use `<issue-number>-<issue-title>`.
+- Direct task: use the current non-trunk branch; if on trunk, ask for or create a task branch.
+- Use a worktree only when explicitly requested.
+- Run the base-drift gate once before the first mutating batch and again before PR creation. A later recheck requires new upstream evidence or an observed overlap.
 
-## Git Workflow
+## Configuration
 
-**MANDATORY:** The dispatcher MUST ensure a dedicated branch is checked out before dispatching any phase. Never run implementation phases on `main`/`master` or on an unrelated branch.
+Resolve routing once before a direct task or once at each scope batch boundary. The immutable snapshot governs that batch's tester, implementer, reviewers, effort, execution classes, and report run ID. Mid-batch edits apply to the next batch.
 
-### Branch Determination
+All host-family, `ROUTABLE=yes`, generated effort-variant, peer fan-out, and report-path behavior lives in [configuration.md](reference/configuration.md). Do not restate or infer routing from alias names.
 
-Detect the branch source from `$ARGUMENTS` and apply the matching naming convention:
+## Single-Task Pipeline
 
-| Source | Detection | Branch Name | Example |
-|---|---|---|---|
-| GitHub issue | `gh:<n>`, `#<n>`, or `github.com/<owner>/<repo>/issues/<n>` | `<issue#>-<issue-title-in-kebab-case>` | `142-add-user-auth` |
-| Scope | `./scopes/<state>/<name>/` path or active scope | `feat/<scope-name>` | `feat/user-auth` |
-| Direct task | File path or task description, no scope/issue | **AskUserQuestion** (see below) | — |
+Use the same gates as one scope batch without a persisted checkpoint.
 
-**For GitHub issues:** Fetch the title with `gh issue view <n> --json title -q .title`, kebab-case it (lowercase, spaces/punctuation → `-`, collapse repeats, trim), then prefix with the issue number. Do NOT add a `feat/` prefix — match GitHub's own branch convention.
+### Phase A: RED
 
-### Procedure
+1. Dispatch one fresh configured tester with the task requirements and the hard ceilings from `skills/test/SKILL.md`.
+2. Require `tester_report` with the exact focused command and bounded RED evidence.
+3. Run that command once and inspect one representative falsifier: name a plausible wrong implementation and confirm the test rejects it.
 
-1. **Determine branch name** per the table above.
-2. **If source is unclear or ambiguous** (no scope, no issue ref, multiple candidates) → **AskUserQuestion**:
-   ```
-   Header: Branch
-   Question: No branch detected for this work. How should I proceed?
-   multiSelect: false
-   Options:
-   - Use current branch: <current-branch>
-   - Create new branch: provide name
-   - GitHub issue: provide issue number
-   ```
-3. **Resolve base branch** (only needed when creating a new branch):
-   - Skip if branch already exists locally or on remote.
-   - If `--base <branch>` was passed in `$ARGUMENTS` → use it.
-   - Else → **AskUserQuestion**:
-     ```
-     Header: Base branch
-     Question: New branch <name> needs a base. Which branch should it fork from?
-     multiSelect: false
-     Options:
-     - origin/<trunk> (freshly fetched trunk — default)
-     - <current-branch> (current — pick if cascading)
-     - Other: provide branch name
-     ```
-   - **Never fork from local `main`/`master`** — it may be stale. When the base is the trunk, `git fetch origin <trunk>` and use `origin/<trunk>`.
-   - Verify the base exists (`git rev-parse --verify <base>`) before proceeding.
-4. **Checkout mode** — pre-parse `--worktree` (or `worktree`) from `$ARGUMENTS`:
-   - **Worktree directive present** → follow `skills/git/reference/worktree.md` end-to-end with `BRANCH_NAME=<branch>` from step 1 and the resolved base from step 3. All subsequent phases run from the reported worktree path.
-   - **No worktree directive** → in-place checkout:
-     - Branch exists locally → `git switch <name>` and pull latest
-     - Branch exists on remote → `git switch <name>` (tracks remote)
-     - Otherwise → `git switch -c <name> <base>` using the resolved base from step 3
-5. **Verify** current working tree is on the determined branch before dispatching Phase A.
-6. **Base-drift preflight** — skip ONLY when step 4 just created the branch from a **freshly fetched remote ref** (`origin/<trunk>`); a branch created from any local ref, or created earlier by an outside tool (`workon`, `gh issue develop`, manual checkout), can already be behind — run the check via `reference/base-drift-preflight.md`, which fetches `origin/<trunk>` fresh, measures divergence, and gates on overlap. **Do not dispatch Phase A past a non-empty overlap without a user decision.**
+Accept an assertion failure for the missing behavior or a native compiler/typechecker failure directly naming the requested missing API. Reject setup, import, syntax, dependency, environment, and unrelated build failures. Return an invalid report to the tester only when the remaining attempt/time budget permits; otherwise surface a gap.
 
-**Never** dispatch testers/implementers/reviewers while still on `main`, `master`, a stale unrelated branch, or a branch whose base drifted with unresolved overlapping changes.
+### Phase B: GREEN
 
----
-
-## Process (Single-Task Pipeline)
-
-**The orchestrator NEVER writes code or tests.** All code authoring is delegated to subagents.
-
-Even for a single task, the four-phase pipeline applies:
-
-Before the first dispatch, resolve an ephemeral agent configuration per
-`reference/configuration.md`. Supplying `--config` skips setup prompts; otherwise prompt for
-tester, implementer, and reviewer routing. Do not write a repository-level config for a direct
-task. Reload the in-memory configuration before each phase just as a scope run reloads
-`config.yaml`. Enforce same-host-family native routing during both interactive and inline setup;
-reject host-family loopback through peer and ask for edits rather than silently converting.
-
-A bare `Task(subagent_type: "tester"|"implementer"|"reviewer")` may be rerouted to a
-proxy-served model by `peer route` before it reaches the subagent — the transcript still names
-the role, so read `peer route show` for what actually runs, taking the status column rather
-than the peer as the answer. `peer route set <role>=<peer>` steers the whole working tree, not
-one dispatch, so clear it when the run ends. Naming a generated definition directly
-(`tester-gpt`) bypasses routing.
-
-### Phase A: Dispatch Tester Subagent
-
-Dispatch a **fresh tester agent** to write failing tests. Route `codex-native` through Codex's
-native delegation interface with inherited session settings, `opus`/`sonnet` through
-`Task(subagent_type: "tester", model: <alias>)`, and external aliases through `peer --agent tester`.
-
-- Tester reads task requirements and discovers expected behavior independently
-- Tester writes tests and verifies RED state
-- Orchestrator verifies RED (see Quality Gates in `operations/execute.md`)
-
-### Phase A.5: Test Review Gate
-
-Reload routing, then dispatch every configured native reviewer through its host-native mechanism
-and fan configured external reviewers through one `peer --agent reviewer` call. Require one
-success from each execution class actually configured; an all-native or all-external gate does not
-require the absent class.
-
-- Reviewers check for oracle mirroring, mock tautologies, framework tests, trivial assertions, defective oracles
-- Triage findings before acting on them per
-  [review synthesis](../review/reference/synthesis.md) — a test is flagged only when a
-  reported issue names a concrete failure mode against the actual test: a probe that passes
-  when it should not, an oracle that cannot fire, a false failure for a design-conformant
-  implementation. `issues_found` alone does not flag a test
-- If flagged → re-dispatch tester with the verified findings. Converge in one round; a second
-  round requires a new verified failure mode, and anything else is recorded as residual
-- **Gate:** Implementer NEVER receives tests that failed this review
-
-See dispatch template in `reference/subagent-workflow.md` — Test Review Dispatch Template.
-
-### Phase B: Dispatch Implementer Subagent
-
-Dispatch a **fresh implementer agent** with the test-review-cleared tester report. Route
-`codex-native` through Codex native delegation with inherited settings, explicit native aliases
-through `Task(subagent_type: "implementer", model: <alias>)`, and external aliases through
-`peer --agent implementer`.
-
-- Implementer makes tests pass (GREEN)
-- Implementer refactors while staying green
+Dispatch one fresh configured implementer with the task requirements and tester report. The implementer runs the RED command, writes the smallest production change, verifies GREEN, and refactors only the changed mechanism.
 
 ### Phase C: Review
 
-Review is mandatory. Reload routing and use the configured native and external reviewer set.
+Materialize the diff, requirements, report schema, finding bar, bounded Gestalt context, and applicable Loqui excerpts once. In one message, dispatch all configured reviewers for General, Architecture, and Compliance. Wait once and synthesize once.
 
-For external tester or implementer failure, preserve partial edits, record worktree status/diff,
-mark the phase incomplete, and pause. Do not retry, roll back, or advance automatically.
+Critical/high findings are triaged before fixes. Batch accepted findings by mechanism, allow at most two fix rounds per subject, and re-review only the failed lens. A further round requires a verified failure mode in a component no prior round examined. Surface `needs decision:` instead of dispatching it.
 
-### Dispatch Templates
+Phase C plus final native validation completes a single-task run. Do not launch a duplicate final review.
 
-Use the tester and implementer dispatch templates from `reference/subagent-workflow.md`.
+## Scope Pipeline
 
-### Red Flags
+[execute.md](operations/execute.md) owns batching, checkpoints, continuation, commits, and cross-batch integration. Its fixed dependency boundaries are:
 
-**If you catch yourself writing test code or implementation code directly: STOP.**
-You are the orchestrator. You dispatch. You verify. You do not author.
+1. all ready testers concurrently;
+2. one RED gate;
+3. all cleared implementers concurrently;
+4. all review roles and reviewer routes concurrently.
 
----
+No serial dispatch is allowed inside a boundary unless one result changes another prompt.
 
-## Domain Context
+## Failure and Recovery
 
-Domain skills inject specifics into this generic methodology:
-- **code**: Language guidelines (loqui), code intelligence (gestalt), review roles
-- **doc**: Templates, structure, style guides
+For a failed or interrupted mutating subagent, preserve partial edits and record the relevant status, diff, report directory, and failure. Do not auto-retry, roll back, or advance. `/continue` is deliberate redispatch authorization for the exact recorded wave.
 
-When invoked via a domain skill, follow the domain-specific guidance provided.
+Reviewer failures follow the configured execution-class minimum. Missing an unconfigured class never blocks; missing every successful report from a configured class does.
 
----
+## Stop Condition
 
-## Related Skills
+Stop when the requested requirements are implemented, focused and directly affected native validation passes, the review gate clears, and no known blocker remains. Do not add adjacent cleanup, another review wave, or another confidence run.
 
-- **dispatch**: Intent router — routes to this skill for execution
-- **test**: TDD workflow (write test first, then implement)
-- **continue**: Resume from checkpoint
-- **review**: Review methodology for completed work
+## References
 
----
-
-## Reference
-
-- [operations/execute.md](operations/execute.md) — Four-phase scope execution pipeline
-- [operations/verify.md](operations/verify.md) — Evidence-based completion verification
-- [operations/debug.md](operations/debug.md) — Root cause tracing
-- [reference/report.md](reference/report.md) — Report format
-- [reference/review.md](reference/review.md) — Review workflow
-- [reference/checkpoint-format.md](reference/checkpoint-format.md) — Checkpoint format
-- [reference/configuration.md](reference/configuration.md) — Live implementation-agent routing
-- [reference/subagent-workflow.md](reference/subagent-workflow.md) — Subagent workflow
-- [reference/base-drift-preflight.md](reference/base-drift-preflight.md) — Base-drift / overlap gate before dispatch
-- [reference/parallel-detection.md](reference/parallel-detection.md) — Parallel detection
-- [reference/defense-in-depth.md](reference/defense-in-depth.md) — Defense in depth
-- [reference/root-cause-tracing.md](reference/root-cause-tracing.md) — Root cause tracing
-- [reference/roles/](reference/roles/) — Tester, implementer, reviewer role definitions
+- [operations/execute.md](operations/execute.md) — scope execution
+- [operations/verify.md](operations/verify.md) — completion evidence
+- [operations/debug.md](operations/debug.md) — bounded root-cause work
+- [reference/configuration.md](reference/configuration.md) — canonical role routing
+- [reference/subagent-workflow.md](reference/subagent-workflow.md) — dispatch prompts and reports
+- [reference/checkpoint-format.md](reference/checkpoint-format.md) — recovery state
+- [reference/parallel-detection.md](reference/parallel-detection.md) — task batching
+- [reference/roles/](reference/roles/) — role contracts

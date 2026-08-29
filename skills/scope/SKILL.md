@@ -311,14 +311,16 @@ Configure scope-reviewers per the unified `/review` host matrix (see `/review` S
 
 On Codex, default/recommend `codex-native`; reject all registry Codex-family peer aliases and
 native `opus`/`sonnet`, while allowing cross-host `opus-peer`/`sonnet-peer`. On Claude,
-default/recommend native `opus` plus cross-host GPT peers; reject `codex-native` and all registry
-Claude-family peer aliases. Label/filter menu choices dynamically from registry harness/family
-metadata, and never silently convert a rejected selection.
+default/recommend native `opus` plus a cross-host GPT alias; reject `codex-native` and all registry
+Claude-family peer aliases. Read the `ROUTABLE` column to label each entry — a `ROUTABLE=yes` alias
+is a native subagent, not a peer route. Label/filter menu choices dynamically from registry
+harness/family metadata, and never silently convert a rejected selection.
 
-All-native sets use effort `inherit`. When any peer alias is selected, require one explicit effort
-supported by every selected peer; for `opus-peer`/`sonnet-peer`, the allowed subset is
-`low|medium|high|xhigh|max`. Native entries in a mixed set still inherit. Store resolved selections
-and peer effort in `validation.yaml.review_config`.
+One effort governs the set: `inherit`, or a level declared in `efforts:` in `reviewers.yaml`, which
+native and routable entries carry by naming the matching effort variant and peer entries receive
+through `--effort`. When any peer alias is selected, the level must be one every selected peer
+supports; for `opus-peer`/`sonnet-peer`, the allowed subset is `low|medium|high|xhigh|max`. Store
+the resolved selections and that effort in `validation.yaml.review_config`.
 
 **All issue types** (Initiative, Feature, Task) require reviewer config.
 
@@ -346,7 +348,7 @@ Generate these files:
 
 1. **`scope.md`** — Goal, context, requirements, verification
 2. **`design.md`** — Design reasoning (optional, when Design opt-in selected)
-3. **`tasks.yaml`** — Work checklist (TodoWrite sync)
+3. **`tasks.yaml`** — Authoritative task status, dependencies, and mutation paths
 4. **`dependencies.yaml`** — Task dependency graph (parallel dispatch)
 5. **`validation.yaml`** — Audit trail and gate checks
 
@@ -362,7 +364,7 @@ Generate these files:
 
 **Task output = 2 files:** scope.md (lightweight) + tasks.yaml
 
-**Batch signal lives in `tasks.yaml`.** Each task's `depends_on` + `files` fields drive parallel dispatch — Task scopes parallelize from `tasks.yaml` alone. `dependencies.yaml` is the Feature/Initiative precomputed DAG; when present, executors use its `batches[*]` directly, otherwise they derive batches from `tasks.yaml`.
+**Batch signal lives in `tasks.yaml`.** Each task's `depends_on` + `files` fields drive parallel dispatch. Every task must name its expected mutation paths before the scope is implementable. When research cannot resolve them, record a scope gap instead of forcing one serial pipeline per task. `dependencies.yaml` is the Feature/Initiative precomputed DAG; executors use its `batches[*]` after validating current task state.
 
 **scope.md frontmatter:**
 
@@ -389,9 +391,9 @@ issue_type: [Initiative|Feature|Task]
 
 > **Reference:** See [reference/quality-model.md](reference/quality-model.md) for design document quality patterns.
 
-### Step 5: Populate TodoWrite from tasks.yaml
+### Step 5: Validate Execution Metadata
 
-Parse `tasks.yaml`, create TodoWrite with up to 10 tasks (status, content, activeForm mapped from tasks.yaml).
+Confirm every task has explicit `depends_on` and `files` fields. Resolve missing paths with one bounded Gestalt-first discovery wave or record a scope gap. TodoWrite may mirror tasks for display, but `tasks.yaml` remains authoritative and no reverse sync is allowed.
 
 ### Step 6: Present Summary
 
@@ -437,7 +439,7 @@ scopes/<state>/<name>/   # <state> ∈ {draft, active, done}
 **For tooling (infrastructure):**
 ```
 scopes/<state>/<name>/
-├── tasks.yaml        # Progress tracking, TodoWrite sync
+├── tasks.yaml        # Authoritative task status, dependencies, and mutation paths
 ├── dependencies.yaml # Parallel dispatch DAG
 └── validation.yaml   # Audit trail, gate checks, reviewer config, loqui validation
 ```

@@ -1,59 +1,17 @@
-# Architecture Reviewer Role
+# Architecture Reviewer
 
-Structural analysis reviewer using gestalt code intelligence.
+Own only the Architecture gate for the materialized change.
 
----
+## First Action
 
-## Characteristics
+Run `gestalt map` as the first repository tool action.
 
-- Uses gestalt to analyze call graphs, coupling, and hotspots
-- Evaluates how changes propagate through the dependency graph
-- Reports on coupling, centrality, cycle introduction, seam violations
-- Runs multiple gestalt commands to build a structural picture
-- Works on Claude (native subagent) and external reviewers (via peer); both have full inspection access, while reviewer mode remains read-only and cannot mutate the workspace
+## Focus
 
----
+Check whether the changed definitions create a reachable structural defect: a new cycle, broken seam, harmful coupling, or impact outside the declared mutation boundary.
 
-## Review Focus
+Use the supplied structural context first. Run `gestalt diff <range>` when a code range exists. Use `gestalt callers`, `callees`, or `refs` for one named changed symbol only when its immediate blast radius remains unresolved.
 
-1. **Coupling** — Did changes increase inter-module coupling?
-2. **Hotspots** — Did changes create new high-centrality symbols?
-3. **Cycles** — Did changes introduce dependency cycles?
-4. **Seams** — Do changes respect existing cluster boundaries?
-5. **Impact** — How far do changes propagate through the call graph?
+Do not run `analyze`, verbose propagation, rank, and usage enumeration as a fixed checklist. A metric change without a reachable wrong outcome is not a finding.
 
----
-
-## Gates Owned
-
-| Gate | What It Checks |
-|------|----------------|
-| **Architecture** | Coupling, hotspots, cycles, seams, impact radius |
-| **Performance** | Structural efficiency (shared with General) |
-
----
-
-## Skills to Invoke
-
-**Required:** Invoke `gestalt` skill for code intelligence commands.
-
----
-
-## Gestalt Commands
-
-The reviewer runs these commands:
-
-```bash
-gestalt analyze                         # Current architecture: hotspots, seams, coupling
-gestalt diff <base>..HEAD               # Definition-level changes with impact markers
-gestalt diff <base>..HEAD --verbose     # With impact propagation layers
-```
-
-Additional commands as needed:
-
-```bash
-gestalt callers <symbol>                # Who calls a changed symbol?
-gestalt callees <symbol>                # What does a changed symbol call?
-gestalt refs <symbol>                   # All references to a changed symbol
-gestalt rank --file <changed-file>      # Centrality of symbols in changed files
-```
+Apply the shared finding bar and return only the requested reviewer schema.

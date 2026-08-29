@@ -1,199 +1,65 @@
-# Report Format Reference
+# Subagent Report Schemas
 
-YAML report schemas for structured handoff between subagents.
+Every subagent returns only the requested YAML. Limit command output to the last 20 relevant lines and gap/block reasons to five lines.
 
-## Output Constraint
-
-**All subagents must return ONLY the YAML report as their final message.**
-
-No prose, no explanation, no summary. The full subagent conversation gets embedded
-into the parent session context (duplicated in `.output` and `.result` fields) —
-every extra token in the final message directly inflates parent context consumption.
-
-Truncation rules for output fields:
-- `failure_output`: last 20 lines only (summary + counts)
-- `test_output`: last 20 lines only (summary + counts)
-- `gap_reason` / `blocked_reason`: 5 lines max
-
----
-
-## Tester Report
+## Tester
 
 ```yaml
 tester_report:
-  # Status: did tester successfully write tests?
   status: success | gap
-
-  # List of test files created
   test_files:
     - path: tests/test_feature.py
-      tests:
-        - test_name_1
-        - test_name_2
-        - test_name_3
-
-  # Actual test failure output (proves RED state)
+      tests: [test_requested_behavior]
+  test_command: "focused command"
+  red_kind: assertion | compiler | typechecker
+  rejected_wrong_implementation: "plausible wrong behavior the test rejects"
   failure_output: |
-    [last 20 lines of test failure output only]
-
-  # If status=gap, explain why tests couldn't be written
-  gap_reason: null | |
-    Cannot write tests because:
-    - [ambiguity 1]
-    - [ambiguity 2]
-    Need clarification on: [questions]
+    [last 20 relevant lines]
+  gap_reason: null
 ```
 
-### Tester Status Values
+`success` requires valid bounded RED evidence. `gap` names the missing requirement, tool, or decision; it never authorizes broader test machinery.
 
-| Status | Meaning | Next Step |
-|--------|---------|-----------|
-| `success` | Tests written and failing | Dispatch implementer |
-| `gap` | Cannot write meaningful tests | Consult scope, ask user, re-dispatch |
-
----
-
-## Implementer Report
+## Implementer
 
 ```yaml
 implementer_report:
-  # Status: did implementer make tests pass?
   status: success | blocked
-
-  # List of implementation files created/modified
-  implementation_files:
-    - path: src/feature.py
-
-  # Actual test pass output (proves GREEN state)
+  implementation_files: [src/feature.py]
+  test_command: "focused command"
   test_output: |
-    [last 20 lines of test output only]
-
-  # If used AskUserQuestion, record Q&A
-  clarifications:
-    - question: "Should X be configurable?"
-      answer: "Yes, via constructor parameter"
-
-  # If status=blocked, explain why
-  blocked_reason: null | |
-    Cannot implement because:
-    - [blocker]
-    Possible resolution: [suggestion]
+    [last 20 relevant lines]
+  blocked_reason: null
 ```
 
-### Implementer Status Values
+`success` requires verified GREEN evidence. `blocked` names the conflicting requirement, invalid RED evidence, unavailable dependency, or public-surface decision.
 
-| Status | Meaning | Next Step |
-|--------|---------|-----------|
-| `success` | Tests passing | Proceed to review |
-| `blocked` | Cannot make tests pass | Investigate blocker, re-dispatch |
+## Reviewer
 
----
-
-## Reviewer Report
+Use the exact schema materialized by the review operation. Every issue includes:
 
 ```yaml
-reviewer_report:
-  # Overall batch status
-  overall_status: approved | changes_requested
-
-  # Which tasks were reviewed
-  tasks_reviewed:
-    - T001
-    - T002
-    - T003
-
-  # Issues found, by severity
-  issues:
-    - task: T001
-      severity: critical | high | medium
-      description: "Clear description of issue"
-      suggested_fix: "Actionable suggestion"
-      file: path/to/file.py  # optional
-      line: 42               # optional
-
-  # Positive observations
-  strengths:
-    - "Good test coverage"
-    - "Clean code structure"
-
-  # Summary assessment
-  overall_assessment: |
-    Brief summary of batch quality.
-    Which tasks are ready, which need fixes.
+- severity: critical | high | medium
+  gate: correctness | style | performance | security | architecture
+  location: path/to/file:line
+  trigger: "reachable input or state"
+  wrong_outcome: "incorrect result"
+  suggestion: "smallest shared-root fix or needs decision: constraint"
 ```
 
-### Reviewer Status Values
+A report may contain no issues. Agreement count does not alter validity.
 
-| Status | Meaning | Next Step |
-|--------|---------|-----------|
-| `approved` | All tasks meet requirements | Mark complete, next batch |
-| `changes_requested` | Issues need fixing | Dispatch fix subagent(s) |
-
-### Issue Severity
-
-| Severity | Definition | Action |
-|----------|------------|--------|
-| `critical` | Blocks progress, breaks build/tests | Fix immediately |
-| `high` | Affects quality, missing coverage | Fix before next batch |
-| `medium` | Style, naming, improvements | Note for later |
-
----
-
-## Fix Report
+## Fix
 
 ```yaml
 fix_report:
-  # Did fixes succeed?
-  status: success | failed
-
-  # What was fixed
+  status: success | blocked
   fixes_applied:
-    - issue: "Missing null check"
-      fix: "Added validation at line 42"
-    - issue: "Unclear variable name"
-      fix: "Renamed x to retry_count"
-
-  # Test output after fixes
+    - issue: "admitted finding"
+      fix: "shared mechanism changed"
   test_output: |
-    [last 20 lines of test output only]
-
-  # If status=failed, explain
-  failure_reason: null | |
-    Could not fix because: [reason]
+    [last 20 relevant lines]
+  blocked_reason: null
 ```
 
----
-
-## Report Flow
-
-```
-Task Start
-    │
-    ▼
-TESTER
-    │
-    ├─ status: success ──► tester_report with test_files, failure_output
-    │                           │
-    │                           ▼
-    │                      IMPLEMENTER
-    │                           │
-    │                           ├─ status: success ──► implementer_report
-    │                           │                           │
-    │                           │                           ▼
-    │                           │                      REVIEWER (batch)
-    │                           │                           │
-    │                           │                           ├─ approved ──► Done
-    │                           │                           │
-    │                           │                           └─ changes_requested
-    │                           │                                   │
-    │                           │                                   ▼
-    │                           │                              FIX SUBAGENT
-    │                           │                                   │
-    │                           │                                   ▼
-    │                           │                              fix_report
-    │                           │
-    │                           └─ status: blocked ──► Investigate, re-dispatch
-    │
-    └─ status: gap ──► Consult scope, ask user, re-dispatch tester
-```
-
+Fix reports never include residual, deferred, or `needs decision:` work.

@@ -72,6 +72,8 @@ routing:
   implementer: inherit
   reviewer: inherit
 
+efforts: [medium, high, xhigh]
+
 providers:
   openrouter:
     thinking: true
