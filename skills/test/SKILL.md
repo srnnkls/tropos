@@ -1,158 +1,99 @@
 ---
 name: test
-description: Test-driven development methodology (RED-GREEN-REFACTOR). Use when implementing features, fixing bugs, or changing behavior - write failing test first, then minimal code to pass.
+description: Bounded RED-GREEN-REFACTOR methodology. Use when the user explicitly requests TDD or tests, or when the implement pipeline invokes it.
 metadata:
   type: generic
 ---
 
-# Test-Driven Development
+# Bounded Test-Driven Development
 
-Write the test first. Watch it fail. Write minimal code to pass.
+Write the smallest discriminating check, watch it fail for the requested missing behavior, add minimal production code, then watch it pass.
 
-If you didn't watch the test fail, you don't know if it tests the right thing.
+## Activation
 
----
+Use this workflow only when:
 
-## When to Use
+- the user invokes `/test` or `/implement`;
+- the user explicitly asks for tests or TDD; or
+- an active implementation pipeline dispatches a tester or implementer.
 
-Always use for:
-- New features
-- Bug fixes
-- Behavior changes
-- Refactoring
+Ordinary edits follow the direct-execution policy and native validation. Static configuration, generated declarations, and platform-validated artifacts do not justify invented test machinery.
 
-Exceptions (confirm with user):
-- Throwaway prototypes
-- Generated code
-- Configuration files
+## Tester Budget
 
----
+The dispatch prompt may lower these ceilings. It may not raise them without user authorization.
 
-## The Iron Law
+- First repository tool action: `gestalt map`.
+- Default: one test. Maximum: three tests per task.
+- Merge assertions that exercise one failure mechanism.
+- Maximum: two RED attempts and ten minutes total.
+- Use existing test infrastructure, installed dependencies, and the smallest focused native command.
+- If the behavior cannot be falsified within the budget, return `status: gap` with the missing tool, requirement, or decision.
 
-```
-NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
-```
+Do not:
 
-Wrote code before the test? Delete it. Start over. No exceptions.
+- download tools, use the network or a live API, or add a dependency;
+- create a compiler, parser, interpreter, simulator, symbolic executor, protocol emulator, mock server, DSL, mini-framework, or compatibility matrix;
+- enumerate every caller, usage, input, syscall, crash point, schedule, or interleaving;
+- run a repository-wide suite when a focused native command can falsify the behavior;
+- test framework, dependency, standard-library, compiler, runtime, serializer, parser, collection, or operating-system behavior;
+- write production code during the tester phase.
 
----
+## Test Value Gate
 
-## Red-Green-Refactor Cycle
+Read and apply [reference/failure-modes.md](reference/failure-modes.md) before writing tests and again before reporting RED. It is the single source of truth; do not copy its failure-mode list into prompts, role files, or reports.
 
-### 1. RED - Write Failing Test
+A test that needs substitute infrastructure is a gap, not a larger test task.
 
-Write one minimal test showing what should happen.
+## RED
 
-**Requirements:**
-- One behavior per test
-- Clear name describing behavior
-- Real code (avoid mocks unless unavoidable)
+1. Derive the oracle from the requirement before reading implementation bodies.
+2. Read existing tests and the target public interface for conventions and the test seam. Read implementation only as far as needed to locate that seam; never copy its behavior into the oracle.
+3. Write the smallest representative falsifier set.
+4. Run the focused command and record the exact failure.
 
-### 2. Verify RED - Watch It Fail
+Valid RED evidence is either:
 
-**MANDATORY. Never skip.**
+- a test assertion failing because the requested behavior is absent or wrong; or
+- a native compiler/typechecker failure that directly names a requested missing API or contract.
 
-Run the test. Confirm:
-- Test fails (not errors from typos)
-- Failure message matches expectation
-- Fails because feature is missing
+Setup, import, syntax, dependency, unrelated compilation, and environment failures are invalid. A test that passes immediately does not establish RED.
 
-**Test passes immediately?** You're testing existing behavior. Fix the test.
+Before reporting, choose the most important test and name one plausible wrong implementation it rejects. If it would pass, sharpen or delete it.
 
-### 3. GREEN - Minimal Code
+## GREEN and Refactor
 
-Write the simplest code to pass the test.
+1. Add the minimum production change needed for the RED check.
+2. Run the focused command and directly affected native validation once.
+3. Refactor only the changed mechanism while staying green.
+4. Stop when the requested acceptance condition passes and no known blocker remains.
 
-DO: Just enough to pass, simple implementation
-DON'T: Add features, refactor other code, add configurability
+Do not add adjacent behavior, configurability, cleanup, or another confidence run.
 
-### 4. Verify GREEN - Watch It Pass
-
-**MANDATORY.**
-
-Run the test. Confirm:
-- Test passes
-- Other tests still pass
-- No errors or warnings
-
-### 5. REFACTOR - Clean Up
-
-Only after green:
-- Remove duplication
-- Improve names
-- Extract helpers
-
-Keep tests green. Don't add behavior.
-
-### 6. Repeat
-
-Next failing test for next behavior.
-
----
-
-## Common Rationalizations
-
-| Excuse | Reality |
-|--------|---------|
-| "Too simple to test" | Simple code breaks. Test takes 30 seconds. |
-| "I'll test after" | Tests passing immediately prove nothing. |
-| "Already manually tested" | Ad-hoc is not systematic. No record, can't re-run. |
-| "Deleting X hours is wasteful" | Sunk cost fallacy. Unverified code is debt. |
-| "Need to explore first" | Fine. Throw away exploration, then TDD. |
-| "Test hard to write" | Hard to test = hard to use. Simplify design. |
-
----
-
-## Red Flags - Stop and Start Over
-
-- Code written before test
-- Test passes immediately
-- Can't explain why test failed
-- "Just this once" rationalization
-- Keeping code "as reference"
-
-Delete code. Start with TDD.
-
----
-
-## Verification Checklist
-
-Before marking work complete:
-
-- [ ] Every new function has a test
-- [ ] Watched each test fail before implementing
-- [ ] Each test failed for expected reason
-- [ ] Wrote minimal code to pass each test
-- [ ] All tests pass
-- [ ] No errors or warnings in output
-
----
-
-## TDD Evidence Format (For Subagent Verification)
-
-When implementing as a subagent, you MUST output this evidence block:
+## Tester Evidence
 
 ```yaml
-tdd_evidence:
-  tests_written:
-    - name: "test_feature_x"
-      file: "tests/test_x.py"
-      red_output: "FAILED - [actual failure message]"
-      green_output: "PASSED - 1 passed in 0.05s"
-  implementation_files:
-    - path: "src/feature.py"
-  all_tests_pass: true
-  test_command: "pytest tests/test_x.py -v"
-  final_output: "[full test output]"
+tester_report:
+  status: success  # or gap
+  test_files:
+    - path: tests/test_feature.py
+      tests: [test_requested_behavior]
+  test_command: "pytest tests/test_feature.py -q"
+  red_kind: assertion | compiler | typechecker
+  rejected_wrong_implementation: "Returns the untransformed value"
+  failure_output: |
+    [last 20 relevant lines]
+  gap_reason: null
 ```
 
-**This is REQUIRED for SubagentStop hook verification.**
+## Implementer Evidence
 
----
-
-## Domain Context
-
-Domain skills inject specifics into this generic methodology:
-- `code`: Language-specific test conventions via loqui, test frameworks
-- `doc`: Documentation validation, link checking
+```yaml
+implementer_report:
+  status: success  # or blocked
+  implementation_files: [src/feature.py]
+  test_command: "pytest tests/test_feature.py -q"
+  test_output: |
+    [last 20 relevant lines]
+  blocked_reason: null
+```

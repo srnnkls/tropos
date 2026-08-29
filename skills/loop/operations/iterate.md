@@ -1,73 +1,44 @@
 # Iteration Protocol
 
-Execute one batch per iteration until no pending tasks remain. Build batches from the batch signal — `dependencies.yaml`'s
-precomputed `batches[*]` when present, otherwise derived from `tasks.yaml`'s `depends_on` + `files`
-(see `../../implement/reference/parallel-detection.md`).
+Execute or recover one dependency batch per iteration through the canonical strict pipeline.
 
-## Per-Batch Steps
+## Selection
 
-1. Recover-first selection — Before choosing a new batch, prioritize any scope whose checkpoint
-   has non-empty `incomplete_stages`; otherwise prioritize a non-complete `phase_cursor`. Use a
-   normal dependency-ready batch only when neither recovery state exists.
-2. Prepare — Activate that scope's branch/worktree and clear the mandatory base-drift
-   preflight from the `implement` skill before writing scope state. Then read the relevant scope
-   sections, re-read `checkpoint.yaml`, and read its live `config.yaml`. If enumeration marked config missing, run the interactive
-   `/implement config <scope>` setup and create it now on the active scope branch/worktree.
-   Validate external aliases with `peer list` and enforce same-host-family native routing. Under
-   Codex reject `opus`/`sonnet` and every registry Codex-family peer alias (use `codex-native`;
-   cross-family Claude CLI is allowed). Under Claude reject `codex-native` and every registry
-   Claude-family peer alias (use native `opus`/`sonnet`; cross-family GPT peer is allowed). If incompatible, output
-   `LOOP_BLOCKED: edit implementation config — host-incompatible agent` and stop without
-   substitution. Never send a host-native token to peer. Never derive execution routing from `checkpoint.yaml` or
-   `validation.yaml.review_config`.
-3. Recover or delegate — Apply the same recovery protocol as `/continue`:
-   - Recover every `incomplete_stages` entry first, preserving partial edits and redispatching only
-     that exact task/phase; clear it only after its saved report passes the stage gate.
-   - When no mutating marker remains, resume `phase_cursor` exactly. For test/targeted review or
-     code/final review, accept saved `ok` reports and redispatch only pending/failed agents or roles
-     from their recorded report directories. Never restart testers for an interrupted read-only gate.
-   - Persist cursor/marker transitions before and after every dispatch. Only after the cursor reaches
-     the next dependency-ready `tester: pending` may the loop begin that batch.
+1. Recover in-flight mutations first.
+2. Otherwise resume the exact recorded RED, GREEN, review, fix, or integration wave.
+3. Only when no recovery state exists, derive a dependency-ready batch from `dependencies.yaml` or `tasks.yaml` through `implement/reference/parallel-detection.md`.
 
-   Run the `implement` skill's four-phase pipeline (`operations/execute.md`) from that recovered
-   point: testers → test review gate → implementers → review. Immediately
-   before each Phase A, A.5, B, and C dispatch, re-read and validate `config.yaml`; route
-   `codex-native` through Codex native delegation with inherited settings, explicit native aliases
-   through the matching Task agent, and external aliases through `peer --agent <role> --peers ...`.
-   Review gates require one success from each execution class actually configured. A config edit affects the next dispatch, never agents
-   already running. If the file is missing, recreate it through the interactive
-   `/implement config <scope>` setup before dispatching; never fall back to stale routing.
-4. Verify — Run `hk check --all --fix`
-5. Commit — `git add -A && git commit -m "feat(loop): <batch tasks>"` (one commit per batch)
-6. Update — Mark every todo in the batch complete (before the drift check, so a drift-block can't leave a committed batch showing as pending)
-7. Drift check — Re-sync with trunk every iteration:
-   ```bash
-   git fetch origin <trunk> --quiet
-   behind=$(git rev-list --count "HEAD..origin/<trunk>")
-   [ "$behind" -eq 0 ] || git rebase "origin/<trunk>"
-   ```
-   Clean rebase → continue. Conflicts → output `LOOP_BLOCKED: trunk drift conflict in <files>` and stop. See `../../implement/reference/base-drift-preflight.md`.
-8. Next — Return to step 1
+Task status comes from `tasks.yaml`; review state comes from `review.yaml`. TodoWrite does not participate.
 
-## CI Failures
+## Batch
 
-If `hk check --all --fix` fails after step 4:
-1. Spawn a focused fix subagent
-2. Re-run `hk check --all --fix`
-3. If still failing: output `LOOP_BLOCKED: <summary>` and stop
+1. Activate the scope branch/worktree and clear any required initial drift gate.
+2. For a new batch, read and validate `config.yaml` once and persist an immutable routing snapshot. For recovery, keep the recorded snapshot.
+3. Follow `implement/operations/execute.md` from the selected point:
+   - all ready testers in one message;
+   - one RED gate;
+   - all cleared implementers in one message;
+   - one GREEN gate;
+   - all review roles and configured reviewer routes in one message;
+   - one synthesis with bounded fixes.
+4. Run `hk check --all --fix` once after the batch.
+5. Commit the completed batch and authoritative scope state.
+6. Return to selection.
 
-## Exit Conditions
+Do not reload routing per phase or role. Do not run a test-review agent wave. Do not fetch/rebase at every iteration; drift work requires new upstream or overlap evidence, or the final pre-PR gate.
+
+## Check Failure
+
+When the post-batch native check fails:
+
+1. Dispatch one focused fix agent for the reachable failure mechanism.
+2. Re-run the failed check once.
+3. If it still fails, output `LOOP_BLOCKED: <summary>` and stop.
+
+## Exit
 
 | Condition | Output |
 |---|---|
-| All todos complete | `LOOP_COMPLETE: <n> tasks across <m> batches implemented` |
-| CI unrecoverable | `LOOP_BLOCKED: <reason>` |
-| 10 batch-iterations reached | `LOOP_LIMIT: review progress and resume` |
-
-## Commit Format
-
-feat(loop): <batch tasks>
-
-Loop-Iteration: <n>
-Batch: <batch-number>
-Focus: <focus topic>
+| All authoritative tasks complete and final gate passes | `LOOP_COMPLETE: <n> tasks across <m> batches implemented` |
+| Unresolved gap, mutation failure, review-class failure, drift conflict, or repeated native-check failure | `LOOP_BLOCKED: <reason>` |
+| Ten batch iterations reached | `LOOP_LIMIT: review progress and resume` |

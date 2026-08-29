@@ -97,7 +97,8 @@ payload() {  # SUBAGENT-TYPE
 
 roles=$(yq -r '.routing | keys | .[]' "$SCRIPT_DIR/reviewers.yaml" | wc -l | tr -d ' ')
 proxies=$(yq -r '[.reviewers[] | select(.proxy)] | length' "$SCRIPT_DIR/reviewers.yaml")
-expected_count=$(( roles * proxies ))
+efforts=$(yq -r '(.efforts // []) | length' "$SCRIPT_DIR/reviewers.yaml")
+expected_count=$(( roles * (proxies * (1 + efforts) + efforts) ))
 
 export PEER_AGENTS_DIR="$agents"
 
@@ -123,6 +124,41 @@ grep -q 'Write failing tests first' "$gen" \
 grep -qi 'generated' "$gen" \
   && ok 'a generated definition is marked as generated' \
   || bad 'a generated definition is marked as generated' 'no generated marker'
+
+# --- sync: effort variants -------------------------------------------------------------
+# The Task tool has no effort argument, so an alternate level exists only as its own
+# definition. Both axes vary independently: model comes from the peer, effort from the name.
+mapfile -t levels < <(yq -r '(.efforts // [])[]' "$SCRIPT_DIR/reviewers.yaml")
+(( ${#levels[@]} )) || { printf 'FAIL  registry declares no effort variants to test\n'; (( fails++ )); }
+
+for lvl in "${levels[@]}"; do
+  want_out "an effort variant sets level $lvl" \
+    "^effort: $lvl\$" -- grep -m1 '^effort:' "$agents/reviewer-$lvl.md"
+  want_out "a peer effort variant pairs the peer model with level $lvl" \
+    "^model: gpt-5\.6-sol\$" -- grep -m1 '^model:' "$agents/reviewer-gpt-$lvl.md"
+  want_out "a peer effort variant sets level $lvl" \
+    "^effort: $lvl\$" -- grep -m1 '^effort:' "$agents/reviewer-gpt-$lvl.md"
+done
+
+lvl=${levels[0]}
+grep -q '^model:' "$agents/reviewer-$lvl.md" \
+  && bad 'an effort variant of a role names no model' "$(grep -m1 '^model:' "$agents/reviewer-$lvl.md")" \
+  || ok 'an effort variant of a role names no model'
+
+# The role file declares no effort, so a plain peer definition must not invent one.
+grep -q '^effort:' "$agents/reviewer-gpt.md" \
+  && bad 'a plain peer definition declares no effort' "$(grep -m1 '^effort:' "$agents/reviewer-gpt.md")" \
+  || ok 'a plain peer definition declares no effort'
+
+# `reviewer-<lvl>` cannot mean both "the level variant" and "the peer aliased <lvl>".
+collide="$tmp/collide.yaml"
+sed "s/alias: gpt/alias: $lvl/" "$SCRIPT_DIR/reviewers.yaml" > "$collide"
+out=$(PEER_REGISTRY="$collide" "$PEER" route sync 2>&1); rc=$?
+{ (( rc != 0 )) && grep -q "$lvl" <<< "$out" && ! grep -q Traceback <<< "$out"; } \
+  && ok 'sync refuses an effort level that collides with a peer alias' \
+  || bad 'sync refuses an effort level that collides with a peer alias' "exit $rc: ${out:-<empty>}"
+
+"$PEER" route sync >/dev/null 2>&1   # restore the fixture
 
 # --- sync: reconciliation and failure reporting ----------------------------------------
 # Generated files are committed, so anything sync leaves behind ships as a live definition.
@@ -189,6 +225,27 @@ want_out 'clear restores the registry default' \
 
 want_ok 'set rejects an unknown role'  2 -- "$PEER" route set nonsense=gpt -C "$repo"
 want_ok 'set rejects an unknown peer'  2 -- "$PEER" route set tester=nonsense -C "$repo"
+
+# `check` is the gate an orchestrator asks before offering a peer as a native subagent,
+# so it must fail on every reason the dispatch would land on an unreachable model.
+want_ok 'check clears a routable peer whose proxy answers' 0 -- \
+  env ANTHROPIC_BASE_URL="$UP" "$PEER" route check tester=gpt -C "$repo"
+want_ok 'check fails a routable peer whose proxy is unreachable' 1 -- \
+  env ANTHROPIC_BASE_URL="$DOWN" "$PEER" route check tester=gpt -C "$repo"
+want_ok 'check fails a peer that is not proxy-served' 1 -- \
+  env ANTHROPIC_BASE_URL="$UP" "$PEER" route check tester=gemini -C "$repo"
+want_ok 'check rejects an unknown role' 2 -- \
+  env ANTHROPIC_BASE_URL="$UP" "$PEER" route check nonsense=gpt -C "$repo"
+
+# `sync` writes to the repo's agents dir, but Claude resolves a subagent_type only from
+# <workdir>/.claude/agents and the config dir. A definition reachable in neither is not active.
+want_ok 'check ignores definitions outside the roots Claude resolves' 1 -- \
+  env ANTHROPIC_BASE_URL="$UP" CLAUDE_CONFIG_DIR="$tmp/no-config" PEER_AGENTS_DIR= \
+  "$PEER" route check reviewer=gpt -C "$repo"
+want_ok 'check clears a declared effort variant' 0 -- \
+  env ANTHROPIC_BASE_URL="$UP" "$PEER" route check "reviewer=gpt@$lvl" -C "$repo"
+want_ok 'check rejects an effort level the registry does not declare' 2 -- \
+  env ANTHROPIC_BASE_URL="$UP" "$PEER" route check 'reviewer=gpt@nonsense' -C "$repo"
 
 # A clear that cannot remove the override must not report the route as gone.
 "$PEER" route set tester=gpt -C "$repo" >/dev/null 2>&1

@@ -21,12 +21,9 @@ git status --short
 git diff <baseline>..HEAD --name-status
 ```
 
-### Step 2.5: Sync TodoWrite to tasks.yaml
+### Step 2.5: Preserve Task Authority
 
-If TodoWrite has entries matching scope tasks:
-1. For each "completed" todo, update corresponding task to `status: done`
-2. For each "in_progress" todo, update to `status: in_progress`
-3. Update `meta.last_updated` and `meta.progress` fields
+Use `tasks.yaml` as the input and output task state. TodoWrite may mirror it for display, but never updates it.
 
 ### Step 3: Map Evidence to Tasks
 

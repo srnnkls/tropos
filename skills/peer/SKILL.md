@@ -90,8 +90,10 @@ run as a native subagent instead of a subprocess. `Task(model=...)` accepts only
 aliases, so the model is carried by an agent definition rather than a dispatch argument.
 
 ```bash
-peer route sync                     # materialise agents/<role>-<alias>.md, one per proxy peer
+peer route sync                     # materialise agents/<role>[-<alias>][-<effort>].md
 peer route show [-C DIR]            # effective role -> peer, and where each came from
+peer route check reviewer=terra     # can this role dispatch to this peer right now?
+peer route check reviewer=terra@xhigh # ... at that effort variant
 peer route set reviewer=terra [-C DIR]
 peer route clear [-C DIR]
 ```
@@ -105,6 +107,25 @@ registry is not checked until `show` reports it as `inactive: not proxy-served`.
 `show` prints role, peer, where the value came from, and whether the route can actually fire —
 `active`, or `inactive:` with the reason. Read the status, not the peer: a route reports a peer
 whether or not anything will swap.
+
+Setting a route is not the only way to reach a generated definition: an orchestrator can name
+`<role>-<alias>` on the Task directly, which is what a per-run selection and any mixed reviewer
+set must do, since a route rewrites every bare dispatch of that role in the tree. Direct naming
+skips the hook and with it every precondition the hook checks, so ask `check` first — it reports
+the same status `show` does, for a role and peer that are not routed, and exits non-zero on
+anything but `active`.
+
+Direct naming is also the only per-dispatch effort override, because the Task tool has no effort
+argument — a level exists only as its own definition. `efforts:` in `reviewers.yaml` lists the
+levels to materialise, drawn from the set Claude accepts (`low`, `medium`, `high`, `xhigh`, `max`,
+or an integer); it currently holds `medium, high, xhigh`. Each level adds a `<role>-<effort>` definition
+per role and a `<role>-<alias>-<effort>` per proxy peer, so a level costs `roles × (1 + proxy
+peers)` files. A level that matches a peer alias fails the sync rather than making `<role>-<x>`
+ambiguous.
+
+`<role>-<effort>` carries no `model:`, so `Task(model:)` still applies on top of it — that is how
+an Anthropic model reaches a level the session is not running at. The level replaces whatever
+`effort:` the role file declares; the plain `<role>` and `<role>-<alias>` definitions keep it.
 
 Nothing routes until the hook is registered. `peer route hook` is a `PreToolUse` hook on
 `Task|Agent` and lives in Claude's settings, not in this repo:
@@ -128,8 +149,8 @@ session cannot serve would kill the subagent outright, so every uncertain case f
 instead. Definitions are looked up where Claude resolves them — `<project>/.claude/agents`,
 then `$CLAUDE_CONFIG_DIR/agents` — never `<project>/agents`, which Claude never reads.
 
-Generated definitions are the role file with `name:` and `model:` rewritten and the body
-copied whole. Edit the role definition and re-run `sync`; edits to a generated file are lost.
+Generated definitions are the role file with `name:`, `model:`, and (for an effort variant)
+`effort:` rewritten, and the body copied whole. Edit the role definition and re-run `sync`; edits to a generated file are lost.
 `sync` reconciles rather than appends: it renders every (role, proxy peer) before writing any,
 writes each atomically, and deletes any marked generated file the current registry no longer
 produces — so dropping `proxy:` from a peer or renaming an alias cannot strand a live
@@ -140,11 +161,12 @@ definitions untouched.
 generation, reconciliation, and drift in both directions between the registry and the
 committed definitions.
 
-Two things the native path does not carry over from a `peer` dispatch. Registry `effort` is
-ignored — an agent definition has no reasoning-effort field, so a routed subagent runs at the
-session default. And a routed reviewer gets its role's tool list but not the `sandbox-exec`
-profile that `peer --agent reviewer` imposes, so its shell can write. Route a reviewer to a
-proxy peer only where a writable reviewer shell is acceptable.
+Two things the native path does not carry over from a `peer` dispatch. Per-peer registry `effort`
+is ignored: effort belongs to the role, not the model, so a routed subagent runs at whatever level
+the role file declares, or the session's if it declares none. An effort variant is the only way to
+override that. And a routed reviewer gets its role's tool list but not the `sandbox-exec` profile
+that `peer --agent reviewer` imposes, so its shell can write. Route a reviewer to a proxy peer
+only where a writable reviewer shell is acceptable.
 
 ## Report layout — `.peer/`
 
@@ -163,7 +185,7 @@ new directory level.
 |---|---|---|
 | `<subject>` | what the work is about | `auth-system` (scope), `issue-745`, `pr-312`, `working`, `direct` |
 | `<run>` | one dispatch session, minted once per gate round | `20260820T101112Z-a1b2c3` |
-| `<stage>` | the specific dispatch within that run | `b3-tester-T003`, `b3-test-review`, `final-review-arch`, `issue-review`, `review` |
+| `<stage>` | the specific dispatch within that run | `b3-tester-T003`, `b3-review-general`, `integration-review`, `issue-review`, `review` |
 
 Each leaf directory holds the materialized `prompt.md` and one `{peer-id}.yaml` per external
 peer. Native reports are written alongside them by the orchestrator, so a run's evidence is
@@ -321,11 +343,7 @@ fix round:
 - questions an earlier round or another peer already grounded
 - the design restated as a defect
 
-Report volume tracks reasoning effort, not defect density, and high-effort peers reliably
-produce refinement spirals past the first round. Converge in one fix round unless a later
-round surfaces a new verified failure mode; round count is a cost, not a quality signal.
-Fan-out exists to get independent angles on the first round, not to accumulate rounds — a
-finding's `found_by` count is agreement, not validity.
+Report volume tracks reasoning effort, not defect density. Aim to converge in one fix round; two rounds per subject is the hard ceiling. Fan-out exists to get independent angles on the first round, not to accumulate rounds — a finding's `found_by` count is agreement, not validity.
 
 For multi-reviewer runs this bar is the triage step of
 [review synthesis](../review/reference/synthesis.md), which owns the `residual` dispositions

@@ -23,6 +23,10 @@ Task(subagent_type="reviewer", model="{claude-model}", prompt="{prompt}")
 
 `{claude-model}` is the model selected for this review run (resolved at dispatch time, never hardcoded).
 
+A `ROUTABLE=yes` alias is also a native subagent, but its model lives in a generated definition
+rather than the dispatch: `Task(subagent_type="reviewer-{alias}", prompt="{prompt}")` with no
+`model`, because `Task(model=)` accepts only Anthropic aliases.
+
 `opus`/`sonnet` are Claude-host-native aliases. Registered `opus-peer`/`sonnet-peer` are distinct
 external Claude CLI aliases and run through peer (reviewer dispatch is read-only; tester and
 implementer dispatch may mutate).

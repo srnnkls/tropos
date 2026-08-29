@@ -1,131 +1,33 @@
-# Root Cause Tracing
+# Root-Cause Tracing
 
-**Core principle:** Trace backward through the call chain until you find the original trigger, then fix at the source.
+Trace only far enough to identify the source that explains one reachable trigger and wrong outcome.
 
-## When to Use
+## Use When
 
-**Use when:**
-- Error happens deep in execution (not at entry point)
-- Stack trace shows long call chain
-- Unclear where invalid data originated
-- Need to find which test/code triggers the problem
+- the error appears below the boundary that supplied the bad value or state;
+- a stack trace leaves the responsible caller unclear; or
+- the proposed fix site may be a symptom rather than the shared source.
 
-## The Tracing Process
+## Process
 
-### 1. Observe the Symptom
-```
-subprocess.CalledProcessError: git init failed in /project/packages/core
-```
+1. State the observed trigger and wrong outcome.
+2. Identify the immediate operation that produced it.
+3. Ask what concrete input or state made that operation wrong.
+4. Follow one caller/data edge backward when the current frame cannot explain that input.
+5. Stop at the first source that fully explains the failure and owns the invariant.
 
-### 2. Find Immediate Cause
-What code directly causes this?
-```python
-subprocess.run(["git", "init"], cwd=project_dir, check=True)
-```
+Use `gestalt callers`, `callees`, or `refs` for the named symbol when the edge is unclear. Confirm exact text with bounded `rg`. Do not enumerate the repository or continue upward after the responsible invariant is known.
 
-### 3. Ask: What Called This?
-```python
-WorktreeManager.create_session_worktree(project_dir, session_id)
-  -> called by Session.initialize_workspace()
-  -> called by Session.create()
-  -> called by test at Project.create()
-```
+## Instrumentation
 
-### 4. Keep Tracing Up
-What value was passed?
-- `project_dir = Path("")` (empty!)
-- Empty Path as `cwd` resolves to `Path.cwd()`
-- That's the source code directory!
+When static evidence cannot distinguish two adjacent boundaries, add one temporary probe immediately before the suspected transition. Capture only the value/state needed to choose between them, run the reproducer once, then remove the probe.
 
-### 5. Find Original Trigger
-Where did empty path come from?
-```python
-context = setup_test()  # Returns {"temp_dir": Path("")}
-Project.create("name", context["temp_dir"])  # Accessed before setup!
-```
+Do not add stack dumps, broad logging, telemetry, or probes at every component by default.
 
-## Adding Stack Traces
+## Fix Placement
 
-When you can't trace manually, add instrumentation:
+Fix the narrowest shared source that explains the failure. Check another caller only when the shared fix gives it a concrete affected behavior. Add validation at the earliest shared trust boundary; a second guard requires a distinct reachable failure at another boundary.
 
-```python
-import traceback
-import sys
+## Cutoff
 
-def git_init(directory: Path) -> None:
-    stack = "".join(traceback.format_stack())
-    print(
-        f"DEBUG git init: directory={directory}, cwd={os.getcwd()}",
-        file=sys.stderr,
-    )
-    print(f"Stack:\n{stack}", file=sys.stderr)
-    # ... proceed
-```
-
-**Critical:** Use `sys.stderr` in tests (stdout may be captured/suppressed)
-
-**Run and capture:**
-```bash
-pytest 2>&1 | grep 'DEBUG git init'
-```
-
-**Analyze stack traces:**
-- Look for test file names
-- Find the line number triggering the call
-- Identify the pattern (same test? same parameter?)
-
-## Key Principle
-
-```
-Found immediate cause
-  -> Can trace one level up?
-    -> YES: Trace backwards, repeat
-    -> NO: Fix at deepest traceable point + add defense-in-depth
-  -> Is this the source?
-    -> YES: Fix at source
-    -> NO: Keep tracing
-```
-
-**NEVER fix just where the error appears.** Trace back to find the original trigger.
-
-## Stack Trace Tips
-
-- **In tests:** Use `sys.stderr`, not logger (may be suppressed)
-- **Before operation:** Log before the dangerous operation, not after it fails
-- **Include context:** Directory, cwd, environment variables, timestamps
-- **Capture stack:** `traceback.format_stack()` shows complete call chain
-
-## Python-Specific Patterns
-
-### Using breakpoint for interactive tracing
-```python
-def suspicious_function(data):
-    breakpoint()  # Drops into pdb
-    # Inspect locals, up/down stack frames
-```
-
-### Rich tracebacks with locals
-```python
-import traceback
-
-try:
-    risky_operation()
-except Exception:
-    traceback.print_exc()
-    # Or for programmatic access:
-    # traceback.format_exception(*sys.exc_info())
-```
-
-### Logging with structlog for context
-```python
-import structlog
-
-logger = structlog.get_logger()
-
-def git_init(directory: Path) -> None:
-    logger.debug(
-        "git_init",
-        directory=str(directory),
-        cwd=os.getcwd(),
-    )
-```
+One revised hypothesis may follow a falsified first hypothesis. After two hypotheses or two fix rounds for the same subject, report the unresolved evidence or decision. Do not continue with narrower variants of the same failure mechanism.

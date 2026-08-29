@@ -1,182 +1,124 @@
 # Implementation Agent Configuration
 
-Implementation routing is live configuration, separate from the scope-review settings in
-`validation.yaml.review_config`.
+Canonical routing for `/implement`, `/continue`, and `/loop`. Standalone review selection in `validation.yaml.review_config` is separate.
 
-## Scope Configuration
+## Schema
 
-Persist scope-backed routing at `./scopes/<state>/<scope-name>/config.yaml`:
+Scope routing lives at `scopes/<state>/<scope>/config.yaml`:
 
 ```yaml
 version: 1
 epoch:
-  id: <generated-at-top-level-implement>
-  started_at: <ISO_TIMESTAMP>
-  updated_at: <ISO_TIMESTAMP>
+  id: <peer-run-id>
+  started_at: <timestamp>
+  updated_at: <timestamp>
 routing:
-  tester:
-    agent: codex-native
-    effort: inherit
-  implementer:
-    agent: codex-native
-    effort: inherit
-  reviewer:
-    agents: [codex-native]
-    effort: inherit
+  tester: {agent: codex-native, effort: inherit}
+  implementer: {agent: codex-native, effort: inherit}
+  reviewer: {agents: [codex-native], effort: inherit}
 ```
 
-- A new top-level `/implement` execution mints a new epoch ID with `peer run-id` and fresh
-  timestamps. That ID is the `<run>` segment of every report directory the execution produces, so
-  one run's evidence stays addressable as a unit.
-- `/implement config <scope>` changes routing within the current epoch; preserve `id` and
-  `started_at`, and refresh `updated_at`. Resolve `<scope>` by path or unique scope name; ask for
-  the target only when it is missing or ambiguous. If no config exists, create an epoch.
-- `/continue` and `/loop` reuse the current epoch and read this file before every dispatch.
-- Direct tasks use the same resolved structure in memory, mint an ephemeral epoch ID the same way
-  for report paths, and do not create repository-level configuration.
+A top-level scope execution creates a new epoch. `/continue` and `/loop` reuse it. Direct tasks keep the same structure in memory and write reports under subject `direct`.
 
-## Setup and Overrides
+Tester and implementer each select one agent. Reviewer selects one or more agents. Persist `inherit` or a declared effort for every route.
 
-Pre-parse `--config '<assignments>'` before route detection. Assignments are comma-separated;
-reviewer sets use `+`:
+## Resolution
+
+Merge, last source winning:
+
+1. host-aware defaults;
+2. current scope config;
+3. inline `--config` assignments.
+
+Supported assignments are `tester`, `tester_effort`, `implementer`, `implementer_effort`, `reviewer`, and `reviewer_effort`; reviewer aliases use `+`. `--reviewers` remains a legacy reviewer-only shorthand.
+
+Supplying `--config` accepts a valid merged result without prompting. Otherwise prompt once for all routes. `/implement config <scope>` edits the current epoch instead of creating one.
+
+Defaults:
+
+- Codex host with native delegation: all roles `codex-native`, effort `inherit`.
+- Claude host with Task: tester/implementer `opus` at `inherit`; reviewer `opus+gpt+gemini` at `high` when those routes are available.
+- No native mechanism: require explicit routing.
+
+## Host and Registry Rules
+
+Use live `peer list` metadata. Alias names never decide the mechanism.
+
+| Current host | Same-family route | Cross-family route |
+|---|---|---|
+| Codex | `codex-native` delegation | registered external peer aliases |
+| Claude | native `opus`/`sonnet` Task | `ROUTABLE=yes` native subagent, otherwise peer |
+
+- `codex-native` is a persisted token for inherited Codex delegation. Never pass it to peer or attach an explicit model/effort.
+- `opus` and `sonnet` are Claude-host Task aliases. Their peer CLI forms are distinct aliases such as `opus-peer` and `sonnet-peer`.
+- Reject same-host-family loopback using registry harness/family metadata. Ask for a corrected selection; never silently convert.
+- A Claude-host alias with `ROUTABLE=yes` dispatches as a generated native subagent. `RUN-BY-PEER=yes` only says peer can run it.
+- Gate every routable selection on `peer route check <role>=<alias>[@<effort>]` returning `active`. Never fall back to peer when the proxy or generated definition is unavailable.
+- Validate external aliases and effort support against `peer list`. One reviewer effort must be supported by every selected peer.
+- Reject unknown keys, aliases, duplicate assignments, empty values, malformed sets, unavailable variants, and host-incompatible routes.
+
+## Effort Variants
+
+Task has no reasoning-effort argument. A native route expresses non-inherited effort through its generated definition name:
 
 ```text
-# Claude-host example
---config 'implementer=gpt,implementer_effort=high,reviewer=opus+gpt+gemini'
+<role>-<effort>
+<role>-<alias>-<effort>
 ```
 
-Allowed keys are `tester`, `tester_effort`, `implementer`, `implementer_effort`, `reviewer`,
-and `reviewer_effort`. Merge partial assignments in this order, last source winning:
+The level must appear in `reviewers.yaml` `efforts:` and the exact routable variant must pass `peer route check`. Naming a generated definition directly bypasses the global `peer route` hook, so this precondition is mandatory.
 
-1. Host-aware built-in defaults:
-   - When running under Codex with native subagent/delegation available: tester `codex-native`,
-     implementer `codex-native`, reviewer `codex-native`; all efforts `inherit`.
-   - On a Claude host with native Task available: tester `opus`, implementer `opus`, reviewer
-     `opus+gpt+gemini`; tester/implementer efforts `inherit`, reviewer effort `high` (applies only
-     to the peer reviewers; native `opus` inherits).
-   - If neither Codex delegation nor Claude native Task is available, require explicit routing;
-     do not invent a native default.
-2. Current scope `config.yaml`, if present.
-3. Inline `--config` assignments.
+Peer routes receive the same level through `--effort`. `codex-native` accepts only `inherit`.
 
-Supplying `--config` accepts the merged result without prompting. Without it, run interactive
-setup for all three routes, showing the current/default values as the recommended selections.
-`/implement config <scope>` follows the same rule: interactive without `--config`, non-interactive
-with it. A legacy scope resumed by `/continue` or `/loop` prompts once only when `config.yaml` is
-missing, then persists the selection.
+When a singular route changes to a host-native alias without an explicit effort, normalize it to `inherit`. When it changes to a peer route, require or select a peer-supported effort. An all-native reviewer set without an effort normalizes to `inherit`.
 
-Validate before writing or dispatching:
+## Batch Snapshot
 
-- `codex-native` is a reserved persisted token. It means dispatch through Codex's native
-  subagent/delegation interface, inheriting the current session model and reasoning. Never pass
-  this token to a peer dispatch or translate it to an explicit model. It may appear in `peer list`
-  with `native=true` for discovery/validation, but the orchestrator always dispatches it natively.
-- Native explicit aliases `opus` and `sonnet` are Claude-host-native Task routes. They are valid
-  only when the current host exposes that Task mechanism.
-- Resolve external aliases and supported effort values against `peer list`/the peer contract.
-- `opus-peer` and `sonnet-peer`, when present in `peer list`, are external Claude CLI routes through
-  peer and are valid for tester, implementer, and reviewer. The Codex-host default nevertheless
-  remains all `codex-native`.
-- Validate `opus-peer`/`sonnet-peer` effort against the Claude CLI subset
-  `low|medium|high|xhigh|max`. For a fan-out containing multiple external aliases, the configured
-  effort must be supported by every selected peer.
-- `inherit` is required for singular host-native routes (`codex-native`, `opus`, or `sonnet`) and
-  for all-native reviewer sets. If a reviewer set contains any external alias, `reviewer_effort`
-  must be a peer-supported explicit effort; every host-native member still inherits and ignores
-  that value.
-- Persist effort for every route. It is a peer dispatch setting only; host-native Codex delegation
-  and Claude Task have no separate effort channel and always inherit the session.
-- Tester and implementer each select exactly one agent.
-- Reviewer selects one or more agents; all-native, all-external, and mixed sets are valid.
-- Reject unknown keys, aliases, empty values, duplicate assignments, and malformed reviewer sets.
+Read and validate `config.yaml` once at the start of each batch. Persist an immutable routing snapshot in the checkpoint:
 
-Normalize partial overrides before validation:
+```yaml
+routing_snapshot:
+  epoch_id: <id>
+  tester: {agent: <alias>, effort: <level>, class: native|external}
+  implementer: {agent: <alias>, effort: <level>, class: native|external}
+  reviewer:
+    agents:
+      - {alias: <alias>, effort: <level>, class: native|external}
+```
 
-- Changing singular `tester` or `implementer` to any host-native alias (`codex-native`, `opus`, or
-  `sonnet`) without its `*_effort` sets effort to `inherit`.
-- Changing a singular route from host-native to external while inherited effort remains resets to
-  that peer's supported default effort, or asks for one when no safe default exists.
-- Changing reviewer to an all-native set without `reviewer_effort` sets `inherit`; any reviewer set
-  containing an external alias requires/resets to a peer-supported explicit effort.
+Every phase and concurrent review role in that batch uses the snapshot. A mid-batch config edit applies to the next batch. A direct single-task run snapshots once in memory.
 
-Apply this host-routing matrix during setup, validation, and resume:
+## Dispatch
 
-| Current host | GPT-family role | Claude-family role |
-|---|---|---|
-| Codex | `codex-native` native delegation (inherit session) | external `opus-peer`/`sonnet-peer` via peer |
-| Claude | external `gpt`/other Codex alias via peer | native `opus`/`sonnet` Task |
+- `codex-native`: native Codex delegation with inherited session settings.
+- Claude native alias: `Task(subagent_type="<role>", model="<alias>", prompt=...)`.
+- Routable alias: `Task(subagent_type="<role>-<alias>[-<effort>]", prompt=...)`, with no model argument.
+- External alias: write the complete prompt to `<outdir>/prompt.md`, then run:
 
-Enforce same-host-family native routing using live registry metadata:
+```bash
+peer -C <workdir> -d <outdir> --agent <role> \
+  --peers <aliases> --effort <effort> --prompt-file <outdir>/prompt.md
+```
 
-- Under Codex, reject `opus`/`sonnet` (suggest `opus-peer`/`sonnet-peer`) **and** reject every
-  peer-runnable GPT/Codex-family alias whose registry harness/family is Codex (for example `gpt`,
-  `terra`, or `luna`); direct that family to `codex-native`.
-- Under Claude, reject `codex-native` (suggest a registered GPT/Codex peer alias) **and** reject
-  every peer-runnable Claude-family alias whose registry harness/family is Claude (including
-  `opus-peer`/`sonnet-peer`); direct that family to native `opus`/`sonnet`.
-- Allow cross-family routes and unrelated peer families when their role capabilities permit.
+Use one external peer call per mutating task. For review, use one fan-out per role and start all role fan-outs with all native role Tasks in the same assistant message.
 
-Stop and ask the user to edit the live config; never silently convert or substitute. Apply these
-rules equally to interactive setup, inline `--config`, `/implement config`, and resume validation.
-Setup menus label/filter each choice as `native`, `via peer`, or `unavailable on this host` using
-the registry family/harness rather than only hardcoded aliases.
+A review gate requires one successful report from every execution class present in the snapshot. Never require an absent class.
 
-The legacy `/implement --reviewers <comma-list>` form may be accepted as a reviewer-only override.
-When accepted, it behaves as supplied inline configuration and therefore skips setup prompts; new
-examples and persisted configuration use `--config`.
+## Report Layout
 
-## Live Dispatch
+Use `peer path <subject> <stage> --run <epoch-id>` for every directory. Never assemble paths by hand.
 
-Reload scope `config.yaml` immediately before Phase A, Phase A.5, Phase B, every Phase C role,
-every fix dispatch, and final review. A saved change affects the next dispatch, never work already
-running.
+```text
+.peer/<subject>/<epoch-id>/b3-tester-T003/
+.peer/<subject>/<epoch-id>/b3-implementer-T003/
+.peer/<subject>/<epoch-id>/b3-review-general/
+.peer/<subject>/<epoch-id>/integration-review/
+```
 
-- Codex inherited route: native Codex subagent/delegation with the matching tester, implementer, or
-  reviewer role prompt; omit model and reasoning overrides so the current session settings inherit.
-- Explicit Claude-native route: `Task(subagent_type="<role>", model="<alias>", prompt=...)`.
-- External route: first write the complete prompt to `<outdir>/prompt.md`, then run
-  `peer -C <workdir> -d <outdir> --agent <role> --peers <aliases> --effort <effort>
-  --prompt-file <outdir>/prompt.md`.
+Save materialized prompts as `prompt.md`. Store normalized native reports alongside peer reports.
 
-Never attempt to apply persisted effort to either host-native route. In a mixed reviewer set,
-record that native entries used `inherit` and pass the configured reviewer effort only to peer.
-- For external tester/implementer routes, make one singular peer call per task. For reviewer
-  routes, convert the configured `+`-separated input to peer's comma-separated alias list and fan
-  all configured external aliases through one peer call per review role.
+## Failures
 
-Implementation peer reports follow the canonical
-[report layout](../../peer/SKILL.md#report-layout--peer): `.peer/<subject>/<run>/<stage>/`, always
-three segments. `<subject>` is the scope name (or `direct`), `<run>` is minted once per pipeline
-run with `peer run-id` and reused by every stage of it, and `<stage>` carries the batch, phase, and
-task or review role joined with `-`:
+A tester, implementer, or fix agent mutates the worktree regardless of route. On failure or interruption, preserve partial edits and record status/diff evidence plus its report directory; do not auto-retry, roll back, or advance.
 
-| Dispatch | `<stage>` |
-|---|---|
-| tester for task T003 in batch 3 | `b3-tester-T003` |
-| implementer for task T003 in batch 3 | `b3-implementer-T003` |
-| batch 3 test review | `b3-test-review` |
-| batch 3 code review, architecture role | `b3-review-architecture` |
-| final review, compliance role | `final-review-compliance` |
-
-Mint every one with `peer path <subject> <stage> --run <run>`; never assemble the path by hand and
-never add a fourth level to separate colliding dispatches — extend `<stage>` instead.
-
-Keep each materialized prompt as `prompt.md` inside its report directory. Always use
-`--prompt-file`; never pass an implementation pipeline prompt positionally, because embedded
-diffs/schemas may exceed argv limits.
-
-Reviewer failures follow the review gate's partial-result policy. Require at least one successful
-report from every execution class actually configured for that gate: native when any native alias
-(`codex-native`, `opus`, or `sonnet`) is configured, and external when any `RUN-BY-PEER=yes` alias
-is configured.
-Do not require an absent class. Tester or implementer peer failure is mutating: preserve partial
-edits, capture `git status --short` and the relevant `git diff`, mark the phase incomplete, and
-pause for deliberate redispatch or `/continue`. Never auto-retry, roll back, or advance after a
-mutating peer failure.
-
-For every **scope-backed** native or external mutating dispatch, persist the stage-level recovery
-marker described in [checkpoint-format.md](checkpoint-format.md) immediately before launch and
-update it immediately after success or failure. Use the assigned `.peer` report directory for both
-routes; peer writes external reports there, while the orchestrator stores a native report there
-before clearing the marker. Direct tasks create no checkpoint: keep equivalent markers/evidence in
-memory and store their artifacts beneath `.peer/direct/<run>/<stage>/`.
+Reviewer failures retain successful reports. Resume only the missing reports for the same review wave.

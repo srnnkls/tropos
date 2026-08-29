@@ -1,148 +1,55 @@
-# Systematic Debugging
+# Bounded Debugging
 
-**Core principle:** ALWAYS find root cause before attempting fixes. Symptom fixes are failure.
+Find one reachable trigger and wrong outcome, then fix the narrowest shared source through the strict RED → GREEN → review pipeline.
 
----
+## Boundary
 
-## The Iron Law
+Run `gestalt map` as the first repository action. Investigation continues only while it resolves a blocking unknown for the reported failure.
 
-```
-NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
-```
+Do not enumerate every caller, usage, reference implementation, difference, environment permutation, or boundary. Do not add diagnostic instrumentation at every layer.
 
-If you haven't completed Phase 1, you cannot propose fixes.
+## 1. Reproduce
 
----
+1. Read the actual error and directly relevant stack frames.
+2. Run the smallest reliable reproducer once.
+3. Record the trigger, observed wrong outcome, and directly responsible boundary.
 
-## When to Use
+When the failure does not reproduce, report the missing evidence needed. Do not broaden into speculative investigation.
 
-Use for ANY technical issue:
-- Test failures
-- Bugs in production
-- Unexpected behavior
-- Performance problems
-- Build failures
+## 2. Trace to the Responsible Source
 
----
+Trace backward only while the current frame cannot explain the bad value or state.
 
-## The Four Phases
+- Use a named `gestalt callers`, `callees`, or `refs` query when the immediate relationship is unresolved.
+- Use bounded `rg` only to confirm exact names or text after Gestalt.
+- Stop when one source explains the reachable trigger and wrong outcome.
+- Fix the narrowest shared source. Inspect sibling callers only when the proposed shared change gives them a concrete affected behavior.
 
-### Phase 1: Root Cause Investigation
+If static evidence cannot locate the break, add one temporary probe at the suspected boundary, run the reproducer once, then remove the probe. Another probe requires evidence that the suspected boundary changed.
 
-**BEFORE attempting ANY fix:**
+## 3. Falsify One Hypothesis
 
-1. **Read Error Messages Carefully**
-   - Don't skip past errors or warnings
-   - Read stack traces completely
-   - Note line numbers, file paths, error codes
+State one hypothesis and one observation that would disprove it. Run the smallest check that separates the hypothesis from a plausible alternative.
 
-2. **Reproduce Consistently**
-   - Can you trigger it reliably?
-   - What are the exact steps?
-   - If not reproducible, gather more data
+A failed hypothesis may open one revised attempt using the new evidence. After two hypotheses or two fix rounds for the same subject, surface the unresolved decision instead of continuing.
 
-3. **Check Recent Changes**
-   - Git diff, recent commits
-   - New dependencies, config changes
-   - Environmental differences
+## 4. Fix Through Strict TDD
 
-4. **Trace Data Flow Backward**
-   - Where does the bad value originate?
-   - What called this with the bad value?
-   - Keep tracing up until you find the source
-   - Fix at source, not at symptom
+Once the source is identified:
 
-5. **Multi-Component Systems**
-   Add diagnostic instrumentation at each boundary:
-   - Log what enters/exits each component
-   - Verify environment/config propagation
-   - Run once to gather evidence WHERE it breaks
+1. dispatch a tester for the minimal reproducer under `skills/test/SKILL.md` ceilings;
+2. verify RED once;
+3. dispatch an implementer for the narrowest shared fix;
+4. verify GREEN once;
+5. run one concurrent Phase C review wave.
 
-### Phase 2: Pattern Analysis
+Add a guard at the earliest shared trust boundary. Another guard requires a distinct reachable failure at a distinct boundary.
 
-1. **Find Working Examples** - Similar working code in same codebase
-2. **Compare Against References** - Read reference implementations completely
-3. **Identify Differences** - List every difference, however small
-4. **Understand Dependencies** - Settings, config, environment, assumptions
+## Stop Condition
 
-### Phase 3: Hypothesis and Testing
-
-1. **Form Single Hypothesis** - "I think X is the root cause because Y"
-2. **Test Minimally** - Smallest possible change, one variable at a time
-3. **Verify Before Continuing** - Worked? Phase 4. Didn't work? New hypothesis.
-4. **When You Don't Know** - Say so. Ask for help. Research more.
-
-### Phase 4: Implementation
-
-1. **Create Failing Test Case** - Simplest possible reproduction
-2. **Implement Single Fix** - ONE change at a time, no bundled improvements
-3. **Verify Fix** - Test passes? No regressions?
-
-**If fix doesn't work:**
-- Count: How many fixes have you tried?
-- If < 3: Return to Phase 1 with new information
-- If >= 3: STOP and question the architecture
-
-### When 3+ Fixes Fail
-
-Pattern indicating architectural problem:
-- Each fix reveals new shared state/coupling
-- Fixes require "massive refactoring"
-- Each fix creates new symptoms elsewhere
-
-**STOP and question fundamentals:**
-- Is this pattern fundamentally sound?
-- Should we refactor architecture vs. continue fixing symptoms?
-- Discuss with user before attempting more fixes
-
----
-
-## Root Cause Tracing
-
-When bugs manifest deep in the call stack:
-
-1. **Observe the Symptom** - What error occurred?
-2. **Find Immediate Cause** - What code directly causes this?
-3. **Ask: What Called This?** - Trace up the call chain
-4. **Keep Tracing Up** - What value was passed? Where did it come from?
-5. **Find Original Trigger** - The source, not the symptom
-
-**Adding Stack Traces:**
-```
-stack = capture_stack_trace()
-log("DEBUG operation:", {
-  input_value,
-  current_directory,
-  environment,
-  stack
-})
-```
-
-**NEVER fix just where the error appears.** Trace back to find the original trigger.
-
----
-
-## Red Flags - STOP and Follow Process
-
-- "Quick fix for now, investigate later"
-- "Just try changing X and see if it works"
-- "I don't fully understand but this might work"
-- Proposing solutions before tracing data flow
-- "One more fix attempt" (when already tried 2+)
-
-**ALL of these mean:** STOP. Return to Phase 1.
-
----
-
-## Integration
-
-**Use with:**
-- `test` - Write failing test to reproduce bug before fixing
-- `implement` (verify operation) - Verify fix actually worked before claiming done
-
----
+Stop when the reproducer passes, directly affected native validation passes, review clears, and no known blocker remains. Adjacent anomalies, speculative hardening, broader telemetry, and additional confidence runs are deferred.
 
 ## Reference
 
-- [defense-in-depth.md](../reference/defense-in-depth.md) - Multi-layer validation patterns
-- [root-cause-tracing.md](../reference/root-cause-tracing.md) - Detailed tracing techniques
+- [root-cause-tracing.md](../reference/root-cause-tracing.md) — bounded call-chain tracing
+- [../reference/finding-bar.md](../../review/reference/finding-bar.md) — reachable-failure and sufficiency rules

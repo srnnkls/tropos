@@ -47,9 +47,7 @@ Disposition these as `residual` rather than opening a fix round:
 `found_by` count is agreement, not validity — reviewers sharing a wrong assumption about the
 requirements agree loudly. A single verified issue outranks three unverified concurring ones.
 
-Report volume tracks reasoning effort, not defect density, and high-effort reviewers reliably
-produce refinement spirals past the first round. Converge in one fix round unless a later
-round surfaces a new verified failure mode; round count is a cost, not a quality signal.
+Report volume tracks reasoning effort, not defect density. Aim to converge in one fix round; two rounds per subject is the hard ceiling below. Round count is a cost, not a quality signal.
 
 ### 4.6 Convergence
 
@@ -104,7 +102,7 @@ Additional permutations, observability, and telemetry precision are `residual` �
 |--------------|--------|----------------------|--------------|------------|
 | Correctness  | PASS   | pass                 | —            | —          |
 | Style        | PASS   | —                    | —            | pass       |
-| Performance  | PASS   | pass                 | pass         | —          |
+| Performance  | PASS   | pass                 | —            | —          |
 | Security     | FAIL   | fail (Claude)        | —            | —          |
 | Architecture | PASS   | —                    | pass         | —          |
 ```
@@ -130,7 +128,7 @@ Languages: python | Rules: 12 | Violations: 1
 ## Issue Presentation Format
 
 ```
-## Critical (found by 2+ harnesses — high confidence)
+## Critical
 - [C1] SQL injection at src/db/query.py:45
   Role: General | Found by: {reviewer-id}, {reviewer-id}
   Suggestion: Use parameterized queries

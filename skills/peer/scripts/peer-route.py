@@ -2,9 +2,9 @@
 """Native subagent routing: registry defaults, per-tree overrides, and the PreToolUse
 rewrite that sends a role to a proxy-served model.
 
-`Task(model=...)` only accepts Anthropic aliases, so a non-Anthropic model can be named
-only in an agent definition's frontmatter. `sync` materialises one definition per
-(role, proxy peer); `hook` swaps `subagent_type` to the matching one.
+`Task(model=...)` only accepts Anthropic aliases and carries no effort at all, so both can
+be named only in an agent definition's frontmatter. `sync` materialises one definition per
+(role, proxy peer, declared effort); `hook` swaps `subagent_type` to the matching one.
 """
 
 from __future__ import annotations
@@ -109,13 +109,24 @@ def split_frontmatter(text: str) -> tuple[list[str], str]:
     return lines[1:end], "\n".join(lines[end + 1 :])
 
 
-def render(role_text: str, name: str, peer: dict) -> str:
+def effort_levels(registry: dict) -> list[str]:
+    return [str(e).strip() for e in registry.get("efforts") or [] if str(e).strip()]
+
+
+def render(role_text: str, name: str, peer: dict | None, effort: str = "") -> str:
     front, body = split_frontmatter(role_text)
-    kept = [ln for ln in front if not ln.startswith(("name:", "color:", "model:"))]
+    dropped = ["name:", "color:", "model:"] + (["effort:"] if effort else [])
+    kept = [ln for ln in front if not ln.startswith(tuple(dropped))]
     kept.insert(0, f"name: {name}")
-    kept.append(f"model: {peer['model']}")
+    if peer:
+        kept.append(f"model: {peer['model']}")
+    if effort:
+        kept.append(f"effort: {effort}")
+    source = ", ".join(
+        filter(None, [peer["id"] if peer else "", f"effort {effort}" if effort else ""])
+    )
     marker = (
-        f"<!-- {MARKER} from reviewers.yaml ({peer['id']}); "
+        f"<!-- {MARKER} from reviewers.yaml ({source}); "
         f"edit the role definition, not this file -->"
     )
     return "\n".join([FRONTMATTER, *kept, FRONTMATTER, marker, body]).rstrip() + "\n"
@@ -133,6 +144,19 @@ def cmd_sync(registry: dict, agents_dir: str) -> int:
     """Render everything before writing anything: a half-applied sync leaves live agent
     definitions that no role file explains."""
     agents_dir = agents_dir.split(os.pathsep)[0]
+    peers = proxy_peers(registry)
+    levels = effort_levels(registry)
+    # `<role>-<x>` has to name one thing: an alias that is also a level makes it two.
+    clash = {p["alias"] for p in peers} & set(levels)
+    if clash:
+        sys.stderr.write(
+            f"peer route sync: effort {', '.join(sorted(clash))} collides with a peer alias\n"
+        )
+        return 1
+    variants = [(p, "") for p in peers]
+    variants += [(p, lvl) for p in peers for lvl in levels]
+    variants += [(None, lvl) for lvl in levels]
+
     planned: dict[str, str] = {}
     for role in routing_defaults(registry):
         source = os.path.join(agents_dir, f"{role}.md")
@@ -142,10 +166,10 @@ def cmd_sync(registry: dict, agents_dir: str) -> int:
         except OSError as err:
             sys.stderr.write(f"peer route sync: cannot read {source}: {err.strerror}\n")
             return 1
-        for peer in proxy_peers(registry):
-            name = f"{role}-{peer['alias']}"
+        for peer, effort in variants:
+            name = "-".join(filter(None, [role, peer["alias"] if peer else "", effort]))
             try:
-                planned[f"{name}.md"] = render(role_text, name, peer)
+                planned[f"{name}.md"] = render(role_text, name, peer, effort)
             except ValueError as err:
                 sys.stderr.write(f"peer route sync: {source}: {err}\n")
                 return 1
@@ -173,7 +197,9 @@ def definition_path(agents_dir: str, name: str) -> str | None:
     return None
 
 
-def route_status(registry: dict, route: Route, role: str, agents_dir: str) -> str:
+def route_status(
+    registry: dict, route: Route, role: str, agents_dir: str, effort: str = ""
+) -> str:
     """What `hook` would do with this route — `/implement` reads this to learn what runs."""
     if route.peer_id == "inherit":
         return "-"
@@ -185,7 +211,8 @@ def route_status(registry: dict, route: Route, role: str, agents_dir: str) -> st
         return "inactive: no proxy configured"
     if not proxy_is_up(base_url):
         return "inactive: proxy unreachable"
-    if not definition_path(agents_dir, f"{role}-{peer['alias']}"):
+    name = "-".join(filter(None, [role, peer["alias"], effort]))
+    if not definition_path(agents_dir, name):
         return "inactive: no definition — run `peer route sync`"
     return "active"
 
@@ -195,6 +222,45 @@ def cmd_show(registry: dict, workdir: str, agents_dir: str) -> int:
         status = route_status(registry, route, role, agents_dir)
         print(f"{role:<14} {route.peer_id:<20} {route.source:<10} {status}")
     return 0
+
+
+def cmd_check(registry: dict, agents_dir: str, assignments: list[str]) -> int:
+    """Naming a generated definition on a Task bypasses the hook, and with it every
+    precondition the hook checks. This is that check, asked ahead of the dispatch."""
+    roles = routing_defaults(registry)
+    index = peers_by_key(registry)
+    if not assignments:
+        sys.stderr.write("usage: peer route check ROLE=PEER...\n")
+        return 2
+    levels = effort_levels(registry)
+    failed = False
+    for assignment in assignments:
+        role, _, value = assignment.partition("=")
+        role, value = role.strip(), value.strip()
+        value, _, effort = value.partition("@")
+        if role not in roles:
+            sys.stderr.write(
+                f"peer route check: unknown role '{role}' (have: {', '.join(sorted(roles))})\n"
+            )
+            return 2
+        if effort and effort not in levels:
+            sys.stderr.write(
+                f"peer route check: '{effort}' is not a declared effort variant "
+                f"(have: {', '.join(levels) or 'none'})\n"
+            )
+            return 2
+        peer = index.get(value)
+        status = route_status(
+            registry,
+            Route(peer["id"] if peer else value, "check"),
+            role,
+            agents_dir,
+            effort,
+        )
+        label = f"{value}@{effort}" if effort else value
+        print(f"{role:<14} {label:<20} {status}")
+        failed |= status != "active"
+    return 1 if failed else 0
 
 
 def cmd_set(registry: dict, workdir: str, assignments: list[str]) -> int:
@@ -319,7 +385,9 @@ def main(argv: list[str]) -> int:
         index += 1
 
     if not rest:
-        sys.stderr.write("usage: peer route <hook|sync|show|set ROLE=PEER...|clear>\n")
+        sys.stderr.write(
+            "usage: peer route <hook|sync|show|check ROLE=PEER...|set ROLE=PEER...|clear>\n"
+        )
         return 2
     action, args = rest[0], rest[1:]
 
@@ -333,6 +401,8 @@ def main(argv: list[str]) -> int:
         return cmd_sync(registry, options["--agents-dir"])
     if action == "show":
         return cmd_show(registry, options["--workdir"], options["--agents-dir"])
+    if action == "check":
+        return cmd_check(registry, options["--agents-dir"], args)
     if action == "set":
         return cmd_set(registry, options["--workdir"], args)
     sys.stderr.write(f"peer route: unknown action '{action}'\n")

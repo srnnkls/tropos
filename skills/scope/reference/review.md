@@ -28,14 +28,16 @@ Select reviewers per the unified `/review` host matrix and live registry metadat
 - Codex host: native `codex-native`; cross-host Claude family through peer
   (`opus-peer`/`sonnet-peer`); reject native `opus`/`sonnet` and every registry Codex-family peer
   alias.
-- Claude host: native `opus`/`sonnet`; cross-host GPT/Codex family through peer; reject
-  `codex-native` and every registry Claude-family peer alias.
+- Claude host: native `opus`/`sonnet`, plus every `ROUTABLE=yes` alias as a native subagent
+  (`reviewer-<alias>`); only the cross-host aliases this host still hands to peer go through peer.
+  Reject `codex-native` and every registry Claude-family peer alias.
 - Allow unrelated peer families when available. Never silently convert an incompatible selection.
 
-All-native selections use effort `inherit`. If any peer is selected, choose an explicit effort
-supported by every selected peer. Validate `opus-peer`/`sonnet-peer` against their contract subset
-`low|medium|high|xhigh|max`; in mixed sets the effort applies only to peers and native dispatches
-inherit.
+One effort governs the whole selection: `inherit`, or a level declared in `efforts:` in
+`reviewers.yaml`. Peer entries receive it through `--effort`; native and routable entries by naming
+the matching effort variant. If any peer is selected, the level must be one every selected peer
+supports — validate `opus-peer`/`sonnet-peer` against their contract subset
+`low|medium|high|xhigh|max`.
 
 ### Step 3: Dispatch Reviewers in Parallel
 
@@ -72,13 +74,17 @@ report directory with `outdir=$(peer path scope-{name} review)` and save the pro
 ```
 Codex native delegation(role=reviewer, prompt={review_prompt})  # codex-native on Codex
 Task(subagent_type="reviewer", model={native_alias}, prompt={review_prompt})  # opus/sonnet on Claude
+Task(subagent_type="reviewer-{routable_alias}", prompt={review_prompt})       # ROUTABLE=yes, no model
 Bash(run_in_background=true):                                  # only when externals configured
   peer -C {workdir} -d {outdir} --agent reviewer \
     --peers {external_aliases} --effort {peer_effort} \
     --prompt-file {outdir}/prompt.md
 ```
 
-Never pass host-native aliases to peer. Read the TSV manifest when peer ran; pull each `ok` report
+Never pass host-native aliases to peer, and never pass a `ROUTABLE=yes` alias either — on a
+Claude host that is a native subagent named `reviewer-<alias>`, gated on
+`peer route check reviewer=<alias>[@<effort>]`. A recorded effort other than `inherit` appends to
+the subagent name. Read the TSV manifest when peer ran; pull each `ok` report
 file and note failed rows. The mandatory gate requires one success from every execution class
 actually configured. Full contract: **[review](../../review/SKILL.md)** and
 **[peer](../../peer/SKILL.md)**.
@@ -260,8 +266,9 @@ synthesized_report:
 
 ### No Reviewers Selected
 
-Codex host defaults to `codex-native`; Claude host defaults to native `opus` plus configured
-cross-host GPT peers. If neither native mechanism is available, ask for explicit registry aliases.
+Codex host defaults to `codex-native`; Claude host defaults to native `opus` plus a configured
+cross-host GPT alias, dispatched as `reviewer-<alias>` when `ROUTABLE=yes` and through peer
+otherwise. If neither native mechanism is available, ask for explicit registry aliases.
 
 ### Scope Not Found
 
