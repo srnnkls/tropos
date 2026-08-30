@@ -55,14 +55,13 @@ Omit empty report sections and `in_flight_mutations` entries. Do not mirror done
 
 ## Writes
 
-Write at wave boundaries, not around each agent:
+Write at true wave boundaries:
 
-1. Batch start: persist the immutable routing snapshot, tasks, phase, and report directories.
-2. Before a parallel mutating wave: add every dispatched task to `in_flight_mutations` in one write with baseline evidence.
-3. After all results land: remove successful entries and retain failed/interrupted entries with current evidence in one write.
-4. Before a read-only review wave: record its phase and report directories once. Report files carry per-reviewer completion state.
-5. After review/fix synthesis: advance the phase once.
-6. Batch completion: record `last_commit` and the next derived batch/phase; task and review details remain in their authoritative files.
+1. Batch start: persist the immutable routing snapshot, tasks, phase, report directories, and every tester mutation before dispatch.
+2. Mutating-wave boundary: after results land, clear successful entries, retain failed/interrupted evidence, and arm every mutation in the next wave in one write before dispatch.
+3. Read-only boundary: only after every mutation clears its gate, remove those entries, set the review phase, and record report directories in one write. A failed mutation retains its mutating phase and pauses.
+4. After review or fix synthesis: advance the phase once. Every fix wave still receives durable mutation markers before dispatch and one result write afterward.
+5. Batch completion: after the commit exists, record its actual ID and the next derived batch/phase. Task and review details remain in their authoritative files.
 
 A successful process exit alone never clears a mutating entry; its report and RED/GREEN/fix gate must pass.
 

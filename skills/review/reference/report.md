@@ -39,13 +39,16 @@ reviewer_report:
       gate: correctness | style | performance | security | architecture
       area: logic | error_handling | type_safety | naming | formatting | efficiency | validation | secrets | coupling | testing
       location: "file:line"
-      description: "Clear description of the issue"
-      suggestion: "Actionable fix"
+      trigger: "Reachable input or state"
+      wrong_outcome: "Concrete incorrect result"
+      suggestion: "Smallest shared-root fix or needs decision: constraint"
 
   strengths:
     - "Good error handling"
     - "Clear function names"
 ```
+
+Every issue uses this base shape. Role extensions add analysis fields; they never redefine gates or issue fields. Missing `trigger` or `wrong_outcome` makes an execution finding schema-invalid.
 
 ---
 
@@ -80,15 +83,17 @@ synthesized_report:
       gate: security
       area: validation
       location: "src/db/query.py:45"
-      description: "SQL injection via unsanitized user input"
+      trigger: "Untrusted search text reaches query construction"
+      wrong_outcome: "The text changes the SQL statement"
       suggestion: "Use parameterized queries"
-      found_by: [{reviewer-id}, …]  # reviewer-ids come from `peer list`
+      found_by: [{reviewer-id}, …]
       verified: "How the failure mode was confirmed against the artifact"
 
   residual:
     - gate: correctness
       location: "src/api/handler.ts:112"
-      description: "Reported issue that did not clear triage"
+      trigger: "Reported input or state"
+      wrong_outcome: "Reported incorrect result"
       found_by: [{reviewer-id}, …]
       reason: unreachable_input | already_falsified | already_grounded | design_as_defect | equivalent_rewrite | deferred_hardening
       evidence: "What rules the report out"
@@ -151,22 +156,13 @@ reviewer_report:
     architecture:
       status: pass | fail
       issues: [...]
-    performance:
-      status: pass | fail
-      issues: [...]
   structural_analysis:
     coupling_delta: increased | stable | decreased
     new_hotspots: [{ symbol: "name", file: "path", in_degree: N }]
     cycles_introduced: [{ members: ["A", "B", "C"] }]
     seam_violations: [{ symbol: "name", expected_cluster: "X", actual_cluster: "Y" }]
     impact_radius: N  # symbols affected beyond direct changes
-  issues:
-    - severity: critical | high | medium
-      gate: architecture
-      area: coupling
-      location: "file:line"
-      description: "Clear description"
-      suggestion: "Actionable fix"
+  issues: [...]  # Exact base issue schema above
   strengths:
     - "Good structural observation"
 ```
@@ -197,13 +193,7 @@ reviewer_report:
         location: "file:line"
         description: "Class hierarchy 3 levels deep"
         suggestion: "Flatten with composition"
-  issues:
-    - severity: critical | high | medium
-      gate: style
-      area: naming
-      location: "file:line"
-      description: "Clear description"
-      suggestion: "Actionable fix"
+  issues: [...]  # Exact base issue schema above
   strengths:
     - "Good compliance observation"
 ```

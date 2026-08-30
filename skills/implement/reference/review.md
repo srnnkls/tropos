@@ -43,17 +43,10 @@ issues:
   - id: H001
     batch: 1
     task: T001
-    severity: critical | high | medium
-    gate: correctness
-    location: src/auth/session.py:45
-    trigger: "Expired session reaches refresh"
-    wrong_outcome: "Refresh accepts the expired token"
-    suggestion: "Validate expiry at the shared refresh boundary"
+    finding: "Exact admitted issue record from ../../review/reference/report.md"
     found_by: [general-opus]
     status: open | resolved | deferred | residual | needs_decision
     resolution: null
-
-deferred_issues: [H001]
 
 integration_review:
   required: true  # false for one batch
@@ -63,14 +56,9 @@ integration_review:
   cross_batch_validation: pending | pass | fail
   issues: []
   recommendation: ready_to_merge | changes_requested | null
-
-readiness:
-  all_tasks_done: false
-  all_batches_reviewed: false
-  blocking_issues_resolved: false
-  native_validation_passed: false
-  integration_review_passed: false  # true when not required
 ```
+
+Each `finding` is the exact admitted issue object from the canonical [review report](../../review/reference/report.md). Batch/task attribution and resolution state are implementation-owned extensions. Derive deferred lists and readiness from issue statuses, task state, batch reviews, validation evidence, and the integration result; do not persist duplicate rollups.
 
 Record the actual agent, effort, and execution class from the batch snapshot. Do not copy live routing into a second configuration block.
 
@@ -89,7 +77,7 @@ A one-batch scope sets `integration_review.required: false` and treats its Phase
 ## Readers
 
 - `/continue` reads the latest batch/integration outcome and existing report directories from the checkpoint.
-- `/implement` checks blocking findings and readiness.
+- `/implement` derives blocking findings and readiness from authoritative task, issue, validation, and integration state.
 - `/scope done` checks task state, acceptance evidence, native validation, and the required integration outcome.
 
 `tasks.yaml` owns task status. `checkpoint.yaml` owns the current recovery wave. `validation.yaml` owns pre-implementation scope review and its reviewer configuration.

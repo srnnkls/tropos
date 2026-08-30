@@ -54,10 +54,6 @@
 
 ---
 
-## Severity Quick Reference
+## Severity
 
-| Severity | Examples |
-|----------|----------|
-| **Critical** | Security vulnerability, data loss, crash |
-| **High** | Logic error, missing validation, unclear behavior |
-| **Medium** | Style issue, minor inefficiency, missing docs |
+Use the canonical [review severity contract](../../review/reference/report.md#issue-severity).

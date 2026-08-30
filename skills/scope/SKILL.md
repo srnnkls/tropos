@@ -303,24 +303,12 @@ Record the response in `validation.yaml`; seeds the Alternatives section of `des
 
 ### Step 3.7: Configure Scope Reviewers
 
-Configure scope-reviewers per the unified `/review` host matrix (see `/review` SKILL.md
-"Reviewer Selection"). Resolution order:
-1. `--reviewers` flag passed to `/scope` — comma-separated live aliases from `peer list`, including
-   host-native entries
-2. Interactive AskUserQuestion prompt (fallback)
+Configure scope reviewers from live `peer list` metadata. Resolution order:
 
-On Codex, default/recommend `codex-native`; reject all registry Codex-family peer aliases and
-native `opus`/`sonnet`, while allowing cross-host `opus-peer`/`sonnet-peer`. On Claude,
-default/recommend native `opus` plus a cross-host GPT alias; reject `codex-native` and all registry
-Claude-family peer aliases. Read the `ROUTABLE` column to label each entry — a `ROUTABLE=yes` alias
-is a native subagent, not a peer route. Label/filter menu choices dynamically from registry
-harness/family metadata, and never silently convert a rejected selection.
+1. `--reviewers` aliases passed to `/scope`;
+2. one interactive multi-select fallback.
 
-One effort governs the set: `inherit`, or a level declared in `efforts:` in `reviewers.yaml`, which
-native and routable entries carry by naming the matching effort variant and peer entries receive
-through `--effort`. When any peer alias is selected, the level must be one every selected peer
-supports; for `opus-peer`/`sonnet-peer`, the allowed subset is `low|medium|high|xhigh|max`. Store
-the resolved selections and that effort in `validation.yaml.review_config`.
+Validate aliases, host compatibility, execution mechanisms, and one shared effort through the canonical [peer routing contract](../peer/reference/routing.md). Persist only the resolved selection and effort in `validation.yaml.review_config`; do not copy routing metadata.
 
 **All issue types** (Initiative, Feature, Task) require reviewer config.
 

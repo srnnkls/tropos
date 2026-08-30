@@ -11,8 +11,7 @@ metadata:
 `peer` ships at `skills/peer/scripts/peer`. It is the sanctioned way for skills to invoke
 external agents; never call `codex exec` or `pi` directly.
 
-**Install:** `mise run install-peer` symlinks the script to `~/.local/bin/peer`
-(idempotent; re-run after pulls).
+**Install:** `mise run install-peer` symlinks the runner to `~/.local/bin/peer`, links missing base roles into `$CLAUDE_CONFIG_DIR/agents` (default `~/.claude/agents`), and materializes ignored routed definitions there. It refuses conflicting base-role files; re-run after pulls or role/registry changes.
 
 ## Harnesses and roles
 
@@ -34,11 +33,7 @@ external agents; never call `codex exec` or `pi` directly.
 - **Role source fallback** — Codex, Pi, and Claude first load the matching role definition
   from the target working tree. If it has no `agents/` directory, they use the definitions
   beside the installed peer source.
-- **Orchestrator-native routes** — registry entries with `native: true` are discoverable
-  through `peer list/get` but are never spawned by `peer`; fan-out skips them with a
-  native-spawn notice. In a Codex-hosted implementation run, `codex-native` is dispatched
-  through the native subagent API and inherits the current session's model and reasoning
-  effort. Other hosts use their corresponding native subagent mechanism.
+- **Orchestrator-native routes** — registry entries with `native: true` are discoverable through `peer list/get` but never spawned by `peer`; fan-out skips them with a native-spawn notice. The [routing contract](reference/routing.md) owns host-native dispatch.
 
 Supported roles are `tester`, `implementer`, and `reviewer`:
 
@@ -69,104 +64,23 @@ termination; partial output from failed or terminated runs is never successful.
 Each harness runs in its own process session. Completion, failure, idle timeout, and hard
 cap cleanup terminate the whole harness process group, including surviving children.
 
-## Canonical model registry
+## Registry and routing
 
-`peer`'s compatibility-stable `reviewers.yaml` registry is the single source of truth for
-peer identity, harness, provider, model, aliases, and default effort. Never hardcode model
-strings in a dispatch. The current registry is injected live:
+The live registry and all host/native/external routing semantics are owned by [reference/routing.md](reference/routing.md). Load it when selecting, validating, or dispatching a route.
 
-```!
-peer list
-```
-
-Use `peer get <field> <id|alias>` for `id`, `model`, `harness`, `alias`, `effort`,
-`native`, `provider`, or `proxy`. The `ROUTABLE` column is `proxy` — the peers
-[`peer route`](#native-routing--peer-route) can send a native subagent to.
-
-## Native routing — `peer route`
-
-A registry entry with `proxy: true` names a model the `claude-codex` proxy serves, so it can
-run as a native subagent instead of a subprocess. `Task(model=...)` accepts only Anthropic
-aliases, so the model is carried by an agent definition rather than a dispatch argument.
+Quick commands:
 
 ```bash
-peer route sync                     # materialise agents/<role>[-<alias>][-<effort>].md
-peer route show [-C DIR]            # effective role -> peer, and where each came from
-peer route check reviewer=terra     # can this role dispatch to this peer right now?
-peer route check reviewer=terra@xhigh # ... at that effort variant
-peer route set reviewer=terra [-C DIR]
+peer list
+peer get <field> <id|alias>
+peer route sync
+peer route show [-C DIR]
+peer route check <role>=<alias>[@<effort>] [...]
+peer route set <role>=<alias> [-C DIR]
 peer route clear [-C DIR]
 ```
 
-`routing:` in `reviewers.yaml` is the standing default; `.peer/routing` under the working
-root overrides it for every session in that tree. `inherit` leaves a role on the session
-model, and every role ships as `inherit` — routing is opt-in, per tree or by editing the
-registry. `set` rejects a peer without `proxy: true`; a `routing:` value edited into the
-registry is not checked until `show` reports it as `inactive: not proxy-served`.
-
-`show` prints role, peer, where the value came from, and whether the route can actually fire —
-`active`, or `inactive:` with the reason. Read the status, not the peer: a route reports a peer
-whether or not anything will swap.
-
-Setting a route is not the only way to reach a generated definition: an orchestrator can name
-`<role>-<alias>` on the Task directly, which is what a per-run selection and any mixed reviewer
-set must do, since a route rewrites every bare dispatch of that role in the tree. Direct naming
-skips the hook and with it every precondition the hook checks, so ask `check` first — it reports
-the same status `show` does, for a role and peer that are not routed, and exits non-zero on
-anything but `active`.
-
-Direct naming is also the only per-dispatch effort override, because the Task tool has no effort
-argument — a level exists only as its own definition. `efforts:` in `reviewers.yaml` lists the
-levels to materialise, drawn from the set Claude accepts (`low`, `medium`, `high`, `xhigh`, `max`,
-or an integer); it currently holds `medium, high, xhigh`. Each level adds a `<role>-<effort>` definition
-per role and a `<role>-<alias>-<effort>` per proxy peer, so a level costs `roles × (1 + proxy
-peers)` files. A level that matches a peer alias fails the sync rather than making `<role>-<x>`
-ambiguous.
-
-`<role>-<effort>` carries no `model:`, so `Task(model:)` still applies on top of it — that is how
-an Anthropic model reaches a level the session is not running at. The level replaces whatever
-`effort:` the role file declares; the plain `<role>` and `<role>-<alias>` definitions keep it.
-
-Nothing routes until the hook is registered. `peer route hook` is a `PreToolUse` hook on
-`Task|Agent` and lives in Claude's settings, not in this repo:
-
-```json
-{ "matcher": "Task|Agent",
-  "hooks": [{"type": "command", "command": "peer route hook -C \"$CLAUDE_PROJECT_DIR\""}] }
-```
-
-Without that entry `set` and `show` still report routes while every dispatch stays on Claude.
-
-The hook rewrites `subagent_type` to the routed definition through `updatedInput` and logs the
-swap on stderr — the transcript still shows the requested role, so that line is the only
-provenance a reader gets. It abstains from the permission decision, so it can never weaken
-another hook's `deny`.
-
-It declines silently — leaving the dispatch on the Claude agent — when no proxy is
-configured, the proxy fails `/healthz`, the role is unrouted, the routed peer is not
-proxy-served, the payload is malformed, or the generated definition is missing. A rewrite the
-session cannot serve would kill the subagent outright, so every uncertain case falls through
-instead. Definitions are looked up where Claude resolves them — `<project>/.claude/agents`,
-then `$CLAUDE_CONFIG_DIR/agents` — never `<project>/agents`, which Claude never reads.
-
-Generated definitions are the role file with `name:`, `model:`, and (for an effort variant)
-`effort:` rewritten, and the body copied whole. Edit the role definition and re-run `sync`; edits to a generated file are lost.
-`sync` reconciles rather than appends: it renders every (role, proxy peer) before writing any,
-writes each atomically, and deletes any marked generated file the current registry no longer
-produces — so dropping `proxy:` from a peer or renaming an alias cannot strand a live
-definition. A role file it cannot read or parse fails the whole run and leaves the previous
-definitions untouched.
-
-`peer-route-test` covers the rewrite, the declines including malformed payload shapes,
-generation, reconciliation, and drift in both directions between the registry and the
-committed definitions.
-
-Two things the native path does not carry over from a `peer` dispatch. Per-peer registry `effort`
-is ignored: effort belongs to the role, not the model, so a routed subagent runs at whatever level
-the role file declares, or the session's if it declares none. An effort variant is the only way to
-override that. And a routed reviewer gets its role's tool list but not the `sandbox-exec` profile
-that `peer --agent reviewer` imposes, so its shell can write. Route a reviewer to a proxy peer
-only where a writable reviewer shell is acceptable.
+Generated definitions are ignored local artifacts. Edit base roles or registry data, then run `peer route sync`; never edit generated files.
 
 ## Report layout — `.peer/`
 
@@ -310,11 +224,7 @@ paths are resolved beneath the working root.
 
 ## Dispatch contract for skills
 
-Resolve routing before dispatch. Send native aliases through the host orchestrator's
-native subagent API with the matching `tester`, `implementer`, or `reviewer` role. In
-Codex, `codex-native` inherits the session model and reasoning effort. Send external
-aliases through one `peer` invocation using the same role and task prompt. Composition
-belongs to the caller; peer does not require a paired native spawn.
+Resolve every selected mechanism through the canonical [routing contract](reference/routing.md). Composition belongs to the caller; peer never requires a paired native spawn.
 
 Peer tells each agent its registry id, so a peer asked for a `reviewer_id` can state the
 right one. Treat the result filename and manifest row as the authoritative provenance
@@ -326,25 +236,4 @@ with read, search, find, and list tools.
 
 ## Report triage
 
-A peer report is evidence, not a verdict. The caller owns disposition and is the last
-check before a finding becomes work. Manifest status describes dispatch, not content: an
-`ok` row means a report exists, never that its findings hold.
-
-Accept a finding only when it names a concrete failure mode checkable against the artifact
-under review — an input that yields the wrong output, a check that cannot fire, a false
-failure for a conformant implementation. Verify the load-bearing ones empirically before
-they gate anything; a finding that survives only as prose is not yet a finding.
-
-Disposition these as residual records or reject them with the evidence, without opening a
-fix round:
-
-- ever-narrower edge cases with no reachable input
-- speculative hardening of a check that already has falsification evidence
-- questions an earlier round or another peer already grounded
-- the design restated as a defect
-
-Report volume tracks reasoning effort, not defect density. Aim to converge in one fix round; two rounds per subject is the hard ceiling. Fan-out exists to get independent angles on the first round, not to accumulate rounds — a finding's `found_by` count is agreement, not validity.
-
-For multi-reviewer runs this bar is the triage step of
-[review synthesis](../review/reference/synthesis.md), which owns the `residual` dispositions
-and the rule that only triaged issues fail a gate.
+An `ok` manifest row proves only that a report exists. Callers apply the canonical [finding bar](../review/reference/finding-bar.md) and [review synthesis](../review/reference/synthesis.md); peer does not maintain another admission, residual, or round policy.

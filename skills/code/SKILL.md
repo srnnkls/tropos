@@ -38,7 +38,7 @@ No operation is inferred from an ordinary task outside explicit skill invocation
 
 ## Test Context
 
-Use existing nearby tests for conventions. Load a language test guide only when those tests do not settle the pattern. The count, time, attempt, tooling, and exploration ceilings in `skills/test/SKILL.md` are mandatory.
+Use existing nearby tests for conventions. Load a language test guide only when those tests do not settle the pattern. The [test skill](../test/SKILL.md) owns count, time, attempt, tooling, and exploration ceilings.
 
 ## Review Roles
 
@@ -57,18 +57,11 @@ Prepare once:
 - bounded Gestalt context;
 - only material Loqui excerpts.
 
-For implementation-owned review, launch every role and all configured native/external routes in one assistant message. Standalone review launches the selected roles the same way. Routing, `ROUTABLE=yes` definitions, effort variants, peer fan-out, and execution-class gates live in [review harnesses](../review/reference/harnesses.md) and the [peer skill](../peer/SKILL.md).
+For implementation-owned review, launch every role and configured reviewer in one assistant message. Standalone review launches selected roles the same way. Resolve mechanisms through [peer routing](../peer/reference/routing.md); review-specific materialization and coverage live in [review harnesses](../review/reference/harnesses.md).
 
 ## Role Prompt Contract
 
-Every prompt contains the shared inputs and says:
-
-- review only the assigned gates;
-- run `gestalt map` first;
-- a finding requires a reachable trigger and wrong outcome;
-- enumerate a changed state machine once and group defects by mechanism;
-- representative falsifiers are sufficient;
-- return only the exact YAML schema.
+Use the runtime materialization contract in [subagent-workflow.md](../implement/reference/subagent-workflow.md). Role files supply behavior; prompts supply shared evidence, assigned gates, the canonical report schema, and the verbatim finding bar.
 
 Architecture uses materialized structural context first. Run `gestalt diff` for a code range or a named-symbol query for one unresolved blast-radius question. Do not run a fixed checklist of analyze, verbose propagation, rank, and caller enumeration.
 
@@ -76,7 +69,7 @@ Compliance loads only language guidance material to changed patterns. It does no
 
 ## Synthesis
 
-Use [review synthesis](../review/reference/synthesis.md). Agreement count is evidence, not validity. Batch accepted findings by mechanism, defer valid medium issues, surface `needs decision:`, and re-review only a failed lens after fixes.
+Apply [review synthesis](../review/reference/synthesis.md); it owns disposition, grouping, user decisions, re-review, and stopping.
 
 ## References
 

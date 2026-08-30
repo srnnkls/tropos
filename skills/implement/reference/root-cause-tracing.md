@@ -30,4 +30,4 @@ Fix the narrowest shared source that explains the failure. Check another caller 
 
 ## Cutoff
 
-One revised hypothesis may follow a falsified first hypothesis. After two hypotheses or two fix rounds for the same subject, report the unresolved evidence or decision. Do not continue with narrower variants of the same failure mechanism.
+One revised hypothesis may follow a falsified first hypothesis. After two hypotheses for the same subject, report the unresolved evidence or decision. Review fix-round limits belong to [review synthesis](../../review/reference/synthesis.md).

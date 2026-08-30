@@ -56,7 +56,7 @@ Never dispatch mutating agents on `main`, `master`, or an unrelated branch.
 
 Resolve routing once before a direct task or once at each scope batch boundary. The immutable snapshot governs that batch's tester, implementer, reviewers, effort, execution classes, and report run ID. Mid-batch edits apply to the next batch.
 
-All host-family, `ROUTABLE=yes`, generated effort-variant, peer fan-out, and report-path behavior lives in [configuration.md](reference/configuration.md). Do not restate or infer routing from alias names.
+Configuration resolution and immutable snapshots live in [configuration.md](reference/configuration.md). Host compatibility, generated variants, peer fan-out, effort, and report paths live in the canonical [peer routing contract](../peer/reference/routing.md).
 
 ## Single-Task Pipeline
 
@@ -64,7 +64,7 @@ Use the same gates as one scope batch without a persisted checkpoint.
 
 ### Phase A: RED
 
-1. Dispatch one fresh configured tester with the task requirements and the hard ceilings from `skills/test/SKILL.md`.
+1. Dispatch one fresh configured tester with the task requirements; the [test skill](../test/SKILL.md) owns its hard ceilings.
 2. Require `tester_report` with the exact focused command and bounded RED evidence.
 3. Run that command once and inspect one representative falsifier: name a plausible wrong implementation and confirm the test rejects it.
 
@@ -72,13 +72,13 @@ Accept an assertion failure for the missing behavior or a native compiler/typech
 
 ### Phase B: GREEN
 
-Dispatch one fresh configured implementer with the task requirements and tester report. The implementer runs the RED command, writes the smallest production change, verifies GREEN, and refactors only the changed mechanism.
+Dispatch one fresh configured implementer with the task requirements and tester report. After it returns, verify the focused command and directly affected native validation in one batched tool round, combining compatible selectors. Refactor only the changed mechanism.
 
 ### Phase C: Review
 
 Materialize the diff, requirements, report schema, finding bar, bounded Gestalt context, and applicable Loqui excerpts once. In one message, dispatch all configured reviewers for General, Architecture, and Compliance. Wait once and synthesize once.
 
-Critical/high findings are triaged before fixes. Batch accepted findings by mechanism, allow at most two fix rounds per subject, and re-review only the failed lens. A further round requires a verified failure mode in a component no prior round examined. Surface `needs decision:` instead of dispatching it.
+Apply [review synthesis](../review/reference/synthesis.md) for admission, grouping, fixes, `needs decision`, re-review, and round limits.
 
 Phase C plus final native validation completes a single-task run. Do not launch a duplicate final review.
 
@@ -109,7 +109,10 @@ Stop when the requested requirements are implemented, focused and directly affec
 - [operations/verify.md](operations/verify.md) — completion evidence
 - [operations/debug.md](operations/debug.md) — bounded root-cause work
 - [reference/configuration.md](reference/configuration.md) — canonical role routing
-- [reference/subagent-workflow.md](reference/subagent-workflow.md) — dispatch prompts and reports
+- [reference/subagent-workflow.md](reference/subagent-workflow.md) — prompt materialization
+- [reference/report.md](reference/report.md) — implementer and fix reports
+- [../test/reference/report.md](../test/reference/report.md) — tester report
+- [../review/reference/report.md](../review/reference/report.md) — reviewer report
 - [reference/checkpoint-format.md](reference/checkpoint-format.md) — recovery state
 - [reference/parallel-detection.md](reference/parallel-detection.md) — task batching
-- [reference/roles/](reference/roles/) — role contracts
+- [tester role](../../agents/tester.md), [implementer role](../../agents/implementer.md), and [reviewer role](../../agents/reviewer.md) — canonical role contracts

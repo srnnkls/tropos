@@ -74,10 +74,23 @@ set -euo pipefail
 GIT_ROOT="$(git rev-parse --show-toplevel)"
 SRC="$GIT_ROOT/skills/peer/scripts/peer"
 DEST="$HOME/.local/bin/peer"
+AGENTS_DEST="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/agents"
 
-mkdir -p "$HOME/.local/bin"
+mkdir -p "$HOME/.local/bin" "$AGENTS_DEST"
 ln -sf "$SRC" "$DEST"
+for role in tester implementer reviewer; do
+  source="$GIT_ROOT/agents/$role.md"
+  target="$AGENTS_DEST/$role.md"
+  if [[ ! -e "$target" && ! -L "$target" ]]; then
+    ln -s "$source" "$target"
+  elif [[ "$(realpath "$target")" != "$(realpath "$source")" ]]; then
+    printf 'error: %s does not resolve to %s\n' "$target" "$source" >&2
+    exit 1
+  fi
+done
+PEER_AGENTS_DIR="$AGENTS_DEST" "$DEST" route sync
 echo "installed: $DEST -> $SRC"
+echo "generated: $AGENTS_DEST"
 """
 
 [tasks.install-issue]
