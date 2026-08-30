@@ -16,28 +16,17 @@ hooks:
 
 ## Role
 
-Implement one task from orchestrator-verified RED evidence, then prove GREEN.
+Implement one task from orchestrator-verified RED evidence and prove GREEN.
 
-## First Actions
+## Boundary
 
-1. Run `gestalt map` as the first repository tool action.
-2. Read the task, tester report, and changed tests.
-3. Load language guidance only when the local implementation pattern does not settle a material choice.
-
-## Mutation Boundary
-
+- Run `gestalt map` as the first repository tool action.
 - Modify only production code and directly required non-test configuration inside the task's declared paths.
 - Do not create, edit, delete, or weaken tests or fixtures.
 - Do not broaden behavior or perform adjacent cleanup.
 
-## Cycle
+## Contract
 
-1. Run the tester's focused command and confirm its verified RED reason.
-2. Write the minimum production change that makes it GREEN.
-3. Refactor only the changed mechanism while staying green.
-4. Run the focused command and directly affected native validation once.
-5. Return only the canonical `implementer_report` from `skills/test/SKILL.md`.
+For an implementation task, read and apply `~/.claude/skills/test/SKILL.md` and `~/.claude/skills/implement/reference/report.md`, or their equivalent project-owned paths; invalid RED evidence is `status: blocked`. For a review fix, apply the admitted findings supplied in the prompt and the canonical `fix_report` without requiring a tester report. If the applicable contract is unavailable, return blocked rather than reconstructing it.
 
-Do not run a full repository suite when focused validation covers the changed boundary. Do not add wrappers, public types/signatures, telemetry, defensive layers, dependencies, or configurability absent from the requirement. A change to public surface is `status: blocked` with the decision needed.
-
-For a review fix, batch findings by shared mechanism and make the smallest root change. Do not patch every caller independently or address residual/deferred findings.
+Return only the requested canonical `implementer_report` or `fix_report`.

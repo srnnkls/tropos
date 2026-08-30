@@ -52,7 +52,7 @@ The snapshot is immutable for the batch. Configuration edits apply to the next b
 
 Before dispatch, write one checkpoint transition containing every batch task as an in-flight tester mutation with baseline status/diff evidence and its report directory.
 
-Dispatch all testers in one message using the route snapshot and the canonical template in [subagent-workflow.md](../reference/subagent-workflow.md). Each prompt must carry the hard ceilings from `skills/test/SKILL.md`.
+Dispatch all testers in one message using the route snapshot and the canonical template in [subagent-workflow.md](../reference/subagent-workflow.md). The role loads its ceilings from the [test skill](../../test/SKILL.md); do not copy them into task prompts.
 
 Wait once for all reports. A tester gap blocks only its task and every dependent task; independent cleared tasks may continue if their files do not overlap the blocked mutation.
 
@@ -70,17 +70,15 @@ For each successful report:
 
 No test-review agents run. Do not audit the whole test tree. Return invalid RED only to the affected tester and only within its remaining two-attempt/ten-minute budget; otherwise record a gap.
 
-After the gate, write one checkpoint transition that clears successful tester mutations and preserves only failed/incomplete tasks with current evidence.
+At the RED→GREEN boundary, write one checkpoint transition that clears successful tester mutations, preserves failed/incomplete tester evidence, sets phase `green`, and records every cleared task as an in-flight implementer mutation. This write must land before any implementer dispatch.
 
 ## 5. Phase B: GREEN
 
-Before dispatch, write one checkpoint transition containing every cleared task as an in-flight implementer mutation.
-
 Dispatch all implementers in one message. Each receives its task requirements, tester report, existing partial state, and the canonical implementer prompt. The implementer must run RED, make the smallest production change, verify GREEN, and refactor only the changed mechanism.
 
-Wait once, then verify each reported focused command and directly affected native validation. Do not repeat successful checks for confidence.
+Wait once. Collect every implementer report, deduplicate identical commands, combine compatible native selectors, and run incompatible groups in one batched tool round. Verify each focused command and directly affected native validation once.
 
-Write one checkpoint transition after the wave. Clear successful mutations and preserve failed/incomplete tasks with evidence. Never auto-retry or roll back partial edits.
+If any implementer is failed, incomplete, or fails GREEN, clear successful entries, retain failed evidence under phase `green`, and pause. Only after every implementer clears GREEN may one GREEN→review checkpoint transition clear the mutation entries, set phase `review`, and record all review report directories.
 
 ## 6. Phase C: Concurrent Review
 
@@ -111,16 +109,9 @@ Wait once. Require one successful report from every execution class configured f
 
 ## 7. Synthesize and Fix
 
-Apply [review synthesis](../../review/reference/synthesis.md):
+Apply [review synthesis](../../review/reference/synthesis.md), which owns admission, grouping, disposition, `needs decision`, re-review scope, and round limits.
 
-1. Admit only findings with a reachable trigger and wrong outcome.
-2. Deduplicate and batch accepted findings by mechanism.
-3. Record medium findings in `review.yaml.deferred_issues` and continue.
-4. Surface `needs decision:` to the user.
-5. Dispatch fixes for accepted critical/high findings concurrently when file-safe.
-6. Re-review only the lens that failed and only the changed mechanism.
-
-Allow at most two fix rounds per subject. A further round opens only for a verified failure mode in a component no previous round examined; a narrower variant of an earlier finding is residual.
+Before any fix wave, persist every file-safe fix group as an in-flight mutation in one checkpoint write. Dispatch independent groups concurrently. After results, clear successful fix markers and retain failed/interrupted evidence in one write before the synthesis-directed re-review.
 
 ## 8. Complete a Batch
 

@@ -17,39 +17,16 @@ hooks:
 
 ## Role
 
-Review completed changes independently against requirements and the assigned gate. This role does not run a pre-implementation test-review phase.
+Review a completed materialized change against requirements and only the assigned gate.
 
-## First Action
+## Boundary
 
-Run `gestalt map` as the first repository tool action. Use additional named-symbol Gestalt queries only when a concrete structural question remains unresolved.
-
-## Mutation Boundary
-
-- Do not create, modify, delete, format, or stage repository files.
+- Run `gestalt map` as the first repository tool action.
+- Do not create, modify, delete, format, stage, regenerate, or fix repository files.
 - Run only read-only inspection and verification commands.
-- Report findings; do not implement them.
 
-## Review
+## Contract
 
-1. Read the materialized diff, requirements, report schema, and finding bar supplied in the prompt.
-2. Evaluate only the assigned General, Architecture, Compliance, or integration gates.
-3. Verify each candidate against a reachable trigger and wrong outcome.
-4. Return only the requested report schema.
+Before reviewing and again before reporting, read and apply `~/.claude/skills/review/reference/report.md` and `~/.claude/skills/review/reference/finding-bar.md`, or their equivalent project-owned skill paths. They own reviewer output and finding admission. If either is unavailable or the artifact cannot be reached, report the review blocked; do not reconstruct the contract.
 
-Load language guidance only when the diff presents a material language-specific question. Do not inspect the whole test tree, enumerate every usage, or add confidence permutations after representative falsifiers settle a guarantee.
-
-## Finding Bar
-
-- No reachable trigger plus wrong outcome means no finding.
-- Enumerate one changed state machine in one pass and group defects by mechanism.
-- Propose the smallest fix at the shared root. New API/type/signature work is `needs decision:`.
-- Reject unreachable edge cases, speculative hardening, equivalent rewrites, design restatements, narrower variants of cleared findings, and permutations beyond the sufficiency cutoff.
-- Agreement count is evidence, not validity.
-
-## Severity
-
-| Severity | Meaning |
-|---|---|
-| Critical | Build, data, security, or core behavior failure |
-| High | Reachable significant requirement failure |
-| Medium | Valid non-blocking issue; defer |
+Return only the canonical `reviewer_report` materialized in the prompt.

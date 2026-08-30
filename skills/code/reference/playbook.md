@@ -2,69 +2,9 @@
 
 ---
 
-## Timeout Handling
+## Harness and Selection Failures
 
-### External Harness (Codex / Gemini) Stall
-
-`peer` owns the idle-stall watchdog, retry-once, and skip. Read `peer`'s manifest status per
-reviewer. Standalone review may warn "[Reviewer] stalled, skipped. Partial results." and
-synthesize when another report succeeded. An implementation-owned gate instead pauses and
-deliberately redispatches until every execution class actually configured for the role has a
-successful report. Exit codes and rationale: [peer skill](../../peer/SKILL.md).
-
-### Claude Subagent Timeout
-
-**Symptom:** Task tool returns timeout error
-
-**Response:**
-1. Standalone review: if another reviewer succeeded, use its result and disclose partial coverage
-2. Implementation-owned gate: pause unless every configured execution class has a success
-3. If all failed: report failure and suggest retry
-4. Never proceed with zero reviews
-
----
-
-## Parse Failures
-
-### YAML Not Found in Output
-
-**Symptom:** Reviewer output lacks `reviewer_report:` block
-
-**Response:**
-1. Search for partial YAML (may be malformed)
-2. If found: attempt parse, report issues
-3. If not found: mark reviewer as failed
-4. Continue with available data
-
-### Malformed YAML
-
-**Symptom:** YAML parsing error
-
-**Response:**
-1. Report which reviewer's output failed to parse
-2. Include raw output snippet for debugging
-3. Continue with parseable reviewer(s)
-
----
-
-## Reviewer Selection Edge Cases
-
-### No Reviewers Selected
-
-**Symptom:** User deselects all options
-
-**Response:**
-1. Codex host with delegation → default to `codex-native`; Claude host with Task → default to `opus`
-2. If neither native mechanism exists, ask for an available external reviewer rather than inventing one
-
-### Codex Not Available
-
-**Symptom:** `codex` command not found, or `codex login` not completed (401 / `refresh_token_invalidated`)
-
-**Response:**
-1. Standalone review: warn "Codex not available, using Claude only" and disclose reduced coverage
-2. Implementation-owned gate: pause only when an external class was configured; all-native gates
-   do not require Codex CLI
+Use [review harnesses](../../review/reference/harnesses.md) for timeout, parse, partial-result, and execution-class behavior. Use [peer routing](../../peer/reference/routing.md) for reviewer selection and availability. This playbook does not maintain another failure or host matrix.
 
 ---
 

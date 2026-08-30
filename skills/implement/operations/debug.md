@@ -16,28 +16,15 @@ Do not enumerate every caller, usage, reference implementation, difference, envi
 
 When the failure does not reproduce, report the missing evidence needed. Do not broaden into speculative investigation.
 
-## 2. Trace to the Responsible Source
+## 2. Diagnose
 
-Trace backward only while the current frame cannot explain the bad value or state.
+Apply [root-cause-tracing.md](../reference/root-cause-tracing.md). It owns bounded Gestalt/`rg` use, hypothesis limits, temporary probes, the shared-source cutoff, and unresolved-evidence reporting.
 
-- Use a named `gestalt callers`, `callees`, or `refs` query when the immediate relationship is unresolved.
-- Use bounded `rg` only to confirm exact names or text after Gestalt.
-- Stop when one source explains the reachable trigger and wrong outcome.
-- Fix the narrowest shared source. Inspect sibling callers only when the proposed shared change gives them a concrete affected behavior.
-
-If static evidence cannot locate the break, add one temporary probe at the suspected boundary, run the reproducer once, then remove the probe. Another probe requires evidence that the suspected boundary changed.
-
-## 3. Falsify One Hypothesis
-
-State one hypothesis and one observation that would disprove it. Run the smallest check that separates the hypothesis from a plausible alternative.
-
-A failed hypothesis may open one revised attempt using the new evidence. After two hypotheses or two fix rounds for the same subject, surface the unresolved decision instead of continuing.
-
-## 4. Fix Through Strict TDD
+## 3. Fix Through Strict TDD
 
 Once the source is identified:
 
-1. dispatch a tester for the minimal reproducer under `skills/test/SKILL.md` ceilings;
+1. dispatch a tester for the minimal reproducer under the [test skill](../../test/SKILL.md) ceilings;
 2. verify RED once;
 3. dispatch an implementer for the narrowest shared fix;
 4. verify GREEN once;

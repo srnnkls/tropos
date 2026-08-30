@@ -23,21 +23,7 @@ Multi-perspective scope review using parallel subagent dispatch.
 
 ### Step 2: Select Reviewers
 
-Select reviewers per the unified `/review` host matrix and live registry metadata:
-
-- Codex host: native `codex-native`; cross-host Claude family through peer
-  (`opus-peer`/`sonnet-peer`); reject native `opus`/`sonnet` and every registry Codex-family peer
-  alias.
-- Claude host: native `opus`/`sonnet`, plus every `ROUTABLE=yes` alias as a native subagent
-  (`reviewer-<alias>`); only the cross-host aliases this host still hands to peer go through peer.
-  Reject `codex-native` and every registry Claude-family peer alias.
-- Allow unrelated peer families when available. Never silently convert an incompatible selection.
-
-One effort governs the whole selection: `inherit`, or a level declared in `efforts:` in
-`reviewers.yaml`. Peer entries receive it through `--effort`; native and routable entries by naming
-the matching effort variant. If any peer is selected, the level must be one every selected peer
-supports — validate `opus-peer`/`sonnet-peer` against their contract subset
-`low|medium|high|xhigh|max`.
+Select reviewers from live registry metadata and validate the whole selection through the canonical [peer routing contract](../../peer/reference/routing.md). Scope review chooses reviewers and one shared effort; it never restates host compatibility or dispatch mechanics.
 
 ### Step 3: Dispatch Reviewers in Parallel
 
@@ -69,25 +55,7 @@ Append the exact Reviewer Report schema from this document to the materialized p
 report directory with `outdir=$(peer path scope-{name} review)` and save the prompt as
 `{outdir}/prompt.md`.
 
-**In a single message**, dispatch the configured mechanisms:
-
-```
-Codex native delegation(role=reviewer, prompt={review_prompt})  # codex-native on Codex
-Task(subagent_type="reviewer", model={native_alias}, prompt={review_prompt})  # opus/sonnet on Claude
-Task(subagent_type="reviewer-{routable_alias}", prompt={review_prompt})       # ROUTABLE=yes, no model
-Bash(run_in_background=true):                                  # only when externals configured
-  peer -C {workdir} -d {outdir} --agent reviewer \
-    --peers {external_aliases} --effort {peer_effort} \
-    --prompt-file {outdir}/prompt.md
-```
-
-Never pass host-native aliases to peer, and never pass a `ROUTABLE=yes` alias either — on a
-Claude host that is a native subagent named `reviewer-<alias>`, gated on
-`peer route check reviewer=<alias>[@<effort>]`. A recorded effort other than `inherit` appends to
-the subagent name. Read the TSV manifest when peer ran; pull each `ok` report
-file and note failed rows. The mandatory gate requires one success from every execution class
-actually configured. Full contract: **[review](../../review/SKILL.md)** and
-**[peer](../../peer/SKILL.md)**.
+In one assistant message, dispatch every selected reviewer using the mechanisms resolved by [peer routing](../../peer/reference/routing.md). Read each successful native result and every `ok` peer manifest file. The mandatory gate requires one success from every configured execution class; [review harnesses](../../review/reference/harnesses.md) own partial-result handling.
 
 ### Step 4: Synthesize Reviews
 
@@ -115,7 +83,7 @@ This review is the **mandatory blocking gate** a scope must clear before impleme
 Triage findings before they gate anything, per [review synthesis](../../review/reference/synthesis.md): a `critical`/`high` issue blocks only when it names a concrete defect in the scope — a requirement that contradicts another, a task with no achievable acceptance criterion, a dependency that cannot be satisfied. Reviewer agreement is not validity. Findings that only narrow, restate, or re-litigate a grounded question are recorded as deferred nits and do not fail the gate.
 
 - **No triaged `critical`/`high` issue** → `review_gate.status: passed` (record reviewers, timestamp, `blocking_resolved`, and any deferred `medium` nits). Report "Ready for implementation."
-- **Any triaged `critical`/`high` issue** → `review_gate.status: failed`. Report "Address critical/high issues, then re-run /scope review." Fold the findings back into `scope.md` / `tasks.yaml` / `design.md` and re-run. Converge in one round; a further round requires a newly surfaced verified defect, and each round beyond the first records what forced it.
+- **Any triaged `critical`/`high` issue** → `review_gate.status: failed`. Fold the findings back into the scope documents and re-run under the canonical [synthesis round limits](../../review/reference/synthesis.md).
 
 `implement`/`loop` will not execute a scope whose `review_gate.status` is absent or `failed` (enforced at `implement/operations/execute.md` Step 2).
 
@@ -157,9 +125,7 @@ See `/review` for harness details, models, and dispatch templates:
 
 ## Report Schema
 
-Base report format: see `/review` [reference/report.md](../../review/reference/report.md).
-
-Scope reviews use domain-specific gates and areas instead of the code review gates.
+Scope review owns the pre-implementation document schema below. It shares the review harness and synthesis discipline but not the runtime code-failure schema: `description` names a concrete contradiction, omission, or infeasible requirement, while `clarifying_questions` records missing decisions.
 
 ### Reviewer Report
 
@@ -266,9 +232,7 @@ synthesized_report:
 
 ### No Reviewers Selected
 
-Codex host defaults to `codex-native`; Claude host defaults to native `opus` plus a configured
-cross-host GPT alias, dispatched as `reviewer-<alias>` when `ROUTABLE=yes` and through peer
-otherwise. If neither native mechanism is available, ask for explicit registry aliases.
+Return to the scope reviewer-configuration step; do not invent or silently convert a route.
 
 ### Scope Not Found
 

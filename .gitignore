@@ -3,4 +3,7 @@
 .worktrees/
 .peer/
 .issues/
+/agents/implementer-*.md
+/agents/reviewer-*.md
+/agents/tester-*.md
 skills/loqui/reference/loqui

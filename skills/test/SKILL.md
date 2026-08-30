@@ -70,30 +70,6 @@ Before reporting, choose the most important test and name one plausible wrong im
 
 Do not add adjacent behavior, configurability, cleanup, or another confidence run.
 
-## Tester Evidence
+## Evidence
 
-```yaml
-tester_report:
-  status: success  # or gap
-  test_files:
-    - path: tests/test_feature.py
-      tests: [test_requested_behavior]
-  test_command: "pytest tests/test_feature.py -q"
-  red_kind: assertion | compiler | typechecker
-  rejected_wrong_implementation: "Returns the untransformed value"
-  failure_output: |
-    [last 20 relevant lines]
-  gap_reason: null
-```
-
-## Implementer Evidence
-
-```yaml
-implementer_report:
-  status: success  # or blocked
-  implementation_files: [src/feature.py]
-  test_command: "pytest tests/test_feature.py -q"
-  test_output: |
-    [last 20 relevant lines]
-  blocked_reason: null
-```
+Return the exact [tester report](reference/report.md) during RED. Implementers return the report owned by the [implementation workflow](../implement/reference/report.md).

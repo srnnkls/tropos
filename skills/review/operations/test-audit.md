@@ -23,7 +23,7 @@ Read and apply [the canonical test failure modes](../../test/reference/failure-m
 
 1. Read the requirements and named test files.
 2. For each candidate, state a plausible wrong implementation and determine whether the test rejects it.
-3. Report only candidates with a reachable trigger and wrong outcome.
+3. Report only candidates that clear the shared finding bar.
 4. Stop after one pass over the named tests.
 
 ## Output

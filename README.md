@@ -10,27 +10,21 @@
 
 ## About
 
-A Claude Code configuration for agentic development flows. Scopes scaffold the work, git records the truth. Structure before code, verification before claims, delegation over heroics.
+A cross-harness configuration for agentic development. Ordinary work stays direct; explicit workflows add scoped delegation and evidence gates when requested. Git records the truth.
 
 ## Philosophy
 
-- *Scope* — Research, validate requirements, create tracking documents
-- *Delegate* — Fresh subagent per task with quality gates
-- *Review* — Review completed work before continuing
-- *Repeat* — Update scope, continue cycle, mark done
-
-Supporting principles:
-
-- *Test-driven by default* — Red, green, refactor
+- *Direct by default* — Use the shortest native path for ordinary work
+- *Explicit assurance* — Scope, delegated TDD, and review activate only when invoked
 - *Fresh context per task* — Subagents prevent pollution
 - *Evidence over assertion* — Verify before claiming done
-- *Parallelize when independent* — Dependency trees unlock concurrency
-- *Sequential when dependent* — Respect the critical path
+- *Parallel when independent* — Dependency trees unlock concurrency
 
-## Plugins
+## Components
 
-- *[skills](skills/)* — Scope pipeline, code quality, task execution
-- *[agents](agents/)* — Implementer, reviewer, tester
+- *[instructions/AGENTS.md](instructions/AGENTS.md)* — Concise global contract shared across harnesses
+- *[skills](skills/)* — Progressively disclosed workflows and domain policy
+- *[agents](agents/)* — Implementer, reviewer, and tester boundaries
 
 ## Development
 

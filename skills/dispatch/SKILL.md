@@ -2,24 +2,9 @@
 name: dispatch
 description: Intent router. Routes explicit workflow requests and leaves ordinary work in direct execution.
 argument-hint: "[target]"
-allowed-tools: Bash(find *), Bash(git status *), Bash(git branch *)
 metadata:
   type: generic
 ---
-
-## Pre-loaded Context
-
-Active scopes:
-!`find scopes -maxdepth 3 -name scope.md 2>/dev/null || true`
-
-Checkpoints:
-!`find scopes -name checkpoint.yaml -maxdepth 3 2>/dev/null || true`
-
-Git status:
-!`git status --short 2>/dev/null || true`
-
-Current branch:
-!`git branch --show-current 2>/dev/null || true`
 
 # Intent Router
 

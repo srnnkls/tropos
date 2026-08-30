@@ -22,7 +22,7 @@
 #                                               "NUMBER<TAB>URL"
 #   issue edit NUMBER [--type T] [--body-file F] [--parent N] [--depends-on L] [--blocks L]
 #   issue review NUMBER|DRAFTFILE --reviewers ALIASES [--effort L]
-#                                               external half of the four-report gate via `peer`;
+#                                               externally constrained reviewers via `peer`;
 #                                               reports land in .peer/issue-NUMBER/<run>/issue-review/;
 #                                               host-native reviewers are dispatched by the agent
 #   issue purge [NUMBER]                        trash drafts in .issues/ and reports in .peer/issue-*
@@ -257,10 +257,10 @@ case "$cmd" in
       esac
     done
     [[ -n "$reviewers" ]] || {
-      _usage 'review: --reviewers is required — pass the host-selected cross-host pair (Codex host: opus-peer,sonnet-peer · Claude host: gpt,terra)'
+      _usage 'review: --reviewers is required — pass the externally constrained aliases selected by peer routing'
       return 2
     }
-    command -v peer >/dev/null 2>&1 || { _die "peer not found (mise run install-peer) — external half can't run"; return 3 }
+    command -v peer >/dev/null 2>&1 || { _die "peer not found (mise run install-peer) — external review cannot run"; return 3 }
     local draft
     if [[ -f "$target" ]]; then
       draft=$target

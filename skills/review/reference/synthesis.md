@@ -19,30 +19,19 @@ Aggregate harness results within each role first:
 
 ### 3. Merge Issues Within Role
 
-- Deduplicate across all completed configured agents within each role
+Deduplicate by shared failure mechanism plus reachable trigger and wrong outcome. Preserve every reviewer attribution.
 
 ### 4. Merge Issues Across Roles
 
-- Deduplicate by location + description similarity
-- Preserve role attribution
+Apply the same mechanism/trigger/outcome key across roles. Similar prose or a shared location alone does not make two findings equivalent.
 
 ### 4.5 Triage for Validity
 
-Reviewer output is evidence, not a verdict. Every merged issue clears this bar before it
-reaches gate aggregation; the synthesizer owns the disposition.
+Reviewer output is evidence, not a verdict. Every merged issue clears this bar before it reaches gate aggregation; the synthesizer owns the disposition.
 
-Accept an issue only when it names a concrete failure mode checkable against the reviewed
-artifact — an input that yields the wrong output, a check that cannot fire, a false failure
-for a conformant implementation. Verify the gate-blocking ones against the artifact before
-they fail a gate; an issue that survives only as prose is not yet an issue.
+An execution finding without both `trigger` and `wrong_outcome` is schema-invalid and cannot fail a gate. Accept a complete issue only when its concrete failure mode is checkable against the reviewed artifact — an input that yields the wrong output, a check that cannot fire, or a false failure for a conformant implementation. Verify gate-blocking issues against the artifact before aggregation; an issue that survives only as prose is not yet an issue.
 
-Disposition these as `residual` rather than opening a fix round:
-
-- ever-narrower edge cases with no reachable input
-- speculative hardening of a check that already has falsification evidence
-- questions an earlier round or another reviewer already grounded
-- the design restated as a defect
-- rewrites of conformant code to a different but equivalent shape
+Anything rejected by the canonical [finding bar](finding-bar.md) becomes `residual` with the matching reason and evidence; it never opens a fix round.
 
 `found_by` count is agreement, not validity — reviewers sharing a wrong assumption about the
 requirements agree loudly. A single verified issue outranks three unverified concurring ones.
@@ -66,10 +55,7 @@ An issue whose `suggestion` carries `needs decision:` does not enter a fix round
 user with the constraint that forces it; a fix agent must never invent public API surface to close
 a finding.
 
-Apply the finding bar's sufficiency cutoff at the gate too: the scope ships when its documented
-guarantees hold under representative falsifiers and confirmed reachable failures are fixed.
-Additional permutations, observability, and telemetry precision are `residual` — reason
-`deferred_hardening` — until production integration or an observed failure demands them.
+Apply the [finding bar](finding-bar.md) at gate aggregation; it owns sufficiency and deferred-hardening boundaries.
 
 ### 5. Aggregate Gates
 
@@ -129,17 +115,23 @@ Languages: python | Rules: 12 | Violations: 1
 
 ```
 ## Critical
-- [C1] SQL injection at src/db/query.py:45
-  Role: General | Found by: {reviewer-id}, {reviewer-id}
+- [C1] src/db/query.py:45
+  Trigger: Untrusted search text reaches query construction
+  Wrong outcome: The text changes the SQL statement
+  Found by: {reviewer-id}, {reviewer-id}
   Suggestion: Use parameterized queries
 
 ## High
-- [H1] Missing null check at src/api/handler.ts:112
-  Role: General | Found by: {reviewer-id}
-  Suggestion: Add guard clause
+- [H1] src/api/handler.ts:112
+  Trigger: A request omits the optional account object
+  Wrong outcome: The handler dereferences null and returns 500
+  Found by: {reviewer-id}
+  Suggestion: Add the boundary guard
 
 ## Medium
-- [M1] Variable 'd' should have descriptive name (naming/5x-rule)
-  Role: Compliance | Rule: python/quality.md
-  Suggestion: Rename to 'duration_seconds'
+- [M1] src/jobs/runner.py:18
+  Trigger: A failed job is retried
+  Wrong outcome: The retry log loses the job identifier
+  Found by: {reviewer-id}
+  Suggestion: Preserve the identifier in the retry event
 ```

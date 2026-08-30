@@ -43,8 +43,9 @@ Pre-parse `--reviewers <aliases>` and pass it to downstream review operations.
 
 ## Canonical Contracts
 
-- [models.md](reference/models.md) — registry and host compatibility
-- [harnesses.md](reference/harnesses.md) — native/routable/peer dispatch
+- [models.md](reference/models.md) — live registry pointer
+- [peer routing](../peer/reference/routing.md) — host compatibility and dispatch mechanics
+- [harnesses.md](reference/harnesses.md) — review materialization and result coverage
 - [finding-bar.md](reference/finding-bar.md) — finding admission and sufficiency
 - [report.md](reference/report.md) — YAML schemas
 - [synthesis.md](reference/synthesis.md) — merge, disposition, and fix-round limits
@@ -58,7 +59,7 @@ Resolve in order:
 2. `validation.yaml.review_config` for standalone scope review;
 3. one interactive multi-select from live `peer list`.
 
-Use registry harness/family metadata. On Codex, same-family work uses `codex-native`; on Claude, same-family work uses native `opus`/`sonnet`. A Claude-host `ROUTABLE=yes` cross-family alias is a generated native reviewer; other compatible aliases use peer. Reject same-host loopback, inactive generated variants, unknown aliases, and unsupported shared effort. Never silently convert.
+Validate the selection and resolve every execution mechanism through the canonical [peer routing contract](../peer/reference/routing.md). Never infer behavior from aliases or silently convert a route.
 
 Standalone scope selection persists to `validation.yaml.review_config`. Implementation-owned review ignores that file and uses its immutable batch routing snapshot.
 
@@ -66,7 +67,7 @@ Standalone scope selection persists to `validation.yaml.review_config`. Implemen
 
 Materialize reviewed content, requirements, exact schema, and the verbatim finding bar before dispatch. Commands and workdirs supplement the prompt; they do not replace content.
 
-For multi-role review, launch every selected role, native reviewer, routable reviewer, and external role fan-out in one assistant message. Persisted non-inherited effort is carried by the generated Task definition name; peer routes receive it through `--effort`.
+For multi-role review, launch every selected role and reviewer in one assistant message using the mechanisms resolved by peer routing.
 
 A standalone review may synthesize successful reports while disclosing missing reviewers, but never passes with zero. An implementation-owned gate requires one success from every execution class present in its batch snapshot.
 
@@ -89,4 +90,4 @@ Save every materialized prompt as `prompt.md`. The peer manifest/filename is aut
 
 ## Synthesis and Landing
 
-Admit only findings with a reachable trigger and wrong outcome. Batch by mechanism, treat agreement as evidence rather than validity, and stop at the shared sufficiency cutoff. Land confirmed findings through `tfcp`; PR thread closure composes through `tfcprr`.
+Apply [review synthesis](reference/synthesis.md) without restating its admission or stopping rules. Land admitted findings through `tfcp`; PR thread closure composes through `tfcprr`.
