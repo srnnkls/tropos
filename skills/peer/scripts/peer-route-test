@@ -102,6 +102,43 @@ expected_count=$(( roles * (proxies * (1 + efforts) + efforts) ))
 
 export PEER_AGENTS_DIR="$agents"
 
+# --- registry defaults ---------------------------------------------------------------
+defaults_registry="$tmp/defaults.yaml"
+cat > "$defaults_registry" <<'EOF'
+reviewers:
+  - id: external-id
+    harness: pi
+    model: external-model
+    alias: external
+    effort: high
+    native: false
+  - id: native-id
+    harness: codex
+    model: inherit
+    alias: native
+    effort: inherit
+    native: true
+  - id: proxy-id
+    harness: codex
+    model: proxy-model
+    alias: proxy
+    effort: high
+    native: false
+    proxy: true
+defaults:
+  reviewers: [external, native-id, proxy]
+EOF
+defaults_out=$(PEER_REGISTRY="$defaults_registry" "$PEER" defaults reviewers 2>&1); defaults_rc=$?
+expected_defaults=$(printf '%-11s %-12s %s\n' \
+  ALIAS EXECUTION PEER-ID \
+  external peer external-id \
+  native native native-id \
+  proxy native-proxy proxy-id)
+{ (( defaults_rc == 0 )) && [[ "$defaults_out" == "$expected_defaults" ]]; } \
+  && ok 'defaults reviewers follows registry order and execution mechanism' \
+  || bad 'defaults reviewers follows registry order and execution mechanism' \
+         "exit $defaults_rc, output ${defaults_out:-<empty>}"
+
 # --- sync: generated identity ---------------------------------------------------------
 "$PEER" route sync >/dev/null 2>&1
 gen="$agents/tester-gpt.md"
@@ -124,6 +161,24 @@ grep -q 'Write failing tests first' "$gen" \
 grep -qi 'generated' "$gen" \
   && ok 'a generated definition is marked as generated' \
   || bad 'a generated definition is marked as generated' 'no generated marker'
+
+# Freshness is part of route availability: changing only the base role must disable the
+# generated target until sync reconciles it.
+want_ok 'a freshly generated definition passes route check' 0 -- \
+  env ANTHROPIC_BASE_URL="$UP" "$PEER" route check tester=gpt -C "$repo"
+
+"$PEER" route set tester=gpt -C "$repo" >/dev/null 2>&1
+cp "$agents/tester.md" "$tmp/tester-base.md"
+printf '\nThe role changed after generation.\n' >> "$agents/tester.md"
+want_out 'changing the base role makes its generated definition stale' \
+  'tester.*inactive: stale definition' -- \
+  env ANTHROPIC_BASE_URL="$UP" "$PEER" route show -C "$repo"
+want_ok 'route check fails for a stale definition' 1 -- \
+  env ANTHROPIC_BASE_URL="$UP" "$PEER" route check tester=gpt -C "$repo"
+declines 'hook refuses a stale generated definition' "$(payload tester)" ANTHROPIC_BASE_URL="$UP"
+mv "$tmp/tester-base.md" "$agents/tester.md"
+"$PEER" route sync >/dev/null 2>&1
+"$PEER" route clear -C "$repo" >/dev/null 2>&1
 
 # --- sync: effort variants -------------------------------------------------------------
 # The Task tool has no effort argument, so an alternate level exists only as its own
@@ -223,6 +278,17 @@ want_out 'show marks a route active when the proxy answers' \
 want_out 'clear restores the registry default' \
   'tester.*inherit.*registry' -- "$PEER" route show -C "$repo"
 
+"$PEER" route set reviewer=opus -C "$repo" >/dev/null 2>&1
+want_out 'show marks a Claude-native route active' \
+  'reviewer.*claude-opus.*active' -- "$PEER" route show -C "$repo"
+native_out=$(payload reviewer | "$PEER" route hook -C "$repo" 2>/dev/null)
+{ grep -q '"subagent_type": *"reviewer"' <<< "$native_out" \
+    && grep -q '"model": *"opus"' <<< "$native_out" \
+    && ! grep -q 'reviewer-opus' <<< "$native_out"; } \
+  && ok 'hook applies a Claude-native route through the model field' \
+  || bad 'hook applies a Claude-native route through the model field' "got ${native_out:-<empty>}"
+"$PEER" route clear -C "$repo" >/dev/null 2>&1
+
 want_ok 'set rejects an unknown role'  2 -- "$PEER" route set nonsense=gpt -C "$repo"
 want_ok 'set rejects an unknown peer'  2 -- "$PEER" route set tester=nonsense -C "$repo"
 
@@ -242,8 +308,10 @@ want_ok 'check rejects an unknown role' 2 -- \
 want_ok 'check ignores definitions outside the roots Claude resolves' 1 -- \
   env ANTHROPIC_BASE_URL="$UP" CLAUDE_CONFIG_DIR="$tmp/no-config" PEER_AGENTS_DIR= \
   "$PEER" route check reviewer=gpt -C "$repo"
-want_ok 'check clears a declared effort variant' 0 -- \
+want_ok 'check clears a declared proxy effort variant' 0 -- \
   env ANTHROPIC_BASE_URL="$UP" "$PEER" route check "reviewer=gpt@$lvl" -C "$repo"
+want_ok 'check clears a declared native effort variant' 0 -- \
+  env -u ANTHROPIC_BASE_URL "$PEER" route check "reviewer=opus@$lvl" -C "$repo"
 want_ok 'check rejects an effort level the registry does not declare' 2 -- \
   env ANTHROPIC_BASE_URL="$UP" "$PEER" route check 'reviewer=gpt@nonsense' -C "$repo"
 
@@ -292,6 +360,7 @@ grep -q '"subagent_type": *"tester-gpt"' <<< "$out" \
   || bad 'hook finds the definition in the Claude config dir, not the work tree' "got ${out:-<empty>}"
 
 mkdir -p "$proj/.claude/agents"
+cp "$homed/.claude/agents/tester.md" "$proj/.claude/agents/"
 cp "$homed/.claude/agents/tester-gpt.md" "$proj/.claude/agents/"
 out=$(payload tester | env -u PEER_AGENTS_DIR CLAUDE_CONFIG_DIR="$tmp/nowhere" \
         ANTHROPIC_BASE_URL="$UP" "$PEER" route hook -C "$proj" 2>/dev/null)
@@ -303,6 +372,9 @@ grep -q '"subagent_type": *"tester-gpt"' <<< "$out" \
 declines 'hook no-ops when the proxy is unreachable'    "$(payload tester)"  ANTHROPIC_BASE_URL="$DOWN"
 declines 'hook no-ops when no proxy is configured'      "$(payload tester)"  -u ANTHROPIC_BASE_URL
 declines 'hook no-ops for an unrouted subagent type'    "$(payload Explore)" ANTHROPIC_BASE_URL="$UP"
+declines 'hook preserves an explicit model selection' \
+  '{"tool_name":"Task","tool_input":{"subagent_type":"tester","model":"opus"}}' \
+  ANTHROPIC_BASE_URL="$UP"
 declines 'hook no-ops on an unparseable payload'        'not json'           ANTHROPIC_BASE_URL="$UP"
 
 for shape in 'null' '[]' '"str"' '3' \
@@ -313,6 +385,9 @@ done
 
 "$PEER" route set reviewer=gpt -C "$repo" >/dev/null 2>&1
 mv "$agents/reviewer-gpt.md" "$tmp/parked.md" 2>/dev/null
+want_out 'a missing generated definition is inactive' \
+  'reviewer.*inactive: no definition' -- \
+  env ANTHROPIC_BASE_URL="$UP" "$PEER" route show -C "$repo"
 declines 'hook no-ops when the target definition is missing' "$(payload reviewer)" ANTHROPIC_BASE_URL="$UP"
 mv "$tmp/parked.md" "$agents/reviewer-gpt.md" 2>/dev/null
 "$PEER" route clear -C "$repo" >/dev/null 2>&1

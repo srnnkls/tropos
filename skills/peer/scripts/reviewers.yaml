@@ -82,3 +82,4 @@ providers:
 
 defaults:
   pi: gemini-3.7-flash
+  reviewers: [gpt, opus, gemini]

@@ -2,7 +2,7 @@
 name: scope
 description: Unified scope lifecycle. Auto-detects operation from argument or presents selection menu. Routes to create, review, update, done, or list. Creation clears a mandatory multi-agent review gate before the scope is implementable.
 argument-hint: "[operation|name] [scope-name]"
-allowed-tools: Bash(find *), Bash(git branch *), Bash(git log *), Bash(git status *), Bash(git diff *), Bash(git worktree list *)
+allowed-tools: Bash(find *), Bash(git branch *), Bash(git log *), Bash(git status *), Bash(git diff *), Bash(git worktree list *), Bash(peer *)
 metadata:
   type: domain
 ---
@@ -14,6 +14,12 @@ Active scopes:
 
 Current branch:
 !`git branch --show-current 2>/dev/null || true`
+
+Available peers:
+!`peer list 2>/dev/null || true`
+
+Default reviewers:
+!`peer defaults reviewers 2>/dev/null || true`
 
 # Scope Dispatcher
 
@@ -146,7 +152,7 @@ Before research, check for existing context from Claude's native `/plan`:
 
 ### Step 1: Research
 
-Run `gestalt map`, read key files, understand current state. Research comes FIRST — before asking questions.
+Apply the repository-orientation contract in [AGENTS.md](../../instructions/AGENTS.md#tools-and-context), read key files, and understand current state. Research comes before questions.
 
 ### Step 2: Issue Type Selection
 
@@ -303,10 +309,10 @@ Record the response in `validation.yaml`; seeds the Alternatives section of `des
 
 ### Step 3.7: Configure Scope Reviewers
 
-Configure scope reviewers from live `peer list` metadata. Resolution order:
+Configure scope reviewers from live peer metadata. Resolution order:
 
 1. `--reviewers` aliases passed to `/scope`;
-2. one interactive multi-select fallback.
+2. the live `peer defaults reviewers` selection.
 
 Validate aliases, host compatibility, execution mechanisms, and one shared effort through the canonical [peer routing contract](../peer/reference/routing.md). Persist only the resolved selection and effort in `validation.yaml.review_config`; do not copy routing metadata.
 
@@ -393,7 +399,7 @@ Present scope, ask "ready to implement or revise?"
 
 ### Step 8: Review Gate (Mandatory)
 
-No scope reaches implementation until it clears a multi-agent review gate — the scope-level analog of the `issue` skill's mandatory 2×2 gate (which blocks before publish). Here the gate blocks before implementation.
+No scope reaches implementation until it clears a multi-agent review gate — the scope-level analog of the `issue` skill's pre-publish gate. Here the gate blocks before implementation.
 
 Run the review sub-operation against the just-created scope (see [reference/review.md](reference/review.md)). The gate is **blocking**:
 
@@ -403,8 +409,7 @@ Run the review sub-operation against the just-created scope (see [reference/revi
 3. Re-run until no reviewer reports a `critical` or `high` issue.
 4. Record the result in `validation.yaml` under `review_gate` (see template) — `status: passed`, the reviewers, and the timestamp. `medium` nits may be deferred and noted.
 
-The gate requires at least one successful report from every execution class actually configured.
-Do not require an absent class, and do not pass on a missing configured class.
+Apply the [canonical review result gate](../review/reference/harnesses.md#results).
 
 The gate must be `passed` before `implement`/`loop` will execute the scope (enforced at the implementation entry — `implement/operations/execute.md` Step 2). A scope whose `review_gate.status` is absent or `failed` is not implementable.
 

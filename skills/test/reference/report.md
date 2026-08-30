@@ -16,4 +16,4 @@ tester_report:
   gap_reason: null
 ```
 
-`success` requires valid bounded RED evidence under the test skill. `gap` names the missing requirement, tool, or decision and never authorizes broader test machinery.
+`success` requires the [canonical RED gate](../SKILL.md#red). `gap` names the missing requirement, tool, or decision and never authorizes broader test machinery.

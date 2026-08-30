@@ -1,6 +1,6 @@
 ---
 name: issue
-description: GitHub issue operations — author or update issues against a canonical template, and create PRs from a branch/issue. Authoring drafts to a git-ignored `.issues/` folder, clears a host-aware four-report gate resolved through canonical routing, then publishes with issue type and parent/depends-on/blocks edges. Use for "create an issue", "open an issue", "update issue #N", "draft/sketch issue for X", "file an issue", or "pr" to open a pull request.
+description: GitHub issue operations — author or update issues against a canonical template, and create PRs from a branch/issue. Authoring drafts to a git-ignored `.issues/` folder, clears the default reviewer gate resolved through canonical routing, then publishes with issue type and parent/depends-on/blocks edges. Use for "create an issue", "open an issue", "update issue #N", "draft/sketch issue for X", "file an issue", or "pr" to open a pull request.
 argument-hint: "[number|pr] [args]"
 allowed-tools: Bash(gh issue *), Bash(gh pr *), Bash(gh api *), Bash(gh repo view *), Bash(git branch *), Bash(git push *), Bash(git rev-parse *), Bash(git log *), Bash(git merge-base *), Bash(issue *), Bash(peer *)
 metadata:
@@ -11,6 +11,9 @@ metadata:
 
 Current branch:
 !`git branch --show-current 2>/dev/null || true`
+
+Default reviewers:
+!`peer defaults reviewers 2>/dev/null || true`
 
 Next issue number (predicted; for the `.issues/` draft filename on **create**):
 !`gh api 'repos/{owner}/{repo}/issues?state=all&per_page=1' --jq '(.[0].number // 0) + 1' 2>/dev/null || echo "?"`
@@ -52,7 +55,7 @@ The gh/GraphQL plumbing is wrapped by the **`issue` command** (on PATH via `mise
 |---|---|
 | `issue next` | predicted next number (the [Pre-loaded Context](#pre-loaded-context) one-liner) |
 | `issue draft <n> <type> "<title>"` | ensure `.issues/`, print `.issues/<n>-<type>-<slug>.md` |
-| `issue review <n>\|<draft> --reviewers aliases [--effort level]` | run the externally constrained reviewers selected by canonical routing; reports land in `.peer/issue-<n>/<run>/issue-review/`. `--reviewers` has no default |
+| `issue review <n>\|<draft> [--reviewers aliases] [--effort level]` | run the default peer reviewers or an explicit peer subset under canonical routing; reports use the canonical [`peer path` interface](../peer/SKILL.md#report-layout--peer) |
 | `issue create --type T --title … --body-file F [--parent N] [--depends-on L] [--blocks L]` | publish, auto-reconcile the draft filename to the real number, apply parent/dependency edges; prints `<number>\t<url>` |
 | `issue edit <n> [--type T] [--body-file F] [--parent N] [--depends-on L] [--blocks L]` | update body/type + edges |
 | `issue verify <n>` | read-back (type, parent, blockedBy, blocking) |
@@ -63,19 +66,16 @@ The raw `gh api graphql` mutations are documented below as the reference the wra
 ## Workflow
 
 1. **Read the template structure.** Consult [`references/template.md`](references/template.md) for the section list, header ordering, and what each section must contain.
-2. **Orient in the target repo before sketching.** Before drafting implementation sketches, learn the repo's existing idioms so sketches match rather than impose a stack:
-   - `gestalt map` / `gestalt analyze` for structure, hotspots, and seams.
-   - `/loqui` for language-specific patterns and style.
-   - Read `CLAUDE.md` / `AGENTS.md` and a couple of neighbouring modules for naming, error handling, and layering conventions.
+2. Orient in the target repo before sketching. Apply the repository-orientation contract in [AGENTS.md](../../instructions/AGENTS.md#tools-and-context) and the query semantics in the [Gestalt skill](../gestalt/SKILL.md#subagent-orientation). Then use `/loqui`, `CLAUDE.md` / `AGENTS.md`, and neighbouring modules to match naming, error handling, and layering conventions.
 3. **Draft the issue body.** Use the section order in `references/template.md`. For implementation sketches, follow [`references/sketches.md`](references/sketches.md) — illustrative shapes (signatures, not bodies) written in the repo's own idioms.
 4. **Title format.** `<Module> — <short summary>` with an em-dash (—), not a hyphen. Examples: `Discovery — dependency traversal from activities to tables`, `Catalog — migration catalog with priority, stats, and export`.
 5. **Determine issue type, parent, and dependencies (depends-on / blocks) before submitting** (see [Issue metadata](#issue-metadata-type-parent-dependencies) below). If the user hasn't specified type or parent, ask via `AskUserQuestion` — don't guess. Ask about depends-on / blocks only when the body sketch hints at sequencing between issues; skip for standalone work. For updates, inspect the existing metadata first via `gh api graphql` and only change what the user asked to change.
-6. **Draft to the local `.issues/` folder** (repo-local, git-ignored — never `$TMPDIR`). `.issues/` holds drafts and nothing else; review reports live under `.peer/` (see [Review gate](#review-gate-four-reports-before-publish)). `issue draft` adds `.issues/` to `.gitignore` when absent. Name the file `<issue-number>-<type>-<slug>.md` — e.g. `745-feature-discovery-dependency-traversal.md` (`<type>` is `feature`/`task` lowercase; `<slug>` is the kebab-cased title). `issue draft <n> <type> "<title>"` prints the path and creates `.issues/`.
+6. Draft to the local `.issues/` folder (repo-local, git-ignored — never `$TMPDIR`). `.issues/` holds drafts and nothing else; review reports live under `.peer/` (see [Review gate](#review-gate-before-publish)). `issue draft` adds `.issues/` to `.gitignore` when absent. Name the file `<issue-number>-<type>-<slug>.md` — e.g. `745-feature-discovery-dependency-traversal.md` (`<type>` is `feature`/`task` lowercase; `<slug>` is the kebab-cased title). `issue draft <n> <type> "<title>"` prints the path and creates `.issues/`.
    - Create: use the next issue number from `issue next`. Draft the body into `.issues/<next>-<type>-<slug>.md`.
    - Update: the number is the issue you're editing. Preserve the live body first — `gh issue view <n> --json body -q .body > ".issues/<n>-<type>-<slug>.orig.md"` — then draft into `.issues/<n>-<type>-<slug>.md`. Surface a diff (`diff ".issues/<n>-<type>-<slug>.orig.md" ".issues/<n>-<type>-<slug>.md"`) before the gate if rewriting an existing body.
-7. **Review gate (mandatory four reports) — run before publish.** Require two host-native reviewers and two compatible cross-family reviewers explicitly constrained to external execution. Select aliases and validate both classes from live metadata through the canonical [peer routing contract](../peer/reference/routing.md); do not hardcode a host matrix. Dispatch the two native calls and one backgrounded `issue review <draft> --reviewers <external-aliases> --effort <level>` call in the same message. A host without two native reviewer calls blocks the gate.
+7. Review gate — run before publish. Use the complete `peer defaults reviewers` ensemble unless the caller supplied an explicit reviewer configuration. Dispatch its `native` and `native-proxy` entries through the host and one backgrounded `issue review <draft>` call for its `peer` entries in the same message. An unavailable required execution class blocks the gate.
 
-   Pass the full draft path. Read all four successful reports, fold admitted blocking findings into the draft, and re-run under canonical synthesis limits. Do not publish before the gate passes.
+   Pass the full draft path. Read every successful report from the selected ensemble, fold admitted blocking findings into the draft, and re-run under canonical synthesis limits. Do not publish before the gate passes.
 8. **Publish (auto-reconciles the number).** `issue create` runs `gh issue create --type`, then renames the draft — and its `.peer/issue-<predicted>/` report tree — to the real number before applying edges.
    - Create: `issue create --type "<Feature|Task>" --title "..." --body-file ".issues/<next>-<type>-<slug>.md" [--parent <n>] [--depends-on <a,b>] [--blocks <c,d>]` → prints `<number>\t<url>`.
    - Update: `issue edit <n> [--type "<Feature|Task>"] --body-file ".issues/<n>-<type>-<slug>.md" [--parent …] [--depends-on …] [--blocks …]`. No reconciliation — `<n>` is already real.
@@ -85,26 +85,17 @@ The raw `gh api graphql` mutations are documented below as the reference the wra
 
 Drafts stay in `.issues/` and review reports in `.peer/issue-<n>/`, both git-ignored. Use `issue purge [<n>]` to clear both when done.
 
-> **Prerequisites:** `issue` on PATH (`mise run install-issue`), `gh` authenticated, and for the review gate `peer` installed (`mise run install-peer`) with its harnesses authenticated. `issue draft` and `peer path` add `.issues/` and `.peer/` to `.gitignore` themselves.
+Prerequisites: `issue` on PATH (`mise run install-issue`), `gh` authenticated, and for the review gate `peer` installed (`mise run install-peer`) with its harnesses authenticated. `issue draft` manages the `.issues/` ignore entry; report-directory and Git-state behavior come from the [`peer path` interface](../peer/SKILL.md#report-layout--peer).
 
-## Review gate (four reports, before publish)
+## Review gate (before publish)
 
-No issue body reaches GitHub until four reports succeed: two host-native reviewers and two compatible cross-family reviewers with an explicit external-class constraint. The [peer routing contract](../peer/reference/routing.md) owns alias selection, compatibility, effort, and execution mechanism; this gate owns only the required class counts.
+No issue body reaches GitHub until the selected reviewer ensemble clears the canonical [result gate](../review/reference/harnesses.md#results). The [peer routing contract](../peer/reference/routing.md) owns the default ensemble, overrides, compatibility, effort, and execution mechanism.
 
-Give all four reviewers the same embedded draft, canonical template, criteria, and YAML contract. Dispatch both native calls and the backgrounded external helper in one message. Label duplicate native-model perspectives by focus while requiring each to perform the full review.
+Give every selected reviewer the same embedded draft, canonical template, criteria, exact [reviewer report schema](../review/reference/report.md#reviewer-report), and verbatim [finding bar](../review/reference/finding-bar.md). Dispatch native calls and the backgrounded external helper in one message.
 
-`issue review` accepts the two externally constrained aliases, mints the report directory through `peer path`, embeds the draft and template in `prompt.md`, and invokes peer fan-out. It has no default reviewer pair.
+`issue review` defaults to the ensemble's peer entries and accepts `--reviewers` for an explicit external subset. It mints the report directory through `peer path`, embeds the complete materialized prompt, and invokes peer fan-out.
 
-```yaml
-issue_review:
-  status: pass|fail
-  blocking_findings:
-    - concise evidence-backed finding with draft section and remediation
-  nits:
-    - concise optional improvement
-```
-
-Require `status: fail` exactly when `blocking_findings` is non-empty and `[]` for an empty list. Reject malformed output as unsuccessful. Read the two native results and exactly two `ok` peer rows under the run directory; all four must be successful and parseable. Apply canonical [review synthesis](../review/reference/synthesis.md) for triage and round limits. Fold admitted blocking findings into the draft before re-running the whole gate. Each round mints a fresh `<run>` so earlier evidence remains intact.
+Reject malformed output as unsuccessful. Apply the canonical [finding bar](../review/reference/finding-bar.md), [result gate](../review/reference/harnesses.md#results), and [review synthesis](../review/reference/synthesis.md). Fold admitted blocking findings into the draft before re-running the whole gate. Each round mints a fresh `<run>` so earlier evidence remains intact.
 
 Consult the `/peer` skill for the live registry, dispatch contract, and harness authentication requirements.
 

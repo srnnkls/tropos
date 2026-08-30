@@ -10,7 +10,7 @@ The scope's `issue_type` decides the shape of the tree:
 | Feature | 1 **Feature** issue + *n* **Task** sub-issues (one per task in `tasks.yaml`) |
 | Initiative | 1 **Initiative** issue + *n* **Feature** issues (one per phase) + *n×m* **Task** sub-issues (the tasks in each phase) |
 
-Each issue is authored, gated (the `issue` skill's mandatory 2×2 review), and published by the `issue` skill — this operation only orchestrates the tree: deriving nodes, ordering publication so parents exist before children, and wiring edges from the scope's dependency graph.
+Each issue is authored, gated through the `issue` skill's default reviewer ensemble, and published by the `issue` skill — this operation only orchestrates the tree: deriving nodes, ordering publication so parents exist before children, and wiring edges from the scope's dependency graph.
 
 ---
 
@@ -55,7 +55,7 @@ Level 3: Tasks           → Σmᵢ subagents (∥)   → capture {task id → T
 
 (Feature scope collapses to Level 1 + Level 3; Task scope to Level 1 only.)
 
-Each subagent runs the **`issue` skill** end-to-end for its single node — orient (`gestalt map`), draft the body to `.issues/` against the canonical template, clear the 2×2 review gate, and publish — with the structural metadata **predetermined** so the skill does not stop to ask:
+Each subagent receives fresh materialized repository orientation under [AGENTS.md](../../../instructions/AGENTS.md#tools-and-context), then runs the `issue` skill end-to-end for its single node: draft the body to `.issues/`, clear the default reviewer gate, and publish. Structural metadata is predetermined so the skill does not stop to ask:
 
 > Invoke the `issue` skill to author and publish one issue. Do **not** ask for issue type or parent — they are fixed:
 > - **Type:** `<Initiative|Feature|Task>`
@@ -63,7 +63,7 @@ Each subagent runs the **`issue` skill** end-to-end for its single node — orie
 > - **Do not set depends-on/blocks** — sibling numbers aren't known yet; the orchestrator wires them after.
 > - **Title:** `<Module> — <summary>` (em-dash).
 > - **Source material:** <the node's scope slice — Goal/Requirements/Acceptance for the root; task `content`/`files` for a Task; phase name + member tasks for a Feature>.
-> Run the full authoring workflow including the mandatory 2×2 gate. Return `<task-id>\t<number>\t<url>`.
+> Run the full authoring workflow including the default reviewer gate. Return `<task-id>\t<number>\t<url>`.
 
 Collect each level's returned numbers before dispatching the next — the parent map for Level *k+1* is built from Level *k*'s results. If a subagent fails its gate or dies, report which node failed and stop before wiring edges; a half-built tree with missing parents is worse than none.
 
@@ -85,7 +85,7 @@ Run `issue verify <n>` on the root (and spot-check a couple of leaves) to read b
 
 ## Notes
 
-- **Delegation, not duplication.** The `issue` skill owns body authoring, the template, the 2×2 gate, and the GraphQL plumbing. This operation owns only the tree: derivation, ordering, and edge wiring. Don't re-implement issue authoring here.
-- **`.issues/` drafts** for every node persist (git-ignored) as the audit trail — one `<number>-<type>-<slug>.md` per issue, with its review reports under `.peer/issue-<number>/`. Use `issue purge` to clear both when done.
+- Delegation, not duplication. The `issue` skill owns body authoring, the template, the reviewer gate, and the GraphQL plumbing. This operation owns only the tree: derivation, ordering, and edge wiring. Don't re-implement issue authoring here.
+- `.issues/` drafts for every node persist (git-ignored) as the audit trail — one `<number>-<type>-<slug>.md` per issue, with review reports created through the canonical [`peer path` interface](../../peer/SKILL.md#report-layout--peer). Use `issue purge` to clear both when done.
 - **Idempotency / re-runs.** If a scope was already partly published (e.g., a prior run failed at Level 3), prefer `gh issue list` to detect existing issues by title before re-creating; ask the user whether to resume or start fresh rather than producing duplicates.
 - **Prerequisites** are the `issue` skill's: `issue` on PATH (`mise run install-issue`), `gh` authenticated, `peer` installed for the gate, `.issues/` git-ignored.

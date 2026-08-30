@@ -22,6 +22,9 @@ Git status:
 Current branch:
 !`git branch --show-current 2>/dev/null || true`
 
+Current routes (recorded batch snapshots remain authoritative):
+!`peer route show -C . 2>/dev/null || true`
+
 # Autonomous Implementation Loop
 
 Focus: $ARGUMENTS

@@ -31,7 +31,7 @@ No operation is inferred from an ordinary task outside explicit skill invocation
 
 ## Implementation Context
 
-- Run `gestalt map` first.
+- Apply the repository-orientation contract in [AGENTS.md](../../instructions/AGENTS.md#tools-and-context).
 - Use named `gestalt callers`, `callees`, or `refs` only when a changed symbol's immediate relationship is unresolved.
 - Load the Loqui README once per language when language behavior, APIs, or unfamiliar style choices are material. Read only topic files needed by the change.
 - Follow direct execution unless explicit `/implement` activated the strict delegated pipeline.
@@ -54,6 +54,7 @@ Prepare once:
 - applicable requirements;
 - exact report schema;
 - verbatim [finding bar](../review/reference/finding-bar.md);
+- fresh materialized repository orientation;
 - bounded Gestalt context;
 - only material Loqui excerpts.
 

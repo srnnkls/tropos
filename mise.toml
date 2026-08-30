@@ -65,6 +65,21 @@ else
 fi
 """
 
+[tasks.test-workflow-contracts]
+description = "Validate workflow ownership and peer interfaces"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+GIT_ROOT="$(git rev-parse --show-toplevel)"
+cd "$GIT_ROOT"
+
+skills/skill/scripts/workflow-contract-test
+for test in layout preflight fanout classify route; do
+  "skills/peer/scripts/peer-${test}-test"
+done
+"""
+
 [tasks.install-peer]
 description = "Install the peer external-agent runner onto PATH (~/.local/bin)"
 run = """

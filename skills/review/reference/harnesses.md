@@ -10,7 +10,7 @@ Build one self-contained prompt per role before dispatch. Embed:
 - applicable requirements;
 - the exact canonical reviewer schema;
 - the verbatim finding bar;
-- bounded structural context;
+- fresh bounded output from the [repository-orientation contract](../../../instructions/AGENTS.md#tools-and-context) for the reviewed working tree;
 - only material language guidance.
 
 Commands and workdirs supplement the embedded artifact; they never replace it. Save the complete prompt as `prompt.md` in a directory created by `peer path`.
@@ -25,6 +25,13 @@ Implementation batch and integration review use the immutable batch routing snap
 
 Read every successful native result and every `ok` peer manifest file. Result filename and manifest row are authoritative provenance.
 
-Standalone review may synthesize available reports when at least one succeeds and must disclose partial coverage. An implementation-owned gate pauses until every execution class configured for the role has one successful report. Neither mode proceeds with zero reports.
+Result eligibility depends on the dispatch owner:
 
-For malformed output, retain the raw snippet, mark that reviewer failed, and continue only when the mode's execution-class minimum still holds. Redispatch only missing reports for the same wave.
+- An ad-hoc standalone review may synthesize available reports when at least one succeeds and must disclose missing coverage.
+- An issue-authoring gate requires one successful report from every execution class in its explicit selection or the live default reviewer ensemble.
+- A configured scope review requires one successful report from every execution class selected by `validation.yaml.review_config` after resolution against live routing.
+- An implementation-owned review requires one successful report from every execution class in the immutable batch snapshot.
+
+No mode proceeds with zero successful reports or requires a class absent from its configuration source.
+
+Malformed output is a failed report. Retain its raw snippet and deliberately redispatch the missing class for the same wave; never weaken the class minimum.

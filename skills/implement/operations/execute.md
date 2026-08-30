@@ -43,8 +43,8 @@ At the batch boundary:
 
 1. Re-read and validate `config.yaml` once.
 2. Snapshot tester, implementer, reviewer, effort, execution-class, and run-ID routing into `checkpoint.yaml`.
-3. Assign report directories with `peer path`; do not assemble `.peer` paths manually.
-4. Materialize task requirements and acceptance criteria once.
+3. Create report directories through the canonical [`peer path` interface](../../peer/SKILL.md#report-layout--peer).
+4. Materialize task requirements, acceptance criteria, and the repository orientation required by [subagent-workflow.md](../reference/subagent-workflow.md).
 
 The snapshot is immutable for the batch. Configuration edits apply to the next batch.
 
@@ -62,13 +62,10 @@ For each successful report:
 
 1. Validate the report schema, exact command, test paths, RED kind, and bounded output.
 2. Combine compatible focused commands where the native runner permits; otherwise run the reported commands as one batched tool round.
-3. Accept:
-   - an assertion failure caused by the requested missing or wrong behavior; or
-   - a native compiler/typechecker failure directly naming a requested missing API or contract.
-4. Reject setup, import, syntax, dependency, environment, unrelated compilation, and unrelated test failures.
-5. Inspect one representative falsifier: use the report's plausible wrong implementation and confirm its test would fail.
+3. Apply the [canonical RED gate](../../test/SKILL.md#red).
+4. Inspect one representative falsifier: use the report's plausible wrong implementation and confirm its test would fail.
 
-No test-review agents run. Do not audit the whole test tree. Return invalid RED only to the affected tester and only within its remaining two-attempt/ten-minute budget; otherwise record a gap.
+No test-review agents run. Return invalid evidence only to the affected tester and only within the remaining budget owned by the [test skill](../../test/SKILL.md#tester-budget); otherwise record a gap.
 
 At the RED→GREEN boundary, write one checkpoint transition that clears successful tester mutations, preserves failed/incomplete tester evidence, sets phase `green`, and records every cleared task as an in-flight implementer mutation. This write must land before any implementer dispatch.
 
@@ -90,7 +87,7 @@ Prepare shared inputs once:
 - applicable task requirements and acceptance criteria;
 - exact report schema;
 - verbatim [finding bar](../../review/reference/finding-bar.md);
-- bounded Gestalt context for changed symbols/files;
+- repository orientation from the batch snapshot plus bounded Gestalt context for changed symbols/files;
 - only the Loqui excerpts material to changed language patterns.
 
 Create General, Architecture, and Compliance prompts from the canonical code-review roles. In one assistant message, dispatch every configured native reviewer for all three roles and start each role's external peer fan-out. The route snapshot and [configuration.md](../reference/configuration.md) determine the mechanism; alias names do not.
@@ -105,7 +102,7 @@ Each role stays within its gate:
 
 For architecture, use `gestalt diff` or named-symbol queries only when the changed structure requires them. Do not require `analyze`, verbose propagation, and caller enumeration as a fixed command floor.
 
-Wait once. Require one successful report from every execution class configured for the batch, never from an absent class.
+Wait once, then apply the [canonical review result gate](../../review/reference/harnesses.md#results).
 
 ## 7. Synthesize and Fix
 

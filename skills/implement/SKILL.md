@@ -21,6 +21,12 @@ Git status:
 Current branch:
 !`git branch --show-current 2>/dev/null || true`
 
+Default reviewers:
+!`peer defaults reviewers 2>/dev/null || true`
+
+Resolved routes:
+!`peer route show -C . 2>/dev/null || true`
+
 # Strict Implementation
 
 Explicit `/implement` is the high-assurance path. Ordinary requests do not enter it automatically.
@@ -68,7 +74,7 @@ Use the same gates as one scope batch without a persisted checkpoint.
 2. Require `tester_report` with the exact focused command and bounded RED evidence.
 3. Run that command once and inspect one representative falsifier: name a plausible wrong implementation and confirm the test rejects it.
 
-Accept an assertion failure for the missing behavior or a native compiler/typechecker failure directly naming the requested missing API. Reject setup, import, syntax, dependency, environment, and unrelated build failures. Return an invalid report to the tester only when the remaining attempt/time budget permits; otherwise surface a gap.
+Apply the [canonical RED gate](../test/SKILL.md#red). Return invalid evidence to the tester only when the remaining canonical attempt/time budget permits; otherwise surface a gap.
 
 ### Phase B: GREEN
 
@@ -97,7 +103,7 @@ No serial dispatch is allowed inside a boundary unless one result changes anothe
 
 For a failed or interrupted mutating subagent, preserve partial edits and record the relevant status, diff, report directory, and failure. Do not auto-retry, roll back, or advance. `/continue` is deliberate redispatch authorization for the exact recorded wave.
 
-Reviewer failures follow the configured execution-class minimum. Missing an unconfigured class never blocks; missing every successful report from a configured class does.
+Reviewer failures apply the [canonical result-eligibility gate](../review/reference/harnesses.md#results).
 
 ## Stop Condition
 

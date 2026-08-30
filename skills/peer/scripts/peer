@@ -38,6 +38,35 @@ _peer_resolve() {
 
 # --- canonical report layout: .peer/<subject>/<run>/<stage>/ -------------------------
 PEER_LAYOUT='.peer/<subject>/<run>/<stage>/'
+PEER_GET_FIELDS='id|model|harness|alias|effort|native|provider|proxy'
+
+_peer_path_usage() {
+  printf '%s\n' "usage: peer path <subject> <stage> [--run <run>] [-C DIR]"
+  printf '%s\n' "  Creates and prints $PEER_LAYOUT beneath DIR (default: current directory)."
+  printf '%s\n' "  Omit --run to mint a run ID; reuse one run ID across stages of the same gate round."
+  printf '%s\n' "  Subject and stage accept letters, numbers, dot, underscore, and hyphen. No Git state is changed."
+}
+
+_peer_fanout_usage() {
+  printf '%s\n' "usage: peer -d OUTDIR [--peers id|alias,...] [--agent tester|implementer|reviewer] [-C DIR] [--effort L] [--idle S] [--cap S] [PROMPT | --prompt-file FILE]"
+  printf '%s\n' "  Fan out to selected external peers; omit --peers to use every external registry entry."
+  printf '%s\n' "  OUTDIR comes from 'peer path'. Relative paths resolve beneath DIR."
+  printf '%s\n' "  Supply exactly one prompt source: positional PROMPT or a readable --prompt-file."
+  printf '%s\n' "  Tester and implementer roles require one peer; reviewer may fan out."
+}
+
+_peer_harness_usage() {
+  printf '%s\n' "usage: peer <codex|pi|claude> -o OUTFILE [--agent tester|implementer|reviewer] [-C DIR] [--model M] [--effort L] [--idle S] [--cap S] [PROMPT | --prompt-file FILE]"
+  printf '%s\n' "  Compatibility form for one harness. Registry-driven callers use fan-out instead."
+  printf '%s\n' "  OUTFILE and prompt-file paths resolve beneath DIR; supply exactly one prompt source."
+}
+
+_peer_usage() {
+  _peer_fanout_usage
+  _peer_harness_usage
+  printf '%s\n' "       peer path --help | peer run-id | peer list | peer defaults reviewers [--peer-aliases]"
+  printf '%s\n' "       peer get <$PEER_GET_FIELDS> <id|alias> | peer route --help"
+}
 
 _peer_run_id() {
   printf '%s-%s\n' "$(date -u +%Y%m%dT%H%M%SZ)" \
@@ -89,14 +118,20 @@ _peer_validate_claude_effort() {
 }
 
 _peer_codex_role_config() {
-  local source="$AGENTS_DIR/$1.toml" value
-  [[ -r "$source" ]] || { printf '%s\n' "peer: Codex role definition not readable at $source" >&2; return 3; }
-  value=$(yq -p toml -o=y -r '.developer_instructions // ""' "$source") || return 3
-  [[ -n "$value" ]] || {
-    printf '%s\n' "peer: Codex role definition has no developer_instructions: $source" >&2
+  local source="$AGENTS_DIR/$1.toml" shim role
+  [[ -r "$source" ]] || source="$DEFAULT_AGENTS_DIR/$1.toml"
+  [[ -r "$source" ]] || { printf '%s\n' "peer: Codex role definition not readable for $1" >&2; return 3; }
+  shim=$(yq -p toml -o=y -r '.developer_instructions // ""' "$source") || return 3
+  role=$(_peer_markdown_role_body "$1") || return $?
+  [[ -n "$role" ]] || {
+    printf '%s\n' "peer: Markdown role definition has no body: $AGENTS_DIR/$1.md" >&2
     return 3
   }
-  printf '%s' "$value"
+  if [[ -n "$shim" ]]; then
+    printf '%s\n\n%s' "$role" "$shim"
+  else
+    printf '%s' "$role"
+  fi
 }
 
 _peer_identity() {
@@ -112,6 +147,24 @@ _peer_markdown_role_body() {
     frontmatter && $0 == "---" { frontmatter = 0; next }
     !frontmatter { print }
   ' "$source"
+}
+
+_peer_repository_orientation() {
+  local output
+  command -v gestalt >/dev/null 2>&1 || {
+    printf '%s\n' "peer: gestalt not found — repository orientation is required" >&2
+    return 3
+  }
+  output=$(gestalt map "$1" --tokens "${PEER_GESTALT_TOKENS:-512}" 2>&1) || {
+    printf '%s\n' "peer: repository orientation failed for $1" >&2
+    printf '%s\n' "$output" >&2
+    return 3
+  }
+  [[ -n "$output" ]] || {
+    printf '%s\n' "peer: repository orientation returned no context for $1" >&2
+    return 3
+  }
+  printf 'Repository orientation generated at dispatch for %s:\n%s' "$1" "$output"
 }
 
 # Codex enforces its own read-only sandbox. Pi has no per-command tool gate, and Claude's
@@ -196,6 +249,10 @@ _peer_preflight_pi() {
 }
 
 cmd="${1:-}"
+if [[ "$cmd" == --help || "$cmd" == -h || "$cmd" == help ]]; then
+  _peer_usage
+  exit 0
+fi
 
 # --- peer list -----------------------------------------------------------------------
 if [[ "$cmd" == list ]]; then
@@ -207,6 +264,43 @@ if [[ "$cmd" == list ]]; then
   exit 0
 fi
 
+if [[ "$cmd" == defaults ]]; then
+  [[ "${2:-}" == reviewers && ( -z "${3:-}" || "${3:-}" == --peer-aliases ) && -z "${4:-}" ]] || {
+    printf '%s\n' "usage: peer defaults reviewers [--peer-aliases]" >&2
+    exit 2
+  }
+  default_reviewers=$(yq -r '.defaults.reviewers[]' "$REGISTRY") || exit 3
+  [[ -n "$default_reviewers" ]] || {
+    printf '%s\n' "peer defaults: no default reviewers in $REGISTRY" >&2
+    exit 3
+  }
+  [[ "${3:-}" == --peer-aliases ]] || printf '%-11s %-12s %s\n' ALIAS EXECUTION PEER-ID
+  peer_aliases=()
+  while IFS= read -r tok; do
+    id=$(_peer_resolve "$tok") || {
+      printf '%s\n' "peer defaults: unknown reviewer '$tok' in $REGISTRY" >&2
+      exit 3
+    }
+    if [[ ${NATIVE[$id]} == yes ]]; then
+      mechanism=native
+    elif [[ ${PROXY[$id]} == yes ]]; then
+      mechanism=native-proxy
+    else
+      mechanism=peer
+      peer_aliases+=( "${ALIAS[$id]}" )
+    fi
+    [[ "${3:-}" == --peer-aliases ]] || printf '%-11s %-12s %s\n' "${ALIAS[$id]}" "$mechanism" "$id"
+  done <<< "$default_reviewers"
+  if [[ "${3:-}" == --peer-aliases ]]; then
+    (( ${#peer_aliases[@]} )) || {
+      printf '%s\n' "peer defaults: default reviewer ensemble has no peer entries" >&2
+      exit 3
+    }
+    (IFS=,; printf '%s\n' "${peer_aliases[*]}")
+  fi
+  exit 0
+fi
+
 # --- peer run-id / peer path: the only sanctioned way to name a report dir -----------
 if [[ "$cmd" == run-id ]]; then
   _peer_run_id
@@ -215,6 +309,10 @@ fi
 
 if [[ "$cmd" == path ]]; then
   shift
+  if [[ "${1:-}" == --help || "${1:-}" == -h ]]; then
+    _peer_path_usage
+    exit 0
+  fi
   run=""; workdir="$PWD"; pos=()
   while (( $# )); do
     case "$1" in
@@ -225,8 +323,7 @@ if [[ "$cmd" == path ]]; then
     esac
   done
   (( ${#pos[@]} == 2 )) || {
-    printf '%s\n' "usage: peer path <subject> <stage> [--run <run>] [-C DIR]" >&2
-    printf '%s\n' "       prints (and creates) $PEER_LAYOUT — mints <run> when omitted" >&2
+    _peer_path_usage >&2
     exit 2
   }
   subject="${pos[0]}"; stage="${pos[1]}"
@@ -285,7 +382,7 @@ if [[ "$cmd" == get ]]; then
     native)   printf '%s\n' "${NATIVE[$gid]}" ;;
     provider) printf '%s\n' "${PROVIDER[$gid]}" ;;
     proxy)    printf '%s\n' "${PROXY[$gid]}" ;;
-    *) printf '%s\n' "peer get: unknown field '$field' (id|model|harness|alias|effort|native|provider|proxy)" >&2; exit 2 ;;
+    *) printf '%s\n' "peer get: unknown field '$field' ($PEER_GET_FIELDS)" >&2; exit 2 ;;
   esac
   exit 0
 fi
@@ -293,11 +390,7 @@ fi
 # --- parallel fan-out over external agents — the DEFAULT action ----------------------
 if [[ "$cmd" != codex && "$cmd" != pi && "$cmd" != claude ]]; then
   if [[ -z "$cmd" ]]; then
-    printf '%s\n' "usage: peer -d OUTDIR [--peers id|alias,...] [--agent tester|implementer|reviewer] [-C DIR] [...] [PROMPT | --prompt-file FILE]" >&2
-    printf '%s\n' "       peer <codex|pi|claude> -o OUTFILE [--agent tester|implementer|reviewer] [-C DIR] [...] [PROMPT | --prompt-file FILE]" >&2
-    printf '%s\n' "       peer path <subject> <stage> [--run <run>] [-C DIR]   (mint the canonical report dir)" >&2
-    printf '%s\n' "       peer run-id | peer list | peer get <id|model|harness|alias|effort|native> <id|alias>" >&2
-    printf '%s\n' "       peer route <hook|sync|show|check ROLE=PEER|set ROLE=PEER|clear> [-C DIR]   (native subagent routing)" >&2
+    _peer_usage
     exit 0
   fi
   [[ "$cmd" == run ]] && shift
@@ -319,7 +412,7 @@ if [[ "$cmd" != codex && "$cmd" != pi && "$cmd" != claude ]]; then
   done
   prompt="$*"
   [[ -n "$outdir" ]] || {
-    printf '%s\n' "usage: peer -d OUTDIR [--peers id|alias,...] [--agent tester|implementer|reviewer] [-C DIR] [--effort L] [--idle S] [--cap S] [PROMPT | --prompt-file FILE]" >&2
+    _peer_fanout_usage >&2
     exit 2
   }
   if { [[ -n "$prompt" ]] && [[ -n "$prompt_file" ]]; } || { [[ -z "$prompt" ]] && [[ -z "$prompt_file" ]]; }; then
@@ -422,8 +515,7 @@ while (( $# )); do
 done
 prompt="$*"
 [[ -n "$harness" && -n "$outfile" ]] || {
-  printf '%s\n' "usage: peer <codex|pi|claude> -o OUTFILE [--agent tester|implementer|reviewer] [-C DIR] [--model M] [--effort L] [--idle S] [--cap S] [PROMPT | --prompt-file FILE]" >&2
-  printf '%s\n' "       peer -d OUTDIR [--peers ...] [PROMPT | --prompt-file FILE]   (parallel fan-out — the default)" >&2
+  _peer_usage >&2
   exit 2
 }
 if { [[ -n "$prompt" ]] && [[ -n "$prompt_file" ]]; } || { [[ -z "$prompt" ]] && [[ -z "$prompt_file" ]]; }; then
@@ -447,7 +539,9 @@ _peer_validate "$effort" "$idle" "$cap" || exit 2
 case "$outfile" in /*) ;; *) outfile="$workdir/$outfile" ;; esac
 _peer_check_layout "${outfile%/*}" || exit 2
 if [[ -z "$AGENTS_DIR" ]]; then
-  [[ -d "$workdir/agents" ]] && AGENTS_DIR="$workdir/agents" || AGENTS_DIR="$DEFAULT_AGENTS_DIR"
+  [[ -n "$agent" && -r "$workdir/agents/$agent.md" ]] \
+    && AGENTS_DIR="$workdir/agents" \
+    || AGENTS_DIR="$DEFAULT_AGENTS_DIR"
 fi
 
 execution_role="${agent:-reviewer}"
@@ -497,10 +591,21 @@ if [[ -n "$agent" ]]; then
     [[ -n "$claude_role_body" ]] || { printf '%s\n' "peer: Claude role definition has no body: $AGENTS_DIR/$agent.md" >&2; exit 3; }
   fi
 fi
+repository_orientation=$(_peer_repository_orientation "$workdir") || exit $?
+case "$harness" in
+  codex) _body=codex_role_config ;;
+  pi)    _body=pi_role_body ;;
+  *)     _body=claude_role_body ;;
+esac
+if [[ -n "${!_body}" ]]; then
+  printf -v "$_body" '%s\n\n%s' "${!_body}" "$repository_orientation"
+else
+  printf -v "$_body" '%s' "$repository_orientation"
+fi
 if [[ "$execution_role" == reviewer ]]; then
   read_only_boundary="This is a read-only review assignment. You have a shell, and the work tree is enforced read-only underneath it: every write, edit, move, or stage attempt fails with 'Operation not permitted'. Use the shell to reach the artifact - diffs, logs, blame, test runs that write nothing. Commands that refresh git's index, git status among them, can fail on a read-only work tree; pass --no-optional-locks or establish the same fact another way.
 If the artifact stays out of reach - a remote you cannot fetch, a revision that is not here - report the review blocked, name what is missing, and emit no gates, findings, or strengths. Reconstructing the change from commit messages, file names, or surrounding prose and reporting it as reviewed is a fabricated report."
-  for _b in pi_role_body claude_role_body; do
+  for _b in codex_role_config pi_role_body claude_role_body; do
     [[ -n "${!_b}" ]] && printf -v "$_b" '%s\n\n%s' "${!_b}" "$read_only_boundary" \
                       || printf -v "$_b" '%s' "$read_only_boundary"
   done

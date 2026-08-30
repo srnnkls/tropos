@@ -37,10 +37,18 @@ Ordinary work executes directly. Strict delegated RED → GREEN → review and T
 
 For configuration, documentation, maintenance, and platform-validated artifacts, use the native parser, linter, command, or runtime instead of inventing test machinery.
 
-Every procedure, policy list, schema, routing matrix, gate, and failure-mode catalog has one canonical Tropos skill or resource. Before changing workflow policy, read `~/.claude/skills/skill/best-practices.md#single-source-of-truth`; if unavailable, do not reconstruct it.
+## Single source of truth
+
+Give every procedure, policy list, schema, routing matrix, gate, and failure-mode catalog one canonical Tropos skill or resource.
+
+- Consumers link to or load the canonical source; they do not copy, paraphrase, or maintain another version.
+- Role files and prompts contain only activation, mutation boundaries, canonical-resource pointers, and output contracts.
+- If a required canonical resource is unavailable, report a gap instead of reconstructing it.
+- Generated artifacts may repeat canonical content only when a marked generator owns them. Edit the source and regenerate.
+- Centralize an existing duplicate before changing its behavior.
 
 ## Economy and style
 
 Prefer existing code, standard or platform facilities, installed dependencies, and the smallest shared-root diff. Add no abstraction, dependency, or adjacent cleanup without a concrete requirement.
 
-Keep comments sparse; prefer names and tests. Fix lint causes instead of adding suppressions. In markup, reserve emphasis for terminology or genuine contrast, never formatting labels.
+Keep comments sparse; prefer names and tests. Fix lint causes instead of adding suppressions. In markup, never use bold for emphasis. Use italics sparingly for terminology or genuine contrast, never as formatting labels.

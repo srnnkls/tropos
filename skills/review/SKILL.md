@@ -2,7 +2,7 @@
 name: review
 description: Unified review dispatcher for code, PR, scope, structural, and bounded test-quality review.
 argument-hint: "[target]"
-allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(find *), Bash(gh pr list *)
+allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(find *), Bash(gh pr list *), Bash(peer *)
 metadata:
   type: generic
 ---
@@ -23,6 +23,15 @@ Active scopes:
 
 Open PRs:
 !`gh pr list --limit 5 --json number,title,headRefName --jq '.[] | "#\(.number) \(.title) (\(.headRefName))"' 2>/dev/null || true`
+
+Available peers:
+!`peer list 2>/dev/null || true`
+
+Default reviewers:
+!`peer defaults reviewers 2>/dev/null || true`
+
+Resolved routes:
+!`peer route show -C . 2>/dev/null || true`
 
 # Review Dispatcher
 
@@ -57,9 +66,9 @@ Resolve in order:
 
 1. `--reviewers` aliases;
 2. `validation.yaml.review_config` for standalone scope review;
-3. one interactive multi-select from live `peer list`.
+3. the live `peer defaults reviewers` selection.
 
-Validate the selection and resolve every execution mechanism through the canonical [peer routing contract](../peer/reference/routing.md). Never infer behavior from aliases or silently convert a route.
+Resolve and validate the selection under the canonical [peer routing contract](../peer/reference/routing.md).
 
 Standalone scope selection persists to `validation.yaml.review_config`. Implementation-owned review ignores that file and uses its immutable batch routing snapshot.
 
@@ -69,11 +78,11 @@ Materialize reviewed content, requirements, exact schema, and the verbatim findi
 
 For multi-role review, launch every selected role and reviewer in one assistant message using the mechanisms resolved by peer routing.
 
-A standalone review may synthesize successful reports while disclosing missing reviewers, but never passes with zero. An implementation-owned gate requires one success from every execution class present in its batch snapshot.
+Apply the [canonical review result gate](reference/harnesses.md#results).
 
 ## Report Paths
 
-Use `peer path`; never assemble `.peer` directories manually.
+Create directories through the canonical [`peer path` interface](../peer/SKILL.md#report-layout--peer).
 
 | Route | Subject | Stage |
 |---|---|---|

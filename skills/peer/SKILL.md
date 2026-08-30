@@ -1,161 +1,68 @@
 ---
 name: peer
 description: |
-  Agent-routing utility (`peer` bash tool): role-aware external tester, implementer, and reviewer dispatch plus orchestrator-native route discovery through a canonical model registry, working-directory control, idle-stall watchdog, and reviewer fan-out. Use from implement, review, continue, or loop pipelines — call `peer` or its positional harness form instead of `codex exec` or `pi` directly.
+  Agent-routing utility (`peer` bash tool): role-aware external dispatch plus Claude Code native/proxy route discovery through a canonical model registry, working-directory control, idle-stall watchdog, and reviewer fan-out. Use from implement, review, continue, or loop pipelines — call `peer` or its positional harness form instead of `codex exec` or `pi` directly.
 metadata:
   type: generic
 ---
 
+## Pre-loaded Context
+
+Available peers:
+!`peer list 2>/dev/null || true`
+
+Default reviewers:
+!`peer defaults reviewers 2>/dev/null || true`
+
+Resolved routes:
+!`peer route show -C . 2>/dev/null || true`
+
 # peer
 
-`peer` ships at `skills/peer/scripts/peer`. It is the sanctioned way for skills to invoke
-external agents; never call `codex exec` or `pi` directly.
+`peer` ships at `skills/peer/scripts/peer`.
 
-**Install:** `mise run install-peer` symlinks the runner to `~/.local/bin/peer`, links missing base roles into `$CLAUDE_CONFIG_DIR/agents` (default `~/.claude/agents`), and materializes ignored routed definitions there. It refuses conflicting base-role files; re-run after pulls or role/registry changes.
+Install: `mise run install-peer` links the runner, base roles, and current generated routes. Re-run it after role or registry changes.
 
-## Harnesses and roles
+## Harness and role loading
 
-- **codex** — OpenAI Codex CLI. For `--agent <role>`, `peer` reads
-  `agents/<role>.toml` from the target working tree and supplies its
-  `developer_instructions` as Codex configuration.
-- **pi** — Pi CLI with a provider selected by the registry. For `--agent <role>`, `peer`
-  strips the frontmatter from the target working tree's `agents/<role>.md` and appends
-  the remaining body to Pi's system prompt.
-- **claude** — Claude Code CLI in noninteractive print mode for external role execution. The
-  explicit external aliases are `opus-peer` and `sonnet-peer`; the unqualified `opus` and
-  `sonnet` aliases remain orchestrator-native. Claude CLI runs with no session
-  persistence, `dontAsk`, an exact allowed-tool set, and the stripped matching
-  `agents/<role>.md` body. Reviewer and legacy calls expose only `Read,Grep,Glob`;
-  tester/implementer calls expose and authorize `Read,Grep,Glob,Bash,Edit,Write`.
-- **Retired names** — a registry entry may carry `was: [...]` listing ids and aliases it used
-  to answer to. `peer` still resolves them and warns on stderr which current id it picked, so
-  an unmigrated caller keeps working. `peer list` shows only current names.
-- **Role source fallback** — Codex, Pi, and Claude first load the matching role definition
-  from the target working tree. If it has no `agents/` directory, they use the definitions
-  beside the installed peer source.
-- **Orchestrator-native routes** — registry entries with `native: true` are discoverable through `peer list/get` but never spawned by `peer`; fan-out skips them with a native-spawn notice. The [routing contract](reference/routing.md) owns host-native dispatch.
+`peer list` and `peer get` render the current harness, provider, model, alias, effort, native status, and proxy capability from the registry. `peer defaults reviewers` renders the default reviewer ensemble and each execution mechanism. The [routing contract](reference/routing.md) owns their interpretation.
 
-Supported roles are `tester`, `implementer`, and `reviewer`:
+For role dispatch, Codex, Pi, and Claude receive the same Markdown base-role body plus any harness-specific shim. `peer` resolves that body from the target working tree first and the installed source second. It also materializes fresh repository orientation before the harness starts; orientation failure blocks dispatch.
 
-- `tester` and `implementer` are workspace-write roles, require exactly one external
-  peer, and are never retried automatically after a stall or failure.
-- `reviewer` is read-only, supports external fan-out, and retries once after a stall or
-  empty result. Codex enforces read-only itself with `-s read-only`. Pi and Claude get the
-  same shell behind a `sandbox-exec` profile that denies every write to the work tree —
-  reads go everywhere, writes land only in temp and harness state dirs — so a reviewer can
-  run `git show`, `git log -S`, blame, and a test binary that writes nothing.
-- Pi's tool allowlist has no per-command form and Claude's `--allowedTools` patterns do not
-  gate `Bash` in print mode, so the sandbox is the whole boundary. `peer` refuses a Pi or
-  Claude reviewer when `sandbox-exec` is missing rather than hand out an ungated shell.
-- A reviewer that still cannot reach the artifact — an unfetchable remote, a revision that
-  is not local — is instructed to report the review blocked and name what is missing.
-  Without that instruction a peer reconstructs the change from commit messages and file
-  names and reports green gates over a diff it never saw.
-- Omitting `--agent` preserves legacy prompt-only review behavior: read-only with one
-  retry and no role file injected.
+Runtime checks enforce the interface:
 
-All harnesses have an idle watchdog because their streaming clients can stall without
-self-aborting. The default hard cap is 600 seconds. Idle time auto-scales with prompt
-length from a 120-second Codex base or 180-second Pi base; explicit `--idle` overrides it.
-A Claude CLI run includes partial message events so active long generations continue to
-refresh the watchdog; only its final result event is written as the report.
-A report is accepted only after a zero harness exit without an idle kill or hard-cap
-termination; partial output from failed or terminated runs is never successful.
-Each harness runs in its own process session. Completion, failure, idle timeout, and hard
-cap cleanup terminate the whole harness process group, including surviving children.
+- tester and implementer calls select exactly one external peer and keep workspace write access;
+- reviewer calls may fan out, run read-only, and require the platform sandbox when the harness cannot enforce read-only itself;
+- failed, stalled, or partial harness output never becomes a successful report.
+
+Omitting `--agent` preserves legacy prompt-only review behavior.
+
+Every harness runs under an idle watchdog and hard cap. The defaults adapt to prompt size; `--idle` and `--cap` override them. Completion and failure terminate the whole harness process group, including surviving children.
 
 ## Registry and routing
 
 The live registry and all host/native/external routing semantics are owned by [reference/routing.md](reference/routing.md). Load it when selecting, validating, or dispatching a route.
 
-Quick commands:
-
-```bash
-peer list
-peer get <field> <id|alias>
-peer route sync
-peer route show [-C DIR]
-peer route check <role>=<alias>[@<effort>] [...]
-peer route set <role>=<alias> [-C DIR]
-peer route clear [-C DIR]
-```
+Run `peer --help` and `peer route --help` for the current command surface. Query facts with `peer list`, `peer get`, and `peer defaults reviewers`; inspect resolved status with `peer route show`; validate direct generated-role dispatch with `peer route check`.
 
 Generated definitions are ignored local artifacts. Edit base roles or registry data, then run `peer route sync`; never edit generated files.
 
 ## Report layout — `.peer/`
 
-`.peer/` holds every artifact a peer dispatch produces, for every caller. This section is its
-only specification; skills reference it rather than restating a shape.
-
-```
-.peer/<subject>/<run>/<stage>/
-```
-
-Exactly three segments below `.peer/` — never two, never four. A dispatch that needs to
-distinguish itself from a sibling extends the `<stage>` name with a `-`; it does not open a
-new directory level.
-
-| Segment | Is | Examples |
-|---|---|---|
-| `<subject>` | what the work is about | `auth-system` (scope), `issue-745`, `pr-312`, `working`, `direct` |
-| `<run>` | one dispatch session, minted once per gate round | `20260820T101112Z-a1b2c3` |
-| `<stage>` | the specific dispatch within that run | `b3-tester-T003`, `b3-review-general`, `integration-review`, `issue-review`, `review` |
-
-Each leaf directory holds the materialized `prompt.md` and one `{peer-id}.yaml` per external
-peer. Native reports are written alongside them by the orchestrator, so a run's evidence is
-complete in one place.
-
-Never assemble these paths by hand. `peer path` is the sanctioned constructor: it validates
-every segment and creates the directory. It touches nothing else — ignoring `.peer/` is the
-repository's own business, and no peer command writes to `.gitignore`, the exclude file, or
-any other git state.
+`peer path` is the constructor and validator for report directories. Run `peer path --help` for the current shape and arguments.
 
 ```bash
-run=$(peer run-id)                                   # 20260820T101112Z-a1b2c3
+run=$(peer run-id)
 dir=$(peer path auth-system b3-tester-T003 --run "$run")
-# ... write $dir/prompt.md ...
-peer -C "$workdir" -d "$dir" --agent tester --peers glm --prompt-file "$dir/prompt.md"
 ```
 
-Omit `--run` and `peer path` mints one; pass the same `--run` to group every stage of a round
-under a single session. `-C {dir}` roots the `.peer/` tree somewhere other than the current
-directory.
+Pass the same run ID to group every stage of one gate round. Each returned directory holds the materialized `prompt.md`, external `{peer-id}.yaml` reports, and normalized native reports.
 
-`peer` rejects a non-conforming `-d` or `-o` path under any `.peer/` root with exit `2`, before
-it creates anything or dispatches. A path outside `.peer/` is outside this convention and is
-not checked. `peer-layout-test` covers the constructor and the rejections.
+The command validates every segment, creates only the report directory, and never writes Git state. Dispatch rejects a nonconforming path under any `.peer/` root before creating files or starting a harness. `peer-layout-test` covers construction and rejection.
 
 ## Fan-out interface
 
-```bash
-peer -C {workdir} -d {outdir} --agent reviewer \
-  --peers {ids-or-aliases} --effort {reasoning} "{task_prompt}"
-
-peer -C {workdir} -d {outdir} --agent tester \
-  --peers {one-id-or-alias} --effort {reasoning} "{task_prompt}"
-
-peer -C {workdir} -d {outdir} --agent reviewer \
-  --peers {ids-or-aliases} --prompt-file {outdir}/prompt.md
-```
-
-Fan-out is the default action; `peer run ...` remains an alias.
-
-- `-C` / `--cd` sets the agent working root (default: the caller's current directory).
-- `-d` / `--out-dir` is required and receives one `{peer-id}.yaml` result per peer. Relative
-  output directories are resolved beneath the working root. Get it from `peer path` — see
-  [Report layout](#report-layout--peer).
-- `--agent` selects and injects a role contract. Omit only for legacy prompt-only review.
-- Supply exactly one prompt source: a positional prompt or `--prompt-file {file}`. Relative
-  prompt-file paths resolve beneath the working root and must name a readable, non-empty
-  regular file. The file form avoids command-line size limits end-to-end: fan-out forwards
-  only its path, Codex and Claude CLI read it from stdin, and Pi uses its native `@file`
-  input.
-- `--peers` is a comma-separated list of IDs or aliases. Omit it to select every
-  external registry entry. `--reviewers` remains an exact compatibility alias.
-- `--effort` accepts `minimal|low|medium|high|xhigh|max|ultra`; omitted values come from
-  the registry. Claude CLI supports only `low|medium|high|xhigh|max`; Pi on providers
-  without configurable thinking ignores the value.
-- `--idle {seconds}` and `--cap {seconds}` override watchdog timing.
+Fan-out is the default action; `peer run` remains an alias. Run `peer --help` for the current flags, prompt forms, and path arguments. Construct `OUTDIR` with `peer path`.
 
 Stdout is a TSV manifest, one row per external peer:
 
@@ -204,23 +111,7 @@ these properties.
 
 ## Single-harness compatibility interface
 
-```bash
-peer codex -C {workdir} --agent implementer --effort high -o {outfile} "{task_prompt}"
-peer pi -C {workdir} --agent reviewer -o {outfile} "{task_prompt}"
-peer claude -C {workdir} --agent reviewer --model opus --effort high \
-  -o {outfile} --prompt-file {prompt_file}
-peer claude -C {workdir} --agent tester --model sonnet --effort high \
-  -o {outfile} "{task_prompt}"
-```
-
-The positional `peer codex|pi|claude` forms remain available for single-agent and legacy
-callers. Registry-driven callers should not pass a model directly, though `--model`, `--provider`,
-and `--peer-id` remain supported for fan-out internals and compatibility. Exit status
-follows the failure-classification table above: `0` for a non-empty result, `2` for usage
-and misconfiguration, `3` for auth, `4` for a rate or quota limit, and `124` after the
-role's allowed attempts produce no clean result. Only `stalled` and `error` are retried;
-a misconfigured, unauthenticated, or rate-limited harness fails immediately. Relative `-o`
-paths are resolved beneath the working root.
+Run `peer --help` for the positional Codex, Pi, and Claude forms. They remain compatibility interfaces; registry-driven callers use the fan-out interface and [routing contract](reference/routing.md). Exit status follows the failure-classification table.
 
 ## Dispatch contract for skills
 

@@ -4,7 +4,7 @@ Guidance for the code that appears in `# Implementation plan`. Sketches are illu
 
 ## The one rule: match the repo
 
-A sketch must read as if someone fluent in this codebase wrote it. Before sketching, learn the repo's idioms (`gestalt map`/`analyze`, `/loqui`, `CLAUDE.md`/`AGENTS.md`, a couple of neighbouring modules) and mirror them — naming grammar, error handling, how modules expose their public surface, how dependencies are wired. Do not import a pattern the codebase doesn't already use.
+A sketch must read as if someone fluent in this codebase wrote it. Apply the [repository-orientation contract](../../../instructions/AGENTS.md#tools-and-context), then use `/loqui`, `CLAUDE.md` / `AGENTS.md`, and neighbouring modules to learn and mirror naming grammar, error handling, public surfaces, and dependency wiring. Do not import a pattern the codebase does not use.
 
 ## What a sketch shows
 

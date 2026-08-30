@@ -31,6 +31,49 @@ want_out() {  # NAME PATTERN -- CMD...
 mkdir -p "$tmp/repo" && git -C "$tmp/repo" init -q 2>/dev/null
 pristine_exclude=$(cat "$tmp/repo/.git/info/exclude" 2>/dev/null)   # git seeds a template here
 
+# Successful dispatches use only local fixtures, including the mandatory repository map.
+mkdir -p "$tmp/bin" "$tmp/repo/agents" "$tmp/repo/prompts"
+cat >"$tmp/registry.yaml" <<'REG'
+reviewers:
+  - id: model-known
+    harness: pi
+    provider: stubprov
+    model: good-model
+    alias: model-known
+    effort: high
+    native: false
+defaults:
+  pi: model-known
+REG
+cat >"$tmp/repo/agents/tester.md" <<'ROLE'
+---
+name: tester
+---
+Return the requested fixture report.
+ROLE
+printf '%s\n' 'fixture prompt' >"$tmp/repo/prompts/request.txt"
+cat >"$tmp/bin/gestalt" <<'STUB'
+#!/usr/bin/env bash
+printf '%s\n' 'fixture repository map'
+STUB
+cat >"$tmp/bin/pi" <<'STUB'
+#!/usr/bin/env bash
+for arg in "$@"; do
+  [[ "$arg" == --list-models ]] || continue
+  printf '%s\n' 'provider  model  context  max-out  thinking  images' \
+    'stubprov  good-model  1.0M  65.5K  yes  yes'
+  exit 0
+done
+if [[ -n "${PI_DUMP:-}" ]]; then
+  printf '%s\n' "$@" >"$PI_DUMP"
+  pwd -P >"$PI_DUMP.cwd"
+fi
+printf '%s\n' '{"type":"message_end","message":{"role":"assistant","stopReason":"stop","content":[{"type":"text","text":"OK"}]}}'
+STUB
+chmod +x "$tmp/bin/gestalt" "$tmp/bin/pi"
+
+dispatch_env=( env PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" )
+
 # --- run-id -------------------------------------------------------------------------
 want_out 'run-id is an epoch stamp plus a short random suffix' \
   '^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}$' -- "$PEER" run-id
@@ -42,6 +85,13 @@ a=$("$PEER" run-id); b=$("$PEER" run-id)
 want_out 'path prints the canonical three-segment report dir' \
   "^$tmp/repo/\.peer/issue-745/[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}/issue-review$" \
   -- "$PEER" path issue-745 issue-review -C "$tmp/repo"
+
+fixed_run=20260820T101112Z-a1b2c3
+ln -s "$tmp/repo" "$tmp/repo-link"
+d=$(cd "$tmp" && "$PEER" path canonical-root path-output --run "$fixed_run" -C repo-link)
+[[ "$d" == "$tmp/repo/.peer/canonical-root/$fixed_run/path-output" ]] \
+  && ok 'path -C prints a canonical absolute path' \
+  || bad 'path -C prints a canonical absolute path' "got $d"
 
 run=$("$PEER" run-id)
 d=$("$PEER" path auth-system "$run" --stage b3-tester-T003 -C "$tmp/repo" 2>/dev/null)
@@ -118,6 +168,56 @@ grep -q 'outside .peer/' <(
   "$PEER" -C "$tmp/repo" -d ".peer/subj/$run/stage" --peers nope 'ping' 2>&1
 ) && bad 'a conforming .peer outdir is not flagged' 'notice emitted anyway' \
   || ok 'a conforming .peer outdir is not flagged'
+
+# --- path output and -C-relative dispatch paths --------------------------------------
+fanout_dir=$("$PEER" path path-consumer fan-out --run "$fixed_run" -C "$tmp/repo")
+want_ok 'fan-out accepts the absolute output of peer path' 0 -- \
+  "${dispatch_env[@]}" PI_DUMP="$tmp/fanout-absolute.argv" \
+  "$PEER" -C "$tmp/repo" -d "$fanout_dir" --peers model-known \
+  --agent tester --cap 30 'ping'
+[[ -s "$fanout_dir/model-known.yaml" ]] \
+  && ok 'fan-out writes beneath the peer path output' \
+  || bad 'fan-out writes beneath the peer path output' "missing $fanout_dir/model-known.yaml"
+
+single_dir=$("$PEER" path path-consumer single-harness --run "$fixed_run" -C "$tmp/repo")
+want_ok 'single-harness accepts an outfile beneath peer path output' 0 -- \
+  "${dispatch_env[@]}" PI_DUMP="$tmp/single-absolute.argv" \
+  "$PEER" pi -C "$tmp/repo" -o "$single_dir/report.yaml" --agent tester \
+  --provider stubprov --model good-model --cap 30 'ping'
+[[ -s "$single_dir/report.yaml" ]] \
+  && ok 'single-harness writes beneath the peer path output' \
+  || bad 'single-harness writes beneath the peer path output' "missing $single_dir/report.yaml"
+
+relative_fanout=".peer/relative-paths/$fixed_run/fan-out"
+want_ok 'fan-out resolves relative -d and --prompt-file beneath -C' 0 -- \
+  "${dispatch_env[@]}" PI_DUMP="$tmp/fanout-relative.argv" \
+  "$PEER" -C "$tmp/repo" -d "$relative_fanout" --peers model-known \
+  --agent tester --cap 30 --prompt-file prompts/request.txt
+[[ -s "$tmp/repo/$relative_fanout/model-known.yaml" ]] \
+  && ok 'relative -d writes beneath -C' \
+  || bad 'relative -d writes beneath -C' "missing $tmp/repo/$relative_fanout/model-known.yaml"
+grep -qxF "@$tmp/repo/prompts/request.txt" "$tmp/fanout-relative.argv" \
+  && ok 'fan-out resolves relative --prompt-file beneath -C' \
+  || bad 'fan-out resolves relative --prompt-file beneath -C' 'harness did not receive the canonical prompt path'
+[[ "$(cat "$tmp/fanout-relative.argv.cwd" 2>/dev/null)" == "$tmp/repo" ]] \
+  && ok 'fan-out harness runs beneath -C' \
+  || bad 'fan-out harness runs beneath -C' 'harness used another workdir'
+
+relative_single_dir=$("$PEER" path relative-paths single-harness --run "$fixed_run" -C "$tmp/repo")
+relative_out="${relative_single_dir#"$tmp/repo/"}/report.yaml"
+want_ok 'single-harness resolves relative -o and --prompt-file beneath -C' 0 -- \
+  "${dispatch_env[@]}" PI_DUMP="$tmp/single-relative.argv" \
+  "$PEER" pi -C "$tmp/repo" -o "$relative_out" --agent tester \
+  --provider stubprov --model good-model --cap 30 --prompt-file prompts/request.txt
+[[ -s "$tmp/repo/$relative_out" ]] \
+  && ok 'relative -o writes beneath -C' \
+  || bad 'relative -o writes beneath -C' "missing $tmp/repo/$relative_out"
+grep -qxF "@$tmp/repo/prompts/request.txt" "$tmp/single-relative.argv" \
+  && ok 'single-harness resolves relative --prompt-file beneath -C' \
+  || bad 'single-harness resolves relative --prompt-file beneath -C' 'harness did not receive the canonical prompt path'
+[[ "$(cat "$tmp/single-relative.argv.cwd" 2>/dev/null)" == "$tmp/repo" ]] \
+  && ok 'single-harness runs beneath -C' \
+  || bad 'single-harness runs beneath -C' 'harness used another workdir'
 
 printf '\n%s\n' "$( ((fails)) && echo "$fails failing" || echo 'all passing')"
 exit $(( fails > 0 ))

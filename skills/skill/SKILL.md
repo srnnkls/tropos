@@ -84,7 +84,7 @@ mkdir -p .claude/skills/{skill-name}
 - Keep under 200 lines (500 max)
 - Progressive disclosure: SKILL.md → reference/
 - Include concrete examples, no emojis
-- Reference authoritative docs (don't duplicate)
+- Apply the [single-source-of-truth contract](../../instructions/AGENTS.md#single-source-of-truth)
 
 **Test with real tasks:**
 1. Does the description trigger correctly?

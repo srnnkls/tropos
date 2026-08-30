@@ -33,29 +33,17 @@ An execution finding without both `trigger` and `wrong_outcome` is schema-invali
 
 Anything rejected by the canonical [finding bar](finding-bar.md) becomes `residual` with the matching reason and evidence; it never opens a fix round.
 
-`found_by` count is agreement, not validity — reviewers sharing a wrong assumption about the
-requirements agree loudly. A single verified issue outranks three unverified concurring ones.
-
-Report volume tracks reasoning effort, not defect density. Aim to converge in one fix round; two rounds per subject is the hard ceiling below. Round count is a cost, not a quality signal.
+`found_by` count is agreement, not validity. A single verified issue outranks unverified agreement.
 
 ### 4.6 Convergence
 
-Two fix rounds per subject. A third round opens only for a verified failure mode in a component
-no prior round examined — never for a narrower variant of something already fixed. At that point,
-stop and hand the user the surviving `residual` list with a recommendation, rather than dispatching
-again.
+Two fix rounds per subject. A third round opens only for a verified failure mode in a component no prior round examined. Then stop and hand the user the surviving `residual` list with a recommendation instead of dispatching again.
 
-Batch by mechanism, not by assertion. When two or more issues touch the same state machine —
-publication, sealing, invalidation, recovery, verification, any ordered protocol over persisted or
-shared state — do not open a fix round on the first one. Enumerate that machine's states and
-transitions, sweep it once, and fix the whole set together. Rediscovering an adjacent state three
-rounds later is a synthesis failure, not a reviewer win.
+Open fix rounds for the mechanism groups admitted under the [finding bar](finding-bar.md). Rediscovering an adjacent state three rounds later is a synthesis failure, not a reviewer win.
 
-An issue whose `suggestion` carries `needs decision:` does not enter a fix round. Surface it to the
-user with the constraint that forces it; a fix agent must never invent public API surface to close
-a finding.
+Route an admitted `needs decision:` finding to the user with its forcing constraint; it never enters a fix round.
 
-Apply the [finding bar](finding-bar.md) at gate aggregation; it owns sufficiency and deferred-hardening boundaries.
+Apply the finding bar during triage and gate aggregation; it owns grouping, fix sizing, sufficiency, deferred-hardening boundaries, and volume judgment.
 
 ### 5. Aggregate Gates
 
@@ -66,8 +54,7 @@ Apply the [finding bar](finding-bar.md) at gate aggregation; it owns sufficiency
 - Gate fails if ANY harness within the owning role fails it on an issue that cleared triage;
   record which harness(es) failed. A reported failure whose issues all landed in `residual`
   does not fail the gate — record it in `residual` with the reason instead
-- For implementation-owned gates, synthesis is eligible only after each execution class actually
-  configured for the role has at least one successful report
+- Aggregate only reports admitted by the [canonical result gate](harnesses.md#results)
 
 ### 6. Aggregate Severity
 

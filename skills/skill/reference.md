@@ -217,10 +217,11 @@ skill-name/
 
 ## Anti-Patterns
 
+Apply the [single-source-of-truth contract](../../instructions/AGENTS.md#single-source-of-truth).
+
 **Don't:**
 - Put trigger strings in description (use skill-rules.json)
 - Exceed 500 lines in SKILL.md
-- Duplicate comprehensive framework docs
 - Use emojis (use text markers)
 - Use Windows-style paths (`\` instead of `/`)
 - Create deeply nested references
@@ -230,7 +231,6 @@ skill-name/
 **Do:**
 - Keep SKILL.md focused and concise
 - Extract templates to separate files
-- Reference authoritative docs
 - Use progressive disclosure
 - Provide concrete examples
 - Define clear success criteria

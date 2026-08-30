@@ -4,14 +4,20 @@ Canonical interpretation of the live peer registry and native/external dispatch.
 
 ## Registry
 
-`skills/peer/scripts/reviewers.yaml` is the sole source of peer identity, harness, provider, model, alias, default effort, native status, and proxy availability. Read it through `peer list` and `peer get`; never infer behavior from an alias or hardcode model strings.
+`skills/peer/scripts/reviewers.yaml` is the sole source of peer identity, harness, provider, model, alias, default effort, native status, proxy availability, and the default reviewer ensemble. Read entries through `peer list` and `peer get`; read the resolved default ensemble through `peer defaults reviewers`. Never infer behavior from an alias or hardcode model strings.
 
-## Host Compatibility
+## Default reviewers
 
-| Host | Native route | Compatible cross-family route |
-|---|---|---|
-| Codex | `codex-native` delegation with inherited session settings | registered external peer |
-| Claude | native `opus`/`sonnet` Task | `ROUTABLE=yes` generated Task; otherwise registered external peer |
+Unless a caller supplies an explicit reviewer configuration, use every entry from `peer defaults reviewers`. Its execution column is authoritative: `native` and `native-proxy` dispatch through the host subagent API; `peer` dispatches externally. An unavailable default route blocks its required execution class rather than changing mechanisms.
+
+## Host routes
+
+| Host | Native route | Generated in-harness route | External route |
+|---|---|---|---|
+| Claude Code | session inheritance or a registry entry marked native | any active registry entry marked `proxy: true` | registered peer harness |
+| Codex | `codex-native` with inherited session settings | — | registered peer harness |
+
+Claude Code treats native and proxy-served models as first-class role routes. The live registry identifies their model families and providers; availability comes from `peer route show` and `peer route check`, never from family assumptions.
 
 Reject same-family loopback, unknown aliases, inactive generated definitions, and unsupported efforts. Never silently convert one execution mechanism into another.
 
@@ -30,17 +36,9 @@ Use one external call per mutating task so partial writes remain attributable. R
 
 ## Route Commands
 
-```bash
-peer route sync
-peer route show [-C DIR]
-peer route check <role>=<alias>[@<effort>] [...]
-peer route set <role>=<alias> [-C DIR]
-peer route clear [-C DIR]
-```
+Run `peer route --help` for the current command surface. Use `show` to read resolved state and `check` immediately before directly naming a generated role.
 
-`routing:` in the registry is the standing default. `.peer/routing` under a working root overrides it. `inherit` leaves a role on the session model.
-
-`show` reports the resolved peer and `active` or `inactive: <reason>`. Read status, not the peer name. Directly naming a generated definition bypasses the routing hook, so every such selection must pass `peer route check`; batch all known assignments into one call.
+`routing:` in the registry is the standing default. `.peer/routing` under a working root overrides it; `inherit` leaves a role on the session model. Route status, including stale generated definitions, is authoritative.
 
 ## Effort
 
@@ -59,7 +57,7 @@ A `<role>-<effort>` definition has no model, so a Claude-native model can combin
 
 `peer route sync` materializes ignored local definitions from each base role and reconciles obsolete generated files. `mise run install-peer` links the base roles into Claude's configured agent directory and syncs there. Edit only the base role or registry, then regenerate.
 
-The routing hook rewrites bare role dispatches only when the selected proxy is configured, reachable, and backed by a generated definition. Otherwise it leaves the native role unchanged. Directly named generated roles still require `peer route check`.
+The routing hook applies a configured Claude-native alias through the Task model field and rewrites a configured proxy alias to its generated definition. It acts only on bare role dispatches when the selected route is reachable and current; an explicit model remains authoritative. Otherwise it leaves the role unchanged. Directly named generated roles still require `peer route check`.
 
 Generated reviewers inherit the role tool list, not the external peer reviewer's sandbox profile. Route them only where a writable reviewer shell is acceptable.
 
