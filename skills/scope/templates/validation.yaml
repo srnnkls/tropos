@@ -124,11 +124,7 @@ loqui_check:
     ${NOTES_ON_CODE_QUALITY}
 
 review_config:
-  # Scope-review routing only; implementation uses config.yaml.
-  # `inherit` for all-native; otherwise peer-supported effort applied only to peer entries.
-  # opus-peer/sonnet-peer subset: low | medium | high | xhigh | max
   reasoning_effort: ${REASONING_EFFORT}
-  # reviewers resolved from --reviewers / interactive selection against `peer list`
   reviewers: ${REVIEWERS}
 
 review_gate:

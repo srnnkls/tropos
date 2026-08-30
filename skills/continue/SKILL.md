@@ -21,6 +21,9 @@ Git status:
 Current branch:
 !`git branch --show-current 2>/dev/null || true`
 
+Current routes (the recorded batch snapshot remains authoritative):
+!`peer route show -C . 2>/dev/null || true`
+
 # Continue Implementation
 
 Resume the exact RED, GREEN, review, fix, or integration wave recorded by an explicit `/implement` run. Do not restart the pipeline from task status alone.
@@ -77,8 +80,8 @@ After the recovered batch completes, derive the next batch, snapshot current `co
 
 - Preserve partial mutations and update their evidence; pause after a failed redispatch.
 - Retain successful reviewer reports and redispatch only missing configured reports.
-- Never infer RED from a passing test, restart a cleared phase, or re-open cleared findings.
-- Never require an execution class absent from the batch snapshot.
+- Apply the [canonical RED gate](../test/SKILL.md#red) to recovered evidence; do not restart a cleared phase or re-open cleared findings.
+- Apply the [review result gate](../review/reference/harnesses.md#results) to the recorded batch snapshot.
 
 ## Completion
 

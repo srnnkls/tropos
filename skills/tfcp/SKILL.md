@@ -29,7 +29,7 @@ Everything addressed in one run rides one commit: the fix set is applied togethe
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--issue <id>` | every finding | Restrict triage input to specific finding ids (`C1`, `H2`, …) from the synthesized report; repeat once per finding. |
-| `--report <path>` | findings in context | Synthesized report or `.peer/<subject>/<run>/<stage>/` report directory to read findings from when they aren't already in the conversation. |
+| `--report <path>` | findings in context | Synthesized report or canonical [`peer path` report directory](../peer/SKILL.md#report-layout--peer) to read findings from when they are not already in the conversation. |
 | `-m, --message <text>` | derived | Commit message (conventional commit format). |
 | `[paths…]` | already-staged | Files to stage before committing. With none, commits whatever is already staged. |
 
@@ -39,19 +39,15 @@ Everything addressed in one run rides one commit: the fix set is applied togethe
 
 ### 1. Triage
 
-Findings come from the review already in context, or from `--report <path>` (a synthesized report, or a `.peer/<subject>/<run>/<stage>/` directory of per-reviewer reports — see [`review` reference/report.md](../review/reference/report.md)). `--issue <id>` narrows the input set.
+Findings come from the review already in context or from `--report <path>`; `--issue <id>` narrows the input set.
 
-A synthesized report arrives pre-dispositioned: its `issues:` are `fix`, its `residual:` entries stay residual, and a `suggestion` prefixed `needs decision:` is `needs decision`. Carry those verdicts — a run that re-argues them is a refinement spiral, not a fix round. Raw findings — an in-context review, a reviewer's report you're reading directly — get dispositioned here against the [finding bar](../review/reference/finding-bar.md).
+A synthesized report arrives pre-dispositioned. Carry its verdicts without reopening triage. Apply the [finding bar](../review/reference/finding-bar.md) to raw findings and place every finding in exactly one resulting disposition:
 
-Every finding lands in exactly one bucket, judged against the [finding bar](../review/reference/finding-bar.md) — which owns the criteria; triage only sorts by them:
-
-| Disposition | Test | Outcome |
-|-------------|------|---------|
-| `fix` | clears the bar's admission test — a reachable trigger *and* the wrong outcome the change removes | step 2 |
-| `residual` | fails it, by the bar's out-of-bounds rules (this is where a narrower variant of an already-fixed finding lands, unless it names a trigger that fix left reachable) | not fixed, reported in step 5 |
-| `needs decision` | removing the failure mode takes new API surface, a new type, or a signature change | back to the user with the constraint that forces it — never invent the design to close it |
-
-Unsure between `fix` and `residual` means it isn't a `fix`. A finding you can't disposition at all is `needs decision` when a design call is what's missing, `residual` otherwise — never an unlabelled edit.
+| Disposition | Outcome |
+|-------------|---------|
+| `fix` | step 2 |
+| `residual` | report without fixing |
+| `needs decision` | return the forcing constraint to the user |
 
 State the dispositions before touching a file. That table is what step 2 is permitted to change; anything outside the `fix` bucket gets no edit.
 

@@ -8,12 +8,7 @@ Use the explicit `$TARGET` when supplied. Otherwise inspect only test files chan
 
 ## Finding Bar
 
-A finding must name:
-
-1. a reachable trigger in a specific test; and
-2. the wrong outcome it produces—a false pass or a false failure.
-
-Apply the shared [finding bar](../reference/finding-bar.md). Thin coverage is not a defect when representative falsifiers already cover the documented guarantee. Never request exhaustive input, syscall, crash-point, scheduling, interleaving, API, or compatibility enumeration.
+Apply the canonical [finding bar](../reference/finding-bar.md). This operation supplies only audit targeting and reporting.
 
 ## Failure Modes
 
@@ -34,7 +29,7 @@ test_audit:
   findings:
     - file: path/to/test_file
       test: test_name
-      failure_mode: oracle_mirroring | mock_tautology | dependency_test | trivial_assertion | defective_oracle
+      failure_mode: "Exact heading from the canonical test failure modes"
       trigger: "Concrete reachable state"
       wrong_outcome: "Broken implementation passes"
       fix_direction: "Sharpen the existing assertion"

@@ -2,10 +2,6 @@
 
 Own only the Architecture gate for the materialized change.
 
-## First Action
-
-Run `gestalt map` as the first repository tool action.
-
 ## Focus
 
 Check whether the changed definitions create a reachable structural defect: a new cycle, broken seam, harmful coupling, or impact outside the declared mutation boundary.
@@ -14,4 +10,4 @@ Use the supplied structural context first. Run `gestalt diff <range>` when a cod
 
 Do not run `analyze`, verbose propagation, rank, and usage enumeration as a fixed checklist. A metric change without a reachable wrong outcome is not a finding.
 
-Apply the shared finding bar and return only the requested reviewer schema.
+Apply the [finding bar](../../../review/reference/finding-bar.md) and return only the requested reviewer schema.

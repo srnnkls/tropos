@@ -4,9 +4,9 @@ Find one reachable trigger and wrong outcome, then fix the narrowest shared sour
 
 ## Boundary
 
-Run `gestalt map` as the first repository action. Investigation continues only while it resolves a blocking unknown for the reported failure.
+Apply the repository-orientation contract in [AGENTS.md](../../../instructions/AGENTS.md#tools-and-context). Investigation continues only while it resolves a blocking unknown for the reported failure.
 
-Do not enumerate every caller, usage, reference implementation, difference, environment permutation, or boundary. Do not add diagnostic instrumentation at every layer.
+Do not add diagnostic instrumentation at every layer.
 
 ## 1. Reproduce
 

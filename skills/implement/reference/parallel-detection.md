@@ -18,7 +18,7 @@ Missing `files` is a scope gap, not a reason to run a full single-task pipeline 
 For every ready task without paths:
 
 1. launch one bounded read-only discovery wave for all such tasks;
-2. each explorer runs `gestalt map` first, then targeted symbol/path lookups;
+2. each explorer receives fresh repository orientation under [AGENTS.md](../../../instructions/AGENTS.md#tools-and-context), then runs targeted symbol/path lookups;
 3. persist the resolved paths in `tasks.yaml`;
 4. if a task's mutation boundary remains unknown, stop that task with a scope gap.
 

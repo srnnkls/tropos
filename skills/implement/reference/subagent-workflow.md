@@ -6,20 +6,36 @@ Prompt skeletons for explicit `/implement`. Pipeline order and gates live in [ex
 
 Load these resources at dispatch time and materialize them verbatim into the named placeholders:
 
+- `{repository_map}` — fresh bounded output from the [repository-orientation contract](../../../instructions/AGENTS.md#tools-and-context) for `{workdir}`
+- `{role_contract}` — the selected base role from `agents/tester.md`, `agents/implementer.md`, or `agents/reviewer.md`
+- `{tester_contract}` — [test/SKILL.md](../../test/SKILL.md)
+- `{test_failure_modes}` — [test/reference/failure-modes.md](../../test/reference/failure-modes.md)
 - `{tester_report_schema}` — [test/reference/report.md](../../test/reference/report.md)
 - `{implementer_report_schema}` and `{fix_report_schema}` — [report.md](report.md)
 - `{reviewer_report_schema}` — [review/reference/report.md](../../review/reference/report.md)
 - `{finding_bar}` — [review/reference/finding-bar.md](../../review/reference/finding-bar.md)
 
-Role behavior comes only from `agents/tester.md`, `agents/implementer.md`, and `agents/reviewer.md`. Prompts supply task-specific data; they do not restate role policy.
+Role behavior comes only from `agents/tester.md`, `agents/implementer.md`, and `agents/reviewer.md`. Claude native definitions and `peer` load the selected role directly. A `codex-native` dispatch prepends `{role_contract}` to its task prompt because `agents/*.toml` are harness shims; all other mechanisms leave that placeholder empty.
 
 ## Tester
 
 ```text
 Write failing tests for {task_id}: {task_name}.
 
+Role contract:
+{role_contract}
+
 Requirements:
 {task_requirements}
+
+Repository orientation:
+{repository_map}
+
+Tester contract:
+{tester_contract}
+
+Test failure modes:
+{test_failure_modes}
 
 Work from: {workdir}
 
@@ -27,15 +43,21 @@ Return only this schema:
 {tester_report_schema}
 ```
 
-Dispatch every tester for the batch in one message. Use one external peer call per mutating task so partial writes remain attributable.
+Dispatch every tester for the batch in one message under the external-call cardinality owned by [peer routing](../../peer/reference/routing.md).
 
 ## Implementer
 
 ```text
 Implement {task_id}: {task_name}.
 
+Role contract:
+{role_contract}
+
 Requirements:
 {task_requirements}
+
+Repository orientation:
+{repository_map}
 
 RED evidence:
 {tester_report}
@@ -57,6 +79,7 @@ Materialize once per batch:
 
 - `{materialized_diff}`;
 - `{requirements}`;
+- `{repository_map}`;
 - `{reviewer_report_schema}`;
 - `{finding_bar}`;
 - `{structural_context}` from bounded Gestalt queries;
@@ -67,11 +90,17 @@ Build General, Architecture, and Compliance prompts from the [code skill](../../
 ```text
 Review this completed change against only the assigned {role} gates.
 
+Role contract:
+{role_contract}
+
 Requirements:
 {requirements}
 
 Change:
 {materialized_diff}
+
+Repository orientation:
+{repository_map}
 
 Structural context:
 {structural_context}
@@ -92,6 +121,12 @@ Return only this schema:
 Fix these admitted review findings, grouped by shared mechanism:
 {findings}
 
+Role contract:
+{role_contract}
+
+Repository orientation:
+{repository_map}
+
 Work from: {workdir}
 
 Return only this schema:
@@ -102,6 +137,7 @@ Dispatch file-independent fix groups together. Re-review only the failed lens an
 
 ## Gaps and Failures
 
+- Missing repository orientation: return the role's canonical `gap` or `blocked` status before inspecting repository files.
 - Tester gap: consult existing scope evidence, then ask one blocking question if unresolved. Do not broaden the tester budget.
 - Mutating failure: preserve edits and evidence; pause. `/continue` authorizes deliberate redispatch.
 - Reviewer failure: retain successful reports and redispatch only missing configured reports for the same wave.

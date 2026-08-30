@@ -38,6 +38,17 @@ defaults:
 REG
 
 mkdir -p "$tmp/bin"
+cat >"$tmp/bin/gestalt" <<'STUB'
+#!/usr/bin/env bash
+[[ -n "${GESTALT_CALLS:-}" ]] && printf '%s\n' "$*" >>"$GESTALT_CALLS"
+case "${GESTALT_MODE:-ok}" in
+  fail)  printf '%s\n' 'synthetic gestalt failure' >&2; exit 9 ;;
+  empty) exit 0 ;;
+  *)     printf 'FAKE REPOSITORY ORIENTATION\nworkdir=%s\ntokens=%s\n' "${2:-}" "${4:-}" ;;
+esac
+STUB
+chmod +x "$tmp/bin/gestalt"
+
 cat >"$tmp/bin/pi" <<'STUB'
 #!/usr/bin/env bash
 for a in "$@"; do [[ "$a" == --list-models ]] || continue
@@ -46,12 +57,22 @@ for a in "$@"; do [[ "$a" == --list-models ]] || continue
   exit 0
 done
 [[ -n "${ARGV_DUMP:-}" ]] && printf '%s\n' "$@" >"$ARGV_DUMP"
+role_next=0
+for a in "$@"; do
+  if (( role_next )); then
+    [[ -n "${ROLE_DUMP:-}" ]] && printf '%s' "$a" >"$ROLE_DUMP"
+    role_next=0
+  elif [[ "$a" == --append-system-prompt ]]; then
+    role_next=1
+  fi
+done
+[[ -n "${HARNESS_STARTED:-}" ]] && : >"$HARNESS_STARTED"
 [[ -n "${PROBE_WRITE:-}" ]] && touch "$PROBE_WRITE" 2>/dev/null
-if [[ "$STUB_MODE" == denied ]]; then
+if [[ "${STUB_MODE:-}" == denied ]]; then
   printf '%s\n' '{"type":"message_end","message":{"role":"assistant","stopReason":"error","content":[],"errorMessage":"failed to initialize in-process app-server client: Operation not permitted (os error 1)"}}'
   exit 1
 fi
-if [[ "$STUB_MODE" == server_403 ]]; then
+if [[ "${STUB_MODE:-}" == server_403 ]]; then
   printf '%s\n' '{"type":"message_end","message":{"role":"assistant","stopReason":"error","content":[],"errorMessage":"{\"error\":{\"code\":403,\"status\":\"PERMISSION_DENIED\",\"message\":\"Permission denied on resource project tropos-dev.\"}}"}}'
   exit 1
 fi
@@ -59,9 +80,41 @@ printf '%s\n' '{"type":"message_end","message":{"role":"assistant","stopReason":
 STUB
 chmod +x "$tmp/bin/pi"
 
+cat >"$tmp/bin/codex" <<'STUB'
+#!/usr/bin/env bash
+[[ -n "${ARGV_DUMP:-}" ]] && printf '%s\n' "$@" >"$ARGV_DUMP"
+outfile=""
+while (( $# )); do
+  case "$1" in
+    -o) outfile="${2:-}"; shift 2 ;;
+    -c)
+      if [[ "${2:-}" == developer_instructions=* && -n "${ROLE_DUMP:-}" ]]; then
+        ROLE_JSON="${2#developer_instructions=}" python3 -c \
+          'import json, os, sys; sys.stdout.write(json.loads(os.environ["ROLE_JSON"]))' >"$ROLE_DUMP"
+      fi
+      shift 2 ;;
+    *) shift ;;
+  esac
+done
+[[ -n "${HARNESS_STARTED:-}" ]] && : >"$HARNESS_STARTED"
+[[ -n "$outfile" ]] && printf '%s' 'OK' >"$outfile"
+printf '%s\n' '{"type":"turn.completed"}'
+STUB
+chmod +x "$tmp/bin/codex"
+
 cat >"$tmp/bin/claude" <<'STUB'
 #!/usr/bin/env bash
 [[ -n "${ARGV_DUMP:-}" ]] && printf '%s\n' "$@" >"$ARGV_DUMP"
+role_next=0
+for a in "$@"; do
+  if (( role_next )); then
+    [[ -n "${ROLE_DUMP:-}" ]] && printf '%s' "$a" >"$ROLE_DUMP"
+    role_next=0
+  elif [[ "$a" == --append-system-prompt ]]; then
+    role_next=1
+  fi
+done
+[[ -n "${HARNESS_STARTED:-}" ]] && : >"$HARNESS_STARTED"
 printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"OK"}'
 STUB
 chmod +x "$tmp/bin/claude"
@@ -140,6 +193,143 @@ probe_run() {  # ROLE-ARGS...
 [[ "$(probe_run tester --agent tester)" == wrote ]] \
   && printf 'ok    a tester keeps write access to its work tree\n' \
   || { printf 'FAIL  a tester keeps write access to its work tree: the harness was blocked\n'; (( fails++ )); }
+
+# --- every harness receives the worktree Markdown role plus repository orientation -----
+mkdir -p "$tmp/agents"
+cat >"$tmp/agents/tester.md" <<'ROLE'
+---
+name: tester
+sentinel: WORKTREE_FRONTMATTER_MUST_NOT_LEAK
+---
+
+WORKTREE_MARKDOWN_ROLE_BODY
+The same role body belongs to every harness.
+ROLE
+cat >"$tmp/agents/tester.toml" <<'ROLE'
+developer_instructions = ""
+ROLE
+
+role_dispatch() {  # HARNESS
+  local harness=$1 dump="$tmp/role.$1" dir rc
+  local -a extra=()
+  dir=$("$PEER" path roles "$harness" --run "$fanout_run" -C "$tmp")
+  [[ "$harness" == pi ]] && extra=( --provider stubprov --model good-model )
+  ROLE_DUMP="$dump" PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
+    "$PEER" "$harness" -o "$dir/result.yaml" -C "$tmp" --agent tester --cap 30 \
+      "${extra[@]}" 'ping' >/dev/null 2>"$tmp/role.$harness.err"
+  rc=$?
+  if (( rc == 0 )); then
+    printf 'ok    %s accepts the worktree-owned Markdown role\n' "$harness"
+  else
+    printf 'FAIL  %s accepts the worktree-owned Markdown role: exit %s: %s\n' \
+      "$harness" "$rc" "$(<"$tmp/role.$harness.err")"
+    (( fails++ ))
+  fi
+}
+for harness in codex pi claude; do role_dispatch "$harness"; done
+
+if [[ -s "$tmp/role.codex" ]] \
+    && cmp -s "$tmp/role.codex" "$tmp/role.pi" \
+    && cmp -s "$tmp/role.codex" "$tmp/role.claude" \
+    && grep -qF 'WORKTREE_MARKDOWN_ROLE_BODY' "$tmp/role.codex" \
+    && ! grep -qF 'WORKTREE_FRONTMATTER_MUST_NOT_LEAK' "$tmp/role.codex"; then
+  printf 'ok    codex, pi, and claude receive the same worktree Markdown role body\n'
+else
+  printf 'FAIL  codex, pi, and claude receive the same worktree Markdown role body\n'
+  (( fails++ ))
+fi
+
+orientation_want="$(printf 'FAKE REPOSITORY ORIENTATION\nworkdir=%s\ntokens=512' "$tmp")"
+orientation_ok=1
+for harness in codex pi claude; do
+  grep -qF "$orientation_want" "$tmp/role.$harness" || orientation_ok=0
+done
+if (( orientation_ok )); then
+  printf 'ok    repository orientation is injected into every harness role\n'
+else
+  printf 'FAIL  repository orientation is injected into every harness role\n'
+  (( fails++ ))
+fi
+
+# --- a worktree without a role falls back to the bundled role --------------------------
+bundled_workdir="$tmp/bundled-workdir"
+mkdir -p "$bundled_workdir"
+bundled_dir=$("$PEER" path roles bundled --run "$fanout_run" -C "$bundled_workdir")
+ROLE_DUMP="$tmp/role.bundled" PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
+  "$PEER" pi -o "$bundled_dir/result.yaml" -C "$bundled_workdir" --agent tester \
+    --provider stubprov --model good-model --cap 30 'ping' >/dev/null 2>"$tmp/role.bundled.err"
+bundled_rc=$?
+if (( bundled_rc == 0 )) \
+    && [[ ! -e "$bundled_workdir/agents/tester.md" ]] \
+    && grep -qF 'Write bounded failing tests for one task and prove RED.' "$tmp/role.bundled"; then
+  printf 'ok    a missing worktree role falls back to the bundled Markdown role\n'
+else
+  printf 'FAIL  a missing worktree role falls back to the bundled Markdown role: exit %s: %s\n' \
+    "$bundled_rc" "$(<"$tmp/role.bundled.err")"
+  (( fails++ ))
+fi
+
+partial_workdir="$tmp/partial-workdir"
+mkdir -p "$partial_workdir/agents"
+printf '%s\n' 'unrelated role' >"$partial_workdir/agents/reviewer.md"
+partial_dir=$("$PEER" path roles partial --run "$fanout_run" -C "$partial_workdir")
+ROLE_DUMP="$tmp/role.partial" PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
+  "$PEER" pi -o "$partial_dir/result.yaml" -C "$partial_workdir" --agent tester \
+    --provider stubprov --model good-model --cap 30 'ping' >/dev/null 2>"$tmp/role.partial.err"
+partial_rc=$?
+if (( partial_rc == 0 )) \
+    && grep -qF 'Write bounded failing tests for one task and prove RED.' "$tmp/role.partial"; then
+  printf 'ok    a partial worktree agent directory falls back per role\n'
+else
+  printf 'FAIL  a partial worktree agent directory falls back per role: exit %s: %s\n' \
+    "$partial_rc" "$(<"$tmp/role.partial.err")"
+  (( fails++ ))
+fi
+
+codex_workdir="$tmp/codex-workdir"
+mkdir -p "$codex_workdir/agents"
+cp "$tmp/agents/tester.md" "$codex_workdir/agents/tester.md"
+codex_dir=$("$PEER" path roles codex-shim --run "$fanout_run" -C "$codex_workdir")
+ROLE_DUMP="$tmp/role.codex-shim" PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
+  "$PEER" codex -o "$codex_dir/result.yaml" -C "$codex_workdir" --agent tester \
+    --cap 30 'ping' >/dev/null 2>"$tmp/role.codex-shim.err"
+codex_rc=$?
+if (( codex_rc == 0 )) \
+    && grep -qF 'WORKTREE_MARKDOWN_ROLE_BODY' "$tmp/role.codex-shim"; then
+  printf 'ok    codex falls back to the bundled shim independently\n'
+else
+  printf 'FAIL  codex falls back to the bundled shim independently: exit %s: %s\n' \
+    "$codex_rc" "$(<"$tmp/role.codex-shim.err")"
+  (( fails++ ))
+fi
+
+# --- orientation is a dispatch precondition, not harness-time best effort ---------------
+mkdir -p "$tmp/no-gestalt-bin"
+for dependency in bash claude python3 yq; do
+  ln -s "$(command -v "$dependency")" "$tmp/no-gestalt-bin/$dependency"
+done
+no_gestalt_path="$tmp/no-gestalt-bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+want_orientation_block() {  # CASE MODE PATH DIAGNOSTIC
+  local case_name=$1 mode=$2 path=$3 want=$4 dir marker diag rc
+  dir=$("$PEER" path orientation "$case_name" --run "$fanout_run" -C "$tmp")
+  marker="$tmp/harness-started.$case_name"
+  diag="$tmp/orientation.$case_name.err"
+  GESTALT_MODE="$mode" HARNESS_STARTED="$marker" PEER_REGISTRY="$tmp/registry.yaml" PATH="$path" \
+    "$PEER" claude -o "$dir/result.yaml" -C "$tmp" --agent tester --cap 30 'ping' \
+      >/dev/null 2>"$diag"
+  rc=$?
+  if (( rc == 3 )) && [[ ! -e "$marker" ]] && grep -qF "$want" "$diag"; then
+    printf 'ok    dispatch blocks before harness start when gestalt %s\n' "$case_name"
+  else
+    printf 'FAIL  dispatch blocks before harness start when gestalt %s: exit %s, started=%s: %s\n' \
+      "$case_name" "$rc" "$([[ -e "$marker" ]] && printf yes || printf no)" "$(<"$diag")"
+    (( fails++ ))
+  fi
+}
+want_orientation_block missing ignored "$no_gestalt_path" 'gestalt not found'
+want_orientation_block fails fail "$tmp/bin:$PATH" 'repository orientation failed'
+want_orientation_block empty empty "$tmp/bin:$PATH" 'repository orientation returned no context'
 
 printf '\n%s\n' "$( ((fails)) && echo "$fails failing" || echo 'all passing')"
 exit $(( fails > 0 ))

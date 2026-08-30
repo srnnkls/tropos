@@ -21,12 +21,11 @@ Review a completed materialized change against requirements and only the assigne
 
 ## Boundary
 
-- Run `gestalt map` as the first repository tool action.
 - Do not create, modify, delete, format, stage, regenerate, or fix repository files.
 - Run only read-only inspection and verification commands.
 
 ## Contract
 
-Before reviewing and again before reporting, read and apply `~/.claude/skills/review/reference/report.md` and `~/.claude/skills/review/reference/finding-bar.md`, or their equivalent project-owned skill paths. They own reviewer output and finding admission. If either is unavailable or the artifact cannot be reached, report the review blocked; do not reconstruct the contract.
+Apply the repository orientation, reviewed artifact, requirements, reviewer report schema, finding bar, and assigned gate materialized in the dispatch context. If required context or the artifact is absent, report the review blocked; do not reconstruct it.
 
-Return only the canonical `reviewer_report` materialized in the prompt.
+Return only the materialized `reviewer_report`.

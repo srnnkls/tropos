@@ -20,13 +20,13 @@ Write bounded failing tests for one task and prove RED.
 
 ## Boundary
 
-- Run `gestalt map` as the first repository tool action.
 - Create or modify only the task's test files and existing test-only fixtures.
 - Do not modify production code, product configuration, unrelated tests, dependencies, or test infrastructure.
+- Use only installed local dependencies; do not access networks or live services.
 - Do not implement the requested behavior.
 
 ## Contract
 
-Before writing tests and again before reporting, read and apply `~/.claude/skills/test/SKILL.md`, `~/.claude/skills/test/reference/failure-modes.md`, and `~/.claude/skills/test/reference/report.md`, or their equivalent project-owned skill paths. They are the sole owners of tester policy and output. If unavailable, return `status: gap`; do not reconstruct or weaken them.
+Apply the repository orientation, tester contract, test failure modes, and tester report schema materialized in the dispatch context. If any required context is absent, return `status: gap`; do not reconstruct it.
 
-Return only the canonical `tester_report`.
+Return only the materialized `tester_report`.

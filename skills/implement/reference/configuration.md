@@ -13,9 +13,9 @@ epoch:
   started_at: <timestamp>
   updated_at: <timestamp>
 routing:
-  tester: {agent: codex-native, effort: inherit}
-  implementer: {agent: codex-native, effort: inherit}
-  reviewer: {agents: [codex-native], effort: inherit}
+  tester: {agent: <resolved default>, effort: inherit}
+  implementer: {agent: <resolved default>, effort: inherit}
+  reviewer: {agents: [<resolved defaults>], effort: inherit}
 ```
 
 A top-level scope execution creates a new epoch. `/continue` and `/loop` reuse it. Direct tasks keep the same structure in memory and write reports under subject `direct`.
@@ -26,7 +26,7 @@ Tester and implementer each select one agent. Reviewer selects one or more agent
 
 Merge, last source winning:
 
-1. host-aware defaults from the peer routing contract;
+1. tester and implementer defaults from the peer routing contract, plus the reviewer ensemble from `peer defaults reviewers`;
 2. current scope config;
 3. inline `--config` assignments.
 
@@ -34,7 +34,7 @@ Supported assignments are `tester`, `tester_effort`, `implementer`, `implementer
 
 Supplying `--config` accepts a valid merged result without prompting. Otherwise prompt once for all routes. `/implement config <scope>` edits the current epoch instead of creating one.
 
-Validate aliases, host compatibility, execution mechanism, and effort through the live [peer routing contract](../../peer/reference/routing.md). Reject invalid or inactive selections; never infer or silently convert them.
+Validate the merged selection under the live [peer routing contract](../../peer/reference/routing.md).
 
 ## Batch Snapshot
 
@@ -54,9 +54,9 @@ Every phase and concurrent review role in that batch uses the snapshot. A mid-ba
 
 ## Implementation Dispatch
 
-Resolve each snapshot entry through [peer routing](../../peer/reference/routing.md). Use one external peer call per mutating task. For review, use one fan-out per role and start every role fan-out with all native role Tasks in the same assistant message.
+Dispatch every snapshot entry under [peer routing](../../peer/reference/routing.md), preserving its immutable class and mechanism.
 
-A review gate requires one successful report from every execution class present in the snapshot. Never require an absent class.
+Apply the [canonical review result gate](../../review/reference/harnesses.md#results).
 
 Create every output directory through the canonical [peer report layout](../../peer/SKILL.md#report-layout--peer). Save materialized prompts as `prompt.md` and normalized native reports beside peer reports.
 

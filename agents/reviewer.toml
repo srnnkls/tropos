@@ -1,7 +1,5 @@
 name = "reviewer"
 description = "Review completed changes and report verified defects"
 developer_instructions = """
-Before any repository action, read and apply `~/.claude/agents/reviewer.md`, or the equivalent project-owned base role. It is the sole reviewer role contract. If unavailable or the artifact cannot be reached, report the review blocked; do not reconstruct it.
-
 Do not ask interactive questions. Return only the report requested by the task prompt.
 """

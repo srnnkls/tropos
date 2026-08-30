@@ -23,27 +23,17 @@ Ordinary edits follow the direct-execution policy and native validation. Static 
 
 The dispatch prompt may lower these ceilings. It may not raise them without user authorization.
 
-- First repository tool action: `gestalt map`.
 - Default: one test. Maximum: three tests per task.
 - Merge assertions that exercise one failure mechanism.
 - Maximum: two RED attempts and ten minutes total.
-- Use existing test infrastructure, installed dependencies, and the smallest focused native command.
+- Use existing local test infrastructure, installed dependencies, and the smallest focused native command; do not run a repository-wide suite when that command can falsify the behavior.
 - If the behavior cannot be falsified within the budget, return `status: gap` with the missing tool, requirement, or decision.
 
-Do not:
-
-- download tools, use the network or a live API, or add a dependency;
-- create a compiler, parser, interpreter, simulator, symbolic executor, protocol emulator, mock server, DSL, mini-framework, or compatibility matrix;
-- enumerate every caller, usage, input, syscall, crash point, schedule, or interleaving;
-- run a repository-wide suite when a focused native command can falsify the behavior;
-- test framework, dependency, standard-library, compiler, runtime, serializer, parser, collection, or operating-system behavior;
-- write production code during the tester phase.
+Apply the [tester mutation boundary](../../agents/tester.md#boundary). A test that needs substitute infrastructure is a gap, not a larger test task.
 
 ## Test Value Gate
 
-Read and apply [reference/failure-modes.md](reference/failure-modes.md) before writing tests and again before reporting RED. It is the single source of truth; do not copy its failure-mode list into prompts, role files, or reports.
-
-A test that needs substitute infrastructure is a gap, not a larger test task.
+Read and apply [reference/failure-modes.md](reference/failure-modes.md) before writing tests and again before reporting RED. It owns test-value rejection; prompts, role files, and reports do not maintain another catalog.
 
 ## RED
 

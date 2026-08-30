@@ -55,7 +55,7 @@ Append the exact Reviewer Report schema from this document to the materialized p
 report directory with `outdir=$(peer path scope-{name} review)` and save the prompt as
 `{outdir}/prompt.md`.
 
-In one assistant message, dispatch every selected reviewer using the mechanisms resolved by [peer routing](../../peer/reference/routing.md). Read each successful native result and every `ok` peer manifest file. The mandatory gate requires one success from every configured execution class; [review harnesses](../../review/reference/harnesses.md) own partial-result handling.
+In one assistant message, dispatch every selected reviewer using [peer routing](../../peer/reference/routing.md), then apply the [canonical review result gate](../../review/reference/harnesses.md#results).
 
 ### Step 4: Synthesize Reviews
 
@@ -78,7 +78,7 @@ Add clarification session to `validation.yaml`. Update markers (close resolved, 
 
 ### Step 8: Record Gate Result and Recommend Action
 
-This review is the **mandatory blocking gate** a scope must clear before implementation (the scope-level analog of the `issue` skill's 2×2 gate before publish). Write the outcome to `validation.yaml` under `review_gate`:
+This review is the mandatory blocking gate a scope must clear before implementation (the scope-level analog of the `issue` skill's pre-publish gate). Write the outcome to `validation.yaml` under `review_gate`:
 
 Triage findings before they gate anything, per [review synthesis](../../review/reference/synthesis.md): a `critical`/`high` issue blocks only when it names a concrete defect in the scope — a requirement that contradicts another, a task with no achievable acceptance criterion, a dependency that cannot be satisfied. Reviewer agreement is not validity. Findings that only narrow, restate, or re-litigate a grounded question are recorded as deferred nits and do not fail the gate.
 
@@ -220,10 +220,7 @@ synthesized_report:
 
 ### Timeout Handling
 
-**Configured reviewer timeout / error:**
-1. Keep completed reports and mark the failed agent partial
-2. Do not pass the mandatory scope gate until every configured execution class has a success
-3. Deliberately redispatch the missing class; never proceed with zero reviews
+Configured reviewer timeout or error: retain completed reports, apply the [canonical result gate](../../review/reference/harnesses.md#results), and deliberately redispatch only missing reports for the same wave.
 
 ### Parse Failures
 
@@ -232,7 +229,7 @@ synthesized_report:
 
 ### No Reviewers Selected
 
-Return to the scope reviewer-configuration step; do not invent or silently convert a route.
+Return to the scope reviewer-configuration step and resolve the selection under [peer routing](../../peer/reference/routing.md).
 
 ### Scope Not Found
 
