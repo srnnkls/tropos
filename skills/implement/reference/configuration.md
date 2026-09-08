@@ -13,9 +13,9 @@ epoch:
   started_at: <timestamp>
   updated_at: <timestamp>
 routing:
-  tester: {agent: <resolved default>, effort: inherit}
-  implementer: {agent: <resolved default>, effort: inherit}
-  reviewer: {agents: [<resolved defaults>], effort: inherit}
+  tester: {agent: <route-id>, effort: inherit}
+  implementer: {agent: <route-id>, effort: inherit}
+  reviewer: {agents: [<route-id>], effort: inherit}
 ```
 
 A top-level scope execution creates a new epoch. `/continue` and `/loop` reuse it. Direct tasks keep the same structure in memory and write reports under subject `direct`.
@@ -43,11 +43,11 @@ Read and validate `config.yaml` once at the start of each batch. Persist an immu
 ```yaml
 routing_snapshot:
   epoch_id: <id>
-  tester: {agent: <alias>, effort: <level>, class: native|external}
-  implementer: {agent: <alias>, effort: <level>, class: native|external}
+  tester: {agent: <route-id>, effort: <level>, class: native|native-proxy|peer}
+  implementer: {agent: <route-id>, effort: <level>, class: native|native-proxy|peer}
   reviewer:
     agents:
-      - {alias: <alias>, effort: <level>, class: native|external}
+      - {agent: <route-id>, effort: <level>, class: native|native-proxy|peer}
 ```
 
 Every phase and concurrent review role in that batch uses the snapshot. A mid-batch config edit applies to the next batch. A direct single-task run snapshots once in memory.

@@ -17,7 +17,7 @@ hooks:
 
 ## Role
 
-Review a completed materialized change against requirements and only the assigned gate.
+Review a completed materialized change against requirements and only the assigned gates.
 
 ## Boundary
 
@@ -26,6 +26,6 @@ Review a completed materialized change against requirements and only the assigne
 
 ## Contract
 
-Apply the repository orientation, reviewed artifact, requirements, reviewer report schema, finding bar, and assigned gate materialized in the dispatch context. If required context or the artifact is absent, report the review blocked; do not reconstruct it.
+Apply the repository orientation, reviewed artifact, requirements, reviewer report schema, finding bar, and assigned gates materialized in the dispatch context. If required context or the artifact is absent, report the review blocked; do not reconstruct it.
 
 Return only the materialized `reviewer_report`.

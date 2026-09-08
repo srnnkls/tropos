@@ -42,6 +42,7 @@ reviewers:
     alias: model-known
     effort: high
     native: false
+    peer: true
 defaults:
   pi: model-known
 REG

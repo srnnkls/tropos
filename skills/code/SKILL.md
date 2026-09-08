@@ -58,7 +58,7 @@ Prepare once:
 - bounded Gestalt context;
 - only material Loqui excerpts.
 
-For implementation-owned review, launch every role and configured reviewer in one assistant message. Standalone review launches selected roles the same way. Resolve mechanisms through [peer routing](../peer/reference/routing.md); review-specific materialization and coverage live in [review harnesses](../review/reference/harnesses.md).
+For implementation-owned initial review, launch every role and configured reviewer in one assistant message. Standalone review launches selected roles the same way. Post-fix verification never uses this fan-out; [review synthesis](../review/reference/synthesis.md#46-fix-and-re-review-protocol) owns its single targeted reviewer. Resolve mechanisms through [peer routing](../peer/reference/routing.md); review-specific materialization and coverage live in [review harnesses](../review/reference/harnesses.md).
 
 ## Role Prompt Contract
 

@@ -12,7 +12,7 @@ Phase A: all ready testers concurrently
 Phase B: all cleared implementers concurrently
     ↓ one GREEN gate
 Phase C: every review role and configured reviewer concurrently
-    ↓ one synthesis and bounded fixes
+    ↓ one synthesis and targeted fix verification
 commit batch
 ```
 
@@ -77,9 +77,9 @@ Wait once. Collect every implementer report, deduplicate identical commands, com
 
 If any implementer is failed, incomplete, or fails GREEN, clear successful entries, retain failed evidence under phase `green`, and pause. Only after every implementer clears GREEN may one GREEN→review checkpoint transition clear the mutation entries, set phase `review`, and record all review report directories.
 
-## 6. Phase C: Concurrent Review
+## 6. Phase C: Initial Concurrent Review
 
-Every completed batch receives one review wave.
+Every completed batch receives one initial review wave.
 
 Prepare shared inputs once:
 
@@ -108,7 +108,7 @@ Wait once, then apply the [canonical review result gate](../../review/reference/
 
 Apply [review synthesis](../../review/reference/synthesis.md), which owns admission, grouping, disposition, `needs decision`, re-review scope, and round limits.
 
-Before any fix wave, persist every file-safe fix group as an in-flight mutation in one checkpoint write. Dispatch independent groups concurrently. After results, clear successful fix markers and retain failed/interrupted evidence in one write before the synthesis-directed re-review.
+Before any fix wave, persist every file-safe fix group as an in-flight mutation in one checkpoint write. Dispatch independent groups concurrently. After results, clear successful fix markers and retain failed/interrupted evidence in one write, then enter the targeted re-review protocol. Never re-enter Phase C or fan out by role, harness, or execution class after a fix.
 
 ## 8. Complete a Batch
 
@@ -128,7 +128,7 @@ After all batches:
 
 1. Run the smallest full native validation that covers cross-batch integration.
 2. Confirm every task is done and every acceptance criterion has direct evidence.
-3. For a one-batch scope, its Phase C review is final. Do not dispatch another review.
+3. For a one-batch scope, cleared Phase C — including targeted fix verification when needed — is final. Do not dispatch a separate integration review.
 4. For a multi-batch scope, dispatch one holistic integration prompt to every configured reviewer concurrently. Check only cross-batch interactions, scope acceptance, deferred findings, and final validation evidence. Do not repeat General/Architecture/Compliance or reopen cleared batch-local findings.
 5. Record the integration result and readiness in `review.yaml`.
 
@@ -143,7 +143,8 @@ If the original explicit invocation included a GitHub issue reference, invoke `i
 ## Recovery Rules
 
 - Mutating failure: preserve edits, report directory, status/diff evidence, and exact wave; pause.
-- Read-only review failure: report files are the recovery source; redispatch only missing configured reports for that wave.
+- Initial read-only review failure: report files are the recovery source; redispatch only missing configured reports for that initial wave.
+- Targeted re-review failure: use only the canonical single replacement attempt; never restore role or execution-class fan-out.
 - `/continue` authorizes deliberate redispatch of the exact recorded wave.
 - Never restart RED after a completed RED gate, and never infer progress from TodoWrite.
 

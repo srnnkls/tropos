@@ -102,6 +102,35 @@ expected_count=$(( roles * (proxies * (1 + efforts) + efforts) ))
 
 export PEER_AGENTS_DIR="$agents"
 
+# --- explicit route matrix ------------------------------------------------------------
+route_matrix=$("$PEER" list | awk 'NR > 1 { print $1 "|" $2 "|" $4 "|" $6 "|" $7 "|" $8 }')
+expected_route_matrix=$(yq -r '
+  .reviewers[] | [.id, .harness, .model,
+    ((.native // false) | tostring | sub("true"; "yes") | sub("false"; "no")),
+    ((.proxy // false) | tostring | sub("true"; "yes") | sub("false"; "no")),
+    ((.peer // false) | tostring | sub("true"; "yes") | sub("false"; "no"))] | join("|")
+' "$SCRIPT_DIR/reviewers.yaml")
+[[ "$route_matrix" == "$expected_route_matrix" ]] \
+  && ok 'list exposes every execution-specific route and capability' \
+  || bad 'list exposes every execution-specific route and capability' "got ${route_matrix:-<empty>}"
+
+shipped_defaults=$("$PEER" defaults reviewers 2>&1); shipped_defaults_rc=$?
+expected_shipped_defaults=$(printf '%-11s %-12s %s\n' \
+  ALIAS EXECUTION ROUTE-ID \
+  gpt native-proxy claude-gpt5.6-sol \
+  opus native claude-opus \
+  gemini peer peer-gemini-3.7-flash)
+{ (( shipped_defaults_rc == 0 )) && [[ "$shipped_defaults" == "$expected_shipped_defaults" ]]; } \
+  && ok 'default reviewers name explicit routes and mechanisms' \
+  || bad 'default reviewers name explicit routes and mechanisms' \
+         "exit $shipped_defaults_rc, output ${shipped_defaults:-<empty>}"
+
+nonpeer_run=$("$PEER" run-id)
+nonpeer_dir=$("$PEER" path route-matrix nonpeer --run "$nonpeer_run" -C "$repo")
+want_ok 'fan-out rejects an explicit native Codex route ID' 2 -- \
+  "$PEER" -C "$repo" -d "$nonpeer_dir" --peers codex-gpt5.6-sol \
+  --agent tester --cap 1 'ping'
+
 # --- registry defaults ---------------------------------------------------------------
 defaults_registry="$tmp/defaults.yaml"
 cat > "$defaults_registry" <<'EOF'
@@ -112,25 +141,28 @@ reviewers:
     alias: external
     effort: high
     native: false
+    peer: true
   - id: native-id
     harness: codex
     model: inherit
     alias: native
     effort: inherit
     native: true
+    peer: false
   - id: proxy-id
     harness: codex
     model: proxy-model
     alias: proxy
     effort: high
-    native: false
+    native: true
     proxy: true
+    peer: false
 defaults:
   reviewers: [external, native-id, proxy]
 EOF
 defaults_out=$(PEER_REGISTRY="$defaults_registry" "$PEER" defaults reviewers 2>&1); defaults_rc=$?
 expected_defaults=$(printf '%-11s %-12s %s\n' \
-  ALIAS EXECUTION PEER-ID \
+  ALIAS EXECUTION ROUTE-ID \
   external peer external-id \
   native native native-id \
   proxy native-proxy proxy-id)
@@ -259,9 +291,16 @@ out=$(PEER_AGENTS_DIR="$empty" "$PEER" route sync 2>&1); rc=$?
 want_out 'show reports the registry default for a role' \
   'tester.*inherit.*registry' -- "$PEER" route show -C "$repo"
 
+mkdir -p "$repo/.peer"
+printf '%s\n' 'tester=codex-gpt5.6-sol' > "$repo/.peer/routing"
+want_out 'show migrates a persisted pre-split GPT proxy route' \
+  'tester.*claude-gpt5\.6-sol.*override.*active' -- \
+  env ANTHROPIC_BASE_URL="$UP" "$PEER" route show -C "$repo"
+"$PEER" route clear -C "$repo" >/dev/null 2>&1
+
 "$PEER" route set tester=luna -C "$repo" >/dev/null 2>&1
 want_out 'set overrides a role for this working root' \
-  'tester.*codex-gpt5\.6-luna.*override' -- "$PEER" route show -C "$repo"
+  'tester.*claude-gpt5\.6-luna.*override' -- "$PEER" route show -C "$repo"
 
 [[ -f "$repo/.peer/routing" ]] && ok 'set writes the override beside the dispatch artifacts' \
                                || bad 'set writes the override beside the dispatch artifacts' 'no .peer/routing'
@@ -291,15 +330,20 @@ native_out=$(payload reviewer | "$PEER" route hook -C "$repo" 2>/dev/null)
 
 want_ok 'set rejects an unknown role'  2 -- "$PEER" route set nonsense=gpt -C "$repo"
 want_ok 'set rejects an unknown peer'  2 -- "$PEER" route set tester=nonsense -C "$repo"
+want_ok 'set rejects a native route owned by another host' 2 -- \
+  "$PEER" route set tester=codex-gpt -C "$repo"
 
 # `check` is the gate an orchestrator asks before offering a peer as a native subagent,
 # so it must fail on every reason the dispatch would land on an unreachable model.
-want_ok 'check clears a routable peer whose proxy answers' 0 -- \
+want_ok 'check clears a proxy route whose proxy answers' 0 -- \
   env ANTHROPIC_BASE_URL="$UP" "$PEER" route check tester=gpt -C "$repo"
-want_ok 'check fails a routable peer whose proxy is unreachable' 1 -- \
+want_ok 'check fails a proxy route whose proxy is unreachable' 1 -- \
   env ANTHROPIC_BASE_URL="$DOWN" "$PEER" route check tester=gpt -C "$repo"
-want_ok 'check fails a peer that is not proxy-served' 1 -- \
+want_ok 'check fails a peer route that is not proxy-served' 1 -- \
   env ANTHROPIC_BASE_URL="$UP" "$PEER" route check tester=gemini -C "$repo"
+want_out 'check resolves a retired route name before reporting its capability' \
+  'tester.*inactive: peer-dispatch only' -- \
+  env ANTHROPIC_BASE_URL="$UP" "$PEER" route check tester=gemini-3.7-flash -C "$repo"
 want_ok 'check rejects an unknown role' 2 -- \
   env ANTHROPIC_BASE_URL="$UP" "$PEER" route check nonsense=gpt -C "$repo"
 
