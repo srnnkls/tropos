@@ -15,7 +15,7 @@ Load these resources at dispatch time and materialize them verbatim into the nam
 - `{reviewer_report_schema}` — [review/reference/report.md](../../review/reference/report.md)
 - `{finding_bar}` — [review/reference/finding-bar.md](../../review/reference/finding-bar.md)
 
-Role behavior comes only from `agents/tester.md`, `agents/implementer.md`, and `agents/reviewer.md`. Claude native definitions and `peer` load the selected role directly. A `codex-native` dispatch prepends `{role_contract}` to its task prompt because `agents/*.toml` are harness shims; all other mechanisms leave that placeholder empty.
+Role behavior comes only from `agents/tester.md`, `agents/implementer.md`, and `agents/reviewer.md`. Claude native definitions and `peer` load the selected role directly. A native Codex `codex-*` dispatch prepends `{role_contract}` to its task prompt because `agents/*.toml` are harness shims; all other mechanisms leave that placeholder empty.
 
 ## Tester
 
@@ -73,7 +73,7 @@ Return only this schema:
 
 Dispatch every cleared implementer in one message, each with its corresponding tester report.
 
-## Review Wave
+## Initial Review Wave
 
 Materialize once per batch:
 
@@ -133,11 +133,12 @@ Return only this schema:
 {fix_report_schema}
 ```
 
-Dispatch file-independent fix groups together. Re-review only the failed lens and changed mechanism. Round limits come from [review synthesis](../../review/reference/synthesis.md).
+Dispatch file-independent fix groups together. Then follow the [targeted re-review protocol](../../review/reference/synthesis.md#46-fix-and-re-review-protocol); never reuse the initial review wave.
 
 ## Gaps and Failures
 
 - Missing repository orientation: return the role's canonical `gap` or `blocked` status before inspecting repository files.
 - Tester gap: consult existing scope evidence, then ask one blocking question if unresolved. Do not broaden the tester budget.
 - Mutating failure: preserve edits and evidence; pause. `/continue` authorizes deliberate redispatch.
-- Reviewer failure: retain successful reports and redispatch only missing configured reports for the same wave.
+- Initial-review failure: retain successful reports and redispatch only missing configured reports for that initial wave.
+- Targeted re-review failure: follow the canonical single replacement attempt; never restore role or execution-class fan-out.

@@ -35,11 +35,23 @@ Anything rejected by the canonical [finding bar](finding-bar.md) becomes `residu
 
 `found_by` count is agreement, not validity. A single verified issue outranks unverified agreement.
 
-### 4.6 Convergence
+### 4.6 Fix and Re-review Protocol
 
-Two fix rounds per subject. A third round opens only for a verified failure mode in a component no prior round examined. Then stop and hand the user the surviving `residual` list with a recommendation instead of dispatching again.
+Initial review fan-out ends at synthesis. A fix round is one grouped mutation wave, the existing focused/native checks once against the combined fixed tree, and one targeted re-review report. Re-review verifies admitted findings; it is never a new review wave.
 
-Open fix rounds for the mechanism groups admitted under the [finding bar](finding-bar.md). Rediscovering an adjacent state three rounds later is a synthesis failure, not a reviewer win.
+For each targeted re-review:
+
+- require exactly one successful configured reviewer total — not one per role, gate, execution class, harness, finding, or fix group;
+- prefer an eligible original finder of the highest-severity surviving issue; otherwise select the first active compatible reviewer in the immutable routing snapshot;
+- assign only the gates represented by the admitted findings and provide their exact IDs and issue records, the fix diff, implicated requirements, and existing validation evidence;
+- ask only whether each recorded trigger still produces its recorded wrong outcome;
+- do not run General, Architecture, or Compliance fan-out and do not search for new findings.
+
+If the selected reviewer fails to produce an eligible report, make at most one replacement attempt: retry that reviewer once or substitute one other compatible reviewer. Never dispatch a set, and accept exactly one successful report. An unrelated observation becomes `residual` and cannot open another fix round.
+
+Two fix rounds maximum per subject. After the second targeted re-review, stop dispatching. Keep surviving admitted findings blocking and hand the user their exact evidence plus a recommendation; never open a third fix or review round.
+
+Open fix rounds for the mechanism groups admitted under the [finding bar](finding-bar.md). Rediscovering an adjacent state later is a synthesis failure, not a reviewer win.
 
 Route an admitted `needs decision:` finding to the user with its forcing constraint; it never enters a fix round.
 

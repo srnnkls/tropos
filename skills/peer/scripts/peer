@@ -11,14 +11,15 @@ AGENTS_DIR="${PEER_AGENTS_DIR:-}"
 command -v yq >/dev/null 2>&1 || { printf '%s\n' "peer: yq not found" >&2; exit 3; }
 [[ -r "$REGISTRY" ]] || { printf '%s\n' "peer: registry not readable at $REGISTRY" >&2; exit 3; }
 
-IDS=(); declare -A HARNESS MODEL ALIAS EFFORT NATIVE PROVIDER WAS PROXY
-while IFS='|' read -r _id _h _m _a _e _n _p _w _x; do
+IDS=(); declare -A HARNESS MODEL ALIAS EFFORT NATIVE PROVIDER WAS PROXY PEERABLE FANOUT_WAS
+while IFS='|' read -r _id _h _m _a _e _n _p _w _x _r _f; do
   [[ -n "$_id" ]] || continue
   IDS+=("$_id")
-  HARNESS[$_id]=$_h; MODEL[$_id]=$_m; ALIAS[$_id]=$_a; EFFORT[$_id]=$_e; PROVIDER[$_id]=$_p; WAS[$_id]=$_w
+  HARNESS[$_id]=$_h; MODEL[$_id]=$_m; ALIAS[$_id]=$_a; EFFORT[$_id]=$_e; PROVIDER[$_id]=$_p; WAS[$_id]=$_w; FANOUT_WAS[$_id]=$_f
   [[ "$_n" == true ]] && NATIVE[$_id]=yes || NATIVE[$_id]=no
   [[ "$_x" == true ]] && PROXY[$_id]=yes || PROXY[$_id]=no
-done < <(yq -r '.reviewers[] | [.id,.harness,.model,.alias,.effort,(.native | tostring),(.provider // ""),((.was // []) | join(",")),((.proxy // false) | tostring)] | join("|")' "$REGISTRY")
+  [[ "$_r" == true ]] && PEERABLE[$_id]=yes || PEERABLE[$_id]=no
+done < <(yq -r '.reviewers[] | [.id,.harness,.model,.alias,.effort,(.native | tostring),(.provider // ""),((.was // []) | join(",")),((.proxy // false) | tostring),((.peer // false) | tostring),((.fanout_was // []) | join(","))] | join("|")' "$REGISTRY")
 
 _peer_resolve() {
   local t=$1 id old
@@ -36,9 +37,36 @@ _peer_resolve() {
   return 1
 }
 
+_peer_resolve_fanout() {
+  local t=$1 id old
+  for id in "${IDS[@]}"; do
+    [[ "$id" == "$t" ]] || continue
+    if [[ ${PEERABLE[$id]} == yes ]]; then
+      printf '%s\n' "$id"
+      return 0
+    fi
+    return 1
+  done
+  for id in "${IDS[@]}"; do
+    [[ ${PEERABLE[$id]} == yes && ${ALIAS[$id]} == "$t" ]] \
+      && { printf '%s\n' "$id"; return 0; }
+  done
+  for id in "${IDS[@]}"; do
+    [[ ${PEERABLE[$id]} == yes ]] || continue
+    IFS=',' read -ra _was <<< "${FANOUT_WAS[$id]},${WAS[$id]}"
+    for old in "${_was[@]}"; do
+      [[ -n "$old" && "$old" == "$t" ]] || continue
+      printf '%s\n' "peer: '$t' is a retired external selector for '$id' (alias ${ALIAS[$id]}) - update the caller" >&2
+      printf '%s\n' "$id"
+      return 0
+    done
+  done
+  return 1
+}
+
 # --- canonical report layout: .peer/<subject>/<run>/<stage>/ -------------------------
 PEER_LAYOUT='.peer/<subject>/<run>/<stage>/'
-PEER_GET_FIELDS='id|model|harness|alias|effort|native|provider|proxy'
+PEER_GET_FIELDS='id|model|harness|alias|effort|native|provider|proxy|peer'
 
 _peer_path_usage() {
   printf '%s\n' "usage: peer path <subject> <stage> [--run <run>] [-C DIR]"
@@ -256,10 +284,11 @@ fi
 
 # --- peer list -----------------------------------------------------------------------
 if [[ "$cmd" == list ]]; then
-  printf '%-18s %-7s %-13s %-24s %-11s %-11s %s\n' PEER-ID HARNESS PROVIDER MODEL ALIAS ROUTABLE RUN-BY-PEER
+  printf '%-24s %-7s %-13s %-24s %-13s %-7s %-7s %s\n' ROUTE-ID HARNESS PROVIDER MODEL ALIAS NATIVE PROXY PEER
   for id in "${IDS[@]}"; do
-    [[ ${NATIVE[$id]} == yes ]] && runnable='no (orchestrator-native)' || runnable=yes
-    printf '%-18s %-7s %-13s %-24s %-11s %-11s %s\n' "$id" "${HARNESS[$id]}" "${PROVIDER[$id]}" "${MODEL[$id]}" "${ALIAS[$id]}" "${PROXY[$id]}" "$runnable"
+    printf '%-24s %-7s %-13s %-24s %-13s %-7s %-7s %s\n' \
+      "$id" "${HARNESS[$id]}" "${PROVIDER[$id]}" "${MODEL[$id]}" "${ALIAS[$id]}" \
+      "${NATIVE[$id]}" "${PROXY[$id]}" "${PEERABLE[$id]}"
   done
   exit 0
 fi
@@ -274,20 +303,23 @@ if [[ "$cmd" == defaults ]]; then
     printf '%s\n' "peer defaults: no default reviewers in $REGISTRY" >&2
     exit 3
   }
-  [[ "${3:-}" == --peer-aliases ]] || printf '%-11s %-12s %s\n' ALIAS EXECUTION PEER-ID
+  [[ "${3:-}" == --peer-aliases ]] || printf '%-11s %-12s %s\n' ALIAS EXECUTION ROUTE-ID
   peer_aliases=()
   while IFS= read -r tok; do
     id=$(_peer_resolve "$tok") || {
       printf '%s\n' "peer defaults: unknown reviewer '$tok' in $REGISTRY" >&2
       exit 3
     }
-    if [[ ${NATIVE[$id]} == yes ]]; then
-      mechanism=native
-    elif [[ ${PROXY[$id]} == yes ]]; then
+    if [[ ${PROXY[$id]} == yes ]]; then
       mechanism=native-proxy
-    else
+    elif [[ ${NATIVE[$id]} == yes ]]; then
+      mechanism=native
+    elif [[ ${PEERABLE[$id]} == yes ]]; then
       mechanism=peer
       peer_aliases+=( "${ALIAS[$id]}" )
+    else
+      printf '%s\n' "peer defaults: reviewer '$tok' has no execution mechanism" >&2
+      exit 3
     fi
     [[ "${3:-}" == --peer-aliases ]] || printf '%-11s %-12s %s\n' "${ALIAS[$id]}" "$mechanism" "$id"
   done <<< "$default_reviewers"
@@ -382,6 +414,7 @@ if [[ "$cmd" == get ]]; then
     native)   printf '%s\n' "${NATIVE[$gid]}" ;;
     provider) printf '%s\n' "${PROVIDER[$gid]}" ;;
     proxy)    printf '%s\n' "${PROXY[$gid]}" ;;
+    peer)     printf '%s\n' "${PEERABLE[$gid]}" ;;
     *) printf '%s\n' "peer get: unknown field '$field' ($PEER_GET_FIELDS)" >&2; exit 2 ;;
   esac
   exit 0
@@ -437,16 +470,16 @@ if [[ "$cmd" != codex && "$cmd" != pi && "$cmd" != claude ]]; then
   if [[ -n "$peers" ]]; then
     IFS=',' read -ra want <<< "$peers"
   else
-    for id in "${IDS[@]}"; do [[ ${NATIVE[$id]} == no ]] && want+=( "$id" ); done
+    for id in "${IDS[@]}"; do [[ ${PEERABLE[$id]} == yes ]] && want+=( "$id" ); done
   fi
 
   for tok in "${want[@]}"; do
-    id=$(_peer_resolve "$tok") || { printf '%s\n' "peer: unknown peer '$tok' (see: peer list)" >&2; exit 2; }
-    if [[ ${NATIVE[$id]} == yes ]]; then
-      printf '%s\n' "peer: '$id' is orchestrator-native — spawn it through the host's native subagent API, skipping here" >&2
+    if id=$(_peer_resolve_fanout "$tok"); then
+      selected+=( "$id" )
       continue
     fi
-    selected+=( "$id" )
+    id=$(_peer_resolve "$tok") || { printf '%s\n' "peer: unknown peer '$tok' (see: peer list)" >&2; exit 2; }
+    printf '%s\n' "peer: '$id' is not peer-dispatchable — use its native route, skipping here" >&2
   done
 
   if [[ "$agent" == tester || "$agent" == implementer ]] && (( ${#selected[@]} != 1 )); then

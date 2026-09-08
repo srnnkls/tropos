@@ -28,7 +28,7 @@ batch_reviews:
     tasks: [T001, T002]
     routing_epoch: 20260829T120000Z-a1b2c3
     reviewers:
-      - id: general-opus
+      - id: general-claude-opus
         execution_class: native
         effort: high
         status: success | timeout | failed
@@ -44,7 +44,7 @@ issues:
     batch: 1
     task: T001
     finding: "Exact admitted issue record from ../../review/reference/report.md"
-    found_by: [general-opus]
+    found_by: [general-claude-opus]
     status: open | resolved | deferred | residual | needs_decision
     resolution: null
 

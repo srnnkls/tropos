@@ -25,7 +25,7 @@ Install: `mise run install-peer` links the runner, base roles, and current gener
 
 ## Harness and role loading
 
-`peer list` and `peer get` render the current harness, provider, model, alias, effort, native status, and proxy capability from the registry. `peer defaults reviewers` renders the default reviewer ensemble and each execution mechanism. The [routing contract](reference/routing.md) owns their interpretation.
+`peer list` and `peer get` render the current route ID, harness, provider, model, alias, effort, and independent native, proxy, and peer capabilities from the registry. `peer defaults reviewers` renders the default reviewer ensemble and each execution mechanism. The [routing contract](reference/routing.md) owns their interpretation.
 
 For role dispatch, Codex, Pi, and Claude receive the same Markdown base-role body plus any harness-specific shim. `peer` resolves that body from the target working tree first and the installed source second. It also materializes fresh repository orientation before the harness starts; orientation failure blocks dispatch.
 

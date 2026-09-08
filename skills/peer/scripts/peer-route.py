@@ -50,11 +50,20 @@ def peers_by_key(registry: dict) -> dict[str, dict]:
         index[entry["id"]] = entry
         if entry.get("alias"):
             index[entry["alias"]] = entry
+        for retired in entry.get("was") or []:
+            index[retired] = entry
     return index
 
 
 def routing_defaults(registry: dict) -> dict[str, str]:
     return dict(registry.get("routing") or {})
+
+
+def override_entry(registry: dict, index: dict[str, dict], value: str) -> dict | None:
+    for entry in registry.get("reviewers") or []:
+        if value in (entry.get("override_was") or []):
+            return entry
+    return index.get(value)
 
 
 def override_path(workdir: str) -> str:
@@ -86,7 +95,7 @@ def resolve(registry: dict, workdir: str) -> dict[str, Route]:
     for role, value in read_override(workdir).items():
         if role not in resolved:
             continue
-        entry = index.get(value)
+        entry = override_entry(registry, index, value)
         resolved[role] = Route(entry["id"] if entry else value, "override")
     return resolved
 
@@ -235,18 +244,20 @@ def route_status(
     peer = peers_by_key(registry).get(route.peer_id)
     if not peer:
         return "inactive: unknown peer"
+    if peer.get("proxy"):
+        base_url = os.environ.get("ANTHROPIC_BASE_URL")
+        if not base_url:
+            return "inactive: no proxy configured"
+        if not proxy_is_up(base_url):
+            return "inactive: proxy unreachable"
+        return definition_status(agents_dir, role, peer, effort)
     if peer.get("native"):
         if peer.get("harness") != "claude":
             return "inactive: native to another host"
         return definition_status(agents_dir, role, None, effort) if effort else "active"
-    if not peer.get("proxy"):
-        return "inactive: not proxy-served"
-    base_url = os.environ.get("ANTHROPIC_BASE_URL")
-    if not base_url:
-        return "inactive: no proxy configured"
-    if not proxy_is_up(base_url):
-        return "inactive: proxy unreachable"
-    return definition_status(agents_dir, role, peer, effort)
+    if peer.get("peer"):
+        return "inactive: peer-dispatch only"
+    return "inactive: no Claude Code capability"
 
 
 def cmd_show(registry: dict, workdir: str, agents_dir: str) -> int:
@@ -318,7 +329,7 @@ def cmd_set(registry: dict, workdir: str, assignments: list[str]) -> int:
                 entry.get("native") and entry.get("harness") == "claude"
             ):
                 sys.stderr.write(
-                    f"peer route set: '{value}' is not a Claude Code route\n"
+                    f"peer route set: '{value}' has no Claude Code native or proxy capability\n"
                 )
                 return 2
         pending[role] = index[value]["id"] if value in index else value
@@ -386,12 +397,12 @@ def cmd_hook(registry: dict, workdir: str, agents_dir: str) -> int:
         return 0
 
     peer = peers_by_key(registry)[routed.peer_id]
-    if peer.get("native"):
-        target = role
-        updated = {**tool_input, "model": peer["alias"]}
-    else:
+    if peer.get("proxy"):
         target = f"{role}-{peer['alias']}"
         updated = {**tool_input, "subagent_type": target}
+    else:
+        target = role
+        updated = {**tool_input, "model": peer["alias"]}
 
     sys.stderr.write(
         f"peer route: {role} -> {target} ({peer['model']}, {routed.source})\n"

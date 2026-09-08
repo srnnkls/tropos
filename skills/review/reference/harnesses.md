@@ -17,9 +17,9 @@ Commands and workdirs supplement the embedded artifact; they never replace it. S
 
 ## Concurrent Dispatch
 
-For implementation-owned review, launch every role's native agents and external fan-out in one assistant message. Standalone review launches all selected agents the same way. Resolve each selected alias through [peer routing](../../peer/reference/routing.md); do not restate or infer its mechanism here.
+For implementation-owned initial review, launch every role's native agents and external fan-out in one assistant message. Standalone review launches all selected agents the same way. Resolve each selected alias through [peer routing](../../peer/reference/routing.md); do not restate or infer its mechanism here.
 
-Implementation batch and integration review use the immutable batch routing snapshot, one shared run ID, and one fan-out per role. Standalone review uses its selected review configuration.
+Implementation batch and integration review use the immutable batch routing snapshot, one shared run ID, and one fan-out per role. Standalone review uses its selected review configuration. Post-fix verification is excluded from this fan-out and follows the targeted re-review protocol in [review synthesis](synthesis.md#46-fix-and-re-review-protocol).
 
 ## Results
 
@@ -30,8 +30,9 @@ Result eligibility depends on the dispatch owner:
 - An ad-hoc standalone review may synthesize available reports when at least one succeeds and must disclose missing coverage.
 - An issue-authoring gate requires one successful report from every execution class in its explicit selection or the live default reviewer ensemble.
 - A configured scope review requires one successful report from every execution class selected by `validation.yaml.review_config` after resolution against live routing.
-- An implementation-owned review requires one successful report from every execution class in the immutable batch snapshot.
+- An implementation-owned initial or integration review requires one successful report from every execution class in the immutable batch snapshot.
+- A post-fix targeted re-review accepts exactly one successful compatible reviewer report under the [canonical fix protocol](synthesis.md#46-fix-and-re-review-protocol); it has no per-class minimum.
 
 No mode proceeds with zero successful reports or requires a class absent from its configuration source.
 
-Malformed output is a failed report. Retain its raw snippet and deliberately redispatch the missing class for the same wave; never weaken the class minimum.
+Malformed output is a failed report. For a class-gated wave, retain its raw snippet and deliberately redispatch the missing class; never weaken that wave's class minimum. For targeted re-review, retain the snippet and use only the canonical single replacement attempt.

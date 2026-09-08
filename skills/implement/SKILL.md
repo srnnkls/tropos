@@ -80,13 +80,13 @@ Apply the [canonical RED gate](../test/SKILL.md#red). Return invalid evidence to
 
 Dispatch one fresh configured implementer with the task requirements and tester report. After it returns, verify the focused command and directly affected native validation in one batched tool round, combining compatible selectors. Refactor only the changed mechanism.
 
-### Phase C: Review
+### Phase C: Initial Review
 
 Materialize the diff, requirements, report schema, finding bar, bounded Gestalt context, and applicable Loqui excerpts once. In one message, dispatch all configured reviewers for General, Architecture, and Compliance. Wait once and synthesize once.
 
-Apply [review synthesis](../review/reference/synthesis.md) for admission, grouping, fixes, `needs decision`, re-review, and round limits.
+Apply [review synthesis](../review/reference/synthesis.md) for admission, grouping, fixes, `needs decision`, re-review, and round limits. A post-fix re-review follows its targeted protocol and never re-enters Phase C.
 
-Phase C plus final native validation completes a single-task run. Do not launch a duplicate final review.
+Once review clears, Phase C plus final native validation completes a single-task run. Do not launch a duplicate final review.
 
 ## Scope Pipeline
 
@@ -95,7 +95,7 @@ Phase C plus final native validation completes a single-task run. Do not launch 
 1. all ready testers concurrently;
 2. one RED gate;
 3. all cleared implementers concurrently;
-4. all review roles and reviewer routes concurrently.
+4. one initial review wave with all review roles and reviewer routes concurrently.
 
 No serial dispatch is allowed inside a boundary unless one result changes another prompt.
 

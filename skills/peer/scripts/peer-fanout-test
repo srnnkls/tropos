@@ -19,6 +19,8 @@ reviewers:
     alias: model-known
     effort: "-"
     native: false
+    peer: true
+    fanout_was: [legacy-known]
   - id: model-absent
     harness: pi
     provider: stubprov
@@ -26,6 +28,7 @@ reviewers:
     alias: model-absent
     effort: "-"
     native: false
+    peer: true
   - id: model-renamed
     harness: codex
     model: some-model
@@ -33,6 +36,7 @@ reviewers:
     was: [old-id, old-alias]
     effort: high
     native: false
+    peer: true
 defaults:
   pi: model-known
 REG
@@ -124,7 +128,7 @@ fanout_run=$("$PEER" run-id)
 run() {
   local dir; dir=$("$PEER" path fanout "$1" --run "$fanout_run" -C "$tmp")
   STUB_MODE="$1" PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
-    "$PEER" -d "$dir" --peers model-known,model-absent --cap 30 'ping' 2>/dev/null
+    "$PEER" -d "$dir" --peers legacy-known,model-absent --cap 30 'ping' 2>/dev/null
 }
 
 want_row() {
@@ -142,7 +146,7 @@ want_row 'sibling of an errno denial is not reported as misconfig' "$denied" "$(
 
 clean=$(run clean)
 want_row 'genuine misconfig survives an unrestricted run' "$clean" "$(printf 'model-absent\tmisconfig')"
-want_row 'healthy peer still reports ok'                  "$clean" "$(printf 'model-known\tok')"
+want_row 'retired external selector dispatches its healthy peer route' "$clean" "$(printf 'model-known\tok')"
 
 server=$(run server_403)
 want_row 'server-side PERMISSION_DENIED stays an auth fault' "$server" "$(printf 'model-known\tauth')"

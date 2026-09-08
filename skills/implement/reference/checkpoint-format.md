@@ -24,12 +24,12 @@ checkpoint:
 
   routing_snapshot:
     epoch_id: 20260829T120000Z-a1b2c3
-    tester: {agent: opus, effort: inherit, class: native}
-    implementer: {agent: gpt, effort: high, class: native}
+    tester: {agent: claude-opus, effort: inherit, class: native}
+    implementer: {agent: claude-gpt5.6-sol, effort: high, class: native-proxy}
     reviewer:
       agents:
-        - {alias: opus, effort: high, class: native}
-        - {alias: gemini, effort: high, class: external}
+        - {agent: claude-opus, effort: high, class: native}
+        - {agent: peer-gemini-3.7-flash, effort: high, class: peer}
 
   reports:
     tester: {T003: .peer/auth-system/<run>/b3-tester-T003}
@@ -42,7 +42,7 @@ checkpoint:
   in_flight_mutations:
     - task: T003
       phase: green
-      agent: gpt
+      agent: claude-gpt5.6-sol
       report_dir: .peer/auth-system/<run>/b3-implementer-T003
       status: in_progress | failed
       evidence:

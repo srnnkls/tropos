@@ -4,7 +4,7 @@ Canonical interpretation of the live peer registry and native/external dispatch.
 
 ## Registry
 
-`skills/peer/scripts/reviewers.yaml` is the sole source of peer identity, harness, provider, model, alias, default effort, native status, proxy availability, and the default reviewer ensemble. Read entries through `peer list` and `peer get`; read the resolved default ensemble through `peer defaults reviewers`. Never infer behavior from an alias or hardcode model strings.
+`skills/peer/scripts/reviewers.yaml` is the sole source of route identity, harness, provider, model, alias, default effort, native capability, proxy capability, peer capability, and the default reviewer ensemble. Read entries through `peer list` and `peer get`; read the resolved default ensemble through `peer defaults reviewers`. Never infer behavior from an alias or hardcode model strings.
 
 ## Default reviewers
 
@@ -14,23 +14,25 @@ Unless a caller supplies an explicit reviewer configuration, use every entry fro
 
 | Host | Native route | Generated in-harness route | External route |
 |---|---|---|---|
-| Claude Code | session inheritance or a registry entry marked native | any active registry entry marked `proxy: true` | registered peer harness |
-| Codex | `codex-native` with inherited session settings | — | registered peer harness |
+| Claude Code | session inheritance or a `claude-*` route marked native | an active `claude-*` route marked proxy | a `peer-*` route |
+| Codex | session inheritance or a `codex-*` route marked native | — | a `peer-*` route |
 
 Claude Code treats native and proxy-served models as first-class role routes. The live registry identifies their model families and providers; availability comes from `peer route show` and `peer route check`, never from family assumptions.
 
 Reject same-family loopback, unknown aliases, inactive generated definitions, and unsupported efforts. Never silently convert one execution mechanism into another.
 
-A caller may explicitly require an execution class. In that case, validate the class against live metadata: a compatible cross-family entry with `RUN-BY-PEER=yes` may run externally even when it is also `ROUTABLE=yes`. Persist or state that class constraint; it is an intentional selection, never fallback from an inactive native route.
+A caller may explicitly require an execution class. Validate it against the `NATIVE`, `PROXY`, and `PEER` columns from `peer list`; persist the selected route ID so the mechanism remains explicit. Never substitute a sibling route when the selected mechanism is unavailable.
 
-`codex-native` is a persisted delegation token, never a peer alias. `opus` and `sonnet` are Claude-native aliases; external Claude CLI routes use distinct registry aliases such as `opus-peer` and `sonnet-peer`.
+Route IDs encode the execution owner: `codex-*` runs through native Codex delegation, `claude-*` through Claude Code, and `peer-*` through the external harness. Aliases are command conveniences, not persisted route identity.
+
+Registry `override_was` and `fanout_was` values are migration-only. They normalize old persisted Claude overrides and old external aliases in those contexts; new state stores the current route ID. An exact current route ID always keeps its encoded execution owner.
 
 ## Dispatch
 
-- Codex native: use the host's native delegation and inherit session model/effort.
+- Codex native: delegate through the selected `codex-*` route, or inherit the session model and effort.
 - Claude native: `Task(subagent_type="<role>", model="<alias>", prompt=...)`.
-- Routable proxy alias: by default, after a successful route check, use `Task(subagent_type="<role>-<alias>[-<effort>]", prompt=...)` without a model argument. An explicit external-class constraint uses the external form instead.
-- External alias: use `peer -C <workdir> -d <outdir> --agent <role> --peers <aliases> --effort <effort> --prompt-file <outdir>/prompt.md`.
+- Claude proxy route: after a successful route check, use `Task(subagent_type="<role>-<alias>[-<effort>]", prompt=...)` without a model argument.
+- Peer route: use `peer -C <workdir> -d <outdir> --agent <role> --peers <peer-aliases> --effort <effort> --prompt-file <outdir>/prompt.md`.
 
 Use one external call per mutating task so partial writes remain attributable. Review may fan out compatible external aliases once per role; start those fan-outs with all native role Tasks in the same assistant message.
 
@@ -49,7 +51,7 @@ Task has no effort argument. Native non-inherited effort is encoded in a generat
 <role>-<alias>-<effort>
 ```
 
-The level must appear in registry `efforts:`. A peer route receives the same level through `--effort`; `codex-native` accepts only `inherit`. One reviewer effort must be supported by every selected external peer.
+The level must appear in registry `efforts:`. A peer route receives the same level through `--effort`; an inherited native route keeps the host session effort. One reviewer effort must be supported by every selected peer route.
 
 A `<role>-<effort>` definition has no model, so a Claude-native model can combine with that level through `Task(model=...)`. Proxy aliases carry their model in `<role>-<alias>[-<effort>]` and therefore receive no model argument.
 
