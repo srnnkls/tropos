@@ -4,19 +4,39 @@ description: |
   Agent-routing utility (`peer` bash tool): role-aware external dispatch plus Claude Code native/proxy route discovery through a canonical model registry, working-directory control, idle-stall watchdog, and reviewer fan-out. Use from implement, review, continue, or loop pipelines — call `peer` or its positional harness form instead of `codex exec` or `pi` directly.
 metadata:
   type: generic
+henia:
+  variables:
+    context_commands:
+      - label: Available peers
+        command: >-
+          peer list 2>/dev/null || true
+      - label: Default reviewers
+        command: >-
+          peer defaults reviewers 2>/dev/null || true
+      - label: Resolved routes
+        command: >-
+          peer route show -C . 2>/dev/null || true
+  targets:
+    codex:
+      openai:
+        interface:
+          display_name: Peer routing
+          short_description: Resolve agent routes and dispatch external peers
+          default_prompt: "Use $peer to resolve routes and dispatch the selected peers."
 ---
 
-## Pre-loaded Context
+<!-- Generated from skills/peer/SKILL.md by henia build; edit the canonical source. -->
 
-Available peers:
-!`peer list 2>/dev/null || true`
+## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
-Default reviewers:
-!`peer defaults reviewers 2>/dev/null || true`
+{{.context_instruction}}
 
-Resolved routes:
-!`peer route show -C . 2>/dev/null || true`
+{{range .context_commands}}{{.label}}:
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{.command}}
+```{{end}}
 
+{{end}}
 # peer
 
 `peer` ships at `skills/peer/scripts/peer`.
@@ -113,6 +133,7 @@ these properties.
 
 Run `peer --help` for the positional Codex, Pi, and Claude forms. They remain compatibility interfaces; registry-driven callers use the fan-out interface and [routing contract](reference/routing.md). Exit status follows the failure-classification table.
 
+:::instruction{priority=high}
 ## Dispatch contract for skills
 
 Resolve every selected mechanism through the canonical [routing contract](reference/routing.md). Composition belongs to the caller; peer never requires a paired native spawn.
@@ -124,6 +145,7 @@ void a substantive report solely because its self-declared id is wrong. Because 
 prompts must include any command-only context they need—especially a materialized diff,
 requirements, and the required report schema. They can still inspect repository files
 with read, search, find, and list tools.
+:::
 
 ## Report triage
 

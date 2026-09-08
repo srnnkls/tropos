@@ -1,0 +1,6 @@
+[[lint.rules]]
+id = "probe"
+select = "document"
+assert = "true"
+message = "Probe."
+when = "int(frontmatter.missing) > 0"

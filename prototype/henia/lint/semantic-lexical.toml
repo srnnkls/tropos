@@ -1,0 +1,7 @@
+[lint]
+duplicate_similarity = 0.7
+duplicate_min_words = 4
+[lint.semantic]
+enabled = true
+model_path = "absent-model"
+threshold = 0.35

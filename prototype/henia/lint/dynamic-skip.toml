@@ -1,0 +1,43 @@
+
+[[lint.rules]]
+id = "dynamic-document"
+select = "document"
+assert = "false"
+message = "Observed document."
+
+[[lint.rules]]
+id = "dynamic-frontmatter"
+select = "frontmatter"
+assert = "false"
+message = "Observed frontmatter."
+when = 'node.name == "description_dynamic"'
+
+[[lint.rules]]
+id = "dynamic-directive"
+select = "directive"
+assert = "false"
+message = "Observed directive."
+
+[[lint.rules]]
+id = "dynamic-heading"
+select = "heading"
+assert = "false"
+message = "Observed heading."
+
+[[lint.rules]]
+id = "dynamic-paragraph"
+select = "paragraph"
+assert = "false"
+message = "Observed paragraph."
+
+[[lint.rules]]
+id = "dynamic-link"
+select = "link"
+assert = "false"
+message = "Observed link."
+
+[[lint.rules]]
+id = "dynamic-image"
+select = "image"
+assert = "false"
+message = "Observed image."

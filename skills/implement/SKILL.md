@@ -1,37 +1,61 @@
 ---
 name: implement
 description: Strict delegated RED → GREEN → review workflow. Use only when explicitly invoked for a task, scope, verification, or debugging.
-argument-hint: "[target]"
-allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(gh *), Bash(peer *)
 metadata:
   type: generic
+henia:
+  variables:
+    context_commands:
+      - label: Active scopes
+        command: >-
+          find scopes -maxdepth 3 -name scope.md 2>/dev/null || true
+      - label: Checkpoints
+        command: >-
+          find scopes -name checkpoint.yaml -maxdepth 3 2>/dev/null || true
+      - label: Git status
+        command: >-
+          git status --short 2>/dev/null || true
+      - label: Current branch
+        command: >-
+          git branch --show-current 2>/dev/null || true
+      - label: Default reviewers
+        command: >-
+          peer defaults reviewers 2>/dev/null || true
+      - label: Resolved routes
+        command: >-
+          peer route show -C . 2>/dev/null || true
+  targets:
+    claude:
+      frontmatter:
+        argument-hint: "[target]"
+        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(gh *), Bash(peer *)
+    codex:
+      openai:
+        interface:
+          display_name: Strict implementation
+          short_description: Run delegated RED, GREEN, and review gates
+          default_prompt: "Use $implement to implement the requested task with delegated gates."
 ---
 
-## Pre-loaded Context
+<!-- Generated from skills/implement/SKILL.md by henia build; edit the canonical source. -->
 
-Active scopes:
-!`find scopes -maxdepth 3 -name scope.md 2>/dev/null || true`
+## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
-Checkpoints:
-!`find scopes -name checkpoint.yaml -maxdepth 3 2>/dev/null || true`
+{{.context_instruction}}
 
-Git status:
-!`git status --short 2>/dev/null || true`
+{{range .context_commands}}{{.label}}:
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{.command}}
+```{{end}}
 
-Current branch:
-!`git branch --show-current 2>/dev/null || true`
-
-Default reviewers:
-!`peer defaults reviewers 2>/dev/null || true`
-
-Resolved routes:
-!`peer route show -C . 2>/dev/null || true`
-
+{{end}}
 # Strict Implementation
 
-Explicit `/implement` is the high-assurance path. Ordinary requests do not enter it automatically.
+:::instruction{priority=high}
+Explicit `$implement` is the high-assurance path. Ordinary requests do not enter it automatically.
 
 The orchestrator coordinates and verifies. Fresh subagents write tests and production code. Every task follows RED → GREEN → review; no independent pre-implementation test-review phase exists.
+:::
 
 ## Routes
 
@@ -101,7 +125,7 @@ No serial dispatch is allowed inside a boundary unless one result changes anothe
 
 ## Failure and Recovery
 
-For a failed or interrupted mutating subagent, preserve partial edits and record the relevant status, diff, report directory, and failure. Do not auto-retry, roll back, or advance. `/continue` is deliberate redispatch authorization for the exact recorded wave.
+For a failed or interrupted mutating subagent, preserve partial edits and record the relevant status, diff, report directory, and failure. Do not auto-retry, roll back, or advance. `$continue` is deliberate redispatch authorization for the exact recorded wave.
 
 Reviewer failures apply the [canonical result-eligibility gate](../review/reference/harnesses.md#results).
 

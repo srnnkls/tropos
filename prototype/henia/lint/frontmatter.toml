@@ -1,0 +1,6 @@
+[[lint.rules]]
+id = "frontmatter-probe"
+select = "frontmatter"
+when = 'node.name == "description"'
+assert = "false"
+message = "Description visited."

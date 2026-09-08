@@ -8,3 +8,8 @@ __pycache__/
 /agents/reviewer-*.md
 /agents/tester-*.md
 skills/loqui/reference/loqui
+/.henia/
+/.claude/
+/.codex/
+/prototype/henia/stage/phora.lock
+/prototype/henia/deploy/phora.lock

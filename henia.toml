@@ -1,0 +1,22 @@
+artifacts = ["skills"]
+
+[build]
+output = ".henia/build"
+
+[harness.claude]
+profile = "claude"
+format = "xml"
+strict = true
+
+[harness.claude.variables]
+preload_context = "true"
+context_instruction = ""
+
+[harness.codex]
+profile = "codex"
+format = "directives"
+strict = true
+
+[harness.codex.variables]
+preload_context = "false"
+context_instruction = "Run these commands with the shell tool before applying the workflow; use their output as context."
