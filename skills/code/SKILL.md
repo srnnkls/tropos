@@ -1,40 +1,64 @@
 ---
 name: code
 description: Code domain context for explicit implementation, review, and test workflows.
-argument-hint: "[operation] [target]"
 metadata:
   type: domain
+henia:
+  variables:
+    context_commands:
+      - label: Git status
+        command: >-
+          git status --short 2>/dev/null || true
+      - label: Languages detected
+        command: >-
+          find . -maxdepth 3 -name "*.py" -o -name "*.go" -o -name "*.rs" -o -name "*.ts" -o -name "*.js" 2>/dev/null
+  targets:
+    claude:
+      frontmatter:
+        argument-hint: "[operation] [target]"
+    codex:
+      openai:
+        interface:
+          display_name: Code workflows
+          short_description: Route implementation, review, and test workflows
+          default_prompt: "Use $code to select an explicit code workflow."
 ---
 
-## Pre-loaded Context
+<!-- Generated from skills/code/SKILL.md by henia build; edit the canonical source. -->
 
-Git status:
-!`git status --short 2>/dev/null || true`
+## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
-Languages detected:
-!`find . -maxdepth 3 -name "*.py" -o -name "*.go" -o -name "*.rs" -o -name "*.ts" -o -name "*.js" 2>/dev/null`
+{{.context_instruction}}
 
+{{range .context_commands}}{{.label}}:
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{.command}}
+```{{end}}
+
+{{end}}
 # Code Domain
 
 Compose generic workflows with code-specific Gestalt navigation, language guidance, and review lenses.
 
+:::instruction{priority=high}
 ## Routes
 
 | Argument | Action |
 |---|---|
-| `implement <target>` | `Skill(implement, <target>)` with code context |
-| `review <target>` | `Skill(review, <target>)` with code review roles |
-| `test <target>` | `Skill(test, <target>)` with local test conventions |
+| `implement <target>` | Invoke `$implement` with `<target>` and code context |
+| `review <target>` | Invoke `$review` with `<target>` and code review roles |
+| `test <target>` | Invoke `$test` with `<target>` and local test conventions |
 | Missing | Ask which explicit operation to run |
 
 No operation is inferred from an ordinary task outside explicit skill invocation.
+:::
 
 ## Implementation Context
 
 - Apply the repository-orientation contract in [AGENTS.md](../../instructions/AGENTS.md#tools-and-context).
 - Use named `gestalt callers`, `callees`, or `refs` only when a changed symbol's immediate relationship is unresolved.
 - Load the Loqui README once per language when language behavior, APIs, or unfamiliar style choices are material. Read only topic files needed by the change.
-- Follow direct execution unless explicit `/implement` activated the strict delegated pipeline.
+- Follow direct execution unless explicit `$implement` activated the strict delegated pipeline.
 
 ## Test Context
 

@@ -1,0 +1,5 @@
+[[lint.rules]]
+id = "probe"
+select = "document"
+assert = "node.unknown == 1"
+message = "Probe."

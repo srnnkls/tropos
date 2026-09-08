@@ -1,0 +1,6 @@
+[lint]
+duplicate_min_words = 4
+[lint.semantic]
+enabled = true
+model_path = "/Users/srnnkls/.cache/huggingface/hub/models--minishlab--potion-retrieval-32M/snapshots/6fc8051fab2a1e0ee76689cf08c853792ac285e7"
+threshold = 0.35

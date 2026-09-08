@@ -1,0 +1,17 @@
+version = 1
+
+[paths]
+cache = "../../../.henia/phora/cache"
+state = "../../../.henia/phora/state"
+
+[sources.canonical]
+path = "../../../.henia/input"
+include = ["skills/code/**/*", "skills/implement/**/*", "skills/review/**/*", "skills/peer/**/*", "skills/test/**/*", "agents/tester.md", "agents/implementer.md", "agents/reviewer.md", "instructions/AGENTS.md"]
+
+[targets.canonical]
+path = "../../../.henia/canonical"
+layout = "flat"
+sources = ["canonical"]
+
+[hooks]
+post_sync = "python3 ../../../prototype/henia/deploy.py build"

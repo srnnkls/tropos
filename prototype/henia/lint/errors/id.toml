@@ -1,0 +1,5 @@
+[[lint.rules]]
+id = "Bad_ID"
+select = "document"
+assert = "true"
+message = "Probe."

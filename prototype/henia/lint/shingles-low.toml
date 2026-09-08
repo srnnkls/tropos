@@ -1,0 +1,4 @@
+[lint]
+duplicate_min_words = 2
+duplicate_shingle_words = 2
+duplicate_similarity = 0.3

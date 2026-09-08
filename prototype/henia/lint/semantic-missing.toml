@@ -1,0 +1,6 @@
+[lint]
+duplicate_min_words = 4
+[lint.semantic]
+enabled = true
+model_path = "absent-model"
+threshold = 0.35

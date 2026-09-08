@@ -1,0 +1,23 @@
+version = 1
+
+[paths]
+cache = "../../../.henia/phora/cache"
+state = "../../../.henia/phora/state"
+
+[sources.claude-build]
+path = "../../../.henia/build/claude"
+include = ["skills/**", "agents/**", "instructions/**", "GENERATED.md"]
+
+[sources.codex-build]
+path = "../../../.henia/build/codex"
+include = ["skills/**", "agents/**", "instructions/**", "GENERATED.md"]
+
+[targets.claude]
+path = "../../../.claude"
+layout = "flat"
+sources = ["claude-build"]
+
+[targets.codex]
+path = "../../../.codex"
+layout = "flat"
+sources = ["codex-build"]
