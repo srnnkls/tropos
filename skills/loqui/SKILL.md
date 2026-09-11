@@ -1,7 +1,7 @@
 ---
 name: loqui
 description: |
-  Access language-specific coding guidelines from loqui. Use when implementing code and needing patterns, style guidance, or best practices for Python, Go, Rust, Bash, or Emacs Lisp.
+  Access language-specific coding guidelines from loqui. Use when implementing code and needing patterns, style guidance, or best practices for Python, Go, Rust, Zig, Bash, or Emacs Lisp.
 metadata:
   type: generic
 ---
@@ -14,13 +14,15 @@ Language guidelines for writing code with eloquence and style.
 
 ## Location
 
-Loqui resources are in this skill's directory:
+Resolve resources relative to the directory containing this `SKILL.md`:
 
 ```
-~/.claude/skills/loqui/reference/loqui/languages/{language}/
+reference/loqui/languages/{language}/
 ```
 
-Use Read (not Glob) to access — paths outside cwd require direct reads.
+This works through the dotfiles deployment in Claude, Codex, and other harnesses. Read the relevant
+language README first, then follow its topic links. If `reference/loqui` is missing, restore the
+reference using dotfiles deployment or tropos's `mise run loqui-link --path /path/to/loqui` task.
 
 ---
 
@@ -28,11 +30,12 @@ Use Read (not Glob) to access — paths outside cwd require direct reads.
 
 | Language | Path |
 |----------|------|
-| Python | `~/.claude/skills/loqui/reference/loqui/languages/python/` |
-| Go | `~/.claude/skills/loqui/reference/loqui/languages/go/` |
-| Rust | `~/.claude/skills/loqui/reference/loqui/languages/rust/` |
-| Bash | `~/.claude/skills/loqui/reference/loqui/languages/bash/` |
-| Emacs Lisp | `~/.claude/skills/loqui/reference/loqui/languages/elisp/` |
+| Python | `reference/loqui/languages/python/` |
+| Go | `reference/loqui/languages/go/` |
+| Rust | `reference/loqui/languages/rust/` |
+| Zig | `reference/loqui/languages/zig/` |
+| Bash | `reference/loqui/languages/bash/` |
+| Emacs Lisp | `reference/loqui/languages/elisp/` |
 
 ---
 
@@ -50,7 +53,9 @@ Each language directory follows this structure:
 └── ...              # Additional language-specific resources
 ```
 
-Start with the README for quick reference and core principles.
+Start with the README for the working model, priorities, invariants, and topic map. For Zig async/I/O,
+read `reference/loqui/languages/zig/async-io.md` and verify APIs against the consuming project's
+pinned compiler; do not substitute remembered APIs from another Zig release.
 
 ---
 
