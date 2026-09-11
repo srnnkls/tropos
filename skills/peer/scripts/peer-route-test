@@ -119,7 +119,7 @@ expected_shipped_defaults=$(printf '%-11s %-12s %s\n' \
   ALIAS EXECUTION ROUTE-ID \
   gpt native-proxy claude-gpt5.6-sol \
   opus native claude-opus \
-  gemini peer peer-gemini-3.7-flash)
+  astra peer peer-gpt6-astra)
 { (( shipped_defaults_rc == 0 )) && [[ "$shipped_defaults" == "$expected_shipped_defaults" ]]; } \
   && ok 'default reviewers name explicit routes and mechanisms' \
   || bad 'default reviewers name explicit routes and mechanisms' \
@@ -340,10 +340,10 @@ want_ok 'check clears a proxy route whose proxy answers' 0 -- \
 want_ok 'check fails a proxy route whose proxy is unreachable' 1 -- \
   env ANTHROPIC_BASE_URL="$DOWN" "$PEER" route check tester=gpt -C "$repo"
 want_ok 'check fails a peer route that is not proxy-served' 1 -- \
-  env ANTHROPIC_BASE_URL="$UP" "$PEER" route check tester=gemini -C "$repo"
+  env ANTHROPIC_BASE_URL="$UP" "$PEER" route check tester=peer-opus -C "$repo"
 want_out 'check resolves a retired route name before reporting its capability' \
   'tester.*inactive: peer-dispatch only' -- \
-  env ANTHROPIC_BASE_URL="$UP" "$PEER" route check tester=gemini-3.7-flash -C "$repo"
+  env ANTHROPIC_BASE_URL="$UP" "$PEER" route check tester=opus-peer -C "$repo"
 want_ok 'check rejects an unknown role' 2 -- \
   env ANTHROPIC_BASE_URL="$UP" "$PEER" route check nonsense=gpt -C "$repo"
 

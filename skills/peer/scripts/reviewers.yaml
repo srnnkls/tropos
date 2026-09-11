@@ -88,24 +88,6 @@ reviewers:
     effort: high
     native: false
     peer: true
-  - id: peer-gemini-3.7-flash
-    harness: pi
-    provider: google-vertex
-    model: gemini-3.7-flash
-    alias: gemini
-    was: [gemini-3.7-flash]
-    effort: "-"
-    native: false
-    peer: true
-  - id: peer-glm-5.2
-    harness: pi
-    provider: openrouter
-    model: openrouter/z-ai/glm-5.2
-    alias: glm
-    was: [glm-5.2]
-    effort: high
-    native: false
-    peer: true
   - id: claude-opus
     harness: claude
     provider: anthropic
@@ -148,12 +130,5 @@ routing:
 
 efforts: [medium, high, xhigh]
 
-providers:
-  openrouter:
-    thinking: true
-  google-vertex:
-    thinking: true
-
 defaults:
-  pi: peer-gemini-3.7-flash
-  reviewers: [claude-gpt5.6-sol, claude-opus, peer-gemini-3.7-flash]
+  reviewers: [claude-gpt5.6-sol, claude-opus, peer-gpt6-astra]
