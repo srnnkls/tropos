@@ -29,7 +29,7 @@ checkpoint:
     reviewer:
       agents:
         - {agent: claude-opus, effort: high, class: native}
-        - {agent: peer-gemini-3.7-flash, effort: high, class: peer}
+        - {agent: peer-gpt6-astra, effort: high, class: peer}
 
   reports:
     tester: {T003: .peer/auth-system/<run>/b3-tester-T003}
