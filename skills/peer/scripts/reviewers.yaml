@@ -122,6 +122,14 @@ reviewers:
     effort: high
     native: false
     peer: true
+  - id: peer-fable
+    harness: claude
+    provider: anthropic
+    model: claude-fable-5-1
+    alias: fable
+    effort: high
+    native: false
+    peer: true
 
 routing:
   tester: inherit
