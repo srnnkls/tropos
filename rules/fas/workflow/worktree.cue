@@ -1,6 +1,8 @@
 package workflow
 
 import (
+	"list"
+
 	"github.com/srnnkls/fas/cue/bash"
 	"github.com/srnnkls/fas/cue/hook"
 	"github.com/srnnkls/fas/cue/tool"
@@ -15,12 +17,19 @@ _worktreePolicy: "Load the git skill and read reference/worktree.md. If unavaila
 	...
 })
 
-worktree_creation_approval: {
-	when: hook.#PreToolUse & #WorktreeCreation
-	then: ask: {
-		rule_id:  "worktree-creation-approval"
-		reason:   _worktreePolicy
-		question: "Have the applicable worktree preconditions in git/reference/worktree.md been checked, and do you approve this worktree operation?"
+worktree_outside_repo: {
+	when: hook.#PreToolUse & tool.#Bash & (bash.#call & {
+		#match: {
+			command:         "git"
+			subcommand:      "worktree"
+			subcommand_args: ["add", ...]
+			targets:         list.MatchN(>0, =~"^(/|~|\\$HOME|\\.\\.)" & !~"/(\\.)?worktrees(/|$)")
+		}
+	})
+	then: deny: {
+		rule_id:  "worktree-outside-repo"
+		reason:   "Worktree target escapes the repo (/tmp, ~, $HOME, ../). Create it project-local instead: `git worktree add .worktrees/<name> -b <branch> origin/<trunk>`, then link ignored state with `git worktreeinclude apply`. Paths outside the checkout get no .gitignore coverage and drift from the repo they were cut from."
+		severity: "MEDIUM"
 	}
 }
 
