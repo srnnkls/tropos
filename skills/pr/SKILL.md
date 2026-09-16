@@ -2,7 +2,7 @@
 name: pr
 description: GitHub PR review-comment operations. `comments` assesses each review comment (relevant vs outdated, valid vs invalid) and proposes an action; `tfcprr` closes the threads you've addressed (tfcp — triage + fix + commit + push — then reply + resolve) by delegating to the `tfcprr` skill. Use for "pr comments", "assess PR feedback", "review PR comments", "reply to a PR comment", "resolve a thread", or "tfcprr".
 argument-hint: "[comments [N] | tfcprr <args>]"
-allowed-tools: Bash(gh api *), Bash(gh pr *), Bash(gh review *), Bash(gh repo view *), Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git rev-parse *), Bash(git branch *)
+allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/pr-context), Bash(${CLAUDE_SKILL_DIR}/scripts/pr-context *), Bash(gh api *), Bash(gh pr *), Bash(gh review *), Bash(gh repo view *), Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git rev-parse *), Bash(git branch *)
 metadata:
   type: domain
 ---
@@ -13,24 +13,13 @@ PR comment context, fetched at skill-load for the `comments` route. The PR is `$
 
 > Dynamic `!` blocks only execute in this SKILL.md, not in Read-loaded operation files — which is why the comment fetch lives here, not in an operation.
 
-These are inline `!` blocks (single-line, like the role-model skill) — the form proven to expand `$ARGUMENTS` at load. Each re-resolves the PR independently and skips the `tfcprr` route.
+All shell lives in [scripts/pr-context](scripts/pr-context). `${CLAUDE_SKILL_DIR}` is substituted in both the block below and the `allowed-tools` rule, so the rule matches the command verbatim and the fetch runs without a permission check.
 
-PR metadata:
-!`A="$ARGUMENTS"; case "$A" in tfcprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; gh pr view "$PR" --json number,title,state,headRefName,headRefOid,baseRefName,url 2>/dev/null || echo no-pr`
+!`${CLAUDE_SKILL_DIR}/scripts/pr-context $ARGUMENTS`
 
-Inline review comments (node_id feeds `tfcprr --comment`; original_line anchors the relevant-vs-outdated check):
-!`A="$ARGUMENTS"; case "$A" in tfcprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null); gh api "repos/$REPO/pulls/$PR/comments" --paginate --jq '.[] | {node_id, user: .user.login, path, line, original_line, side, in_reply_to_id, body}' 2>/dev/null || echo no-pr`
+Sections, in order: `== pr ==` (metadata), `== inline comments ==` (`node_id` feeds `tfcprr --comment`, `original_line` anchors the relevant-vs-outdated check), `== unresolved threads ==` (resolved threads collapse — don't re-litigate), `== review bodies ==` and `== conversation ==` (not line-anchored), `== diff ==` (HEAD, first 800 lines).
 
-Thread resolution map (unresolved head comments with their node ids; resolved threads collapse, don't re-litigate):
-!`A="$ARGUMENTS"; case "$A" in tfcprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; gh review comments "$PR" --unresolved --ids --flat 2>/dev/null | head -60 || true`
-
-Review bodies and conversation comments (not line-anchored):
-!`A="$ARGUMENTS"; case "$A" in tfcprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null); echo "== review bodies =="; gh api "repos/$REPO/pulls/$PR/reviews" --jq '.[] | select(.body != "") | {user: .user.login, state, body}' 2>/dev/null; echo "== conversation =="; gh api "repos/$REPO/issues/$PR/comments" --jq '.[] | {user: .user.login, body}' 2>/dev/null || echo no-pr`
-
-HEAD diff:
-!`A="$ARGUMENTS"; case "$A" in tfcprr*) exit 0;; esac; case "$A" in comments) A="";; "comments "*) A="${A#comments }";; esac; PR="${A%% *}"; [ -z "$PR" ] && PR=$(gh pr view --json number -q .number 2>/dev/null); [ -z "$PR" ] && { echo no-pr; exit 0; }; gh pr diff "$PR" 2>/dev/null | head -800 || echo no-pr`
-
-If a block printed `no-pr`, ask the user for the PR number before continuing.
+On the `tfcprr` route the script exits silently. If it printed `no-pr`, ask the user for the PR number, then re-run `${CLAUDE_SKILL_DIR}/scripts/pr-context comments <number>` via Bash.
 
 # PR Skill
 
