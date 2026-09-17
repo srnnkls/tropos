@@ -5,9 +5,11 @@
 One logical change per commit. The commit message explains why, the diff explains what.
 
 ```bash
-git add -p                        # Stage hunks interactively
+git add src/auth.ts               # Stage specific paths
 git commit -m "feat: add auth"    # Conventional commit format
 ```
+
+When the changes are already mixed together in a dirty tree, splitting them into separate commits means staging a subset of hunks — see [commands.md](commands.md#hunk-level-staging).
 
 ### Conventional Commits
 
@@ -121,6 +123,8 @@ git rebase -i HEAD~5              # Last 5 commits
 ```
 
 Actions: `pick`, `reword`, `edit`, `squash`, `fixup`, `drop`, `reorder`
+
+Script the todo list with `GIT_SEQUENCE_EDITOR` — see [commands.md](commands.md#scripted-rebase).
 
 ### Magit
 

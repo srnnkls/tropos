@@ -149,3 +149,63 @@ git rerere status                       # Show recorded resolutions
 git rerere diff                         # Show what rerere would apply
 git rerere forget <file>                # Forget resolution for file
 ```
+
+## Hunk-level staging
+
+Committing a dirty tree as several logical commits means staging one subset of hunks at a time. `-p` and `-i` cannot do that here: with stdin at EOF they exit 0 having staged nothing, so they read as success. The other trap is discarding and redoing — `git checkout <file>` and `git reset --hard` delete the very work you are trying to commit separately. Filter the patch and apply hunks to the index instead.
+
+Look at what you are splitting first:
+
+```bash
+git diff --stat            # which files, how much
+git diff -- f.txt          # full diff for one file
+```
+
+Stage a single hunk by filtering the patch, keeping the file preamble:
+
+```bash
+git diff -- f.txt > /tmp/p.patch
+awk '/^@@/{n++} n==0 || n==1' /tmp/p.patch > /tmp/h1.patch   # preamble + hunk 1
+git apply --cached /tmp/h1.patch
+git commit -m "..."
+```
+
+Repeat with `n==0 || n==2`, then `n==0 || n==3`, committing after each. The preamble (`diff --git`, `---`, `+++`) is required — drop it and `git apply` fails with `patch fragment without header`.
+
+Unstage a hunk by applying the cached diff in reverse:
+
+```bash
+git diff --cached -- f.txt > /tmp/p.patch
+awk '/^@@/{n++} n==0 || n==1' /tmp/p.patch > /tmp/h1.patch
+git apply --cached --reverse /tmp/h1.patch
+```
+
+Hunk numbering is relative to the current diff, so re-derive the patch after each commit rather than referring to "hunk 2" across calls. Only whole hunks move this way: selecting lines inside one means recomputing the `@@` counts, and binary or renamed files need `--binary`.
+
+## Scripted rebase
+
+Rewriting history without an editor. Todo lines are oldest-first, so line 1 is the older commit.
+
+```bash
+# Fold the last commit into the one before it
+GIT_SEQUENCE_EDITOR="sed -i '' '2s/^pick/squash/'" git rebase -i HEAD~2
+
+# Reword the older of the last two
+GIT_SEQUENCE_EDITOR="sed -i '' '1s/^pick/reword/'" \
+GIT_EDITOR="sed -i '' '1s/.*/new subject/'" git rebase -i HEAD~2
+
+# Drop the older of the last two
+GIT_SEQUENCE_EDITOR="sed -i '' '1s/^pick/drop/'" git rebase -i HEAD~2
+```
+
+`HEAD~2` covers the last two commits; the same scripts work over any range. The verbs are `pick`, `reword`, `edit`, `squash`, `fixup`, `drop`. `--autosquash` with `git commit --fixup` avoids writing a sequence editor at all.
+
+## Commit to another branch without checking it out
+
+```bash
+T=$(git write-tree)                                    # tree from the current index
+C=$(git commit-tree "$T" -p "$(git rev-parse other)" -m "msg")
+git update-ref refs/heads/other "$C"
+```
+
+HEAD and the worktree are untouched; the index is what gets committed, so stage first.
