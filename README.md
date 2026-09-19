@@ -32,6 +32,10 @@ Supporting principles:
 - *[skills](skills/)* — Scope pipeline, code quality, task execution
 - *[agents](agents/)* — Implementer, reviewer, tester
 
+## Prototypes
+
+- *[slint](prototypes/slint/)* — Semantic compliance: compile human-written rules into a policy artifact, lint code and prose against it
+
 ## Development
 
 The `loqui` reference is not bundled with tropos. Point `skills/loqui/reference/loqui` at a local [loqui](https://github.com/srnnkls/loqui) checkout to activate the `loqui` skill:
