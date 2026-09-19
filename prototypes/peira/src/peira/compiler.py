@@ -4,7 +4,7 @@ Two passes. A deterministic pass finds candidate sentences with normative force 
 prefer, avoid ...) and records where they came from. A classification pass then decides, for each
 candidate, how the runtime will evaluate it: a native detector, a predicate over the semantic IR,
 a direct judgment, or nothing. With Jev the classification is one fan-out call per candidate; the
-keyword fallback lets `slint compile --offline` produce a usable artifact without a model.
+keyword fallback lets `peira compile --offline` produce a usable artifact without a model.
 """
 
 from __future__ import annotations
@@ -15,12 +15,12 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
-from slint import __version__
-from slint.chunks import Chunk, chunk_markdown
-from slint.detectors import DETECTORS_BY_NAME, DetectorSpec, detectors_for
-from slint.features import ALL_FEATURES, FeatureSpec, features_for
-from slint.jev import Choice, ChoiceAnswer, Jev, Noul, NoulAnswer, Question
-from slint.rules import (
+from peira import __version__
+from peira.chunks import Chunk, chunk_markdown
+from peira.detectors import DETECTORS_BY_NAME, DetectorSpec, detectors_for
+from peira.features import ALL_FEATURES, FeatureSpec, features_for
+from peira.jev import Choice, ChoiceAnswer, Jev, Noul, NoulAnswer, Question
+from peira.rules import (
     SEVERITY_FOR_MODALITY,
     Artifact,
     Condition,

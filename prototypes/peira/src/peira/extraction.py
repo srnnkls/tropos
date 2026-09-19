@@ -15,15 +15,15 @@ from collections.abc import Iterable, Mapping
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-from slint.chunks import Chunk
-from slint.features import (
+from peira.chunks import Chunk
+from peira.features import (
     FEATURE_SCHEMA_VERSION,
     ChunkFeatures,
     FeatureSpec,
     FeatureValue,
     features_for,
 )
-from slint.jev import ChoiceAnswer, Jev, JsonValue, NoulAnswer, ScoreAnswer
+from peira.jev import ChoiceAnswer, Jev, JsonValue, NoulAnswer, ScoreAnswer
 
 logger = logging.getLogger(__name__)
 

@@ -6,9 +6,9 @@ import json
 from collections.abc import Sequence
 from dataclasses import asdict
 
-from slint import __version__
-from slint.evaluation import CheckResult, Finding
-from slint.rules import Artifact, Requirement
+from peira import __version__
+from peira.evaluation import CheckResult, Finding
+from peira.rules import Artifact, Requirement
 
 SARIF_LEVEL = {"error": "error", "warning": "warning", "info": "note"}
 
@@ -70,7 +70,7 @@ def render_sarif(result: CheckResult, artifact: Artifact) -> str:
             {
                 "tool": {
                     "driver": {
-                        "name": "slint",
+                        "name": "peira",
                         "version": __version__,
                         "informationUri": "https://github.com/srnnkls/tropos",
                         "rules": [

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from slint.chunks import chunk_markdown, chunk_python, chunk_text
+from peira.chunks import chunk_markdown, chunk_python, chunk_text
 
 MARKDOWN = """---
 paths: "**/*.py"

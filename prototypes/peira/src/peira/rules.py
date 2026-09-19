@@ -18,7 +18,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
-from slint.errors import ArtifactError
+from peira.errors import ArtifactError
 
 ARTIFACT_FORMAT_VERSION = "1"
 FEATURE_SCHEMA_VERSION = "1"
@@ -169,7 +169,7 @@ def load_artifact(directory: Path) -> Artifact:
     rules_path = directory / RULES_FILE
     manifest_path = directory / MANIFEST_FILE
     if not rules_path.exists() or not manifest_path.exists():
-        raise ArtifactError(f"no compiled artifact in {directory} (run `slint compile` first)")
+        raise ArtifactError(f"no compiled artifact in {directory} (run `peira compile` first)")
     try:
         manifest = parse_manifest(json.loads(manifest_path.read_text()))
         rules = tuple(parse_requirement(raw) for raw in json.loads(rules_path.read_text()))

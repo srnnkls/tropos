@@ -3,8 +3,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from slint.chunks import chunk_text
-from slint.diff import changed_lines, filter_to_changed, git_root, parse_unified_diff
+from peira.chunks import chunk_text
+from peira.diff import changed_lines, filter_to_changed, git_root, parse_unified_diff
 
 DIFF = """diff --git a/src/a.py b/src/a.py
 --- a/src/a.py

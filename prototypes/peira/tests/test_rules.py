@@ -5,9 +5,9 @@ from pathlib import Path
 
 import pytest
 
-from slint.compiler import compile_guides
-from slint.errors import ArtifactError
-from slint.rules import load_artifact, save_artifact
+from peira.compiler import compile_guides
+from peira.errors import ArtifactError
+from peira.rules import load_artifact, save_artifact
 
 
 def test_artifact_round_trips_through_disk(tmp_path: Path, writing_guide: Path, networking_spec: Path):
@@ -20,7 +20,7 @@ def test_artifact_round_trips_through_disk(tmp_path: Path, writing_guide: Path, 
 
 
 def test_missing_artifact_is_a_clear_error(tmp_path: Path):
-    with pytest.raises(ArtifactError, match="run `slint compile` first"):
+    with pytest.raises(ArtifactError, match="run `peira compile` first"):
         load_artifact(tmp_path)
 
 

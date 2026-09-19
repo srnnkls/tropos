@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 
-class SlintError(Exception):
-    """Base for all slint failures that should surface to the user as a message, not a traceback."""
+class PeiraError(Exception):
+    """Base for all peira failures that should surface to the user as a message, not a traceback."""
 
 
-class JevError(SlintError):
+class JevError(PeiraError):
     """The decision model could not be reached or rejected the request."""
 
     def __init__(self, message: str, *, status: int | None = None) -> None:
@@ -14,9 +14,9 @@ class JevError(SlintError):
         self.status = status
 
 
-class CompileError(SlintError):
+class CompileError(PeiraError):
     """A guide could not be turned into requirements."""
 
 
-class ArtifactError(SlintError):
+class ArtifactError(PeiraError):
     """A compiled artifact is missing, corrupt or incompatible with this runtime."""

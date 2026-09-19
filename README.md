@@ -34,7 +34,7 @@ Supporting principles:
 
 ## Prototypes
 
-- *[slint](prototypes/slint/)* — Semantic compliance: compile human-written rules into a policy artifact, lint code and prose against it
+- *[peira](prototypes/peira/)* — Semantic compliance: compile human-written rules into a policy artifact, lint code and prose against it
 
 ## Development
 

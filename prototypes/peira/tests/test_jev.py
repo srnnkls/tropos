@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from slint.errors import JevError
-from slint.jev import (
+from peira.errors import JevError
+from peira.jev import (
     Choice,
     Noul,
     RecordingJev,

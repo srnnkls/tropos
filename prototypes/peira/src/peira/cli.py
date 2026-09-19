@@ -14,30 +14,30 @@ from collections.abc import Iterable, Sequence
 from dataclasses import asdict
 from pathlib import Path
 
-from slint import __version__
-from slint.chunks import CODE_LANGUAGES, PROSE_SUFFIXES, Chunk, chunk_file
-from slint.compiler import compile_guides
-from slint.diff import changed_lines, filter_to_changed, git_root
-from slint.errors import SlintError
-from slint.evaluation import SEVERITY_RANK, check
-from slint.extraction import extract_features
-from slint.jev import Jev, RecordingJev, jev_from_env
-from slint.reporting import render_json, render_rules, render_sarif, render_text
-from slint.rules import Severity, load_artifact, save_artifact
+from peira import __version__
+from peira.chunks import CODE_LANGUAGES, PROSE_SUFFIXES, Chunk, chunk_file
+from peira.compiler import compile_guides
+from peira.diff import changed_lines, filter_to_changed, git_root
+from peira.errors import PeiraError
+from peira.evaluation import SEVERITY_RANK, check
+from peira.extraction import extract_features
+from peira.jev import Jev, RecordingJev, jev_from_env
+from peira.reporting import render_json, render_rules, render_sarif, render_text
+from peira.rules import Severity, load_artifact, save_artifact
 
-DEFAULT_ARTIFACT_DIR = Path(".slint")
+DEFAULT_ARTIFACT_DIR = Path(".peira")
 CACHE_SUBDIR = "cache/features"
 SKIPPED_DIRECTORIES = frozenset(
-    {".git", ".slint", ".venv", "node_modules", "__pycache__", ".peer", ".worktrees"}
+    {".git", ".peira", ".venv", "node_modules", "__pycache__", ".peer", ".worktrees"}
 )
 CHECKABLE_SUFFIXES = PROSE_SUFFIXES | frozenset(CODE_LANGUAGES)
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="slint", description="Semantic compliance: compile rules, check sources."
+        prog="peira", description="Semantic compliance: compile rules, check sources."
     )
-    parser.add_argument("--version", action="version", version=f"slint {__version__}")
+    parser.add_argument("--version", action="version", version=f"peira {__version__}")
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="log what the compiler and runtime decide"
     )
@@ -97,7 +97,7 @@ def collect_files(paths: Iterable[Path], suffixes: frozenset[str]) -> list[Path]
         elif path.is_file():
             files.append(path)
         else:
-            raise SlintError(f"no such file: {path}")
+            raise PeiraError(f"no such file: {path}")
     return files
 
 
@@ -105,7 +105,7 @@ def _backend(args: argparse.Namespace) -> Jev | None:
     jev = jev_from_env(offline=args.offline, model=args.model)
     if jev is None and not args.offline:
         print(
-            "slint: TYPESAFE_API_KEY not set, running offline (native checks and heuristics only)",
+            "peira: TYPESAFE_API_KEY not set, running offline (native checks and heuristics only)",
             file=sys.stderr,
         )
     if jev is not None and args.trace:
@@ -132,7 +132,7 @@ def _dump_trace(jev: Jev | None) -> None:
 def run_compile(args: argparse.Namespace) -> int:
     files = collect_files(args.sources, frozenset({".md", ".markdown"}))
     if not files:
-        raise SlintError("no markdown guides found")
+        raise PeiraError("no markdown guides found")
     jev = _backend(args)
     artifact = compile_guides(files, jev=jev, prefix=args.prefix)
     save_artifact(artifact, args.output)
@@ -202,7 +202,7 @@ def run_features(args: argparse.Namespace) -> int:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.WARNING, format="slint: %(message)s")
+    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.WARNING, format="peira: %(message)s")
     try:
         match args.command:
             case "compile":
@@ -213,7 +213,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 return run_rules(args)
             case "features":
                 return run_features(args)
-    except SlintError as error:
-        print(f"slint: {error}", file=sys.stderr)
+    except PeiraError as error:
+        print(f"peira: {error}", file=sys.stderr)
         return 2
     return 2

@@ -1,5 +1,5 @@
 [project]
-name = "slint"
+name = "peira"
 version = "0.1.0"
 description = "Compile human-written engineering rules into a policy artifact and semantically lint code and prose against it."
 readme = "README.md"
@@ -7,7 +7,7 @@ requires-python = ">=3.12"
 dependencies = []
 
 [project.scripts]
-slint = "slint.cli:main"
+peira = "peira.cli:main"
 
 [dependency-groups]
 dev = ["pytest>=8", "ruff>=0.8", "pyright>=1.1"]
@@ -17,7 +17,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/slint"]
+packages = ["src/peira"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

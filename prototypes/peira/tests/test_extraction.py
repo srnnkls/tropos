@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from slint.chunks import Chunk
-from slint.extraction import extract_features, extract_heuristically, extract_with_jev
-from slint.features import CODE_FEATURES, PROSE_FEATURES
-from slint.jev import RecordingJev, ScriptedJev
+from peira.chunks import Chunk
+from peira.extraction import extract_features, extract_heuristically, extract_with_jev
+from peira.features import CODE_FEATURES, PROSE_FEATURES
+from peira.jev import RecordingJev, ScriptedJev
 
 
 def _paragraph(text: str, position: str = "body") -> Chunk:

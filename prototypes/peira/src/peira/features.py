@@ -11,9 +11,9 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal
 
-from slint.chunks import Domain
-from slint.jev import Choice, Noul, Question, Score
-from slint.rules import FEATURE_SCHEMA_VERSION, Condition
+from peira.chunks import Domain
+from peira.jev import Choice, Noul, Question, Score
+from peira.rules import FEATURE_SCHEMA_VERSION, Condition
 
 type FeatureKind = Literal["noul", "choice", "score"]
 type Polarity = Literal["bad", "good", "neutral"]

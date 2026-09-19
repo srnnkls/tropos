@@ -23,7 +23,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol
 
-from slint.errors import JevError
+from peira.errors import JevError
 
 logger = logging.getLogger(__name__)
 
@@ -202,7 +202,7 @@ class HttpJev:
             headers={
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json",
-                "User-Agent": "slint/0.1",
+                "User-Agent": "peira/0.1",
             },
         )
         raw = self._send_with_retries(request)

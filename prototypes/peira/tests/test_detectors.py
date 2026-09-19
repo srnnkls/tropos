@@ -4,8 +4,8 @@ from dataclasses import dataclass
 
 import pytest
 
-from slint.chunks import Chunk, chunk_python, chunk_text
-from slint.detectors import DETECTORS_BY_NAME, run_detector
+from peira.chunks import Chunk, chunk_python, chunk_text
+from peira.detectors import DETECTORS_BY_NAME, run_detector
 
 
 @dataclass(frozen=True)

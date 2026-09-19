@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from slint.cli import main
+from peira.cli import main
 
 
 @pytest.fixture
@@ -77,7 +77,7 @@ def test_missing_artifact_is_a_usage_error(
     code = main(["check", str(examples_dir / "sources"), "-a", str(tmp_path / "nope"), "--offline"])
 
     assert code == 2
-    assert "run `slint compile` first" in capsys.readouterr().err
+    assert "run `peira compile` first" in capsys.readouterr().err
 
 
 def test_rules_command_lists_evaluators(compiled: Path, capsys: pytest.CaptureFixture[str]):

@@ -18,12 +18,12 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from slint.chunks import Chunk
-from slint.detectors import DETECTORS_BY_NAME, run_detector
-from slint.extraction import chunk_state, extract_features
-from slint.features import ALL_FEATURES, ChunkFeatures, FeatureValue
-from slint.jev import Jev, Noul, NoulAnswer
-from slint.rules import (
+from peira.chunks import Chunk
+from peira.detectors import DETECTORS_BY_NAME, run_detector
+from peira.extraction import chunk_state, extract_features
+from peira.features import ALL_FEATURES, ChunkFeatures, FeatureValue
+from peira.jev import Jev, Noul, NoulAnswer
+from peira.rules import (
     Artifact,
     Condition,
     FeatureEvaluator,

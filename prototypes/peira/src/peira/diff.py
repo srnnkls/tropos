@@ -1,4 +1,4 @@
-"""Restrict a check to the lines a git revision changed, so `slint check --diff` scales with the diff."""
+"""Restrict a check to the lines a git revision changed, so `peira check --diff` scales with the diff."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ import subprocess
 from collections.abc import Iterable, Mapping
 from pathlib import Path
 
-from slint.chunks import Chunk
-from slint.errors import SlintError
+from peira.chunks import Chunk
+from peira.errors import PeiraError
 
 HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
 NEW_FILE = re.compile(r"^\+\+\+ b/(.*)$")
@@ -35,7 +35,7 @@ def _git(cwd: Path, *args: str) -> str:
         )
     except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired) as error:
         detail = getattr(error, "stderr", "") or str(error)
-        raise SlintError(f"git {args[0]} failed: {detail.strip()}") from error
+        raise PeiraError(f"git {args[0]} failed: {detail.strip()}") from error
     return completed.stdout
 
 

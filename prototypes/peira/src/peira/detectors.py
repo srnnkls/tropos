@@ -13,7 +13,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from slint.chunks import Chunk, Domain
+from peira.chunks import Chunk, Domain
 
 type Params = Mapping[str, int | str]
 

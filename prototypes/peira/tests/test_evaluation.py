@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from slint.chunks import chunk_text
-from slint.compiler import compile_guides
-from slint.evaluation import check, condition_holds, routes_to
-from slint.features import FeatureValue
-from slint.jev import RecordingJev, ScriptedJev
-from slint.rules import (
+from peira.chunks import chunk_text
+from peira.compiler import compile_guides
+from peira.evaluation import check, condition_holds, routes_to
+from peira.features import FeatureValue
+from peira.jev import RecordingJev, ScriptedJev
+from peira.rules import (
     Artifact,
     Condition,
     Evaluator,

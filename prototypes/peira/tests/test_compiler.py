@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from slint.compiler import (
+from peira.compiler import (
     Candidate,
     classify_heuristically,
     classify_with_jev,
@@ -16,8 +16,8 @@ from slint.compiler import (
     modality_of,
     normalise,
 )
-from slint.jev import RecordingJev, ScriptedJev
-from slint.rules import FeatureEvaluator, JudgeEvaluator, Provenance, StaticEvaluator
+from peira.jev import RecordingJev, ScriptedJev
+from peira.rules import FeatureEvaluator, JudgeEvaluator, Provenance, StaticEvaluator
 
 
 @dataclass(frozen=True)

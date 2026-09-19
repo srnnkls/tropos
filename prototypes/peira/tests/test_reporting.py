@@ -3,10 +3,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from slint.chunks import chunk_text
-from slint.compiler import compile_guides
-from slint.evaluation import check
-from slint.reporting import render_json, render_sarif, render_text
+from peira.chunks import chunk_text
+from peira.compiler import compile_guides
+from peira.evaluation import check
+from peira.reporting import render_json, render_sarif, render_text
 
 
 def _result(guide: Path, source: Path):
@@ -31,7 +31,7 @@ def test_sarif_report_is_well_formed(networking_spec: Path, client_source: Path)
 
     run = sarif["runs"][0]
     assert sarif["version"] == "2.1.0"
-    assert run["tool"]["driver"]["name"] == "slint"
+    assert run["tool"]["driver"]["name"] == "peira"
     assert {rule["id"] for rule in run["tool"]["driver"]["rules"]} == {f.rule_id for f in result.findings}
     first = run["results"][0]
     assert first["level"] in ("error", "warning", "note")
