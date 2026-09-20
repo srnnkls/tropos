@@ -2,22 +2,32 @@
 allowed-tools: Bash(gh issue *), Bash(gh pr *), Bash(git branch *), Bash(git push *), Bash(git rev-parse *), Bash(git log *), Bash(git merge-base *)
 ---
 
-## Pre-loaded Context
+## Runtime Context
+
+Run these commands before preparing the pull request.
 
 Current branch:
-!`git branch --show-current 2>/dev/null`
+```bash
+git branch --show-current 2>/dev/null
+```
 
 Upstream tracking:
-!`git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || echo "no upstream"`
+```bash
+git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || echo "no upstream"
+```
 
 Default branch:
-!`gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name' 2>/dev/null || echo "main"`
+```bash
+gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name' 2>/dev/null || echo "main"
+```
 
 Issue number (from branch name prefix, e.g. `388-cache-…` → `388`):
-!`git branch --show-current 2>/dev/null | grep -oE '^[0-9]+' | head -1 || echo "none"`
+```bash
+git branch --show-current 2>/dev/null | grep -oE '^[0-9]+' | head -1 || echo "none"
+```
 
 Issue metadata (fetched from issue number above; empty if no issue detected):
-```!
+```bash
 ISSUE_NUM=$(git branch --show-current 2>/dev/null | grep -oE '^[0-9]+' | head -1)
 if [ -n "$ISSUE_NUM" ]; then
   gh issue view "$ISSUE_NUM" --json number,title,body,labels \
@@ -29,7 +39,7 @@ fi
 ```
 
 Commits on this branch since it diverged from default branch:
-```!
+```bash
 DEFAULT=$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name' 2>/dev/null || echo "main")
 BASE=$(git merge-base HEAD "origin/$DEFAULT" 2>/dev/null || git merge-base HEAD "$DEFAULT" 2>/dev/null)
 if [ -n "$BASE" ]; then
@@ -40,7 +50,7 @@ fi
 ```
 
 Dominant conventional commit type on this branch (ranked by frequency):
-```!
+```bash
 DEFAULT=$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name' 2>/dev/null || echo "main")
 BASE=$(git merge-base HEAD "origin/$DEFAULT" 2>/dev/null || git merge-base HEAD "$DEFAULT" 2>/dev/null)
 RANGE="${BASE:+$BASE..HEAD}"
@@ -51,7 +61,9 @@ git log --format="%s" ${RANGE:-HEAD} 2>/dev/null \
 ```
 
 Existing PR for this branch:
-!`gh pr view --json number,state,url --jq '"#\(.number) [\(.state)] \(.url)"' 2>/dev/null || echo "none"`
+```bash
+gh pr view --json number,state,url --jq '"#\(.number) [\(.state)] \(.url)"' 2>/dev/null || echo "none"
+```
 
 # PR Creation Operation
 

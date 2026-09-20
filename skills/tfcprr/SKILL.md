@@ -1,11 +1,23 @@
 ---
 name: tfcprr
 description: Close PR review threads you've addressed — tfcp (triage + fix + commit + push) then reply + resolve. Runs the `tfcp` skill over every accepted comment — triaging each into fix, residual, or needs-decision — then replies to and resolves the threads it fixed, referencing the commit. `--resolve-only` closes dismissed threads with a rationale reply and no fix. Use for "tfcprr", "close a review thread I fixed", "resolve threads I've addressed", "reply and resolve a dismissed thread".
-argument-hint: "--comment <id> [--comment <id>…] [--reply <text>] [-m <msg>] [--pr <n>] [--resolve-only] [paths…]"
-allowed-tools: Bash(gh review *), Bash(gh pr *), Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git rev-parse *), Bash(git branch *)
 metadata:
   type: domain
+henia:
+  targets:
+    claude:
+      frontmatter:
+        argument-hint: --comment <id> [--comment <id>…] [--reply <text>] [-m <msg>] [--pr <n>] [--resolve-only] [paths…]
+        allowed-tools: Bash(gh review *), Bash(gh pr *), Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git rev-parse *), Bash(git branch *)
+    codex:
+      openai:
+        interface:
+          display_name: Tfcprr
+          short_description: Apply the canonical tfcprr skill workflow
+          default_prompt: Use $tfcprr for the requested task.
 ---
+
+<!-- Generated from skills/tfcprr/SKILL.md by henia build; edit the canonical source. -->
 
 # tfcprr — tfcp + reply + resolve
 

@@ -76,8 +76,8 @@ A one-batch scope sets `integration_review.required: false` and treats its Phase
 
 ## Readers
 
-- `/continue` reads the latest batch/integration outcome and existing report directories from the checkpoint.
-- `/implement` derives blocking findings and readiness from authoritative task, issue, validation, and integration state.
-- `/scope done` checks task state, acceptance evidence, native validation, and the required integration outcome.
+- [continue](../../continue/SKILL.md) reads the latest batch/integration outcome and existing report directories from the checkpoint.
+- [implement](../SKILL.md) derives blocking findings and readiness from authoritative task, issue, validation, and integration state.
+- [scope](../../scope/SKILL.md) with `done` checks task state, acceptance evidence, native validation, and the required integration outcome.
 
 `tasks.yaml` owns task status. `checkpoint.yaml` owns the current recovery wave. `validation.yaml` owns pre-implementation scope review and its reviewer configuration.

@@ -3,9 +3,28 @@ name: dotfiles
 description: Manage dotfiles using dotter (symlink manager and templater). Use when deploying, adding, removing, or organizing configuration files in ~/dotfiles.
 metadata:
   type: domain
+henia:
+  targets:
+    codex:
+      openai:
+        interface:
+          display_name: Dotfiles
+          short_description: Apply the canonical dotfiles skill workflow
+          default_prompt: Use $dotfiles for the requested task.
 ---
 
+<!-- Generated from skills/dotfiles/SKILL.md by henia build; edit the canonical source. -->
+
 Manage dotfiles using [dotter](https://github.com/SuperCuber/dotter) - a dotfile manager and templater.
+
+## Select the deployment path
+
+Check the active checkout's deployment documentation before changing mappings.
+On the Phora migration branch, use `bin/phora-tropos` to compile the selected
+Tropos checkout and deploy all four harness bundles into its probe home. The
+runner's Scrut post-sync hook verifies that tree. `bin/phora-shadow` separately
+checks equivalence with the existing Dotter deployment. Neither command performs
+a live home cutover. On the established Dotter branch, use the workflow below.
 
 ## Environment
 
@@ -107,7 +126,7 @@ In `local.toml` (machine override):
 email = "work@company.com"
 ```
 
-In template files, use `\{{email}}` syntax.
+In template files, enclose the variable name `email` in two opening and two closing braces.
 
 ## Troubleshooting
 

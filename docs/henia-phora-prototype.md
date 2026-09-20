@@ -1,96 +1,150 @@
-# Henia → Phora prototype
+# Canonical Tropos → Henia → Phora migration
 
-Four canonical skills compile and deploy into worktree-local `.claude` and `.codex`. Phora verifies all 94 installed files. Repeated deployment preserved their checksums; disposable probes confirmed resource pruning, drift detection and compiler-failure containment.
+All 25 Tropos skills on `prototype/henia-phora` are canonical sources. Henia
+compiles 100 skill variants for Claude Code, Codex, Pi and OMP. Phora installs
+committed build snapshots and the transitive Loqui dependency; Scrut checks the
+installed artifacts after deployment.
 
-Branch: `prototype/henia-phora`, based on checkpoint `f768f1f`. Worktree: `/Users/srnnkls/projects/tropos/.worktrees/henia-phora`. The prototype is isolated from the original checkout. No global installation was performed.
+```text
+skills/ + agents/ + instructions/
+    → Henia → validated Git packages → Phora → harness trees → Scrut
+phora/dependencies.toml → Tropos dependency export → Loqui Git pin ───┘
+```
+
+| Harness | Repository deployment | Invocation |
+| --- | --- | --- |
+| Claude Code | `.claude/skills/` | `/name` |
+| Codex | `.agents/skills/` | `$name` |
+| Pi | `.pi/skills/` | `/skill:name` |
+| OMP | `.omp/skills/` | `/skill:name` |
 
 ## Run
 
-From the worktree root:
+Requires Henia, Phora, Scrut, Git, Python 3.11+, and Mike Farah's `yq` v4.
+Building Henia additionally requires Go 1.26.5+ and a checkout with the
+reference-after-code-fences fix used by this branch.
 
 ```sh
-python3 prototype/henia/deploy.py
+HENIA_SOURCE=~/projects/henia mise run prototype:build
+TROPOS_LOQUI_SOURCE=~/projects/loqui mise run prototype:sync
+mise run prototype:smoke
+mise run prototype:test
 ```
 
-Requirements: installed `henia`, Rust `phora`, Git, and Python 3.11+. The [Henia configuration](../henia.toml) selects Claude/XML and Codex/directives. [Stage configuration](../prototype/henia/stage/phora.toml) owns the source subset; [deployment configuration](../prototype/henia/deploy/phora.toml) owns destination paths and local Phora cache/state.
+`TROPOS_LOQUI_SOURCE` defaults to `~/projects/loqui`. Its committed HEAD must be
+available from `https://github.com/srnnkls/loqui.git`; uncommitted Loqui edits are
+not published. Phora may fetch that public dependency on the first sync.
 
-`code`, `implement`, `review` and `peer` are rewritten in place. Their unchanged Markdown-link dependency closure adds `test`, three role contracts and `instructions/AGENTS.md`. Resources retain their source paths and executable modes. Generated copies carry `GENERATED.md`; the canonical skills also emit source/generator comments.
+`prototype:sync` runs [sync-harnesses.py](../scripts/sync-harnesses.py). It builds
+and validates the complete output in a temporary directory, publishes local Git
+packages under `.henia/build/`, and records their exact commits in the generated
+block of ignored `phora.local.toml`. It then calls
+`phora sync --fast-forward --prune --no-progress`. The
+[Phora manifest](../phora.toml) runs the artifact Scrut test in `post_sync`.
+Bare `phora sync` replays the prepared package pins; use the mise task after
+editing canonical sources.
 
-Claude retains command preloading and its original frontmatter restrictions. Codex receives explicit shell instructions and four `agents/openai.yaml` interface sidecars. The context instruction is defined once in `henia.toml`; workflow policies remain in their existing canonical resources.
+Builds start with an empty output tree. Failed compilation, missing dependencies,
+or failed pre-deployment checks preserve the current packages and deployment.
+Content-identical builds produce the same Git commits. Successful syncs remove
+obsolete managed resources and preserve unrelated files. A post-sync failure
+reports an error after deployment and does not imply rollback.
 
-## Feature and lint findings
+To replay an existing lock without building or accessing the network:
 
-The complete command inventories, measured results, minimal reproductions and unverified branches are recorded separately:
+```sh
+phora sync --frozen --no-hooks --no-progress
+mise run prototype:smoke
+```
 
-- [Compiler feature results](henia-build-results.md): all nine profiles × three formats, templates, mappings, directives, references, resources and configuration behavior.
-- [Linter results](henia-lint-results.md): 69 CLI cases, all 13 built-in rule IDs, all seven custom selectors, and real cached Model2Vec inference without downloads.
+## Canonical authoring
 
-Henia's Bash, Zsh, Fish and PowerShell completion generators also completed successfully. `bash -n` and `zsh -n` accepted their generated scripts; Fish/PowerShell execution was not exercised. Evidence: `.henia/evidence/completion.*`.
+Edit `skills/<name>/SKILL.md` and its resources. All portable metadata lives at
+the top level. Native hints, tool permissions, hooks and execution context live
+under `henia.targets.claude.frontmatter`; Codex UI metadata lives under
+`henia.targets.codex.openai.interface`. Every Codex skill gets its own
+`agents/openai.yaml`.
 
-These are CLI feature exercises, not a claim that every internal branch or generated harness workflow was executed.
+`henia.variables.context_commands` supplies context inputs. Claude receives
+native dynamic context expressions; the other harnesses receive explicit shell
+instructions. Write canonical backtick references such as `$implement` in main
+skill bodies. Henia renders `/implement`, `$implement` or `/skill:implement` as
+appropriate, preserving literal code examples. Copied reference documents use
+relative Markdown links and portable runtime shell blocks.
 
-## Deployment evidence
+`implement`, `test`, `continue` and `loop` require explicit invocation. Claude,
+Pi and OMP receive `disable-model-invocation: true`; Codex receives
+`policy.allow_implicit_invocation: false`. The shared Pi/OMP compiler profile
+lives in [`.henia/harnesses/pi-omp`](../.henia/harnesses/pi-omp/transform.toml).
 
-Raw evidence is under ignored `.henia/evidence/`; generated snapshots and Phora state are also confined to `.henia/`.
+All resources retain their bytes and executable modes. The bundle contains the
+three role contracts, `instructions/AGENTS.md`, and the native `CLAUDE.md` or
+`AGENTS.md` entrypoint. Claude role metadata is normalized; other harnesses
+receive portable role descriptions and bodies without Claude hooks. Existing
+workflow routing continues to materialize those role contracts.
 
-| Check | Result | Evidence |
-|---|---|---|
-| Checkpoint validation | Workflow contracts and all five peer suites passed after replacing a stale duplicate route matrix with registry-derived expectations | `f768f1f`; original check log `/tmp/tropos-checkpoint-validation.log` |
-| Canonical workflow validation | Existing `mise run test-workflow-contracts` passed after the rewrites | `workflow-contracts-final.log` |
-| Build/deploy/verify | Five skills per target; 94 files total; `phora verify`: `all verified` | `deployment-final.log` |
-| Artifact fidelity | `diff -r --exclude=.git` found no content differences for either harness; both deployed peer runners are executable | `deployed-final.sha256`; installed files |
-| Repeat deployment | Every installed checksum matched after another complete run | `deployment-final-repeat.log`, `deployment-final-repeat-checksums.log` |
-| Pure resource removal | Disposable `prune-probe.txt` disappeared from both targets after its source was removed | `deployment-fixture-initial.log`, `deployment-fixture-prune.log` |
-| Compiler failure | Invalid `{{if}}` failed the build hook; every prior fixture deployment checksum remained unchanged | `deployment-fixture-failure.log`, `deployment-fixture-failure-checksums.log` |
-| Drift | Edited fixture `GENERATED.md` made `phora verify` exit 1 with `content mismatch` | `deployment-fixture-drift.log` |
-| Ownership | A snapshot missing its generator marker was rejected before any Git command ran; the real owned deployment still verified with unchanged hashes | `deployment-fixture-unowned.log`, `deployment-owned-final.log`, `deployment-owned-final-checksums.log` |
+## Transitive Loqui dependency
 
-Fixture failure is intentional and remains isolated under `.henia/evidence/deployment-fixture`. It does not affect the installed prototype.
+[`phora/dependencies.toml`](../phora/dependencies.toml) owns the Tropos → Loqui
+edge. The build produces a small Git export at `.henia/packages/dependencies`
+whose `phora.toml` pins Loqui to the selected committed revision. Consumers
+import this export with `transitive = true` under each harness root. Its target
+mounts Loqui at `skills/loqui/reference/loqui`.
 
-## Integration gaps and workarounds
+Phora fetches and copies Loqui itself. It records four namespaced dependency
+instances in `phora.lock`; the machine-local build sources are recorded in
+`phora.local.lock`. The deployed Loqui files are checked against hashes read
+from that same Git commit, including the Bash, Elisp, Go, Python, Rust and Zig
+guides. Local Loqui caches, research files, and uncommitted third-party resource
+materializations are outside this published dependency surface.
 
-### The documented Phora invocation cannot run
+This branch does not require a symlink inside canonical `skills/loqui`.
+`loqui-link`/`loqui-unlink` remain legacy authoring helpers; unlink such a source
+resource before compiling because Henia rejects source-resource symlinks.
 
-Henia's `docs/phora.md` uses `phora --config … sync`. Installed Phora 0.1.2 rejects `--config`; its CLI loads only `./phora.toml`. The example configs also omit mandatory `version = 1`, which fails parsing when used as `phora.toml`.
+## Dotfiles Phora probe
 
-This prototype uses two working directories with versioned configs. Source references: `/Users/srnnkls/projects/henia/docs/phora.md:41`, `/Users/srnnkls/projects/phora/src/cli/mod.rs:807`.
+The `feat/phora` dotfiles worktree consumes these same packages with
+`bin/phora-tropos --tropos <this-worktree> --loqui <loqui-checkout>`.
+Its consumer imports Tropos's dependency export instead of declaring a separate
+Loqui source. Each harness gets Loqui through Tropos's manifest.
 
-### Phora local copy sources require Git snapshots
+The probe installs into `.phora-shadow/tropos/home` in that dotfiles worktree:
+Claude under `.claude`, Codex skills under `.agents` with a `.codex/AGENTS.md`
+entrypoint, Pi under `.pi/agent`, and OMP under `.omp/agent`. The `peer` and `issue`
+helpers are available under its `.local/bin`. This is an isolated deployment,
+not a live-home cutover.
 
-A local `path` is a Git remote in copy mode. Pointing it at this worktree staged committed `f768f1f` content, ignoring the canonical rewrites. The stage lock recorded that commit; its `code/SKILL.md` still contained the old top-level `argument-hint`. Strict Codex compilation then failed on that unsupported metadata. Evidence: `deployment-second.log`.
+## Smoke coverage
 
-A separate native probe, `cd .henia/evidence/phora-nongit && phora sync`, exited 1: `clone bare plain: Could not verify that …/artifacts url is a valid git directory`. Its input and config remain in that evidence directory.
+The artifact check covers all 25 skills in all four targets: parsed metadata,
+invocation controls, Codex sidecars, template expansion, context dialects,
+references, resource bytes and modes, role contracts, global instructions, and
+Loqui's complete selected file inventory and hashes.
 
-Plain Henia output directories are therefore not sufficient copy-mode inputs. The wrapper creates generated local Git snapshots of the selected dirty sources and each compiled harness output. Snapshot commits stay under `.henia/`; they do not commit or publish the prototype branch. Unchanged snapshot trees retain their previous commits.
+Lifecycle tests run real Henia and Phora in a disposable Tropos repository.
+They cover clean and repeated deployment, stale-resource removal, foreign-file
+preservation, malformed templates, and missing dependency inputs. They use the
+selected public Loqui pin and may need network access to fill the fixture cache.
+No model session or live-home installation is involved.
 
-`phora update --fast-forward` refreshes each source pin and handles removals. Ordinary `sync` alone would retain locked content. Link mode was not substituted: this prototype verifies copied deployment contents through Phora's integrity model.
+## Historical live probes
 
-### Build hooks require two phases
+The earlier five-skill prototype passed one authenticated read-only `code` probe
+each in Claude Code, Codex, Pi and OMP on 2026-09-20. Pi also exposed native
+slash-command expansion. Recordings remain under ignored
+`.henia/evidence/live-20260920/`; their hashes describe that earlier build.
+The full migration does not claim model-driven execution of all 25 workflows.
 
-Phora resolves source snapshots before its build hook runs. Compilation is the staging phase's global `post_sync` hook; deployment runs in a separate process only after that hook succeeds. Building in the deployment phase's `pre_sync` cannot refresh its already-selected snapshot. Pure-removal handling is verified above.
+## Gaps
 
-### A fresh build is required for reliable pruning
+Henia's existing lint warnings remain visible; errors and artifact assertions
+fail the build. The deployed role contracts do not automatically register
+host-specific Codex agent configurations. Workflow tools such as `peer`, `gh`,
+Gestalt, FAS and the selected harnesses still need their normal workstation
+configuration. Henia reads `~/.config/henia`, which may affect compilation.
 
-The wrapper builds into a new directory and publishes it only after both harnesses compile and pass non-strict lint. Previous owned snapshots are archived rather than removed. Phora then deploys the fresh Git snapshots. Compiler-specific stale-output behavior is documented in the compiler results.
-
-This is a local prototype, not an atomic two-target deployment system. Compiler failure containment is verified; process death during the build-directory rename and partial Phora deployment are not covered by a rollback mechanism. Archives accumulate; no automatic retention policy is installed. Concurrent deployment invocations are not supported.
-
-### Strict compilation succeeds; strict lint does not
-
-The deployed Claude output has 29 lint warnings; Codex has 26. Both have zero lint errors. Raw diagnostics are `.henia/build/claude-lint.json` and `codex-lint.json`; paths inside them refer to the temporary compilation directory before publication.
-
-Warnings include compatibility noise documented in the lint report, generated context-paragraph repetition, and genuine references to skills outside this subset. The wrapper retains every diagnostic and gates on errors; it does not disable a rule or claim strict-lint cleanliness.
-
-### Harness variables are strings
-
-`preload_context = true` failed with `load config: toml: cannot assign boolean to a true` (`deployment-first.log`). The working config uses strings and explicit template equality against `"true"`. A nonempty `"false"` must not be used as a Go-template boolean condition.
-
-### Configuration isolation is incomplete
-
-Henia consults `~/.config/henia`, independently of `XDG_CONFIG_HOME`. No such user config directory existed during the deployment run. HOME-overridden checks were blocked by the worktree command guard; the working pipeline leaves HOME unchanged. Future user-global Henia settings can affect builds. Phora cache and registry isolation use explicit `[paths]` settings and were verified locally.
-
-## Runtime limits
-
-The deployed Markdown-link closure is present, but the subset is not a standalone Tropos installation. Routes mentioning `continue`, `scope`, `gestalt`, `loop`, `tfcp`, `tfcprr` and Loqui still depend on existing repository/global facilities. Supporting Markdown is copied verbatim; its Claude-style invocations are not rewritten for Codex. The peer runner is bundled, not installed onto PATH. Codex permission enforcement and native agent registration are not supplied by copying Claude role-contract files.
-
-No generated skill was invoked against an external model. An offline, network-denied Codex app-server initialization recognized the project `.codex` directory and reported that skills load even while project settings are untrusted. The `skills/list` response did not complete before stdin closed; subsequent paced probes were blocked by the command guard. Full Codex enumeration and live Claude skill discovery remain unverified. Evidence: `codex-discovery.jsonl`, `codex-discovery.stderr`.
+Generated packages, runtime pins, caches and deployments are ignored. Build
+packages are local artifacts; no generated Git repositories are pushed.
+Historical exploratory results remain in [build results](henia-build-results.md)
+and [lint results](henia-lint-results.md).

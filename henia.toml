@@ -20,3 +20,27 @@ strict = true
 [harness.codex.variables]
 preload_context = "false"
 context_instruction = "Run these commands with the shell tool before applying the workflow; use their output as context."
+
+[harness.pi]
+profile = "pi-omp"
+format = "directives"
+strict = true
+
+[harness.pi.variables]
+preload_context = "false"
+context_instruction = "Run these commands with the shell tool before applying the workflow; use their output as context."
+
+[harness.pi.references.skill]
+output = "/skill:{{.Name}}"
+
+[harness.omp]
+profile = "pi-omp"
+format = "directives"
+strict = true
+
+[harness.omp.variables]
+preload_context = "false"
+context_instruction = "Run these commands with the shell tool before applying the workflow; use their output as context."
+
+[harness.omp.references.skill]
+output = "/skill:{{.Name}}"

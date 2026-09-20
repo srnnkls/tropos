@@ -4,7 +4,17 @@ description: |
   Query code intelligence with gestalt. Use when finding callers/callees, tracing references, running CozoScript queries, or generating repo maps.
 metadata:
   type: generic
+henia:
+  targets:
+    codex:
+      openai:
+        interface:
+          display_name: Gestalt
+          short_description: Apply the canonical gestalt skill workflow
+          default_prompt: Use $gestalt for the requested task.
 ---
+
+<!-- Generated from skills/gestalt/SKILL.md by henia build; edit the canonical source. -->
 
 # gestalt
 

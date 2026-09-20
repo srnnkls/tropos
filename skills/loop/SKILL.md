@@ -1,35 +1,58 @@
 ---
 name: loop
 description: Autonomous execution of explicit implementation scopes, one dependency batch per iteration with concurrent RED → GREEN → review waves.
-argument-hint: "<focus topic>"
-allowed-tools: Bash(find *), Bash(git *), Bash(peer *)
-context: fork
-hooks:
-  Stop:
-    - command: |
-        echo "$HOOK_INPUT" | jq -e '.stop_hook_active' 2>/dev/null | grep -q true && exit 0
-        hk check --all --fix 2>&1 || exit 2
+henia:
+  targets:
+    claude:
+      frontmatter:
+        argument-hint: <focus topic>
+        allowed-tools: Bash(find *), Bash(git *), Bash(peer *)
+        context: fork
+        hooks:
+          Stop:
+            - hooks:
+                - type: command
+                  command: |
+                    echo "$HOOK_INPUT" | jq -e '.stop_hook_active' 2>/dev/null | grep -q true && exit 0
+                    hk check --all --fix 2>&1 || exit 2
+    codex:
+      openai:
+        interface:
+          display_name: Loop
+          short_description: Apply the canonical loop skill workflow
+          default_prompt: Use $loop for the requested task.
+  auto_invoke: false
+  variables:
+    context_commands:
+      - label: Pending tasks
+        command: 'find scopes -maxdepth 3 -name "tasks.yaml" -type f 2>/dev/null | xargs -I{} sh -c ''echo "=== {} ===" && grep -A1 "status: pending" {} 2>/dev/null'''
+      - label: Git status
+        command: git status --short 2>/dev/null || true
+      - label: Current branch
+        command: git branch --show-current 2>/dev/null || true
+      - label: Current routes (recorded batch snapshots remain authoritative)
+        command: peer route show -C . 2>/dev/null || true
+metadata:
+  type: generic
 ---
 
-## Pre-loaded Context
+<!-- Generated from skills/loop/SKILL.md by henia build; edit the canonical source. -->
 
-Pending tasks:
-!`find scopes -maxdepth 3 -name "tasks.yaml" -type f 2>/dev/null | xargs -I{} sh -c 'echo "=== {} ===" && grep -A1 "status: pending" {} 2>/dev/null'`
+## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
-Git status:
-!`git status --short 2>/dev/null || true`
+{{.context_instruction}}
 
-Current branch:
-!`git branch --show-current 2>/dev/null || true`
+{{range .context_commands}}{{.label}}:
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{.command}}
+```{{end}}
 
-Current routes (recorded batch snapshots remain authoritative):
-!`peer route show -C . 2>/dev/null || true`
-
+{{end}}
 # Autonomous Implementation Loop
 
 Focus: $ARGUMENTS
 
-`/loop` is explicit authorization to continue strict delegated implementation. The orchestrator does not author tests or production code.
+`$loop` is explicit authorization to continue strict delegated implementation. The orchestrator does not author tests or production code.
 
 ## Protocol
 

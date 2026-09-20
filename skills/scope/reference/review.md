@@ -17,7 +17,7 @@ Multi-perspective scope review using parallel subagent dispatch.
 
 ### Step 1: Identify Scope
 
-1. Parse scope name from argument (e.g., `/scope review auth-system`)
+1. Parse scope name from argument (e.g., [scope](../SKILL.md) with `review auth-system`)
 2. **Locate scope:** If name provided, search `scopes/{draft,active,done}/<name>/`. If no argument: find most recent `scope.md` under `scopes/*/*/`.
 3. Read scope documents: `scope.md`, `tasks.yaml`, `validation.yaml`, and `design.md` (if present)
 
@@ -87,7 +87,7 @@ Triage findings before they gate anything, per [review synthesis](../../review/r
 
 `implement`/`loop` will not execute a scope whose `review_gate.status` is absent or `failed` (enforced at `implement/operations/execute.md` Step 2).
 
-When invoked standalone (`/scope review <name>`) the same gate semantics apply — a passing run writes `review_gate.status: passed`, unblocking implementation.
+When invoked standalone ([scope](../SKILL.md) with `review <name>`) the same gate semantics apply — a passing run writes `review_gate.status: passed`, unblocking implementation.
 
 ---
 
@@ -117,7 +117,7 @@ Catches assumptions insiders miss, simulates new team member perspective. Cannot
 
 ## Harnesses
 
-See `/review` for harness details, models, and dispatch templates:
+See [review](../../review/SKILL.md) for harness details, models, and dispatch templates:
 - [reference/harnesses.md](../../review/reference/harnesses.md) — dispatch configuration
 - [reference/models.md](../../review/reference/models.md) — available models and reasoning levels
 

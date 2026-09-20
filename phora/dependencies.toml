@@ -1,0 +1,14 @@
+# Tropos's dependency export, imported under each harness root by consumers.
+version = 1
+
+[sources.loqui]
+git = "https://github.com/srnnkls/loqui.git"
+branch = "main"
+include = ["README.md", "languages/**", "resources/**"]
+
+[targets.loqui]
+path = "skills/loqui/reference/loqui"
+layout = "flat"
+
+[targets.loqui.sources.loqui]
+collapse = false

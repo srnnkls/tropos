@@ -1,20 +1,40 @@
 ---
 name: git
 description: Modern git workflows plus dispatched operations (rebase strategy analysis). Use when managing branches, structuring commits, choosing development strategies, or planning a rebase.
-argument-hint: "[operation] [args]"
-allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(git rev-parse *)
 metadata:
   type: domain
+henia:
+  targets:
+    claude:
+      frontmatter:
+        argument-hint: '[operation] [args]'
+        allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(git rev-parse *)
+    codex:
+      openai:
+        interface:
+          display_name: Git
+          short_description: Apply the canonical git skill workflow
+          default_prompt: Use $git for the requested task.
+  variables:
+    context_commands:
+      - label: Current branch
+        command: git branch --show-current 2>/dev/null || true
+      - label: Status
+        command: git status --short 2>/dev/null | head -10
 ---
 
-## Pre-loaded Context
+<!-- Generated from skills/git/SKILL.md by henia build; edit the canonical source. -->
 
-Current branch:
-!`git branch --show-current 2>/dev/null || true`
+## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
-Status:
-!`git status --short 2>/dev/null | head -10`
+{{.context_instruction}}
 
+{{range .context_commands}}{{.label}}:
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{.command}}
+```{{end}}
+
+{{end}}
 # Git Skill
 
 Dispatches operations and provides reference knowledge for modern git workflows.

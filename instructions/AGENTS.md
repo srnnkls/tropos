@@ -35,7 +35,7 @@ Never use `rm` for interactive file removal. Use `trash`.
 
 ## Workflow boundary
 
-Ordinary work executes directly. Strict delegated RED → GREEN → review and TDD activate only through explicit `/implement`, `/test`, or a direct request for tests.
+Ordinary work executes directly. Strict delegated RED → GREEN → review and TDD activate only through explicit [implement](../skills/implement/SKILL.md), [test](../skills/test/SKILL.md), or a direct request for tests.
 
 For configuration, documentation, maintenance, and platform-validated artifacts, use the native parser, linter, command, or runtime instead of inventing test machinery.
 

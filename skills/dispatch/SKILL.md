@@ -1,10 +1,22 @@
 ---
 name: dispatch
 description: Intent router. Routes explicit workflow requests and leaves ordinary work in direct execution.
-argument-hint: "[target]"
 metadata:
   type: generic
+henia:
+  targets:
+    claude:
+      frontmatter:
+        argument-hint: '[target]'
+    codex:
+      openai:
+        interface:
+          display_name: Dispatch
+          short_description: Apply the canonical dispatch skill workflow
+          default_prompt: Use $dispatch for the requested task.
 ---
+
+<!-- Generated from skills/dispatch/SKILL.md by henia build; edit the canonical source. -->
 
 # Intent Router
 

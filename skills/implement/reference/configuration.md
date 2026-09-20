@@ -1,6 +1,6 @@
 # Implementation Agent Configuration
 
-Owns `/implement`, `/continue`, and `/loop` configuration resolution plus immutable batch routing snapshots. The [peer routing contract](../../peer/reference/routing.md) owns registry interpretation and dispatch mechanics. Standalone review selection in `validation.yaml.review_config` is separate.
+Owns [implement](../SKILL.md), [continue](../../continue/SKILL.md), and [loop](../../loop/SKILL.md) configuration resolution plus immutable batch routing snapshots. The [peer routing contract](../../peer/reference/routing.md) owns registry interpretation and dispatch mechanics. Standalone review selection in `validation.yaml.review_config` is separate.
 
 ## Schema
 
@@ -18,7 +18,7 @@ routing:
   reviewer: {agents: [<route-id>], effort: inherit}
 ```
 
-A top-level scope execution creates a new epoch. `/continue` and `/loop` reuse it. Direct tasks keep the same structure in memory and write reports under subject `direct`.
+A top-level scope execution creates a new epoch. [continue](../../continue/SKILL.md) and [loop](../../loop/SKILL.md) reuse it. Direct tasks keep the same structure in memory and write reports under subject `direct`.
 
 Tester and implementer each select one agent. Reviewer selects one or more agents. Persist `inherit` or a declared effort for every route.
 
@@ -32,7 +32,7 @@ Merge, last source winning:
 
 Supported assignments are `tester`, `tester_effort`, `implementer`, `implementer_effort`, `reviewer`, and `reviewer_effort`; reviewer aliases use `+`. `--reviewers` remains a legacy reviewer-only shorthand.
 
-Supplying `--config` accepts a valid merged result without prompting. Otherwise prompt once for all routes. `/implement config <scope>` edits the current epoch instead of creating one.
+Supplying `--config` accepts a valid merged result without prompting. Otherwise prompt once for all routes. [implement](../SKILL.md) with `config <scope>` edits the current epoch instead of creating one.
 
 Validate the merged selection under the live [peer routing contract](../../peer/reference/routing.md).
 

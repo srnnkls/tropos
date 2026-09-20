@@ -1,0 +1,9 @@
+# https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/skills.md
+# https://github.com/can1357/oh-my-pi/blob/main/docs/skills.md
+fields = ["name", "description", "license", "compatibility", "metadata", "allowed-tools", "disable-model-invocation"]
+controls = ["auto_invoke"]
+consume = ["tools"]
+
+[computed]
+"allowed-tools" = '(input.tools ?? input["allowed-tools"]) == nil ? nil : toolNames(input.tools ?? input["allowed-tools"], ctx.tools)'
+"disable-model-invocation" = 'settings.auto_invoke == nil ? nil : not settings.auto_invoke'

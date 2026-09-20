@@ -31,7 +31,7 @@ git diff --name-only "HEAD...origin/<base>"
 git diff --name-only "$(git merge-base "origin/<base>" HEAD)" HEAD
 ```
 
-No overlap means report drift in one line and proceed. A shared path is a concrete semantic-collision risk; stop and ask whether to rebase, proceed knowingly, or abort. Hand rebase strategy to `/git rebase`.
+No overlap means report drift in one line and proceed. A shared path is a concrete semantic-collision risk; stop and ask whether to rebase, proceed knowingly, or abort. Hand rebase strategy to [git](../../git/SKILL.md) with `rebase`.
 
 Do not enumerate indirect callers or infer collision from conceptual similarity alone.
 

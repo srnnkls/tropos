@@ -1,15 +1,23 @@
 # PR Review Operation
 
-## Pre-loaded PR Context
+## Runtime PR Context
+
+Run these commands before reviewing the pull request.
 
 PR metadata:
-!`gh pr view $0 --json title,body,additions,deletions,files,commits 2>/dev/null`
+```bash
+gh pr view $0 --json title,body,additions,deletions,files,commits 2>/dev/null
+```
 
 PR diff:
-!`gh pr diff $0 2>/dev/null`
+```bash
+gh pr diff $0 2>/dev/null
+```
 
 Pending draft comments:
-!`gh review comments $0 --mine --states=pending 2>/dev/null`
+```bash
+gh review comments $0 --mine --states=pending 2>/dev/null
+```
 
 # PR Review Skill
 
@@ -66,7 +74,7 @@ gh pr view {pr} --repo {owner}/{repo} --json files --jq '.files[].path' | \
 
 Load:
 - `code` domain — review process and checklist
-- `~/.claude/skills/loqui/reference/loqui/languages/{language}/*` — language-specific resources based on file extensions
+- `../../loqui/reference/loqui/languages/{language}/*` — language-specific resources based on file extensions
 
 ### 6. Reference Style Guides
 

@@ -3,7 +3,17 @@ name: adversarial
 description: Push into adversarial focus mode — surface orthogonal observations, run three rounds of named adversarial analysis (pre-mortem, devil's advocate, falsification), drop narration. Use when work is experimental, when a solution "looks correct," or when pattern-matching might be masking the real problem.
 metadata:
   type: generic
+henia:
+  targets:
+    codex:
+      openai:
+        interface:
+          display_name: Adversarial
+          short_description: Apply the canonical adversarial skill workflow
+          default_prompt: Use $adversarial for the requested task.
 ---
+
+<!-- Generated from skills/adversarial/SKILL.md by henia build; edit the canonical source. -->
 
 # Adversarial Focus
 

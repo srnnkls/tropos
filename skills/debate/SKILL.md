@@ -1,10 +1,22 @@
 ---
 name: debate
 description: Start structured red vs. blue team debates via subagents. Use when exploring a topic from multiple adversarial perspectives.
-argument-hint: "[topic]"
 metadata:
   type: generic
+henia:
+  targets:
+    claude:
+      frontmatter:
+        argument-hint: '[topic]'
+    codex:
+      openai:
+        interface:
+          display_name: Debate
+          short_description: Apply the canonical debate skill workflow
+          default_prompt: Use $debate for the requested task.
 ---
+
+<!-- Generated from skills/debate/SKILL.md by henia build; edit the canonical source. -->
 
 # Start Debate Skill
 
@@ -162,7 +174,7 @@ Update scratchpad status to "Completed".
 
 ## Integration
 
-Command: `/debate {topic}`
+Command: `$debate` with `{topic}`
 
 Related:
 - Tools: Task (subagents), AskUserQuestion (configuration), Edit (scratchpad)

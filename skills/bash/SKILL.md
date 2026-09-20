@@ -3,7 +3,17 @@ name: bash
 description: Ultra-concise bash command patterns. Use when constructing shell commands or one-liners.
 metadata:
   type: generic
+henia:
+  targets:
+    codex:
+      openai:
+        interface:
+          display_name: Bash
+          short_description: Apply the canonical bash skill workflow
+          default_prompt: Use $bash for the requested task.
 ---
+
+<!-- Generated from skills/bash/SKILL.md by henia build; edit the canonical source. -->
 
 # Bash Use Skill
 
@@ -64,7 +74,7 @@ diff <(cmd1) <(cmd2)
 
 ## Full Guidelines
 
-`~/.claude/skills/loqui/reference/loqui/languages/bash/reference/commands.md`
+`../loqui/reference/loqui/languages/bash/reference/commands.md`
 
 ---
 

@@ -1,11 +1,23 @@
 ---
 name: tfcp
 description: Land the fixes for a local review — triage, fix, commit, push. Dispositions every finding of a code review (in-context or from a `.peer/` report directory) as fix, residual, or needs-decision, applies the fix bucket, commits once behind the hook gate, and pushes. Use for "tfcp", "triage the review findings", "apply the review findings", "fix and push the review issues"; `tfcprr` composes on it for PR threads.
-argument-hint: "[--issue <id>…] [--report <path>] [-m <msg>] [paths…]"
-allowed-tools: Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git status *), Bash(git rev-parse *), Bash(git branch *)
 metadata:
   type: domain
+henia:
+  targets:
+    claude:
+      frontmatter:
+        argument-hint: '[--issue <id>…] [--report <path>] [-m <msg>] [paths…]'
+        allowed-tools: Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git status *), Bash(git rev-parse *), Bash(git branch *)
+    codex:
+      openai:
+        interface:
+          display_name: Tfcp
+          short_description: Apply the canonical tfcp skill workflow
+          default_prompt: Use $tfcp for the requested task.
 ---
+
+<!-- Generated from skills/tfcp/SKILL.md by henia build; edit the canonical source. -->
 
 # tfcp — triage + fix + commit + push
 

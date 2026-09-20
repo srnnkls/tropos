@@ -24,7 +24,7 @@ The A→B→C barriers are data dependencies. Inside each phase, dispatch every 
 2. Treat `tasks.yaml` as the sole task-status authority and `review.yaml` as the finding/deferred-issue authority. TodoWrite is optional display state and is never required or read back.
 3. Activate the scope branch/worktree and clear the branch/base-drift gate from `../SKILL.md` before mutation.
 4. Promote `draft` to `active` when work begins.
-5. Require `validation.yaml.review_gate.status: passed`. If absent or failed, stop and run `/scope review <name>`.
+5. Require `validation.yaml.review_gate.status: passed`. If absent or failed, stop and run [scope](../../scope/SKILL.md) with `review <name>`.
 6. Resolve and validate implementation routing through [configuration.md](../reference/configuration.md). Mint a new run/epoch for a top-level execution.
 
 ## 2. Build Batches
@@ -136,7 +136,7 @@ Before a PR, fetch trunk and apply [base-drift-preflight.md](../reference/base-d
 
 ## 10. Finish
 
-When readiness passes, ask whether to run `/scope done <name>`; that operation owns lifecycle movement and final scope validation.
+When readiness passes, ask whether to run [scope](../../scope/SKILL.md) with `done <name>`; that operation owns lifecycle movement and final scope validation.
 
 If the original explicit invocation included a GitHub issue reference, invoke `issue pr --state <draft|open> --issue <n>` after readiness and trunk sync. Do not create a PR without that original issue signal.
 
@@ -145,7 +145,7 @@ If the original explicit invocation included a GitHub issue reference, invoke `i
 - Mutating failure: preserve edits, report directory, status/diff evidence, and exact wave; pause.
 - Initial read-only review failure: report files are the recovery source; redispatch only missing configured reports for that initial wave.
 - Targeted re-review failure: use only the canonical single replacement attempt; never restore role or execution-class fan-out.
-- `/continue` authorizes deliberate redispatch of the exact recorded wave.
+- [continue](../../continue/SKILL.md) authorizes deliberate redispatch of the exact recorded wave.
 - Never restart RED after a completed RED gate, and never infer progress from TodoWrite.
 
 ## Stop Condition

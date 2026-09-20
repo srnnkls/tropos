@@ -3,7 +3,17 @@ name: clarify
 description: Resolve ambiguities interactively with tracked changes. Works with scope, code review, and other skills.
 metadata:
   type: domain
+henia:
+  targets:
+    codex:
+      openai:
+        interface:
+          display_name: Clarify
+          short_description: Apply the canonical clarify skill workflow
+          default_prompt: Use $clarify for the requested task.
 ---
+
+<!-- Generated from skills/clarify/SKILL.md by henia build; edit the canonical source. -->
 
 # Clarify Skill
 
@@ -21,8 +31,8 @@ Use for:
 - Any interactive clarification with audit trail
 
 Don't use for:
-- Initial validation (handled during `/scope` creation)
-- Changing fundamental scope (re-run `/scope`)
+- Initial validation (handled during `$scope` creation)
+- Changing fundamental scope (re-run `$scope`)
 
 ---
 
@@ -208,7 +218,7 @@ scope:
 
 ## Integration
 
-**Command:** `/clarify [context]`
+**Command:** `$clarify` with `[context]`
 
 **Invoked from:**
 - `scope` - Clarify during scope creation or review

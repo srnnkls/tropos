@@ -1,9 +1,19 @@
 ---
 name: skill
-description: Create new Claude Code skills following project patterns and best practices. Use when building new skills, extracting reusable capabilities, or converting commands to skills.
+description: Create canonical multi-harness skills following project patterns and best practices. Use when building new skills, extracting reusable capabilities, or converting commands to skills.
 metadata:
   type: domain
+henia:
+  targets:
+    codex:
+      openai:
+        interface:
+          display_name: Skill
+          short_description: Apply the canonical skill skill workflow
+          default_prompt: Use $skill for the requested task.
 ---
+
+<!-- Generated from skills/skill/SKILL.md by henia build; edit the canonical source. -->
 
 # Skill Creation
 
@@ -32,7 +42,7 @@ Analyze each use case to identify reusable resources:
 | Resource Type | When to Use | Example |
 |---------------|-------------|---------|
 | `scripts/` | Same code rewritten repeatedly | `rotate_pdf.py` |
-| `reference/` | Domain knowledge Claude needs | `schema.md`, `api.md` |
+| `reference/` | Domain knowledge the agent needs | `schema.md`, `api.md` |
 | `assets/` | Files used in output | `template.html`, `logo.png` |
 | `templates/` | Document structure patterns | `report.md` |
 
@@ -46,15 +56,16 @@ description: |            # Max 1024 chars
   [What it does]. Use when [context].
 ```
 
-**Optional fields:**
+**Canonical metadata:**
 
-| Field | Purpose | Example |
-|-------|---------|---------|
-| `context` | Run in forked subagent | `context: fork` |
-| `agent` | Specify agent type | `agent: haiku` |
-| `user-invocable` | Hide from slash menu | `user-invocable: false` |
-| `allowed-tools` | Restrict available tools | See reference.md |
-| `hooks` | Lifecycle hooks (PreToolUse, PostToolUse, Stop) | See reference.md |
+Keep portable `name`, `description`, `metadata`, `license` and `compatibility` at
+the top level. Put harness-specific metadata under `henia.targets.<profile>`.
+Use `henia.auto_invoke: false` for explicit-only skills, `henia.variables` for
+context inputs, and `henia.targets.codex.openai.interface` for Codex UI metadata.
+
+Write canonical skill references as backtick `$skill-name` spans outside code
+examples. Use portable relative Markdown links in copied reference documents.
+Run `mise run prototype:sync` in the Tropos checkout to build, deploy and smoke-test all harnesses.
 
 **Naming pattern:** `<namespace>[-<subnamespace>]-<action>`
 - `dispatch`, `scope`, `git worktree`
@@ -65,13 +76,13 @@ description: |            # Max 1024 chars
 ### Step 4: Create Structure
 
 ```bash
-mkdir -p .claude/skills/{skill-name}
+mkdir -p skills/{skill-name}
 ```
 
 **Standard structure:**
 
 ```
-.claude/skills/{skill-name}/
+skills/{skill-name}/
 ├── SKILL.md              # Main instructions (<500 lines)
 ├── templates/            # Document templates (.md)
 ├── scripts/              # Executable code (.sh, .py)
@@ -88,7 +99,7 @@ mkdir -p .claude/skills/{skill-name}
 
 **Test with real tasks:**
 1. Does the description trigger correctly?
-2. Can Claude find bundled resources?
+2. Can each harness find bundled resources?
 3. Does the workflow complete successfully?
 
 ---

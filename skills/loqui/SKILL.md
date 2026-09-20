@@ -4,7 +4,17 @@ description: |
   Access language-specific coding guidelines from loqui. Use when implementing code and needing patterns, style guidance, or best practices for Python, Go, Rust, Zig, Bash, or Emacs Lisp.
 metadata:
   type: generic
+henia:
+  targets:
+    codex:
+      openai:
+        interface:
+          display_name: Loqui
+          short_description: Apply the canonical loqui skill workflow
+          default_prompt: Use $loqui for the requested task.
 ---
+
+<!-- Generated from skills/loqui/SKILL.md by henia build; edit the canonical source. -->
 
 # Loqui
 
@@ -20,9 +30,8 @@ Resolve resources relative to the directory containing this `SKILL.md`:
 reference/loqui/languages/{language}/
 ```
 
-This works through the dotfiles deployment in Claude, Codex, and other harnesses. Read the relevant
-language README first, then follow its topic links. If `reference/loqui` is missing, restore the
-reference using dotfiles deployment or tropos's `mise run loqui-link --path /path/to/loqui` task.
+Phora deploys the Loqui dependency alongside the compiled skill. Read the relevant language README
+first, then follow its topic links.
 
 ---
 

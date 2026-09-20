@@ -4,7 +4,7 @@ Guidance for the code that appears in `# Implementation plan`. Sketches are illu
 
 ## The one rule: match the repo
 
-A sketch must read as if someone fluent in this codebase wrote it. Apply the [repository-orientation contract](../../../instructions/AGENTS.md#tools-and-context), then use `/loqui`, `CLAUDE.md` / `AGENTS.md`, and neighbouring modules to learn and mirror naming grammar, error handling, public surfaces, and dependency wiring. Do not import a pattern the codebase does not use.
+A sketch must read as if someone fluent in this codebase wrote it. Apply the [repository-orientation contract](../../../instructions/AGENTS.md#tools-and-context), then use [loqui](../../loqui/SKILL.md), `CLAUDE.md` / `AGENTS.md`, and neighbouring modules to learn and mirror naming grammar, error handling, public surfaces, and dependency wiring. Do not import a pattern the codebase does not use.
 
 ## What a sketch shows
 

@@ -18,7 +18,7 @@ Each issue is authored, gated through the `issue` skill's default reviewer ensem
 
 ### Step 1: Locate and load the scope
 
-1. Resolve the name: `/scope issue <name>` → search `scopes/{draft,active,done}/<name>/`; no argument → the branch-associated scope, else the most recent `scopes/*/*/scope.md`.
+1. Resolve the name: [scope](../SKILL.md) with `issue <name>` → search `scopes/{draft,active,done}/<name>/`; no argument → the branch-associated scope, else the most recent `scopes/*/*/scope.md`.
 2. Read `scope.md` (frontmatter `issue_type` drives the tree), `tasks.yaml`, `dependencies.yaml` (if present), and `design.md` (if present).
 3. If `issue_type` is missing, ask via **AskUserQuestion** (`Initiative | Feature | Task`) before continuing.
 
@@ -45,7 +45,7 @@ For large trees, state the issue count up front (`1 + n + Σmᵢ`) so the user k
 
 ### Step 4: Author + publish, level by level
 
-Publish **top-down** so `--parent` always resolves against an existing number. Within a level the nodes are independent — dispatch them as **parallel subagents in one message** (per CLAUDE.md: only Task subagents parallelize).
+Publish **top-down** so `--parent` always resolves against an existing number. Within a level the nodes are independent — dispatch them as **parallel subagents in one message** using the active harness's supported delegation mechanism.
 
 ```
 Level 1: root            → 1 subagent          → capture root number

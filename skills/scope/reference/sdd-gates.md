@@ -63,6 +63,6 @@ When gates are checked by task-dispatch:
 ## Resolution
 
 Failed gates can be resolved by:
-1. `/clarify` - Interactive resolution
+1. [clarify](../../clarify/SKILL.md) - Interactive resolution
 2. Manual edit of validation.yaml with justification
 3. Changing issue_type (if scope was misclassified)

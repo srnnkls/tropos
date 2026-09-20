@@ -3,7 +3,18 @@ name: test
 description: Bounded RED-GREEN-REFACTOR methodology. Use when the user explicitly requests TDD or tests, or when the implement pipeline invokes it.
 metadata:
   type: generic
+henia:
+  auto_invoke: false
+  targets:
+    codex:
+      openai:
+        interface:
+          display_name: Bounded testing
+          short_description: Write focused tests and verify RED and GREEN
+          default_prompt: Use $test to test the requested behavior.
 ---
+
+<!-- Generated from skills/test/SKILL.md by henia build; edit the canonical source. -->
 
 # Bounded Test-Driven Development
 
@@ -13,7 +24,7 @@ Write the smallest discriminating check, watch it fail for the requested missing
 
 Use this workflow only when:
 
-- the user invokes `/test` or `/implement`;
+- the user invokes `$test` or `$implement`;
 - the user explicitly asks for tests or TDD; or
 - an active implementation pipeline dispatches a tester or implementer.
 

@@ -1,32 +1,50 @@
 ---
 name: continue
 description: Resume an interrupted explicit implementation from its exact checkpoint wave.
-argument-hint: "[scope-name]"
-allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(peer *)
 metadata:
   type: generic
+henia:
+  targets:
+    claude:
+      frontmatter:
+        argument-hint: '[scope-name]'
+        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(peer *)
+    codex:
+      openai:
+        interface:
+          display_name: Continue
+          short_description: Apply the canonical continue skill workflow
+          default_prompt: Use $continue for the requested task.
+  auto_invoke: false
+  variables:
+    context_commands:
+      - label: Active scopes
+        command: find scopes -maxdepth 3 -name scope.md 2>/dev/null || true
+      - label: Checkpoints
+        command: find scopes -name checkpoint.yaml -maxdepth 3 2>/dev/null || true
+      - label: Git status
+        command: git status --short 2>/dev/null || true
+      - label: Current branch
+        command: git branch --show-current 2>/dev/null || true
+      - label: Current routes (the recorded batch snapshot remains authoritative)
+        command: peer route show -C . 2>/dev/null || true
 ---
 
-## Pre-loaded Context
+<!-- Generated from skills/continue/SKILL.md by henia build; edit the canonical source. -->
 
-Active scopes:
-!`find scopes -maxdepth 3 -name scope.md 2>/dev/null || true`
+## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
-Checkpoints:
-!`find scopes -name checkpoint.yaml -maxdepth 3 2>/dev/null || true`
+{{.context_instruction}}
 
-Git status:
-!`git status --short 2>/dev/null || true`
+{{range .context_commands}}{{.label}}:
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{.command}}
+```{{end}}
 
-Current branch:
-!`git branch --show-current 2>/dev/null || true`
-
-Current routes (the recorded batch snapshot remains authoritative):
-!`peer route show -C . 2>/dev/null || true`
-
+{{end}}
 # Continue Implementation
 
-Resume the exact RED, GREEN, review, fix, or integration wave recorded by an explicit `/implement` run. Do not restart the pipeline from task status alone.
+Resume the exact RED, GREEN, review, fix, or integration wave recorded by an explicit `$implement` run. Do not restart the pipeline from task status alone.
 
 ## 1. Resolve State
 
@@ -36,7 +54,7 @@ Resume the exact RED, GREEN, review, fix, or integration wave recorded by an exp
 4. Activate the recorded branch/worktree and verify the recorded commit against the live tree.
 5. Run base-drift analysis before new mutation only when resume has not yet cleared the initial gate, upstream movement is known, or overlap evidence exists.
 
-If no checkpoint exists, report that `/implement <target>` must start the run.
+If no checkpoint exists, report that `$implement` with `<target>` must start the run.
 
 ## 2. Validate Recovery
 
@@ -62,7 +80,7 @@ Priority:
 
 ### Mutating wave
 
-Compare the entry's baseline/current diff with any saved report. Accept it only if its RED/GREEN/fix gate now passes. Otherwise `/continue` authorizes deliberate redispatch of that exact task and phase with the partial edits and evidence supplied.
+Compare the entry's baseline/current diff with any saved report. Accept it only if its RED/GREEN/fix gate now passes. Otherwise `$continue` authorizes deliberate redispatch of that exact task and phase with the partial edits and evidence supplied.
 
 Dispatch every independent missing task in one message. Write one checkpoint before the wave and one after all results land.
 

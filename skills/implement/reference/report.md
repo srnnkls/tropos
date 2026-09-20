@@ -1,6 +1,6 @@
 # Implementation Reports
 
-Canonical implementer and fix handoffs for explicit `/implement`. Return only the requested YAML and limit command output to the last 20 relevant lines.
+Canonical implementer and fix handoffs for explicit [implement](../SKILL.md). Return only the requested YAML and limit command output to the last 20 relevant lines.
 
 ## Implementer
 

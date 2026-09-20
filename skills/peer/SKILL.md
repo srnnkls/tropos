@@ -8,21 +8,18 @@ henia:
   variables:
     context_commands:
       - label: Available peers
-        command: >-
-          peer list 2>/dev/null || true
+        command: peer list 2>/dev/null || true
       - label: Default reviewers
-        command: >-
-          peer defaults reviewers 2>/dev/null || true
+        command: peer defaults reviewers 2>/dev/null || true
       - label: Resolved routes
-        command: >-
-          peer route show -C . 2>/dev/null || true
+        command: peer route show -C . 2>/dev/null || true
   targets:
     codex:
       openai:
         interface:
           display_name: Peer routing
           short_description: Resolve agent routes and dispatch external peers
-          default_prompt: "Use $peer to resolve routes and dispatch the selected peers."
+          default_prompt: Use $peer to resolve routes and dispatch the selected peers.
 ---
 
 <!-- Generated from skills/peer/SKILL.md by henia build; edit the canonical source. -->

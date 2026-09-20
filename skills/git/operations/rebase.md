@@ -2,52 +2,84 @@
 allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(git rev-parse *), Bash(git rev-list *), Bash(git merge-base *), Bash(git for-each-ref *), Bash(git reflog *), Bash(git config *), Bash(git fetch *), Bash(git stash *), Bash(test *)
 ---
 
-## Pre-loaded Git Context
+## Runtime Git Context
+
+Run these commands before selecting the rebase strategy.
 
 Branch and HEAD:
-!`git rev-parse --abbrev-ref HEAD 2>/dev/null && git rev-parse --short HEAD 2>/dev/null`
+```bash
+git rev-parse --abbrev-ref HEAD 2>/dev/null && git rev-parse --short HEAD 2>/dev/null
+```
 
 Default base branch (best guess: upstream HEAD → tracked → main/master):
-!`git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@' || git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || (git show-ref --verify --quiet refs/heads/main && echo main) || (git show-ref --verify --quiet refs/heads/master && echo master)`
+```bash
+git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@' || git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || (git show-ref --verify --quiet refs/heads/main && echo main) || (git show-ref --verify --quiet refs/heads/master && echo master)
+```
 
 Upstream tracking ref:
-!`git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || echo "no upstream"`
+```bash
+git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || echo "no upstream"
+```
 
 Working tree status (must be clean before rebase):
-!`git status --porcelain 2>/dev/null | head -20 || echo "clean"`
+```bash
+git status --porcelain 2>/dev/null | head -20 || echo "clean"
+```
 
 In-progress rebase / merge / cherry-pick / bisect:
-!`for d in rebase-merge rebase-apply MERGE_HEAD CHERRY_PICK_HEAD BISECT_LOG; do test -e "$(git rev-parse --git-path $d 2>/dev/null)" 2>/dev/null && echo "IN_PROGRESS: $d"; done; true`
+```bash
+for d in rebase-merge rebase-apply MERGE_HEAD CHERRY_PICK_HEAD BISECT_LOG; do test -e "$(git rev-parse --git-path $d 2>/dev/null)" 2>/dev/null && echo "IN_PROGRESS: $d"; done; true
+```
 
 Stash entries:
-!`git stash list 2>/dev/null | head -5 || echo "none"`
+```bash
+git stash list 2>/dev/null | head -5 || echo "none"
+```
 
 Ahead/behind upstream (HEAD vs @{u}):
-!`git rev-list --left-right --count 'HEAD...@{upstream}' 2>/dev/null | awk '{printf "ahead=%s behind=%s\n", $1, $2}' || echo "n/a"`
+```bash
+git rev-list --left-right --count 'HEAD...@{upstream}' 2>/dev/null | awk '{printf "ahead=%s behind=%s\n", $1, $2}' || echo "n/a"
+```
 
 Ahead/behind default base (HEAD vs origin/main, falling back to main):
-!`base=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main); git rev-list --left-right --count "HEAD...$base" 2>/dev/null | awk -v b="$base" '{printf "vs %s: ahead=%s behind=%s\n", b, $1, $2}' || echo "n/a"`
+```bash
+base=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main); git rev-list --left-right --count "HEAD...$base" 2>/dev/null | awk -v b="$base" '{printf "vs %s: ahead=%s behind=%s\n", b, $1, $2}' || echo "n/a"
+```
 
 Merge-base (common ancestor) with default base:
-!`base=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main); git merge-base HEAD "$base" 2>/dev/null | xargs -I{} git --no-pager log -1 --oneline {} 2>/dev/null || echo "no merge-base"`
+```bash
+base=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main); git merge-base HEAD "$base" 2>/dev/null | xargs -I{} git --no-pager log -1 --oneline {} 2>/dev/null || echo "no merge-base"
+```
 
 Fork-point with default base (differs from merge-base ⇒ upstream rewrote history):
-!`base=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main); git merge-base --fork-point "$base" HEAD 2>/dev/null | xargs -I{} git --no-pager log -1 --oneline {} 2>/dev/null || echo "no fork-point (upstream may have been rewritten)"`
+```bash
+base=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main); git merge-base --fork-point "$base" HEAD 2>/dev/null | xargs -I{} git --no-pager log -1 --oneline {} 2>/dev/null || echo "no fork-point (upstream may have been rewritten)"
+```
 
 Commits on this branch since merge-base:
-!`base=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main); git --no-pager log --oneline "$(git merge-base HEAD "$base" 2>/dev/null)..HEAD" 2>/dev/null | head -30`
+```bash
+base=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main); git --no-pager log --oneline "$(git merge-base HEAD "$base" 2>/dev/null)..HEAD" 2>/dev/null | head -30
+```
 
 Autosquash candidates (fixup!/squash! commits in branch):
-!`base=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main); git --no-pager log --oneline "$(git merge-base HEAD "$base" 2>/dev/null)..HEAD" 2>/dev/null | grep -E '^[a-f0-9]+ (fixup|squash)!' || echo "none"`
+```bash
+base=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main); git --no-pager log --oneline "$(git merge-base HEAD "$base" 2>/dev/null)..HEAD" 2>/dev/null | grep -E '^[a-f0-9]+ (fixup|squash)!' || echo "none"
+```
 
 Recent reflog of default base (force-pushes / resets):
-!`base=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main); git reflog show "$base" -n 8 2>/dev/null || echo "no reflog for $base"`
+```bash
+base=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main); git reflog show "$base" -n 8 2>/dev/null || echo "no reflog for $base"
+```
 
 Branches that descend from current HEAD (potential downstream cascades):
-!`git for-each-ref --format='%(refname:short)' refs/heads/ 2>/dev/null | while read b; do [ "$b" = "$(git rev-parse --abbrev-ref HEAD)" ] && continue; git merge-base --is-ancestor HEAD "$b" 2>/dev/null && echo "$b"; done | head -10 || echo "none"`
+```bash
+git for-each-ref --format='%(refname:short)' refs/heads/ 2>/dev/null | while read b; do [ "$b" = "$(git rev-parse --abbrev-ref HEAD)" ] && continue; git merge-base --is-ancestor HEAD "$b" 2>/dev/null && echo "$b"; done | head -10 || echo "none"
+```
 
 Rebase configuration:
-!`git config --get-all rebase.autosquash; git config --get-all rebase.updateRefs; git config --get-all rerere.enabled; true`
+```bash
+git config --get-all rebase.autosquash; git config --get-all rebase.updateRefs; git config --get-all rerere.enabled; true
+```
 
 # Rebase Strategy Operation
 

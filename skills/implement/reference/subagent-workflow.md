@@ -1,6 +1,6 @@
 # Subagent Prompt Materialization
 
-Prompt skeletons for explicit `/implement`. Pipeline order and gates live in [execute.md](../operations/execute.md); routing lives in [configuration.md](configuration.md). [Checkpoint boundaries](checkpoint-format.md) persist all mutations before dispatch. A boundary write may simultaneously close one wave and arm the next.
+Prompt skeletons for explicit [implement](../SKILL.md). Pipeline order and gates live in [execute.md](../operations/execute.md); routing lives in [configuration.md](configuration.md). [Checkpoint boundaries](checkpoint-format.md) persist all mutations before dispatch. A boundary write may simultaneously close one wave and arm the next.
 
 ## Canonical Inputs
 
@@ -139,6 +139,6 @@ Dispatch file-independent fix groups together. Then follow the [targeted re-revi
 
 - Missing repository orientation: return the role's canonical `gap` or `blocked` status before inspecting repository files.
 - Tester gap: consult existing scope evidence, then ask one blocking question if unresolved. Do not broaden the tester budget.
-- Mutating failure: preserve edits and evidence; pause. `/continue` authorizes deliberate redispatch.
+- Mutating failure: preserve edits and evidence; pause. [continue](../../continue/SKILL.md) authorizes deliberate redispatch.
 - Initial-review failure: retain successful reports and redispatch only missing configured reports for that initial wave.
 - Targeted re-review failure: follow the canonical single replacement attempt; never restore role or execution-class fan-out.

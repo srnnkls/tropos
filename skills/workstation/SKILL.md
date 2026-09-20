@@ -3,7 +3,17 @@ name: workstation
 description: Operate the nixos workstation, reached as `ssh nix` — wake it from the Mac, suspend it on demand, hold it awake through long jobs with keepawake, and diagnose why it slept or did not. Use for the nix or nixos host, the wake-nix Wake-on-LAN chain through alpine, or its autosuspend config. Not for the Nix package manager or general NixOS module authoring.
 metadata:
   type: domain
+henia:
+  targets:
+    codex:
+      openai:
+        interface:
+          display_name: Workstation
+          short_description: Apply the canonical workstation skill workflow
+          default_prompt: Use $workstation for the requested task.
 ---
+
+<!-- Generated from skills/workstation/SKILL.md by henia build; edit the canonical source. -->
 
 Operate `nixos`, the Threadripper 3970X workstation. It suspends after 20 idle minutes and wakes from `ssh nix`.
 

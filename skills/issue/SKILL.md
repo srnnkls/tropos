@@ -1,23 +1,42 @@
 ---
 name: issue
-description: GitHub issue operations — author or update issues against a canonical template, and create PRs from a branch/issue. Authoring drafts to a git-ignored `.issues/` folder, clears the default reviewer gate resolved through canonical routing, then publishes with issue type and parent/depends-on/blocks edges. Use for "create an issue", "open an issue", "update issue #N", "draft/sketch issue for X", "file an issue", or "pr" to open a pull request.
-argument-hint: "[number|pr] [args]"
-allowed-tools: Bash(gh issue *), Bash(gh pr *), Bash(gh api *), Bash(gh repo view *), Bash(git branch *), Bash(git push *), Bash(git rev-parse *), Bash(git log *), Bash(git merge-base *), Bash(issue *), Bash(peer *)
+description: GitHub issue operations — author or update issues against a canonical template, and create PRs from a branch/issue. Authoring drafts to a git-ignored `.issues/` folder, clears the default reviewer gate resolved through canonical routing, then publishes with issue type and parent/depends-on/blocks edges. Use for "create an issue", "open an issue", "update issue
 metadata:
   type: domain
+henia:
+  targets:
+    claude:
+      frontmatter:
+        argument-hint: '[number|pr] [args]'
+        allowed-tools: Bash(gh issue *), Bash(gh pr *), Bash(gh api *), Bash(gh repo view *), Bash(git branch *), Bash(git push *), Bash(git rev-parse *), Bash(git log *), Bash(git merge-base *), Bash(issue *), Bash(peer *)
+    codex:
+      openai:
+        interface:
+          display_name: Issue
+          short_description: Apply the canonical issue skill workflow
+          default_prompt: Use $issue for the requested task.
+  variables:
+    context_commands:
+      - label: Current branch
+        command: git branch --show-current 2>/dev/null || true
+      - label: Default reviewers
+        command: peer defaults reviewers 2>/dev/null || true
+      - label: Next issue number (predicted; for the `.issues/` draft filename on **create**)
+        command: gh api 'repos/{owner}/{repo}/issues?state=all&per_page=1' --jq '(.[0].number // 0) + 1' 2>/dev/null || echo "?"
 ---
 
-## Pre-loaded Context
+<!-- Generated from skills/issue/SKILL.md by henia build; edit the canonical source. -->
 
-Current branch:
-!`git branch --show-current 2>/dev/null || true`
+## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
-Default reviewers:
-!`peer defaults reviewers 2>/dev/null || true`
+{{.context_instruction}}
 
-Next issue number (predicted; for the `.issues/` draft filename on **create**):
-!`gh api 'repos/{owner}/{repo}/issues?state=all&per_page=1' --jq '(.[0].number // 0) + 1' 2>/dev/null || echo "?"`
+{{range .context_commands}}{{.label}}:
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{.command}}
+```{{end}}
 
+{{end}}
 GitHub shares one number sequence across issues and PRs. This is a best-effort prediction — the draft filename is reconciled to the real number after publish (step 8). On update, the number is the issue you're editing.
 
 # Issue Skill
@@ -266,11 +285,11 @@ Report back: issue URL, type, parent, depends-on (= `blockedBy`), blocks (= `blo
 
 ## Companion skills
 
-- `/git` — branch naming, commit prefixes (relevant when the issue references commits or you follow up with `pr`).
-- `/peer` — external reviewer dispatch contract, registry, and auth for the review gate.
-- `/review` — review checklist for verifying drafts conform.
-- `/loqui` — language-specific patterns and idioms, consulted before writing sketches.
-- `/gestalt` — repo orientation (map / analyze / callers) before sketching.
+- `$git` — branch naming, commit prefixes (relevant when the issue references commits or you follow up with `pr`).
+- `$peer` — external reviewer dispatch contract, registry, and auth for the review gate.
+- `$review` — review checklist for verifying drafts conform.
+- `$loqui` — language-specific patterns and idioms, consulted before writing sketches.
+- `$gestalt` — repo orientation (map / analyze / callers) before sketching.
 
 ## Reference
 

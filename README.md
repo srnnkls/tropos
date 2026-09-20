@@ -28,12 +28,11 @@ A cross-harness configuration for agentic development. Ordinary work stays direc
 
 ## Development
 
-The `loqui` reference is not bundled with tropos. Point `skills/loqui/reference/loqui` at a local [loqui](https://github.com/srnnkls/loqui) checkout to activate the `loqui` skill:
+The [Henia → Phora migration](docs/henia-phora-prototype.md) compiles all 25
+canonical skills for Claude Code, Codex, Pi and OMP, deploys immutable packages,
+and installs Loqui as a transitive Phora dependency. Run `mise run prototype:sync`
+and `mise run prototype:test` for deployment and lifecycle smoke tests.
 
-```bash
-mise run loqui-link               # symlinks to a cache dir, cloning from github if missing
-mise run loqui-link --path ./foo  # custom path (must exist)
-mise run loqui-unlink             # remove the symlink
-```
-
-The default cache location is `$XDG_CACHE_HOME/tropos/loqui` if set, else `~/Library/Caches/tropos/loqui` on macOS, else `~/.cache/tropos/loqui`. The symlink path is gitignored.
+The Loqui pin comes from the committed HEAD of `TROPOS_LOQUI_SOURCE` (default
+`~/projects/loqui`). Phora installs its published guides beneath each deployed
+`loqui` skill. No reference symlink is needed in canonical sources.

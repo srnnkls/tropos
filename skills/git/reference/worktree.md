@@ -1,7 +1,9 @@
 # Git Worktrees
 
 Existing worktrees:
-!`git worktree list 2>/dev/null`
+```bash
+git worktree list 2>/dev/null
+```
 
 Git worktrees create isolated workspaces sharing the same repository. Systematic directory selection + safety verification = reliable isolation.
 

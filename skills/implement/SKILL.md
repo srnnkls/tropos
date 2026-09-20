@@ -4,37 +4,32 @@ description: Strict delegated RED → GREEN → review workflow. Use only when e
 metadata:
   type: generic
 henia:
+  auto_invoke: false
   variables:
     context_commands:
       - label: Active scopes
-        command: >-
-          find scopes -maxdepth 3 -name scope.md 2>/dev/null || true
+        command: find scopes -maxdepth 3 -name scope.md 2>/dev/null || true
       - label: Checkpoints
-        command: >-
-          find scopes -name checkpoint.yaml -maxdepth 3 2>/dev/null || true
+        command: find scopes -name checkpoint.yaml -maxdepth 3 2>/dev/null || true
       - label: Git status
-        command: >-
-          git status --short 2>/dev/null || true
+        command: git status --short 2>/dev/null || true
       - label: Current branch
-        command: >-
-          git branch --show-current 2>/dev/null || true
+        command: git branch --show-current 2>/dev/null || true
       - label: Default reviewers
-        command: >-
-          peer defaults reviewers 2>/dev/null || true
+        command: peer defaults reviewers 2>/dev/null || true
       - label: Resolved routes
-        command: >-
-          peer route show -C . 2>/dev/null || true
+        command: peer route show -C . 2>/dev/null || true
   targets:
     claude:
       frontmatter:
-        argument-hint: "[target]"
+        argument-hint: '[target]'
         allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(gh *), Bash(peer *)
     codex:
       openai:
         interface:
           display_name: Strict implementation
           short_description: Run delegated RED, GREEN, and review gates
-          default_prompt: "Use $implement to implement the requested task with delegated gates."
+          default_prompt: Use $implement to implement the requested task with delegated gates.
 ---
 
 <!-- Generated from skills/implement/SKILL.md by henia build; edit the canonical source. -->

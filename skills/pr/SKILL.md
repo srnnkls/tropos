@@ -1,25 +1,39 @@
 ---
 name: pr
 description: GitHub PR review-comment operations. `comments` assesses each review comment (relevant vs outdated, valid vs invalid) and proposes an action; `tfcprr` closes the threads you've addressed (tfcp — triage + fix + commit + push — then reply + resolve) by delegating to the `tfcprr` skill. Use for "pr comments", "assess PR feedback", "review PR comments", "reply to a PR comment", "resolve a thread", or "tfcprr".
-argument-hint: "[comments [N] | tfcprr <args>]"
-allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/pr-context), Bash(${CLAUDE_SKILL_DIR}/scripts/pr-context *), Bash(gh api *), Bash(gh pr *), Bash(gh review *), Bash(gh repo view *), Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git rev-parse *), Bash(git branch *)
 metadata:
   type: domain
+henia:
+  targets:
+    claude:
+      frontmatter:
+        argument-hint: '[comments [N] | tfcprr <args>]'
+        allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/pr-context), Bash(${CLAUDE_SKILL_DIR}/scripts/pr-context *), Bash(gh api *), Bash(gh pr *), Bash(gh review *), Bash(gh repo view *), Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git rev-parse *), Bash(git branch *)
+    codex:
+      openai:
+        interface:
+          display_name: Pr
+          short_description: Apply the canonical pr skill workflow
+          default_prompt: Use $pr for the requested task.
 ---
 
-## Pre-loaded Context
+<!-- Generated from skills/pr/SKILL.md by henia build; edit the canonical source. -->
 
-PR comment context, fetched at skill-load for the `comments` route. The PR is `$ARGUMENTS` (a bare number, or after a leading `comments` token) or the current branch's PR. Each block is fail-safe: with no PR resolvable it prints `no-pr`. The `tfcprr` route skips these blocks — it delegates to the `tfcprr` skill via [operations/tfcprr.md](operations/tfcprr.md).
+## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
-> Dynamic `!` blocks only execute in this SKILL.md, not in Read-loaded operation files — which is why the comment fetch lives here, not in an operation.
+{{.context_instruction}}
 
-All shell lives in [scripts/pr-context](scripts/pr-context). `${CLAUDE_SKILL_DIR}` is substituted in both the block below and the `allowed-tools` rule, so the rule matches the command verbatim and the fetch runs without a permission check.
+All shell lives in [scripts/pr-context](scripts/pr-context), resolved against this skill's directory.
+{{if eq .preload_context "true"}}`${CLAUDE_SKILL_DIR}` is substituted in both the block below and the `allowed-tools` rule, so the rule matches the command verbatim and the fetch runs without a permission check.
 
-!`${CLAUDE_SKILL_DIR}/scripts/pr-context $ARGUMENTS`
+!`${CLAUDE_SKILL_DIR}/scripts/pr-context $ARGUMENTS`{{else}}
+```bash
+scripts/pr-context $ARGUMENTS
+```{{end}}
 
 Sections, in order: `== pr ==` (metadata), `== inline comments ==` (`node_id` feeds `tfcprr --comment`, `original_line` anchors the relevant-vs-outdated check), `== unresolved threads ==` (resolved threads collapse — don't re-litigate), `== review bodies ==` and `== conversation ==` (not line-anchored), `== diff ==` (HEAD, first 800 lines).
 
-On the `tfcprr` route the script exits silently. If it printed `no-pr`, ask the user for the PR number, then re-run `${CLAUDE_SKILL_DIR}/scripts/pr-context comments <number>` via Bash.
+On the `tfcprr` route the script exits silently. If it printed `no-pr`, ask the user for the PR number, then re-run the script with `comments <number>`.
 
 # PR Skill
 

@@ -7,21 +7,19 @@ henia:
   variables:
     context_commands:
       - label: Git status
-        command: >-
-          git status --short 2>/dev/null || true
+        command: git status --short 2>/dev/null || true
       - label: Languages detected
-        command: >-
-          find . -maxdepth 3 -name "*.py" -o -name "*.go" -o -name "*.rs" -o -name "*.ts" -o -name "*.js" 2>/dev/null
+        command: find . -maxdepth 3 -name "*.py" -o -name "*.go" -o -name "*.rs" -o -name "*.ts" -o -name "*.js" 2>/dev/null
   targets:
     claude:
       frontmatter:
-        argument-hint: "[operation] [target]"
+        argument-hint: '[operation] [target]'
     codex:
       openai:
         interface:
           display_name: Code workflows
           short_description: Route implementation, review, and test workflows
-          default_prompt: "Use $code to select an explicit code workflow."
+          default_prompt: Use $code to select an explicit code workflow.
 ---
 
 <!-- Generated from skills/code/SKILL.md by henia build; edit the canonical source. -->

@@ -1,26 +1,44 @@
 ---
 name: scope
 description: Unified scope lifecycle. Auto-detects operation from argument or presents selection menu. Routes to create, review, update, done, or list. Creation clears a mandatory multi-agent review gate before the scope is implementable.
-argument-hint: "[operation|name] [scope-name]"
-allowed-tools: Bash(find *), Bash(git branch *), Bash(git log *), Bash(git status *), Bash(git diff *), Bash(git worktree list *), Bash(peer *)
 metadata:
   type: domain
+henia:
+  targets:
+    claude:
+      frontmatter:
+        argument-hint: '[operation|name] [scope-name]'
+        allowed-tools: Bash(find *), Bash(git branch *), Bash(git log *), Bash(git status *), Bash(git diff *), Bash(git worktree list *), Bash(peer *)
+    codex:
+      openai:
+        interface:
+          display_name: Scope
+          short_description: Apply the canonical scope skill workflow
+          default_prompt: Use $scope for the requested task.
+  variables:
+    context_commands:
+      - label: Active scopes
+        command: find "$(git worktree list --porcelain | awk 'NR==1{print $2}')/scopes" -maxdepth 3 -name scope.md 2>/dev/null || true
+      - label: Current branch
+        command: git branch --show-current 2>/dev/null || true
+      - label: Available peers
+        command: peer list 2>/dev/null || true
+      - label: Default reviewers
+        command: peer defaults reviewers 2>/dev/null || true
 ---
 
-## Pre-loaded Context
+<!-- Generated from skills/scope/SKILL.md by henia build; edit the canonical source. -->
 
-Active scopes:
-!`find "$(git worktree list --porcelain | awk 'NR==1{print $2}')/scopes" -maxdepth 3 -name scope.md 2>/dev/null || true`
+## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
-Current branch:
-!`git branch --show-current 2>/dev/null || true`
+{{.context_instruction}}
 
-Available peers:
-!`peer list 2>/dev/null || true`
+{{range .context_commands}}{{.label}}:
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{.command}}
+```{{end}}
 
-Default reviewers:
-!`peer defaults reviewers 2>/dev/null || true`
-
+{{end}}
 # Scope Dispatcher
 
 Routes to the appropriate operation based on argument or context.
@@ -311,7 +329,7 @@ Record the response in `validation.yaml`; seeds the Alternatives section of `des
 
 Configure scope reviewers from live peer metadata. Resolution order:
 
-1. `--reviewers` aliases passed to `/scope`;
+1. `--reviewers` aliases passed to `$scope`;
 2. the live `peer defaults reviewers` selection.
 
 Validate aliases, host compatibility, execution mechanisms, and one shared effort through the canonical [peer routing contract](../peer/reference/routing.md). Persist only the resolved selection and effort in `validation.yaml.review_config`; do not copy routing metadata.
@@ -320,7 +338,7 @@ Validate aliases, host compatibility, execution mechanisms, and one shared effor
 
 ### Step 4: Create Directory and Documents
 
-New scopes are created under the `draft` lifecycle directory. They are moved to `active` on first work (see Resume Workflow / `update`) and to `done` via `/scope done`.
+New scopes are created under the `draft` lifecycle directory. They are moved to `active` on first work (see Resume Workflow / `update`) and to `done` via `$scope` with `done`.
 
 ```bash
 root=$(git worktree list --porcelain | awk 'NR==1{print $2}')
@@ -415,7 +433,7 @@ The gate must be `passed` before `implement`/`loop` will execute the scope (enfo
 
 Reviewers come from `validation.yaml.review_config` (set in Step 3.7). Before each run, revalidate
 host compatibility and peer effort against the live registry; stop for explicit config editing on
-incompatibility. Consult `/review` and `/peer` for dispatch/auth contracts.
+incompatibility. Consult `$review` and `$peer` for dispatch/auth contracts.
 
 ---
 
@@ -452,10 +470,10 @@ Located in `templates/` directory:
 
 ## Integration
 
-**Command:** `/scope [operation] [name]`
+**Command:** `$scope` with `[operation] [name]`
 
 **Related skills:**
 - `clarify` — Resolve ambiguities in scope context
 - `implement` — Execute tasks from scope
 - `continue` — Resume from checkpoint
-- `review` — Routes to `/scope review` for scope targets
+- `review` — Routes to `$scope` with `review` for scope targets

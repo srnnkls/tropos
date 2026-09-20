@@ -8,7 +8,7 @@ Scope directories live under one of three lifecycle dirs: `scopes/draft/<name>/`
 
 ## Done
 
-When `/scope done <name>` is invoked:
+When [scope](../SKILL.md) with `done <name>` is invoked:
 
 1. Locate scope across `scopes/{draft,active,done}/<name>/`
 2. Read `tasks.yaml` and check all tasks are done
@@ -22,7 +22,7 @@ When `/scope done <name>` is invoked:
 
 ## List
 
-When `/scope list` is invoked:
+When [scope](../SKILL.md) with `list` is invoked:
 
 1. Find all `scopes/*/*/scope.md` files (state dir + scope name)
 2. Read frontmatter from each (status, created, issue_type)

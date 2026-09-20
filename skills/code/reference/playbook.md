@@ -48,7 +48,7 @@ Flags override auto-detection:
 
 ### Other Modes (Ephemeral)
 
-**Location:** `~/.claude/reviews/<generated-name>.md`
+**Location:** `.peer/reviews/<generated-name>.md`
 **Persistence:** Ephemeral, like Claude's internal plans
 
 **Naming:**
@@ -59,7 +59,7 @@ review-<path-slug>-<timestamp>.md     # Path
 review-staged-<timestamp>.md          # Staged changes
 ```
 
-**Cleanup:** User manages `~/.claude/reviews/` manually
+**Cleanup:** User manages `.peer/reviews/` manually
 
 ---
 
@@ -185,7 +185,7 @@ Start
   │
   ├─ Write review output
   │   ├─ Scope → ./scopes/<state>/<scope>/review.yaml
-  │   └─ Other → ~/.claude/reviews/<name>.md (ephemeral)
+  │   └─ Other → .peer/reviews/<name>.md (ephemeral)
   │
   ├─ Present results
   │   ├─ Gate summary table

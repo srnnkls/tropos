@@ -1,4 +1,9 @@
-# Skill Reference
+> Author portable metadata at the top level and native fields under
+> `henia.targets.<profile>`. The native-field examples below describe Claude's
+> target block; they are not portable top-level authoring fields. Build into
+> `.henia/build/` and deploy with Phora; edit only `skills/`.
+
+# Canonical Skill Reference
 
 Project-specific patterns and frontmatter specifications.
 
@@ -188,7 +193,7 @@ Use the `scope` skill to create planning documents.
 
 Follow the scope skill workflow.
 
-> **See**: `.claude/skills/scope/SKILL.md`
+> **See**: `skills/scope/SKILL.md`
 ```
 
 ---
@@ -197,7 +202,7 @@ Follow the scope skill workflow.
 
 **Project standard:**
 ```
-.claude/skills/{skill-name}/
+skills/{skill-name}/
 ├── SKILL.md              # Main instructions (<500 lines)
 ├── templates/            # Document templates (.md)
 ├── scripts/              # Executable code (.sh, .py)

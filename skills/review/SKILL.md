@@ -7,40 +7,32 @@ henia:
   variables:
     context_commands:
       - label: Git status
-        command: >-
-          git status --short 2>/dev/null || true
+        command: git status --short 2>/dev/null || true
       - label: Recent commits
-        command: >-
-          git log --oneline -5 2>/dev/null || true
+        command: git log --oneline -5 2>/dev/null || true
       - label: Current branch
-        command: >-
-          git branch --show-current 2>/dev/null || true
+        command: git branch --show-current 2>/dev/null || true
       - label: Active scopes
-        command: >-
-          find scopes -maxdepth 3 -name scope.md 2>/dev/null || true
+        command: find scopes -maxdepth 3 -name scope.md 2>/dev/null || true
       - label: Open PRs
-        command: >-
-          gh pr list --limit 5 --json number,title,headRefName --jq '.[] | "#\(.number) \(.title) (\(.headRefName))"' 2>/dev/null || true
+        command: gh pr list --limit 5 --json number,title,headRefName --jq '.[] | "#\(.number) \(.title) (\(.headRefName))"' 2>/dev/null || true
       - label: Available peers
-        command: >-
-          peer list 2>/dev/null || true
+        command: peer list 2>/dev/null || true
       - label: Default reviewers
-        command: >-
-          peer defaults reviewers 2>/dev/null || true
+        command: peer defaults reviewers 2>/dev/null || true
       - label: Resolved routes
-        command: >-
-          peer route show -C . 2>/dev/null || true
+        command: peer route show -C . 2>/dev/null || true
   targets:
     claude:
       frontmatter:
-        argument-hint: "[target]"
+        argument-hint: '[target]'
         allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(find *), Bash(gh pr list *), Bash(peer *)
     codex:
       openai:
         interface:
           display_name: Review dispatcher
           short_description: Review code, PRs, scopes, and test quality
-          default_prompt: "Use $review to review the requested target."
+          default_prompt: Use $review to review the requested target.
 ---
 
 <!-- Generated from skills/review/SKILL.md by henia build; edit the canonical source. -->

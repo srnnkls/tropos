@@ -30,4 +30,4 @@ Do not repeat already-cleared focused commands merely for confidence. An agent s
 
 This operation is read-only. Never write tests or alter implementation files, dispatch implementation or review agents, edit scope documents, advance a checkpoint, commit, or move lifecycle state.
 
-If recovery state is incomplete, name the exact recorded wave and stop at `/continue`. If the gate passes, hand off to `/scope done <name>`; that operation alone owns lifecycle completion.
+If recovery state is incomplete, name the exact recorded wave and stop at [continue](../../continue/SKILL.md). If the gate passes, hand off to [scope](../../scope/SKILL.md) with `done <name>`; that operation alone owns lifecycle completion.
