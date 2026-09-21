@@ -11,6 +11,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+import tomllib
 
 
 HARNESSES = ("claude", "codex", "pi", "omp")
@@ -90,6 +91,20 @@ def snapshot_repository(path: Path) -> str:
     ).strip()
 
 
+def toml_value(value: object) -> str:
+    if isinstance(value, dict):
+        return (
+            "{ "
+            + ", ".join(
+                f"{json.dumps(key)} = {toml_value(item)}" for key, item in value.items()
+            )
+            + " }"
+        )
+    if isinstance(value, list):
+        return "[" + ", ".join(toml_value(item) for item in value) + "]"
+    return json.dumps(value)
+
+
 def build(root: Path, loqui: Path) -> None:
     generated = root / ".henia"
     generated.mkdir(exist_ok=True)
@@ -125,10 +140,6 @@ def build(root: Path, loqui: Path) -> None:
             instructions = (output / "instructions/AGENTS.md").read_text()
             native_name = "CLAUDE.md" if harness == "claude" else "AGENTS.md"
             (output / native_name).write_text(instructions.replace("](../", "]("))
-            if harness == "codex":
-                (output / "codex-global-AGENTS.md").write_text(
-                    "Read and apply [Tropos instructions](../.agents/instructions/AGENTS.md).\n"
-                )
             agents = output / "agents"
             agents.mkdir()
             for role in ("tester", "implementer", "reviewer"):
@@ -169,25 +180,40 @@ def build(root: Path, loqui: Path) -> None:
             ],
             check=True,
         )
-        for harness in HARNESSES:
-            snapshot_repository(stage / harness)
-        packages = temporary / "packages"
-        packages.mkdir()
-        dependencies = packages / "dependencies"
-        dependencies.mkdir()
-        manifest = (root / "phora/dependencies.toml").read_text()
-        manifest = manifest.replace(
-            'git = "https://github.com/srnnkls/loqui.git"',
-            "git = "
-            + json.dumps(
-                os.environ.get(
-                    "TROPOS_LOQUI_REMOTE", "https://github.com/srnnkls/loqui.git"
-                )
-            ),
+        # The consumer builds the advertised canonical source; every compiled ref
+        # carries Tropos's own dependency manifest so transitive=True is sufficient.
+        advertised = tomllib.loads((root / "phora.toml").read_text())
+        advertised["sources"].pop("tropos")
+        dependency = advertised["sources"]["loqui"]
+        dependency.pop("branch", None)
+        dependency["rev"] = revision
+        dependency["git"] = os.environ.get("TROPOS_LOQUI_REMOTE", dependency["git"])
+        manifest = (
+            "\n".join(
+                f"{key} = {toml_value(value)}" for key, value in advertised.items()
+            )
+            + "\n"
         )
-        manifest = manifest.replace('branch = "main"', "rev = " + json.dumps(revision))
-        (dependencies / "phora.toml").write_text(manifest)
-        snapshot_repository(dependencies)
+        packages = temporary / "packages"
+        package = packages / "tropos"
+        package.mkdir(parents=True)
+        subprocess.run(
+            ["git", "init", "--bare", "-q", "--template=", str(package)], check=True
+        )
+        for harness in HARNESSES:
+            output = stage / harness
+            (output / "phora.toml").write_text(manifest)
+            snapshot_repository(output)
+            subprocess.run(
+                ["git", "fetch", "-q", str(output), f"HEAD:refs/heads/{harness}"],
+                cwd=package,
+                check=True,
+            )
+        subprocess.run(
+            ["git", "symbolic-ref", "HEAD", "refs/heads/claude"],
+            cwd=package,
+            check=True,
+        )
         installed = []
         try:
             for name, candidate in (("build", stage), ("packages", packages)):
@@ -208,9 +234,7 @@ def build(root: Path, loqui: Path) -> None:
                 if backup.exists():
                     backup.rename(published)
             raise
-    print(
-        "Published 25 skills for four harnesses and the Tropos -> Loqui dependency export"
-    )
+    print("Published one Tropos source with four harness refs and its Loqui dependency")
 
 
 def main() -> None:

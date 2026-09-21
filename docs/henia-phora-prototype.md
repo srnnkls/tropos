@@ -8,13 +8,15 @@ installed artifacts after deployment.
 ```text
 skills/ + agents/ + instructions/
     → Henia → validated Git packages → Phora → harness trees → Scrut
-phora/dependencies.toml → Tropos dependency export → Loqui Git pin ───┘
+phora.toml → compiled Tropos manifest → Loqui Git pin ───┘
 ```
 
-| Harness | Repository deployment | Invocation |
+The optional smoke deployment is relative to `.henia/probe/home`.
+
+| Harness | Smoke deployment | Invocation |
 | --- | --- | --- |
 | Claude Code | `.claude/skills/` | `/name` |
-| Codex | `.agents/skills/` | `$name` |
+| Codex | `.codex/skills/` | `$name` |
 | Pi | `.pi/skills/` | `/skill:name` |
 | OMP | `.omp/skills/` | `/skill:name` |
 
@@ -35,14 +37,16 @@ mise run prototype:test
 available from `https://github.com/srnnkls/loqui.git`; uncommitted Loqui edits are
 not published. Phora may fetch that public dependency on the first sync.
 
-`prototype:sync` runs [sync-harnesses.py](../scripts/sync-harnesses.py). It builds
-and validates the complete output in a temporary directory, publishes local Git
-packages under `.henia/build/`, and records their exact commits in the generated
-block of ignored `phora.local.toml`. It then calls
-`phora sync --fast-forward --prune --no-progress`. The
-[Phora manifest](../phora.toml) runs the artifact Scrut test in `post_sync`.
-Bare `phora sync` replays the prepared package pins; use the mise task after
-editing canonical sources.
+The public [phora.toml](../phora.toml) advertises canonical Tropos artifacts and
+the Loqui dependency layout. It contains no harness build paths or installation
+homes. Consumers own the Henia build and select their deployment targets.
+
+`prototype:sync` is an optional local smoke deployment. It builds and validates
+all variants, then runs [phora/prototype.toml](../phora/prototype.toml) from the
+ignored `.henia/probe` directory. One compiled Git source at
+`.henia/packages/tropos` has a ref per harness. Each ref contains the native
+artifacts and a `phora.toml` pinning Loqui. The prototype binds that source with
+`transitive = true` and runs Scrut in `post_sync`.
 
 Builds start with an empty output tree. Failed compilation, missing dependencies,
 or failed pre-deployment checks preserve the current packages and deployment.
@@ -53,7 +57,7 @@ reports an error after deployment and does not imply rollback.
 To replay an existing lock without building or accessing the network:
 
 ```sh
-phora sync --frozen --no-hooks --no-progress
+(cd .henia/probe && phora sync --frozen --no-hooks --no-progress)
 mise run prototype:smoke
 ```
 
@@ -85,18 +89,13 @@ workflow routing continues to materialize those role contracts.
 
 ## Transitive Loqui dependency
 
-[`phora/dependencies.toml`](../phora/dependencies.toml) owns the Tropos → Loqui
-edge. The build produces a small Git export at `.henia/packages/dependencies`
-whose `phora.toml` pins Loqui to the selected committed revision. Consumers
-import this export with `transitive = true` under each harness root. Its target
-mounts Loqui at `skills/loqui/reference/loqui`.
-
-Phora fetches and copies Loqui itself. It records four namespaced dependency
-instances in `phora.lock`; the machine-local build sources are recorded in
-`phora.local.lock`. The deployed Loqui files are checked against hashes read
-from that same Git commit, including the Bash, Elisp, Go, Python, Rust and Zig
-guides. Local Loqui caches, research files, and uncommitted third-party resource
-materializations are outside this published dependency surface.
+[phora.toml](../phora.toml) owns the Tropos → Loqui edge. The build copies that
+dependency declaration into each compiled ref, pinned to Loqui's committed HEAD.
+A consumer sets `transitive = true` on Tropos; Phora installs Loqui beneath each
+harness's `skills/loqui/reference/loqui` and records a separate dependency
+instance per target. No consumer-side Loqui source or dependency-export alias is
+needed. Hash checks cover the published guides from the same commit, excluding
+uncommitted files and third-party caches.
 
 This branch does not require a symlink inside canonical `skills/loqui`.
 `loqui-link`/`loqui-unlink` remain legacy authoring helpers; unlink such a source
@@ -104,16 +103,15 @@ resource before compiling because Henia rejects source-resource symlinks.
 
 ## Dotfiles Phora probe
 
-The `feat/phora` dotfiles worktree consumes these same packages with
-`bin/phora-tropos --tropos <this-worktree> --loqui <loqui-checkout>`.
-Its consumer imports Tropos's dependency export instead of declaring a separate
-Loqui source. Each harness gets Loqui through Tropos's manifest.
+Dotfiles's `phora.toml` owns a Henia pre-sync build and a single transitive
+`tropos` source. Its ignored local deployment selects the targets. The build
+reads `prototype/henia-phora` from `~/projects/tropos` without switching that
+checkout or including its local edits.
 
-The probe installs into `.phora-shadow/tropos/home` in that dotfiles worktree:
-Claude under `.claude`, Codex skills under `.agents` with a `.codex/AGENTS.md`
-entrypoint, Pi under `.pi/agent`, and OMP under `.omp/agent`. The `peer` and `issue`
-helpers are available under its `.local/bin`. This is an isolated deployment,
-not a live-home cutover.
+The shared `.phora-shadow/home` contains dotfiles and compiled Tropos together:
+`.claude`, `.codex` and `.pi/agent`. OMP uses the user's native Claude provider,
+so it needs no duplicate `.omp` tree. Helpers land in `.local/bin`; Codex config
+keeps its separate `.config/codex` identity path. All validation stays local.
 
 ## Smoke coverage
 

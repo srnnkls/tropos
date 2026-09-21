@@ -38,10 +38,7 @@ def snapshot(root):
         "agents",
         "instructions",
         ".henia/build",
-        ".claude",
-        ".agents",
-        ".pi",
-        ".omp",
+        ".henia/probe/home",
     ):
         for path in sorted((root / directory).rglob("*")):
             if path.is_file() and ".git" not in path.parts:
@@ -58,11 +55,11 @@ def check(root, build=None):
     require(bool(skills), "canonical skill inventory is empty")
     for harness, directory in (
         ("claude", ".claude"),
-        ("codex", ".agents"),
+        ("codex", ".codex"),
         ("pi", ".pi"),
         ("omp", ".omp"),
     ):
-        target = build / harness if build else root / directory
+        target = build / harness if build else root / ".henia/probe/home" / directory
         mains = sorted((target / "skills").glob("*/SKILL.md"))
         require(
             {path.parent.name for path in mains} == skills,

@@ -1,0 +1,18 @@
+# Optional repository-local smoke deployment; consumers own their own targets.
+[paths]
+cache = "cache"
+state = "state"
+
+[hooks]
+post_sync = "scrut test ../../tests/scrut/henia-artifacts.md"
+
+[sources.tropos]
+path = "../packages/tropos"
+transitive = true
+exclude = ["phora.toml"]
+
+[targets]
+claude = { path = "home/.claude", sources.tropos = { branch = "claude", collapse = false } }
+codex = { path = "home/.codex", sources.tropos = { branch = "codex", collapse = false } }
+pi = { path = "home/.pi", sources.tropos = { branch = "pi", collapse = false } }
+omp = { path = "home/.omp", sources.tropos = { branch = "omp", collapse = false } }

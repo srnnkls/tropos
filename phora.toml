@@ -1,68 +1,13 @@
-version = 1
+# Canonical artifacts and the dependency layout advertised to consumers.
+[sources.tropos]
+path = "."
+include = ["skills/**", "agents/**", "instructions/**"]
 
-[defaults]
-auto_target = false
-
-[paths]
-cache = ".henia/phora/cache"
-state = ".henia/phora/declarative-state"
-
-[hooks]
-post_sync = "scrut test tests/scrut/henia-artifacts.md"
-
-[sources.tropos-dependencies]
-git = ".henia/packages/dependencies"
+[sources.loqui]
+git = "https://github.com/srnnkls/loqui.git"
 branch = "main"
-transitive = true
+include = ["README.md", "languages/**", "resources/**"]
 
-[sources.claude-build]
-path = ".henia/build/claude"
-deploy = "copy"
-include = ["skills/**", "agents/**", "instructions/**", "AGENTS.md", "CLAUDE.md", "loqui-manifest.json", "codex-global-AGENTS.md"]
-
-[sources.codex-build]
-path = ".henia/build/codex"
-deploy = "copy"
-include = ["skills/**", "agents/**", "instructions/**", "AGENTS.md", "CLAUDE.md", "loqui-manifest.json", "codex-global-AGENTS.md"]
-
-[sources.pi-build]
-path = ".henia/build/pi"
-deploy = "copy"
-include = ["skills/**", "agents/**", "instructions/**", "AGENTS.md", "CLAUDE.md", "loqui-manifest.json", "codex-global-AGENTS.md"]
-
-[sources.omp-build]
-path = ".henia/build/omp"
-deploy = "copy"
-include = ["skills/**", "agents/**", "instructions/**", "AGENTS.md", "CLAUDE.md", "loqui-manifest.json", "codex-global-AGENTS.md"]
-
-[targets.claude]
-imports = ["tropos-dependencies"]
-path = ".claude"
-layout = "flat"
-
-[targets.claude.sources]
-claude-build = { source = "claude-build", collapse = false }
-
-[targets.codex]
-imports = ["tropos-dependencies"]
-path = ".agents"
-layout = "flat"
-
-[targets.codex.sources]
-codex-build = { source = "codex-build", collapse = false }
-
-[targets.pi]
-imports = ["tropos-dependencies"]
-path = ".pi"
-layout = "flat"
-
-[targets.pi.sources]
-pi-build = { source = "pi-build", collapse = false }
-
-[targets.omp]
-imports = ["tropos-dependencies"]
-path = ".omp"
-layout = "flat"
-
-[targets.omp.sources]
-omp-build = { source = "omp-build", collapse = false }
+[targets.loqui]
+path = "skills/loqui/reference/loqui"
+sources.loqui = { collapse = false }
