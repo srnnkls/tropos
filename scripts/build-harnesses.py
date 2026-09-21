@@ -181,9 +181,11 @@ def build(root: Path, loqui: Path) -> None:
             check=True,
         )
         # The consumer builds the advertised canonical source; every compiled ref
-        # carries Tropos's own dependency manifest so transitive=True is sufficient.
+        # advertises both its compiled artifacts and its dependency through imports.
         advertised = tomllib.loads((root / "phora.toml").read_text())
-        advertised["sources"].pop("tropos")
+        compiled = advertised["sources"]["tropos"]
+        compiled.pop("include", None)
+        compiled["exclude"] = ["phora.toml"]
         dependency = advertised["sources"]["loqui"]
         dependency.pop("branch", None)
         dependency["rev"] = revision

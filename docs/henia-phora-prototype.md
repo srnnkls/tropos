@@ -38,15 +38,17 @@ available from `https://github.com/srnnkls/loqui.git`; uncommitted Loqui edits a
 not published. Phora may fetch that public dependency on the first sync.
 
 The public [phora.toml](../phora.toml) advertises canonical Tropos artifacts and
-the Loqui dependency layout. It contains no harness build paths or installation
-homes. Consumers own the Henia build and select their deployment targets.
+the relative export targets for Tropos and Loqui. It contains no harness build
+paths or installation homes. Consumers own the Henia build and select their deployment targets.
 
 `prototype:sync` is an optional local smoke deployment. It builds and validates
 all variants, then runs [phora/prototype.toml](../phora/prototype.toml) from the
 ignored `.henia/probe` directory. One compiled Git source at
 `.henia/packages/tropos` has a ref per harness. Each ref contains the native
-artifacts and a `phora.toml` pinning Loqui. The prototype binds that source with
-`transitive = true` and runs Scrut in `post_sync`.
+artifacts and a `phora.toml` exporting its own snapshot plus pinned Loqui.
+The prototype sets `transitive = true` and explicitly imports that source.
+Claude uses the default ref; Codex, Pi and OMP select their branch in the import.
+Scrut runs in `post_sync`.
 
 Builds start with an empty output tree. Failed compilation, missing dependencies,
 or failed pre-deployment checks preserve the current packages and deployment.
@@ -91,7 +93,7 @@ workflow routing continues to materialize those role contracts.
 
 [phora.toml](../phora.toml) owns the Tropos → Loqui edge. The build copies that
 dependency declaration into each compiled ref, pinned to Loqui's committed HEAD.
-A consumer sets `transitive = true` on Tropos; Phora installs Loqui beneath each
+A consumer marks Tropos `transitive = true` and imports it; Phora installs Loqui beneath each
 harness's `skills/loqui/reference/loqui` and records a separate dependency
 instance per target. No consumer-side Loqui source or dependency-export alias is
 needed. Hash checks cover the published guides from the same commit, excluding
@@ -104,7 +106,7 @@ resource before compiling because Henia rejects source-resource symlinks.
 ## Dotfiles Phora probe
 
 Dotfiles's `phora.toml` owns a Henia pre-sync build and a single transitive
-`tropos` source. Its ignored local deployment selects the targets. The build
+`tropos` source. Its ignored local deployment imports that source into each selected target. The build
 reads `prototype/henia-phora` from `~/projects/tropos` without switching that
 checkout or including its local edits.
 

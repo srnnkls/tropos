@@ -9,10 +9,9 @@ post_sync = "scrut test ../../tests/scrut/henia-artifacts.md"
 [sources.tropos]
 path = "../packages/tropos"
 transitive = true
-exclude = ["phora.toml"]
 
 [targets]
-claude = { path = "home/.claude", sources.tropos = { branch = "claude", collapse = false } }
-codex = { path = "home/.codex", sources.tropos = { branch = "codex", collapse = false } }
-pi = { path = "home/.pi", sources.tropos = { branch = "pi", collapse = false } }
-omp = { path = "home/.omp", sources.tropos = { branch = "omp", collapse = false } }
+claude = { path = "home/.claude", imports = ["tropos"] }
+codex = { path = "home/.codex", imports = [{ source = "tropos", branch = "codex" }] }
+pi = { path = "home/.pi", imports = [{ source = "tropos", branch = "pi" }] }
+omp = { path = "home/.omp", imports = [{ source = "tropos", branch = "omp" }] }
