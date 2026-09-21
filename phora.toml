@@ -1,7 +1,7 @@
 # Canonical artifacts and the dependency layout advertised to consumers.
 [sources.tropos]
 path = "."
-include = ["skills/**", "agents/**", "instructions/**"]
+include = ["skills/**", "agents/**", "instructions/**", "henia.toml", ".henia/harnesses/**", "phora.toml"]
 
 [sources.loqui]
 git = "https://github.com/srnnkls/loqui.git"

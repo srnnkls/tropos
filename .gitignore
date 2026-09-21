@@ -18,3 +18,5 @@ skills/loqui/reference/loqui
 /phora.lock
 
 /phora.local.lock
+
+/phora/*/*.lock

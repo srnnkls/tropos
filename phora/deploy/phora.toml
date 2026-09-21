@@ -1,0 +1,15 @@
+[paths]
+cache = "../../.henia/cache"
+state = "../../.henia/deploy-state"
+
+[sources]
+claude = { path = "../../.henia/build/claude", deploy = "link" }
+codex = { path = "../../.henia/build/codex", deploy = "link" }
+pi = { path = "../../.henia/build/pi", deploy = "link" }
+omp = { path = "../../.henia/build/omp", deploy = "link" }
+
+[targets]
+claude = { path = "../../.henia/probe/home/.claude", sources.claude = { collapse = false } }
+codex = { path = "../../.henia/probe/home/.codex", sources.codex = { collapse = false } }
+pi = { path = "../../.henia/probe/home/.pi", sources.pi = { collapse = false } }
+omp = { path = "../../.henia/probe/home/.omp", sources.omp = { collapse = false } }

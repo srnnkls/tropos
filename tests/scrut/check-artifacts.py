@@ -51,7 +51,8 @@ def snapshot(root):
 
 
 def check(root, build=None):
-    skills = {path.parent.name for path in (root / "skills").glob("*/SKILL.md")}
+    canonical_root = root if build else root / ".henia/source"
+    skills = {path.parent.name for path in (canonical_root / "skills").glob("*/SKILL.md") }
     require(bool(skills), "canonical skill inventory is empty")
     for harness, directory in (
         ("claude", ".claude"),
@@ -96,11 +97,12 @@ def check(root, build=None):
                     root / ".henia/build" / harness / "skills" / name / "SKILL.md"
                 )
                 require(
-                    not path.is_symlink()
+                    path.is_symlink()
+                    and path.resolve() == compiled.resolve()
                     and path.read_bytes() == compiled.read_bytes(),
-                    f"{path}: expected the committed compiled artifact",
+                    f"{path}: expected a link to the native Henia artifact",
                 )
-            canonical = yaml(root / "skills" / name / "SKILL.md", frontmatter=True)
+            canonical = yaml(canonical_root / "skills" / name / "SKILL.md", frontmatter=True)
             require(
                 set(canonical) <= COMMON_FIELDS | {"license", "compatibility", "henia"},
                 f"{name}: native metadata outside henia.targets",
@@ -160,10 +162,10 @@ def check(root, build=None):
                         is False,
                         f"{path}: explicit invocation required",
                     )
-            for resource in (root / "skills" / name).rglob("*"):
+            for resource in (canonical_root / "skills" / name).rglob("*"):
                 if resource.is_file() and resource.name != "SKILL.md":
                     deployed = path.parent / resource.relative_to(
-                        root / "skills" / name
+                        canonical_root / "skills" / name
                     )
                     require(
                         deployed.is_file()
@@ -176,15 +178,15 @@ def check(root, build=None):
                         f"{deployed}: executable mode differs from source",
                     )
         for role in ("tester", "implementer", "reviewer"):
-            source = root / "agents" / f"{role}.md"
+            source = canonical_root / "agents" / f"{role}.md"
             deployed = target / "agents" / f"{role}.md"
             fm = yaml(deployed, frontmatter=True)
             require(fm["name"] == role, f"{deployed}: role name differs")
-            if harness != "claude":
-                require(
-                    set(fm) == {"name", "description"},
-                    f"{deployed}: Claude metadata leaked",
-                )
+            canonical_agent = yaml(source, frontmatter=True)
+            expected_metadata = {key: canonical_agent[key] for key in ("name", "description")}
+            if harness == "claude":
+                expected_metadata |= canonical_agent["henia"]["targets"]["claude-agent"]["frontmatter"]
+            require(fm == expected_metadata, f"{deployed}: agent metadata differs")
             require(
                 deployed.read_text().split("---", 2)[2]
                 == source.read_text().split("---", 2)[2],
@@ -192,36 +194,24 @@ def check(root, build=None):
             )
         require(
             (target / "instructions/AGENTS.md").read_bytes()
-            == (root / "instructions/AGENTS.md").read_bytes(),
+            == (canonical_root / "instructions/AGENTS.md").read_bytes(),
             f"{target}: instructions differ",
         )
         native = target / ("CLAUDE.md" if harness == "claude" else "AGENTS.md")
         require(
             native.read_text()
-            == (root / "instructions/AGENTS.md").read_text().replace("](../", "]("),
+            == (canonical_root / "instructions/AGENTS.md").read_text().replace("](../", "]("),
             f"{native}: native instructions differ",
         )
-        manifest = json.loads((target / "loqui-manifest.json").read_text())
         guides = target / "skills/loqui/reference/loqui"
-        if build is None:
-            require(
-                set(manifest)
-                == {
-                    str(p.relative_to(guides)) for p in guides.rglob("*") if p.is_file()
-                },
-                f"{guides}: dependency inventory differs",
-            )
-            for relative, digest in manifest.items():
-                require(
-                    hashlib.sha256((guides / relative).read_bytes()).hexdigest()
-                    == digest,
-                    f"{guides / relative}: dependency bytes differ",
-                )
-            for language in ("bash", "elisp", "go", "python", "rust", "zig"):
-                require(
-                    (guides / "languages" / language / "README.md").is_file(),
-                    f"{guides}: missing {language} guidance",
-                )
+        canonical_guides = canonical_root / "skills/loqui/reference/loqui"
+        expected_guides = {str(p.relative_to(canonical_guides)) for p in canonical_guides.rglob("*") if p.is_file()}
+        require(bool(expected_guides), "transitive Loqui input is missing")
+        require(expected_guides == {str(p.relative_to(guides)) for p in guides.rglob("*") if p.is_file()}, f"{guides}: dependency inventory differs")
+        for relative in expected_guides:
+            require((guides / relative).read_bytes() == (canonical_guides / relative).read_bytes(), f"{guides / relative}: dependency bytes differ")
+        for language in ("bash", "elisp", "go", "python", "rust", "zig"):
+            require((guides / "languages" / language / "README.md").is_file(), f"{guides}: missing {language} guidance")
         print(
             f"{harness}: {len(skills)} skills; metadata, body, resources and support OK"
         )

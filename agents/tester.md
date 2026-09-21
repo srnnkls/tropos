@@ -1,17 +1,24 @@
 ---
 name: tester
 description: Write bounded failing tests and prove the RED state
-skills: gestalt, test, loqui
-color: red
-hooks:
-  PreToolUse:
-    - hooks:
-        - type: command
-          command: "fas eval --harness claude"
-  PostToolUse:
-    - hooks:
-        - type: command
-          command: "fas eval --harness claude"
+henia:
+  targets:
+    claude-agent:
+      frontmatter:
+        skills:
+          - gestalt
+          - test
+          - loqui
+        color: red
+        hooks:
+          PreToolUse:
+            - hooks:
+                - type: command
+                  command: fas eval --harness claude
+          PostToolUse:
+            - hooks:
+                - type: command
+                  command: fas eval --harness claude
 ---
 
 ## Role

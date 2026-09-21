@@ -1,18 +1,29 @@
 ---
 name: reviewer
 description: Review changes and report verified actionable defects
-tools: Glob, Grep, Read, Bash
-skills: gestalt, review, loqui
-color: yellow
-hooks:
-  PreToolUse:
-    - hooks:
-        - type: command
-          command: "fas eval --harness claude"
-  PostToolUse:
-    - hooks:
-        - type: command
-          command: "fas eval --harness claude"
+henia:
+  targets:
+    claude-agent:
+      frontmatter:
+        tools:
+          - Glob
+          - Grep
+          - Read
+          - Bash
+        skills:
+          - gestalt
+          - review
+          - loqui
+        color: yellow
+        hooks:
+          PreToolUse:
+            - hooks:
+                - type: command
+                  command: fas eval --harness claude
+          PostToolUse:
+            - hooks:
+                - type: command
+                  command: fas eval --harness claude
 ---
 
 ## Role

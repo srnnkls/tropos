@@ -2,8 +2,10 @@ artifacts = ["skills"]
 
 [build]
 output = ".henia/build"
+clean = true
 
 [harness.claude]
+artifacts = ["agents"]
 profile = "claude"
 format = "xml"
 strict = true
@@ -13,6 +15,7 @@ preload_context = "true"
 context_instruction = ""
 
 [harness.codex]
+artifacts = ["agents"]
 profile = "codex"
 format = "directives"
 strict = true
@@ -22,6 +25,7 @@ preload_context = "false"
 context_instruction = "Run these commands with the shell tool before applying the workflow; use their output as context."
 
 [harness.pi]
+artifacts = ["skills", "agents"]
 profile = "pi-omp"
 format = "directives"
 strict = true
@@ -34,6 +38,7 @@ context_instruction = "Run these commands with the shell tool before applying th
 output = "/skill:{{.Name}}"
 
 [harness.omp]
+artifacts = ["skills", "agents"]
 profile = "pi-omp"
 format = "directives"
 strict = true
@@ -44,3 +49,35 @@ context_instruction = "Run these commands with the shell tool before applying th
 
 [harness.omp.references.skill]
 output = "/skill:{{.Name}}"
+
+[harness.claude.artifact_mappings.agents]
+profile = "claude-agent"
+structure = "flat"
+
+[harness.claude.files]
+"instructions/AGENTS.md" = { source = "instructions/AGENTS.md" }
+"CLAUDE.md" = { source = "instructions/AGENTS.md", replace = { "](../" = "](" } }
+
+[harness.codex.artifact_mappings.agents]
+profile = "portable-agent"
+structure = "flat"
+
+[harness.codex.files]
+"instructions/AGENTS.md" = { source = "instructions/AGENTS.md" }
+"AGENTS.md" = { source = "instructions/AGENTS.md", replace = { "](../" = "](" } }
+
+[harness.pi.artifact_mappings.agents]
+profile = "portable-agent"
+structure = "flat"
+
+[harness.pi.files]
+"instructions/AGENTS.md" = { source = "instructions/AGENTS.md" }
+"AGENTS.md" = { source = "instructions/AGENTS.md", replace = { "](../" = "](" } }
+
+[harness.omp.artifact_mappings.agents]
+profile = "portable-agent"
+structure = "flat"
+
+[harness.omp.files]
+"instructions/AGENTS.md" = { source = "instructions/AGENTS.md" }
+"AGENTS.md" = { source = "instructions/AGENTS.md", replace = { "](../" = "](" } }
