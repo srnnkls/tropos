@@ -105,10 +105,11 @@ resource before compiling because Henia rejects source-resource symlinks.
 
 ## Dotfiles Phora probe
 
-Dotfiles's `phora.toml` owns a Henia pre-sync build and a single transitive
-`tropos` source. Its ignored local deployment imports that source into each selected target. The build
-reads `prototype/henia-phora` from `~/projects/tropos` without switching that
-checkout or including its local edits.
+Dotfiles's `phora.toml` declares a single transitive `tropos` source at
+`~/projects/tropos`, its `prototype/henia-phora` branch, and a Henia build recipe
+with a separate output path. Phora passes that declared input to the builder;
+its ignored local deployment imports the compiled source into each selected
+target. The build preserves the source checkout and its local edits.
 
 The shared `.phora-shadow/home` contains dotfiles and compiled Tropos together:
 `.claude`, `.codex` and `.pi/agent`. OMP uses the user's native Claude provider,
