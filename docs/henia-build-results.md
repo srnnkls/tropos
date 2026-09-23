@@ -190,13 +190,13 @@ Actual capability: Henia documents and implements its `markdown` renderer using 
 
 ### Resource overwrites retain a nonexecutable destination mode
 
-The `resource-mode-rebuild` case rebuilds an executable source script over an existing mode-0644 resource. Build exits 0, but native `stat` reports source mode 0755 and output mode 0644. Henia does not restore the executable bit on overwrite. The deployment wrapper uses fresh output directories.
+The `resource-mode-rebuild` case rebuilds an executable source script over an existing mode-0644 resource. Build exits 0, but native `stat` reports source mode 0755 and output mode 0644. Henia does not restore the executable bit on overwrite. The source uses file creation modes without restoring permissions on an existing destination.
 
 Evidence: `resource-mode-rebuild/source/skills/probe/script` and `resource-mode-rebuild/out/claude/skills/probe/script` under the expanded replay directory. Run the full replay to recreate the overwrite precondition.
 
 ### Harness variables accept strings only
 
-Harness variables are string-valued; the deployment failure and working configuration are recorded in [the integration report](henia-phora-prototype.md#harness-variables-are-strings). That deployment probe is outside the compiler replay count. Typed booleans/lists remain supported in canonical `henia.variables`.
+Harness variables are string-valued; the deployment failure and working configuration are recorded in [the integration report](henia-phora-prototype.md#gaps). That deployment probe is outside the compiler replay count. Typed booleans/lists remain supported in canonical `henia.variables`.
 
 ## Pending verification
 
