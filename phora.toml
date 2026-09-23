@@ -1,12 +1,16 @@
-# Canonical source catalog and dependencies prepared in the Tropos checkout.
+# Canonical artifacts and the dependency layout advertised to consumers.
 [sources.tropos]
 path = "."
-include = ["skills/**", "agents/**", "instructions/**", "henia.toml", ".henia/harnesses/**", "phora.toml"]
+include = ["skills/**", "agents/**", "instructions/**", "rules/fas/**", "henia.toml", ".henia/harnesses/**", "phora.toml"]
 
 [sources.loqui]
 git = "https://github.com/srnnkls/loqui.git"
 branch = "main"
 include = ["README.md", "languages/**", "resources/**"]
+
+[targets.tropos]
+path = "."
+sources.tropos = { collapse = false }
 
 [targets.loqui]
 path = "skills/loqui/reference/loqui"

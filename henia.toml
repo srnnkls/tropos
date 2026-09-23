@@ -5,7 +5,7 @@ output = ".henia/build"
 clean = true
 
 [harness.claude]
-artifacts = ["agents"]
+artifacts = ["skills", "agents"]
 profile = "claude"
 format = "xml"
 strict = true
@@ -15,7 +15,7 @@ preload_context = "true"
 context_instruction = ""
 
 [harness.codex]
-artifacts = ["agents"]
+artifacts = ["skills", "agents"]
 profile = "codex"
 format = "directives"
 strict = true
