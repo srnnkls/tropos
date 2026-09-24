@@ -13,6 +13,8 @@ henia:
         command: peer defaults reviewers 2>/dev/null || true
       - label: Resolved routes
         command: peer route show -C . 2>/dev/null || true
+      - label: Dispatch surface
+        command: peer herdr 2>/dev/null || true
   targets:
     codex:
       openai:
@@ -93,6 +95,16 @@ Stdout is a TSV manifest, one row per external peer:
 The caller owns the task-specific report schema. Read every `ok` file; every other status
 means no report was produced and the file is empty. Exit status is `0` when at least one
 result was produced, `1` when none was produced, and `2` for usage errors.
+
+## Herdr pane dispatch
+
+Called from a live Herdr pane, a fan-out runs its peers as visible agent panes instead of headless child processes. `peer herdr` reports which surface a fan-out started right now would use: `HERDR_ENV` is inherited and outlives its pane, so it only selects the check — the live pane decides. One tab per round, labelled `peer-<subject>-<stage>` from the `.peer` report path; the first peer takes the tab's root pane and later peers split off it, alternating right and down. Each pane carries `peer` metadata — title, display agent, state label, and `peer`/`role`/`status` tokens — so the Herdr UI names what is running where.
+
+The peer writes its own report: the pane agent is pointed at the prompt file and told to write `{peer-id}.yaml`, and peer waits for that file. A positional prompt is materialized beside the report first, since a pane agent reads its assignment from disk. Reviewer panes run behind the same read-only profile as headless reviewers, widened only by the stage directory the report goes in. A pane stopped at an approval or question dialog is reported, never answered.
+
+A round closes its own tab. Before it does, every peer that wrote no report has its pane terminal saved beside the empty report as `{peer-id}.pane.log` — the only account of a peer that declined, stalled, or stopped at a dialog, and it outlives the pane. `PEER_HERDR_KEEP=1` keeps the tab instead, for answering a blocked peer by hand. `peer herdr clean` reaps whatever accumulated: every settled `peer-` tab in the live workspace, sparing tabs that still carry a working or blocked peer and tabs that are not peer rounds.
+
+The manifest, statuses, and exit codes are identical to headless dispatch. `PEER_HERDR=0` forces headless inside a Herdr pane, and a failed `tab create` falls back to it automatically. `peer-herdr-test` covers pane dispatch against a stub Herdr CLI.
 
 ## Failure classification
 

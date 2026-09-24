@@ -81,6 +81,8 @@ _peer_fanout_usage() {
   printf '%s\n' "  OUTDIR comes from 'peer path'. Relative paths resolve beneath DIR."
   printf '%s\n' "  Supply exactly one prompt source: positional PROMPT or a readable --prompt-file."
   printf '%s\n' "  Tester and implementer roles require one peer; reviewer may fan out."
+  printf '%s\n' "  Inside a herdr pane, peers run as agent panes in a new 'peer-<subject>-<stage>' tab; PEER_HERDR=0 forces headless."
+  printf '%s\n' "  A round closes its own tab, saving a failed peer's terminal to {peer-id}.pane.log first; PEER_HERDR_KEEP=1 keeps the tab."
 }
 
 _peer_harness_usage() {
@@ -92,7 +94,7 @@ _peer_harness_usage() {
 _peer_usage() {
   _peer_fanout_usage
   _peer_harness_usage
-  printf '%s\n' "       peer path --help | peer run-id | peer list | peer defaults reviewers [--peer-aliases]"
+  printf '%s\n' "       peer path --help | peer run-id | peer herdr [clean] | peer list | peer defaults reviewers [--peer-aliases]"
   printf '%s\n' "       peer get <$PEER_GET_FIELDS> <id|alias> | peer route --help"
 }
 
@@ -211,11 +213,201 @@ _peer_readonly_profile() {
   (subpath "/dev")
   (subpath "$HOME/.pi")
   (subpath "$HOME/.claude")
+  (subpath "${CODEX_HOME:-$HOME/.codex}")
   (subpath "$HOME/.cache")
   (subpath "$HOME/Library/Caches")
   (subpath "$HOME/Library/Application Support"))
 (deny file-write* (subpath "$1"))
 PROFILE
+}
+
+# --- herdr pane dispatch ---------------------------------------------------------------
+# Inside a herdr pane, peers run as visible agent panes in their own tab instead of headless
+# child processes: the caller watches the run and keeps the transcript after it ends.
+# HERDR_ENV is inherited, so it survives into contexts where the pane behind it is gone. It
+# only selects the check; the live pane, and the workspace peer opens its tab in, come from
+# herdr itself.
+_peer_herdr_ready() {
+  local json
+  [[ "${PEER_HERDR:-1}" != 0 ]] || return 1
+  [[ "${HERDR_ENV:-}" == 1 ]] || return 1
+  command -v herdr >/dev/null 2>&1 || return 1
+  json=$(herdr pane current --current 2>/dev/null) || return 1
+  HERDR_WORKSPACE_ID=$(_peer_herdr_field result.pane.workspace_id <<< "$json") || return 1
+  [[ -n "$HERDR_WORKSPACE_ID" ]]
+}
+
+_peer_herdr_field() {  # DOTTED-PATH <json
+  PEER_JSON_PATH="$1" python3 -c '
+import json, os, sys
+node = json.load(sys.stdin)
+for key in os.environ["PEER_JSON_PATH"].split("."):
+    if not isinstance(node, dict) or key not in node:
+        sys.exit(1)
+    node = node[key]
+if node is None:
+    sys.exit(1)
+print(node)'
+}
+
+# .peer/<subject>/<run>/<stage> names the round, so the tab carries subject and stage.
+_peer_herdr_tab_label() {  # OUTDIR
+  local rest=${1%/} stage subject
+  stage=${rest##*/}; rest=${rest%/*}; rest=${rest%/*}; subject=${rest##*/}
+  printf 'peer-%s-%s\n' "$subject" "$stage"
+}
+
+_peer_herdr_open_tab() {  # OUTDIR WORKDIR -> "<tab-id> <root-pane-id>"
+  local json tab root
+  json=$(herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "$2" \
+           --label "$(_peer_herdr_tab_label "$1")" --no-focus 2>&1) || {
+    printf '%s\n' "peer: herdr tab create failed, dispatching headless - $json" >&2
+    return 1
+  }
+  tab=$(_peer_herdr_field result.tab.tab_id <<< "$json") || return 1
+  root=$(_peer_herdr_field result.root_pane.pane_id <<< "$json") || return 1
+  printf '%s %s\n' "$tab" "$root"
+}
+
+_peer_herdr_split() {  # PANE DIRECTION WORKDIR -> <pane-id>
+  local json
+  json=$(herdr pane split --pane "$1" --direction "$2" --cwd "$3" --no-focus 2>&1) || {
+    printf '%s\n' "peer: herdr pane split failed - $json" >&2
+    return 1
+  }
+  _peer_herdr_field result.pane.pane_id <<< "$json"
+}
+
+# Display-only; a metadata failure never decides a dispatch.
+_peer_herdr_metadata() {  # PANE ARGS...
+  local pane=$1; shift
+  herdr pane report-metadata "$pane" --source peer "$@" >/dev/null 2>&1 || true
+}
+
+# Runs one harness interactively in an existing herdr pane. Reads the globals the headless
+# path has already resolved: harness, workdir, outfile, prompt, role bodies, sandbox, cap.
+_peer_herdr_dispatch() {
+  local pane=$herdr_pane base=${peer_id:-$harness} stage_dir=${outfile%/*}
+  local prompt_path run_dir profile launcher json status rc waited deadline grace
+  local -a wrap=() cmd=()
+
+  # A pane agent reads its assignment from a file, so a positional prompt gets one. A caller's
+  # own prompt file is already on disk and is used where it lies.
+  if [[ -n "$prompt_file" ]]; then
+    prompt_path="$prompt_file"
+  else
+    prompt_path="$stage_dir/$base.prompt.md"
+    printf '%s\n' "$prompt" >"$prompt_path" || return 1
+  fi
+
+  run_dir=$(mktemp -d "${TMPDIR:-/tmp}/peer.herdr.XXXXXX") || {
+    printf '%s\n' "peer: cannot create herdr launch dir" >&2; return 1; }
+
+  # A pane agent writes its own report, so the read-only profile has to open one hole: the
+  # stage directory. Codex needs the profile here too — its own read-only sandbox would deny
+  # that write, and its workspace-write sandbox would open the whole tree.
+  if (( ${#sandbox_wrap[@]} )) || [[ "$harness" == codex && "$execution_role" == reviewer ]]; then
+    command -v sandbox-exec >/dev/null 2>&1 || {
+      printf '%s\n' "peer: sandbox-exec not found - a pane reviewer has nothing holding it read-only" >&2
+      rm -rf "$run_dir"; return 3
+    }
+    profile="$run_dir/readonly.sb"
+    { _peer_readonly_profile "$workdir"
+      printf '(allow file-write* (subpath "%s"))\n' "$stage_dir"
+    } >"$profile"
+    wrap=( sandbox-exec -f "$profile" )
+  fi
+
+  case "$harness" in
+    codex)
+      # The outer profile, not codex's own mode, is what holds a pane reviewer off the tree;
+      # codex's own sandbox cannot nest inside it (sandbox_apply: Operation not permitted).
+      codex_mode=workspace-write
+      (( ${#wrap[@]} )) && codex_mode=danger-full-access
+      cmd=( codex -C "$workdir" -s "$codex_mode" -a never -c "model_reasoning_effort=$effort" )
+      [[ -n "$codex_role_config" ]] && cmd+=( -c "$codex_role_config" )
+      [[ -n "$model" ]] && cmd+=( -m "$model" ) ;;
+    pi)
+      cmd=( pi --provider "$provider" --model "$model" "${pi_tools[@]}" )
+      [[ -n "$pi_role_body" ]] && cmd+=( --append-system-prompt "$pi_role_body" )
+      [[ "$pi_thinking" == true ]] && cmd+=( --thinking "$effort" ) ;;
+    claude)
+      cmd=( claude --permission-mode dontAsk --tools "$claude_tools" \
+            --allowedTools "$claude_tools" --effort "$effort" )
+      [[ -n "$model" ]] && cmd+=( --model "$model" )
+      [[ -n "$claude_role_body" ]] && cmd+=( --append-system-prompt "$claude_role_body" ) ;;
+  esac
+
+  launcher="$run_dir/launch.sh"
+  { printf '#!/usr/bin/env bash\ncd %q || exit 1\nexec' "$workdir"
+    printf ' %q' "${wrap[@]}" "${cmd[@]}"
+    printf '\n'
+  } >"$launcher"
+  chmod +x "$launcher"
+
+  json=$(herdr pane run "$pane" "$(printf '%q' "$launcher")" 2>&1) || {
+    printf '%s\n' "peer: herdr could not start $harness in $pane - $json" >&2
+    rm -rf "$run_dir"; return 3
+  }
+
+  waited=0
+  until herdr agent get "$pane" >/dev/null 2>&1; do
+    (( waited++ ))
+    if (( waited > 60 )); then
+      printf '%s\n' "peer: herdr saw no $harness agent in $pane within 60s" >&2
+      rm -rf "$run_dir"; return 124
+    fi
+    sleep 1
+  done
+  herdr agent wait "$pane" --until idle --timeout 60000 >/dev/null 2>&1
+
+  json=$(herdr agent prompt "$pane" \
+    "Read $prompt_path in full and carry out exactly the assignment it contains. Write your complete report to $outfile - create that file, and do not paste the report into this terminal. When the file is written, reply with only: PEER-REPORT-WRITTEN $base." \
+    --wait --timeout "$(( cap * 1000 ))" 2>&1)
+  rc=$?
+  rm -rf "$run_dir"
+
+  if (( rc != 0 )); then
+    case "$json" in
+      *agent_blocked*)
+        printf '%s\n' "peer: $harness in $pane is waiting at an approval or question dialog - answer it there" >&2 ;;
+      *)
+        printf '%s\n' "peer: herdr could not drive $harness in $pane - $json" >&2 ;;
+    esac
+    _peer_herdr_metadata "$pane" --token status=stalled --state-label blocked="peer $base: needs input"
+    : >| "$outfile"
+    return 124
+  fi
+
+  status=$(_peer_herdr_field result.agent.agent_status <<< "$json")
+  # `agent prompt --wait` returns at the first settled state, which can slightly precede the
+  # write. A settled agent therefore gets a short grace window and never the rest of the cap:
+  # an agent that has stopped is not going to produce the file later, and spending the cap
+  # on it leaves the round's tab sitting open long after its peer went quiet.
+  deadline=$(( SECONDS + cap ))
+  while [[ ! -s "$outfile" ]] && (( SECONDS < deadline )); do
+    case "$status" in
+      blocked)
+        printf '%s\n' "peer: $harness in $pane stopped at an approval or question dialog" >&2
+        break ;;
+      working)
+        herdr agent wait "$pane" --timeout "$(( (deadline - SECONDS) * 1000 ))" >/dev/null 2>&1 || break
+        status=$(herdr agent get "$pane" 2>/dev/null | _peer_herdr_field result.agent.agent_status) ;;
+      *)
+        grace=$(( SECONDS + 10 ))
+        while [[ ! -s "$outfile" ]] && (( SECONDS < grace )); do sleep 1; done
+        break ;;
+    esac
+  done
+
+  if [[ -s "$outfile" ]]; then
+    _peer_herdr_metadata "$pane" --token status=ok --state-label idle="peer $base: report written"
+    return 0
+  fi
+  : >| "$outfile"
+  printf '%s\n' "peer: $harness in $pane produced no report at $outfile" >&2
+  _peer_herdr_metadata "$pane" --token status=error --state-label idle="peer $base: no report"
+  return 124
 }
 
 _peer_terminate_group() {
@@ -331,6 +523,39 @@ if [[ "$cmd" == defaults ]]; then
     (IFS=,; printf '%s\n' "${peer_aliases[*]}")
   fi
   exit 0
+fi
+
+# --- peer herdr: which surface a fan-out started right now would use ------------------
+if [[ "$cmd" == herdr ]]; then
+  case "${2:-}" in
+    '')
+      if _peer_herdr_ready; then
+        printf 'panes\t%s\n' "$HERDR_WORKSPACE_ID"
+      else
+        printf 'headless\t-\n'
+      fi
+      exit 0 ;;
+    clean)
+      # A round's tab outlives it on purpose - the transcript is why peers run in panes.
+      # Reaping is therefore explicit, and never takes a tab still carrying a live peer.
+      [[ -z "${3:-}" ]] || { printf '%s\n' "usage: peer herdr clean" >&2; exit 2; }
+      _peer_herdr_ready || { printf '%s\n' "peer: no live herdr pane, no tabs to clean" >&2; exit 1; }
+      while read -r tab label; do
+        if herdr tab close "$tab" >/dev/null 2>&1; then
+          printf 'closed\t%s\t%s\n' "$tab" "$label"
+        else
+          printf '%s\n' "peer: could not close $tab ($label)" >&2
+        fi
+      done < <(herdr tab list --workspace "$HERDR_WORKSPACE_ID" 2>/dev/null | python3 -c '
+import json, sys
+for tab in json.load(sys.stdin).get("result", {}).get("tabs", []):
+    label = tab.get("label") or ""
+    if label.startswith("peer-") and tab.get("agent_status") not in ("working", "blocked"):
+        print(tab["tab_id"], label)')
+      exit 0 ;;
+    *)
+      printf '%s\n' "usage: peer herdr [clean]" >&2; exit 2 ;;
+  esac
 fi
 
 # --- peer run-id / peer path: the only sanctioned way to name a report dir -----------
@@ -494,12 +719,38 @@ if [[ "$cmd" != codex && "$cmd" != pi && "$cmd" != claude ]]; then
   done
   agent_arg=(); [[ -n "$agent" ]] && agent_arg=( --agent "$agent" )
   prompt_arg=( "$prompt" ); [[ -n "$prompt_file" ]] && prompt_arg=( --prompt-file "$prompt_file" )
+
+  declare -A HERDR_PANE_FOR
+  herdr_tab=""
+  if _peer_herdr_ready; then
+    if read -r herdr_tab herdr_pane < <(_peer_herdr_open_tab "$outdir" "$workdir"); then
+      printf '%s\n' "peer: dispatching into herdr tab $herdr_tab ($(_peer_herdr_tab_label "$outdir"))" >&2
+      direction=right; first=1
+      for id in "${selected[@]}"; do
+        if (( first )); then
+          pane="$herdr_pane"; first=0
+        else
+          # Alternating splits keep a three-peer fan-out out of unusably narrow columns.
+          pane=$(_peer_herdr_split "$herdr_pane" "$direction" "$workdir") || break
+          [[ "$direction" == right ]] && direction=down || direction=right
+          herdr_pane="$pane"
+        fi
+        HERDR_PANE_FOR[$id]="$pane"
+        _peer_herdr_metadata "$pane" --title "peer $id" \
+          --display-agent "${ALIAS[$id]} (peer ${agent:-reviewer})" \
+          --state-label working="${agent:-reviewer}" \
+          --token peer="$id" --token role="${agent:-reviewer}"
+      done
+    fi
+  fi
+
   for id in "${selected[@]}"; do
     e="${effort:-${EFFORT[$id]}}"; [[ "$e" == - ]] && e=high
     idle_arg=(); (( idle_set )) && idle_arg=( --idle "$idle" )
+    pane_arg=(); [[ -n "${HERDR_PANE_FOR[$id]:-}" ]] && pane_arg=( --herdr-pane "${HERDR_PANE_FOR[$id]}" )
     "$SCRIPT_DIR/peer" "${HARNESS[$id]}" -C "$workdir" "${agent_arg[@]}" \
          --provider "${PROVIDER[$id]}" --model "${MODEL[$id]}" --effort "$e" --peer-id "$id" \
-         "${idle_arg[@]}" --cap "$cap" -o "$outdir/$id.yaml" "${prompt_arg[@]}" 2>"$diagdir/$id" &
+         "${idle_arg[@]}" "${pane_arg[@]}" --cap "$cap" -o "$outdir/$id.yaml" "${prompt_arg[@]}" 2>"$diagdir/$id" &
     PID[$id]=$!
     ran+=( "$id" )
   done
@@ -520,6 +771,23 @@ if [[ "$cmd" != codex && "$cmd" != pi && "$cmd" != claude ]]; then
     printf '%s\n' "peer: re-run without the restriction before acting on any of them" >&2
   fi
 
+  # The round's tab goes either way, so a failed peer's terminal is saved beside its empty
+  # report first: that transcript is the only account of a peer that declined, stalled, or
+  # stopped at a dialog, and it outlives the pane as a file.
+  if [[ -n "$herdr_tab" && "${PEER_HERDR_KEEP:-0}" != 1 ]]; then
+    for id in "${ran[@]}"; do
+      [[ "${STATUS[$id]}" != ok && -n "${HERDR_PANE_FOR[$id]:-}" ]] || continue
+      if herdr pane read "${HERDR_PANE_FOR[$id]}" >"$outdir/$id.pane.log" 2>/dev/null \
+         && [[ -s "$outdir/$id.pane.log" ]]; then
+        printf '%s\n' "peer: $id wrote no report; its pane transcript is at $outdir/$id.pane.log" >&2
+      else
+        rm -f "$outdir/$id.pane.log"
+      fi
+    done
+    herdr tab close "$herdr_tab" >/dev/null 2>&1 \
+      || printf '%s\n' "peer: herdr tab $herdr_tab did not close" >&2
+  fi
+
   for id in "${ran[@]}"; do
     printf '%s\t%s\t%s\n' "$id" "${STATUS[$id]}" "$outdir/$id.yaml"
   done
@@ -528,7 +796,7 @@ fi
 
 # --- single harness: codex|pi|claude (also the unit fan-out dispatches to) ------------
 harness="$cmd"; shift
-effort=high; model=""; outfile=""; agent=""; workdir="$PWD"; prompt_file=""; idle=120; idle_set=0; cap=600; provider=""; peer_id=""
+effort=high; model=""; outfile=""; agent=""; workdir="$PWD"; prompt_file=""; idle=120; idle_set=0; cap=600; provider=""; peer_id=""; herdr_pane=""
 while (( $# )); do
   case "$1" in
     -o|--out)   outfile="$2"; shift 2 ;;
@@ -539,6 +807,7 @@ while (( $# )); do
     --model)    model="$2"; shift 2 ;;
     --provider) provider="$2"; shift 2 ;;
     --peer-id)  peer_id="$2"; shift 2 ;;
+    --herdr-pane) herdr_pane="$2"; shift 2 ;;
     --idle)     idle="$2"; idle_set=1; shift 2 ;;
     --cap)      cap="$2"; shift 2 ;;
     --) shift; break ;;
@@ -664,6 +933,11 @@ fi
 pi_thinking=false
 [[ "$harness" == pi && -n "$provider" ]] && \
   pi_thinking=$(prov="$provider" yq -r '.providers[strenv(prov)].thinking // false' "$REGISTRY")
+
+if [[ -n "$herdr_pane" ]]; then
+  _peer_herdr_dispatch
+  exit $?
+fi
 
 codex_stdin=/dev/null; pi_stdin=/dev/null; claude_stdin=/dev/null
 codex_prompt=( "$prompt" ); pi_prompt=( "$prompt" ); claude_prompt=( "$prompt" )

@@ -1,0 +1,250 @@
+#!/usr/bin/env bash
+# Run: skills/peer/scripts/peer-herdr-test
+set -uo pipefail
+
+SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+PEER="$SCRIPT_DIR/peer"
+tmp=$(mktemp -d) || tmp=""
+[[ -n "$tmp" && -d "$tmp" && "$tmp" != "$PWD" && "$tmp" != "/" ]] || {
+  printf 'FAIL  refusing to run: temp dir resolved to %s\n' "${tmp:-<empty>}"; exit 1; }
+tmp=$(cd "$tmp" && pwd -P)
+marks=$(mktemp -d)  # outside the work tree, so a sandboxed headless reviewer can mark it
+trap 'rm -rf "$tmp" "$marks"' EXIT
+fails=0
+
+check() {  # NAME CONDITION-RESULT
+  if (( $2 == 0 )); then printf 'ok    %s\n' "$1"; else printf 'FAIL  %s\n' "$1"; (( fails++ )); fi
+}
+
+cat >"$tmp/registry.yaml" <<'REG'
+reviewers:
+  - id: paneable
+    harness: claude
+    model: stub-model
+    alias: paneable
+    effort: high
+    native: false
+    peer: true
+  - id: paneable-two
+    harness: claude
+    model: stub-model-two
+    alias: paneable-two
+    effort: high
+    native: false
+    peer: true
+defaults:
+  reviewers: [paneable]
+REG
+
+mkdir -p "$tmp/bin"
+cat >"$tmp/bin/gestalt" <<'STUB'
+#!/usr/bin/env bash
+printf 'FAKE REPOSITORY ORIENTATION\n'
+STUB
+
+# Stands in for the herdr CLI: records every call, hands back the JSON shapes peer parses,
+# and emulates the one behaviour that matters — a pane agent writing its own report file.
+cat >"$tmp/bin/herdr" <<'STUB'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >>"$HERDR_CALLS"
+case "$1 ${2:-}" in
+  "pane current")
+    [[ "${HERDR_STUB_MODE:-ok}" == stale ]] && exit 1
+    printf '{"result":{"pane":{"pane_id":"w1:p1","workspace_id":"w1"}}}\n' ;;
+  "tab create")
+    printf '{"result":{"tab":{"tab_id":"w1:t9"},"root_pane":{"pane_id":"w1:p9"}}}\n' ;;
+  "tab list")
+    printf '%s\n' '{"result":{"tabs":[
+      {"tab_id":"w1:t1","label":"1","agent_status":"idle"},
+      {"tab_id":"w1:t4","label":"peer-subject-done","agent_status":"done"},
+      {"tab_id":"w1:t5","label":"peer-subject-live","agent_status":"working"},
+      {"tab_id":"w1:t6","label":"peer-subject-stuck","agent_status":"blocked"},
+      {"tab_id":"w1:t7","label":"peer-subject-quiet","agent_status":"idle"}]}}' ;;
+  "tab close") ;;
+  "pane read")
+    printf 'PANE TRANSCRIPT for %s\n' "$3" ;;
+  "pane split")
+    printf '{"result":{"pane":{"pane_id":"w1:p%s"}}}\n' "$(( RANDOM % 90 + 10 ))" ;;
+  "pane run")
+    if [[ -n "${HERDR_LAUNCHER_DUMP:-}" ]]; then
+      launcher=$(printf '%s' "$4" | tr -d "'")
+      cat "$launcher" >>"$HERDR_LAUNCHER_DUMP"
+      profile=$(sed -n 's/.*sandbox-exec -f \([^ ]*\.sb\).*/\1/p' "$launcher")
+      [[ -n "$profile" ]] && cat "$profile" >>"$HERDR_LAUNCHER_DUMP"
+    fi
+    : ;;
+  "pane report-metadata") ;;
+  "agent get")
+    printf '{"result":{"agent":{"agent_status":"idle"}}}\n' ;;
+  "agent wait") ;;
+  "agent prompt")
+    if [[ "${HERDR_STUB_MODE:-ok}" == noreport ]]; then
+      printf '{"result":{"agent":{"agent_status":"idle"}}}\n'
+      exit 0
+    fi
+    outfile=$(printf '%s\n' "$4" | sed -n 's/.*complete report to \([^ ]*\) .*/\1/p')
+    [[ -n "$outfile" ]] && printf 'REPORT\n' >"$outfile"
+    printf '{"result":{"agent":{"agent_status":"done"}}}\n' ;;
+  *) printf '{"result":{}}\n' ;;
+esac
+STUB
+
+cat >"$tmp/bin/claude" <<'STUB'
+#!/usr/bin/env bash
+printf 'headless claude ran\n' >>"${HEADLESS_MARKER:-/dev/null}"
+printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"OK"}'
+STUB
+cp "$tmp/bin/claude" "$tmp/bin/codex"
+chmod +x "$tmp/bin"/*
+
+run_id=$("$PEER" run-id)
+herdr_env=( HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_PANE_ID=w1:p1 )  # inherited; the live pane decides
+
+fanout() {  # STAGE EXTRA-ENV...
+  local stage=$1; shift
+  local dir; dir=$("$PEER" path subject "$stage" --run "$run_id" -C "$tmp")
+  HERDR_CALLS="$tmp/calls.$stage" \
+    env "${herdr_env[@]}" "$@" PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
+    "$PEER" -d "$dir" -C "$tmp" --peers paneable,paneable-two --cap 30 'ping' 2>"$tmp/err.$stage"
+}
+
+# --- peer herdr reports the surface a fan-out started now would use ---------------------
+surface() {  # EXTRA-ENV...
+  HERDR_CALLS="$tmp/calls.surface" \
+    env "${herdr_env[@]}" "$@" PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
+    "$PEER" herdr 2>/dev/null
+}
+[[ "$(surface)" == "$(printf 'panes\tw1')" ]]
+check 'peer herdr names the live workspace panes would open in' $?
+
+[[ "$(surface HERDR_STUB_MODE=stale)" == "$(printf 'headless\t-')" ]] \
+  && [[ "$(surface PEER_HERDR=0)" == "$(printf 'headless\t-')" ]]
+check 'peer herdr reports headless for a stale pane and for the opt-out' $?
+
+# --- peer herdr clean reaps finished rounds, and only those ------------------------------
+cleaned=$(HERDR_CALLS="$tmp/calls.clean" \
+  env "${herdr_env[@]}" PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
+  "$PEER" herdr clean 2>"$tmp/err.clean")
+[[ "$cleaned" == "$(printf 'closed\tw1:t4\tpeer-subject-done\nclosed\tw1:t7\tpeer-subject-quiet')" ]]
+check 'peer herdr clean closes the settled peer tabs' $?
+
+! grep -qE '^tab close w1:(t1|t5|t6)$' "$tmp/calls.clean"
+check 'peer herdr clean spares live peers and tabs that are not peer rounds' $?
+
+# --- a fan-out from inside a herdr pane runs in panes, not headless children -------------
+manifest=$(fanout panes HEADLESS_MARKER="$marks/headless.panes")
+calls="$tmp/calls.panes"
+
+grep -qF -- 'tab create --workspace w1 --cwd '"$tmp"' --label peer-subject-panes --no-focus' "$calls"
+check 'the round opens one tab named peer-<subject>-<stage>' $?
+
+(( $(grep -c '^tab create' "$calls") == 1 ))
+check 'two peers share one tab' $?
+
+(( $(grep -c '^pane split' "$calls") == 1 ))
+check 'the second peer splits a sibling pane and the first reuses the root' $?
+
+grep -q '^pane report-metadata w1:p9 --source peer --title peer paneable ' "$calls" \
+  && grep -q -- '--display-agent paneable (peer reviewer)' "$calls" \
+  && grep -q -- '--token peer=paneable ' "$calls"
+check 'each pane carries peer identity as herdr metadata' $?
+
+[[ ! -s "$marks/headless.panes" ]]
+check 'no headless harness process runs when panes are available' $?
+
+grep -qF "$(printf 'paneable\tok')" <<< "$manifest" \
+  && grep -qF "$(printf 'paneable-two\tok')" <<< "$manifest"
+check 'a pane peer that writes its report reports ok' $?
+
+[[ -s "$tmp/.peer/subject/$run_id/panes/paneable.yaml" ]]
+check 'the report the pane agent wrote is the published report' $?
+
+[[ -s "$tmp/.peer/subject/$run_id/panes/paneable.prompt.md" ]]
+check 'a positional prompt is materialized beside the report' $?
+
+prompt_dir=$("$PEER" path subject prompt-file --run "$run_id" -C "$tmp")
+printf 'assignment from a caller file\n' >"$prompt_dir/prompt.md"
+HERDR_CALLS="$tmp/calls.prompt-file" \
+  env "${herdr_env[@]}" PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
+  "$PEER" -d "$prompt_dir" -C "$tmp" --peers paneable --cap 30 \
+  --prompt-file "$prompt_dir/prompt.md" >/dev/null 2>"$tmp/err.prompt-file"
+grep '^agent prompt ' "$tmp/calls.prompt-file" | grep -qF "Read $prompt_dir/prompt.md in full" \
+  && [[ ! -e "$prompt_dir/paneable.prompt.md" ]]
+check "a caller's prompt file is used where it lies" $?
+
+grep -q "^pane run w1:p9 .*launch.sh" "$calls"
+check 'each pane is started through a generated launcher script' $?
+
+grep '^agent prompt ' "$calls" \
+  | grep -qF 'complete report to '"$tmp"'/.peer/subject/'"$run_id"'/panes/paneable.yaml'
+check 'the pane agent is told where to write its report' $?
+
+grep -qx 'tab close w1:t9' "$calls"
+check 'a clean round closes its own tab' $?
+
+fanout keep PEER_HERDR_KEEP=1 >/dev/null
+! grep -q '^tab close' "$tmp/calls.keep"
+check 'PEER_HERDR_KEEP=1 keeps the tab of a clean round' $?
+
+# --- the reviewer sandbox survives the move into a pane ---------------------------------
+fanout reviewer-sandbox HERDR_LAUNCHER_DUMP="$tmp/launchers.reviewer" >/dev/null
+grep -qF 'sandbox-exec -f' "$tmp/launchers.reviewer" \
+  && grep -qF "$tmp/.peer/subject/$run_id/reviewer-sandbox" "$tmp/launchers.reviewer"
+check 'a pane reviewer launches behind a profile that opens only its stage directory' $?
+
+fanout_one() {  # STAGE ROLE EXTRA-ENV...
+  local stage=$1 role=$2; shift 2
+  local dir; dir=$("$PEER" path subject "$stage" --run "$run_id" -C "$tmp")
+  HERDR_CALLS="$tmp/calls.$stage" \
+    env "${herdr_env[@]}" "$@" PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
+    "$PEER" -d "$dir" -C "$tmp" --peers paneable --agent "$role" --cap 30 'ping' 2>"$tmp/err.$stage"
+}
+fanout_one tester-sandbox tester HERDR_LAUNCHER_DUMP="$tmp/launchers.tester" >/dev/null
+! grep -qF 'sandbox-exec' "$tmp/launchers.tester"
+check 'a pane tester keeps write access to its work tree' $?
+
+# --- a pane that produces no report is not an ok row ------------------------------------
+started=$SECONDS
+manifest=$(fanout noreport HERDR_STUB_MODE=noreport)
+elapsed=$(( SECONDS - started ))
+! grep -qF "$(printf '\tok\t')" <<< "$manifest" \
+  && grep -qF "$(printf 'paneable\t')" <<< "$manifest"
+check 'a pane that writes no report never reports ok' $?
+
+grep -qF 'produced no report' "$tmp/err.noreport"
+check 'the missing report names the pane it was expected from' $?
+
+(( elapsed < 25 ))  # cap is 30; a settled agent must not hold the pane for the rest of it
+check 'a settled agent that wrote nothing gives up long before the cap' $?
+
+grep -qx 'tab close w1:t9' "$tmp/calls.noreport"
+check 'a round with a failed peer still closes its tab' $?
+
+grep -qF 'PANE TRANSCRIPT' "$tmp/.peer/subject/$run_id/noreport/paneable.pane.log" \
+  && grep -qF 'pane transcript is at' "$tmp/err.noreport"
+check "a failed peer's pane transcript outlives the tab as a file" $?
+
+[[ ! -e "$tmp/.peer/subject/$run_id/panes/paneable.pane.log" ]]
+check 'a peer that reported leaves no pane log behind' $?
+
+# --- opt-out and absence both fall back to headless dispatch ----------------------------
+manifest=$(fanout optout PEER_HERDR=0 HEADLESS_MARKER="$marks/headless.optout")
+[[ ! -s "$tmp/calls.optout" ]] && [[ -s "$marks/headless.optout" ]]
+check 'PEER_HERDR=0 forces the headless path inside a herdr pane' $?
+
+manifest=$(fanout stale HERDR_STUB_MODE=stale HEADLESS_MARKER="$marks/headless.stale")
+grep -q '^pane current' "$tmp/calls.stale" \
+  && ! grep -q '^tab create' "$tmp/calls.stale" \
+  && [[ -s "$marks/headless.stale" ]]
+check 'an inherited HERDR_ENV with no live pane falls back to headless' $?
+
+dir=$("$PEER" path subject outside --run "$run_id" -C "$tmp")
+HEADLESS_MARKER="$marks/headless.outside" HERDR_CALLS="$tmp/calls.outside" \
+  env -u HERDR_ENV -u HERDR_PANE_ID -u HERDR_WORKSPACE_ID \
+  PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
+  "$PEER" -d "$dir" -C "$tmp" --peers paneable --cap 30 'ping' >/dev/null 2>"$tmp/err.outside"
+[[ ! -s "$tmp/calls.outside" ]] && [[ -s "$marks/headless.outside" ]]
+check 'a peer called outside herdr never touches the herdr CLI' $?
+
+printf '\n%s\n' "$( ((fails)) && echo "$fails failing" || echo 'all passing')"
+exit $(( fails > 0 ))
