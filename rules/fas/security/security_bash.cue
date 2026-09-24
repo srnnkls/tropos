@@ -127,7 +127,7 @@ git_add_all: {
 	}
 }
 
-_discardReason: "This discards uncommitted changes irrecoverably. To commit them separately, stage hunks from the diff instead of resetting: git diff > p.patch, filter the hunks you want, git apply --cached p.patch. See the git skill, reference/commands.md."
+_discardReason: "This discards uncommitted changes irrecoverably. To commit them separately, stage hunks from the diff instead of resetting: git diff > p.patch, filter the hunks you want, git apply --cached p.patch. A submodule gitlink is not a file — its diff is one SHA line with no hunks to stage, the commit it pointed at survives in the submodule's reflog, and `git update-index --skip-worktree <path>` hides the delta while discarding nothing. See the git skill, reference/commands.md."
 
 git_discard_uncommitted: {
 	when: hook.#PreToolUse & tool.#Bash & (bash.#call & {
