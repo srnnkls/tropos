@@ -29,6 +29,8 @@ Operate `nixos`, the Threadripper 3970X workstation. It suspends after 20 idle m
 
 Two addresses: Tailscale MagicDNS (`nixos`, preferred) and LAN (`192.168.137.23`). The `ssh_config` selects the LAN one only when the tailnet is unreachable.
 
+Over the tailnet, authentication is Tailscale SSH: tailscaled answers port 22 and authenticates the node itself. `Host nix` therefore sets `PubkeyAuthentication no` and `IdentityAgent none` — no key is offered and the 1Password agent is never consulted, so scripted and agent-driven sessions get no biometric prompt. `ssh nix` and `tailscale ssh srnnkls@nixos` are equivalent. The LAN path has no Tailscale SSH; `nix-lan` authenticates with a key and may prompt. Bench campaigns (two-box protocol) run over `ssh nix` for that reason.
+
 Config lives at `/etc/nixos/idle-suspend.nix`, imported from `configuration.nix`.
 
 ## Remote commands need a bash wrapper
