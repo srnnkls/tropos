@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
-"""Check this prototype's compiled artifacts against its harness contracts."""
+"""Check compiled Tropos artifacts against their harness contracts."""
 
-import hashlib
 import json
-import os
 from pathlib import Path
 import subprocess
 import sys
@@ -31,40 +29,16 @@ def yaml(path, frontmatter=False):
     return json.loads(subprocess.check_output([*args, ".", str(path)], text=True))
 
 
-def snapshot(root):
-    result = {}
-    for directory in (
-        "skills",
-        "agents",
-        "instructions",
-        ".henia/build",
-        ".henia/probe/home",
-    ):
-        for path in sorted((root / directory).rglob("*")):
-            if path.is_file() and ".git" not in path.parts:
-                result[str(path.relative_to(root))] = [
-                    hashlib.sha256(path.read_bytes()).hexdigest(),
-                    path.stat().st_mode & 0o777,
-                    os.readlink(path) if path.is_symlink() else None,
-                ]
-    return result
-
-
-def check(root, build=None):
-    canonical_root = root if build else root / ".henia/source"
+def check(root, build):
+    canonical_root = root
     skills = {path.parent.name for path in (canonical_root / "skills").glob("*/SKILL.md") }
     require(bool(skills), "canonical skill inventory is empty")
-    for harness, directory in (
-        ("claude", ".claude"),
-        ("codex", ".codex"),
-        ("pi", ".pi"),
-        ("omp", ".omp"),
-    ):
-        target = build / harness if build else root / ".henia/probe/home" / directory
+    for harness in ("claude", "codex", "pi", "omp"):
+        target = build / harness
         mains = sorted((target / "skills").glob("*/SKILL.md"))
         require(
             {path.parent.name for path in mains} == skills,
-            f"{harness}: expected the complete canonical skill inventory in {directory}/skills",
+            f"{harness}: expected the complete canonical skill inventory",
         )
         for path in mains:
             name = path.parent.name
@@ -92,16 +66,6 @@ def check(root, build=None):
                 "{{" not in body and "<no value>" not in body,
                 f"{path}: unexpanded template",
             )
-            if build is None:
-                compiled = (
-                    root / ".henia/build" / harness / "skills" / name / "SKILL.md"
-                )
-                require(
-                    path.is_symlink()
-                    and path.resolve() == compiled.resolve()
-                    and path.read_bytes() == compiled.read_bytes(),
-                    f"{path}: expected a link to the native Henia artifact",
-                )
             canonical = yaml(canonical_root / "skills" / name / "SKILL.md", frontmatter=True)
             require(
                 set(canonical) <= COMMON_FIELDS | {"license", "compatibility", "henia"},
@@ -218,13 +182,4 @@ def check(root, build=None):
 
 
 if __name__ == "__main__":
-    root = Path(sys.argv[1]).resolve()
-    if "--snapshot" in sys.argv[2:]:
-        print(json.dumps(snapshot(root), sort_keys=True, indent=2))
-    else:
-        check(
-            root,
-            Path(sys.argv[sys.argv.index("--build") + 1]).resolve()
-            if "--build" in sys.argv
-            else None,
-        )
+    check(Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve())

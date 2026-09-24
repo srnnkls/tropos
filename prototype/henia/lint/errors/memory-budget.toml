@@ -1,5 +1,0 @@
-[[lint.rules]]
-id = "probe"
-select = "document"
-assert = 'len(1..100001) > 0'
-message = "Probe."

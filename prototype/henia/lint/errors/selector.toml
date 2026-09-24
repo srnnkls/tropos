@@ -1,5 +1,0 @@
-[[lint.rules]]
-id = "probe"
-select = "code"
-assert = "true"
-message = "Probe."

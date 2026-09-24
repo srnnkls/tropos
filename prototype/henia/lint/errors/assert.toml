@@ -1,4 +1,0 @@
-[[lint.rules]]
-id = "probe"
-select = "document"
-message = "Probe."

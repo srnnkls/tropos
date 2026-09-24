@@ -1,2 +1,0 @@
-[lint]
-disable = ["metadata", "large-skill", "stale-review", "duplicate-heading", "duplicate-content", "duplicate-skill", "broken-link", "missing-reference", "outdated-reference", "invalid-template", "invalid-markup", "similar-content", "semantic-content"]

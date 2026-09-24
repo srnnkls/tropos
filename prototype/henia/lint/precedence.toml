@@ -1,3 +1,0 @@
-[lint]
-duplicate_similarity = 0.01
-duplicate_containment = 0.9
