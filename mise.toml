@@ -1,18 +1,5 @@
-[tasks."prototype:build"]
-description = "Build the selected Henia checkout into the repository-local tool directory"
-run = 'mkdir -p .henia/bin && go build -C "${HENIA_SOURCE:?Set HENIA_SOURCE to a Henia checkout}" -o "$PWD/.henia/bin/henia" ./cmd/henia'
-
-[tasks."prototype:sync"]
-description = "Compile all 25 canonical skills and dependencies, deploy with Phora, and smoke-test artifacts"
-dir = "phora/prototype"
-run = "phora update --fast-forward"
-
-[tasks."prototype:test"]
-description = "Exercise clean/repeat deployment and compiler failure in a disposable repository"
-run = "scrut test tests/scrut/henia-phora.md"
-
-[tasks."prototype:smoke"]
-description = "Check the deployed Claude Code, Codex, Pi and OMP artifacts"
+[tasks.test-artifacts]
+description = "Prepare this tree with Phora, compile every harness with Henia, and check the artifacts"
 run = "scrut test tests/scrut/henia-artifacts.md"
 
 [tasks.test-workflow-contracts]

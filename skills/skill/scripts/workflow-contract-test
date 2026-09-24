@@ -61,8 +61,7 @@ def tracked_markdown() -> list[Path]:
         capture_output=True,
         text=True,
     )
-    # Henia's historical lint fixtures intentionally contain broken references.
-    return [ROOT / line for line in result.stdout.splitlines() if line and not line.startswith("prototype/henia/")]
+    return [ROOT / line for line in result.stdout.splitlines() if line]
 
 
 def slug(text: str) -> str:

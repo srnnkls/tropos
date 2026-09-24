@@ -65,7 +65,7 @@ context inputs, and `henia.targets.codex.openai.interface` for Codex UI metadata
 
 Write canonical skill references as backtick `$skill-name` spans outside code
 examples. Use portable relative Markdown links in copied reference documents.
-Run `mise run prototype:sync` in the Tropos checkout to build, deploy and smoke-test all harnesses.
+Run `mise run test-artifacts` in the Tropos checkout to compile and check all harnesses.
 
 **Naming pattern:** `<namespace>[-<subnamespace>]-<action>`
 - `dispatch`, `scope`, `git worktree`

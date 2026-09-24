@@ -1,8 +1,8 @@
 # Canonical Tropos with Henia and Phora
 
-The `prototype/henia-phora` branch contains 25 canonical skills, three agent
-contracts, shared instructions and declarative harness profiles. Henia reads
-this checkout directly and builds Claude, Codex, Pi and OMP artifacts.
+Tropos contains 25 canonical skills, three agent contracts, shared
+instructions and declarative harness profiles. Henia compiles a prepared copy
+of them into Claude, Codex, Pi and OMP artifacts.
 
 [phora.toml](../phora.toml) advertises the package: the committed canonical
 files, the FAS rules, and a relative installation target for Loqui. A consumer
@@ -16,10 +16,10 @@ The dotfiles consumer names both sides of the compiler explicitly:
 phora prepares .tropos → henia builds .tropos into .henia → phora links .henia slices → Scrut
 ```
 
-Its `post_prepare` hook runs `henia build .tropos --output .henia --clean --harness claude,codex`;
+Its `post_prepare` hook runs `henia build .tropos --output .henia --clean --harness claude,codex,pi`;
 Henia reads the prepared [henia.toml](../henia.toml) from the input directory,
 preserves executable helpers and publishes output atomically. Dotfiles selects
-Claude and Codex; OMP reads Claude natively. FAS rules deploy from the same
+Claude, Codex and Pi; OMP reads Claude natively. FAS rules deploy from the same
 prepared snapshot, so skills and rules share one pin.
 
 Builds use the locked Tropos commit. `phora update tropos --fast-forward --prune`
@@ -28,7 +28,9 @@ advances it. For uncommitted edits, a consumer's local configuration points
 files while Loqui stays pinned. A frozen replay skips generation and requires
 existing output.
 
-[check-artifacts.py](../tests/scrut/check-artifacts.py) validates all four generated
-harness contracts, the skill inventory and the Loqui guides with
-`--build <output-directory>`. Consumers check only their deployment: links,
-modes, pins and frozen replay. No live model invocation is required.
+`mise run test-artifacts` prepares this working tree through a throwaway
+consumer, compiles all four harnesses, and runs
+[check-artifacts.py](../tests/scrut/check-artifacts.py) over the prepared input
+and the output: harness contracts, the skill inventory and the Loqui guides.
+Consumers check only their deployment: links, modes, pins and frozen replay. No
+live model invocation is required.

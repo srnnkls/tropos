@@ -28,11 +28,7 @@ A cross-harness configuration for agentic development. Ordinary work stays direc
 
 ## Development
 
-The [Henia → Phora migration](docs/henia-phora-prototype.md) compiles all 25
-canonical skills for Claude Code, Codex, Pi and OMP, deploys immutable packages,
-and installs Loqui as a transitive Phora dependency. Run `mise run prototype:sync`
-and `mise run prototype:test` for deployment and lifecycle smoke tests.
-
-The Loqui pin comes from the committed HEAD of `TROPOS_LOQUI_SOURCE` (default
-`~/projects/loqui`). Phora installs its published guides beneath each deployed
-`loqui` skill. No reference symlink is needed in canonical sources.
+Henia compiles the canonical skills for Claude Code, Codex, Pi and OMP; Phora
+deploys them and installs Loqui as a transitive dependency. See
+[Henia and Phora](docs/henia-phora.md). Run `mise run test-artifacts` to prepare
+this tree, compile every harness and check the results.
