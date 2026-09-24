@@ -90,7 +90,10 @@ project=$(basename "$(git rev-parse --show-toplevel)")
 
 `BASE` is the resolved base from the caller (e.g. `implement` Git Workflow step 3). When the base is the trunk, fetch and use the remote ref — a worktree created from local `main` or bare HEAD forks from whatever stale state the checkout happens to be in.
 
+`$path` is resolved against the repository root. `git worktree add` resolves a relative path against the current directory instead, so running it from inside another worktree nests the new one under that worktree's `.worktrees/` without failing.
+
 ```bash
+cd "$(git rev-parse --show-toplevel)"
 trunk=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@origin/@@')
 case "$BASE" in
   origin/*) git fetch origin "${BASE#origin/}" ;;
