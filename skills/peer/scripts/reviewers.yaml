@@ -130,6 +130,23 @@ reviewers:
     effort: high
     native: false
     peer: true
+  - id: claude-deepseek-flash
+    harness: claude
+    provider: deepseek
+    model: deepseek-flash
+    alias: deepseek
+    effort: high
+    native: true
+    proxy: true
+    peer: false
+  - id: peer-deepseek-flash
+    harness: claude
+    provider: deepseek
+    model: deepseek-flash
+    alias: peer-deepseek
+    effort: high
+    native: false
+    peer: true
 
 routing:
   tester: inherit
