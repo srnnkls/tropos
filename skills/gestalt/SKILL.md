@@ -36,7 +36,7 @@ gestalt map                             # Where do I look?
 gestalt analyze                         # What are the hotspots, seams, coupling?
 ```
 
-Then use `callers`/`callees`/`refs` to drill into specific symbols as needed. Names copied from map output work as query arguments, and the `(lines a-b)` these queries report is the range to read.
+Then use `callers`/`callees`/`refs` to drill into specific symbols as needed. Names copied from map output work as query arguments, and the line ranges these queries report are the ranges to read.
 
 Test code (`tests/` and `test/` directories, `tests.rs`, `*_test`/`*_tests` files, `.spec.*`/`.test.*` files) is hidden from `map`, `diff`, `rank` and `analyze` unless `--include-tests` is given.
 
@@ -129,22 +129,22 @@ See [operations/review.md](operations/review.md).
 
 ```bash
 gestalt callers <symbol>                # Who calls this?
-gestalt callers collect_entries         # → mtime_hash [function] src/mtime.rs:37 (lines 29-46)
+gestalt callers collect_entries         # → mtime_hash [function] src/mtime.rs:37 in 29-46
 gestalt callers helper --file src/db.rs # Filter to file
 
 gestalt callees <symbol>                # What does this call?
-gestalt callees find_project_root       # → find_markers_at [function] src/project.rs:98 (lines 98-107), called at line 73
+gestalt callees find_project_root       # → find_markers_at [function] src/project.rs:73 → src/project.rs:98-107
 
 gestalt refs <symbol>                   # All references with location
 gestalt refs Config                     # → src/main.rs:42:10 (from: run_command)
 ```
 
 Output format:
-- `callers`: `name [kind] file:line (lines a-b)`. `file:line` is the call inside the caller; `(lines a-b)` is the caller's full extent, doc comments and attributes included.
-- `callees`: `name [kind] file:line (lines a-b), called at line N`. `file:line` is the callee's definition and `(lines a-b)` its extent; line N is the call inside the queried definition.
-- Read a reported `(lines a-b)` range directly instead of grepping for the definition.
+- `callers`: `name [kind] file:line in a-b`. `file:line` is the call; `a-b` are the lines of the caller that contains it, doc comments and attributes included.
+- `callees`: `name [kind] call_file:line → def_file:a-b`. The left side is the call; the right side is the callee's definition with its full extent.
+- Read a reported `a-b` range directly instead of grepping for the definition. Without a recorded span a definition shows as `file:line`.
 - `refs`: `file:line:col (from: symbol_name)` or `(top-level)`
-- JSON output carries the extent as `span: {start_line, end_line}`, `null` when unrecorded; callees add `call_line`.
+- JSON output carries the extent as `span: {start_line, end_line}`, `null` when unrecorded; callees add `call_file` and `call_line`.
 
 Symbol arguments accept any name gestalt prints: a bare name, `Owner.member` or `Owner::member`, map labels such as `src/db.rs::Database` or `crate::db::Database`, a re-export label with its `(def file)`, and a `:line` suffix.
 
