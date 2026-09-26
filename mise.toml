@@ -18,26 +18,24 @@ done
 """
 
 [tasks.install-peer]
-description = "Install the peer external-agent runner onto PATH (~/.local/bin)"
+description = "Generate peer routes from the deployed roles; Phora deploys the peer runner itself"
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
 
-GIT_ROOT="$(git rev-parse --show-toplevel)"
-SRC="$GIT_ROOT/skills/peer/scripts/peer"
-DEST="$HOME/.local/bin/peer"
 AGENTS_DEST="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/agents"
 
-mkdir -p "$HOME/.local/bin"
-ln -sf "$SRC" "$DEST"
+command -v peer >/dev/null 2>&1 || {
+  printf 'error: peer is not on PATH; deploy Tropos with Phora first\n' >&2
+  exit 1
+}
 for role in tester implementer reviewer; do
   if [[ ! -f "$AGENTS_DEST/$role.md" ]]; then
     printf 'error: %s is not deployed; compile and deploy Tropos with Phora first\n' "$AGENTS_DEST/$role.md" >&2
     exit 1
   fi
 done
-PEER_AGENTS_DIR="$AGENTS_DEST" "$DEST" route sync
-echo "installed: $DEST -> $SRC"
+PEER_AGENTS_DIR="$AGENTS_DEST" peer route sync
 echo "generated: $AGENTS_DEST"
 """
 

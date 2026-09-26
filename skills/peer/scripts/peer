@@ -5,6 +5,9 @@
 set +m
 
 SCRIPT_DIR=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
+# A copy installed on PATH runs from the deployed skill, where its support files live.
+[[ -r "$SCRIPT_DIR/reviewers.yaml" ]] ||
+  SCRIPT_DIR="${PEER_HOME:-${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/peer/scripts}"
 REGISTRY="${PEER_REGISTRY:-$SCRIPT_DIR/reviewers.yaml}"
 DEFAULT_AGENTS_DIR="$SCRIPT_DIR/../../../agents"
 AGENTS_DIR="${PEER_AGENTS_DIR:-}"
