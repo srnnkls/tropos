@@ -133,16 +133,18 @@ gestalt callers collect_entries         # → mtime_hash [function] src/mtime.rs
 gestalt callers helper --file src/db.rs # Filter to file
 
 gestalt callees <symbol>                # What does this call?
-gestalt callees find_project_root       # → find_markers_at [function] src/project.rs:73 (lines 98-107)
+gestalt callees find_project_root       # → find_markers_at [function] src/project.rs:98 (lines 98-107), called at line 73
 
 gestalt refs <symbol>                   # All references with location
 gestalt refs Config                     # → src/main.rs:42:10 (from: run_command)
 ```
 
 Output format:
-- `callers`/`callees`: `name [kind] file:line (lines a-b)`. `file:line` is the reference; `(lines a-b)` is the named definition's full extent, doc comments and attributes included. Read that range directly instead of grepping for the definition.
+- `callers`: `name [kind] file:line (lines a-b)`. `file:line` is the call inside the caller; `(lines a-b)` is the caller's full extent, doc comments and attributes included.
+- `callees`: `name [kind] file:line (lines a-b), called at line N`. `file:line` is the callee's definition and `(lines a-b)` its extent; line N is the call inside the queried definition.
+- Read a reported `(lines a-b)` range directly instead of grepping for the definition.
 - `refs`: `file:line:col (from: symbol_name)` or `(top-level)`
-- JSON output carries the extent as `span: {start_line, end_line}`, `null` when unrecorded.
+- JSON output carries the extent as `span: {start_line, end_line}`, `null` when unrecorded; callees add `call_line`.
 
 Symbol arguments accept any name gestalt prints: a bare name, `Owner.member` or `Owner::member`, map labels such as `src/db.rs::Database` or `crate::db::Database`, a re-export label with its `(def file)`, and a `:line` suffix.
 
