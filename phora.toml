@@ -8,6 +8,11 @@ git = "https://github.com/srnnkls/loqui.git"
 branch = "main"
 include = ["README.md", "languages/**", "resources/**"]
 
+[sources.gestalt]
+git = "https://github.com/srnnkls/gestalt.git"
+branch = "main"
+root = "skills/gestalt"
+
 [targets.tropos]
 path = "."
 sources.tropos = { collapse = false }
@@ -15,3 +20,7 @@ sources.tropos = { collapse = false }
 [targets.loqui]
 path = "skills/loqui/reference/loqui"
 sources.loqui = { collapse = false }
+
+[targets.gestalt]
+path = "skills/gestalt"
+sources.gestalt = { collapse = false }

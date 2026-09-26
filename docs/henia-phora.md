@@ -1,14 +1,16 @@
 # Canonical Tropos with Henia and Phora
 
-Tropos contains 25 canonical skills, three agent contracts, shared
-instructions and declarative harness profiles. Henia compiles a prepared copy
-of them into Claude, Codex, Pi and OMP artifacts.
+Tropos contains 24 canonical skills, three agent contracts, shared instructions
+and declarative harness profiles. The Gestalt skill lives in the Gestalt
+repository beside the commands it documents. Henia compiles a prepared copy of
+them into Claude, Codex, Pi and OMP artifacts.
 
 [phora.toml](../phora.toml) advertises the package: the committed canonical
-files, the FAS rules, and a relative installation target for Loqui. A consumer
-imports Tropos into a preparation target of its own, receiving the pinned
-Tropos snapshot with Loqui under `skills/loqui/reference/loqui`. Nothing is
-written into this checkout.
+files, the FAS rules, and relative installation targets for Loqui and the
+Gestalt skill. A consumer imports Tropos into a preparation target of its own,
+receiving the pinned Tropos snapshot with Loqui under
+`skills/loqui/reference/loqui` and the Gestalt skill under `skills/gestalt`.
+Nothing is written into this checkout.
 
 The dotfiles consumer names both sides of the compiler explicitly:
 
