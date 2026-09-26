@@ -15,7 +15,6 @@ FENCED_BLOCK = re.compile(r"^(```|~~~).*?^\1\s*$", re.MULTILINE | re.DOTALL)
 
 OWNERS = {
     "orientation trigger": ("instructions/AGENTS.md", "tools-and-context"),
-    "orientation commands": ("skills/gestalt/SKILL.md", "subagent-orientation"),
     "single source of truth": ("instructions/AGENTS.md", "single-source-of-truth"),
     "RED validity": ("skills/test/SKILL.md", "red"),
     "review result gate": ("skills/review/reference/harnesses.md", "results"),

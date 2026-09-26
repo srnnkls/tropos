@@ -40,7 +40,7 @@ henia:
 
 `peer` ships at `skills/peer/scripts/peer`.
 
-Install: `mise run install-peer` links the runner, base roles, and current generated routes. Re-run it after role or registry changes.
+Install: `mise run install-peer` links the runner and generates the current routes from the deployed base roles. Re-run it after role or registry changes.
 
 ## Harness and role loading
 

@@ -28,15 +28,11 @@ SRC="$GIT_ROOT/skills/peer/scripts/peer"
 DEST="$HOME/.local/bin/peer"
 AGENTS_DEST="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/agents"
 
-mkdir -p "$HOME/.local/bin" "$AGENTS_DEST"
+mkdir -p "$HOME/.local/bin"
 ln -sf "$SRC" "$DEST"
 for role in tester implementer reviewer; do
-  source="$GIT_ROOT/agents/$role.md"
-  target="$AGENTS_DEST/$role.md"
-  if [[ ! -e "$target" && ! -L "$target" ]]; then
-    ln -s "$source" "$target"
-  elif [[ "$(realpath "$target")" != "$(realpath "$source")" ]]; then
-    printf 'error: %s does not resolve to %s\n' "$target" "$source" >&2
+  if [[ ! -f "$AGENTS_DEST/$role.md" ]]; then
+    printf 'error: %s is not deployed; compile and deploy Tropos with Phora first\n' "$AGENTS_DEST/$role.md" >&2
     exit 1
   fi
 done
