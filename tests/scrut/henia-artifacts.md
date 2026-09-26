@@ -18,8 +18,8 @@ $ set -eu; \
 >   '[targets.tropos]' 'phase = "prepare"' 'path = "input"' 'imports = ["tropos"]' > phora.toml; \
 > phora sync --no-progress > sync.log 2>&1 || { cat sync.log; exit 1; }; \
 > python3 "$TESTDIR/check-artifacts.py" input out
-claude: 25 skills; metadata, body, resources and support OK
-codex: 25 skills; metadata, body, resources and support OK
-pi: 25 skills; metadata, body, resources and support OK
-omp: 25 skills; metadata, body, resources and support OK
+claude: 26 skills; metadata, body, resources and support OK
+codex: 26 skills; metadata, body, resources and support OK
+pi: 26 skills; metadata, body, resources and support OK
+omp: 26 skills; metadata, body, resources and support OK
 ```

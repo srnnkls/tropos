@@ -13,6 +13,11 @@ git = "https://github.com/srnnkls/gestalt.git"
 branch = "main"
 root = "skills/gestalt"
 
+[sources.limen]
+git = "https://github.com/srnnkls/limen.git"
+branch = "main"
+root = "skills/limen"
+
 [targets.tropos]
 path = "."
 sources.tropos = { collapse = false }
@@ -24,3 +29,7 @@ sources.loqui = { collapse = false }
 [targets.gestalt]
 path = "skills/gestalt"
 sources.gestalt = { collapse = false }
+
+[targets.limen]
+path = "skills/limen"
+sources.limen = { collapse = false }
