@@ -40,7 +40,7 @@ henia:
 
 `peer` ships at `skills/peer/scripts/peer`.
 
-Install: Phora deploys the runner to `~/.local/bin/peer`; that copy reads its registry and helpers from the deployed skill (override with `PEER_HOME`). `mise run install-peer` generates the current routes from the deployed base roles. Re-run it after role or registry changes.
+Install: Phora deploys the runner to `~/.local/bin/peer`; that copy reads its registry and helpers from the deployed skill (override with `PEER_HOME`). `peer route sync` generates the current routes from the deployed base roles. Re-run it after role or registry changes.
 
 ## Harness and role loading
 

@@ -68,7 +68,7 @@ Resolve the repo via `gh repo view --json nameWithOwner -q .nameWithOwner` rathe
 
 ## `issue` helper (the `issue` command)
 
-The gh/GraphQL plumbing is wrapped by the **`issue` command** (on PATH via `mise run install-issue`; source `skills/issue/scripts/issue`). Invoke it as `issue <subcommand>`; `issue help` lists them. It resolves the repo and looks up node/type IDs at runtime. Endpoints:
+The gh/GraphQL plumbing is wrapped by the **`issue` command** (deployed onto PATH by Phora; source `skills/issue/scripts/issue`). Invoke it as `issue <subcommand>`; `issue help` lists them. It resolves the repo and looks up node/type IDs at runtime. Endpoints:
 
 | Endpoint | Does |
 |---|---|
@@ -104,7 +104,7 @@ The raw `gh api graphql` mutations are documented below as the reference the wra
 
 Drafts stay in `.issues/` and review reports in `.peer/issue-<n>/`, both git-ignored. Use `issue purge [<n>]` to clear both when done.
 
-Prerequisites: `issue` on PATH (`mise run install-issue`), `gh` authenticated, and for the review gate `peer` installed (`mise run install-peer`) with its harnesses authenticated. `issue draft` manages the `.issues/` ignore entry; report-directory and Git-state behavior come from the [`peer path` interface](../peer/SKILL.md#report-layout--peer).
+Prerequisites: `issue` and `peer` on PATH (deployed by Phora), `gh` authenticated, and, for the review gate, routes generated with `peer route sync` and the peer harnesses authenticated. `issue draft` manages the `.issues/` ignore entry; report-directory and Git-state behavior come from the [`peer path` interface](../peer/SKILL.md#report-layout--peer).
 
 ## Review gate (before publish)
 

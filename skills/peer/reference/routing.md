@@ -57,7 +57,7 @@ A `<role>-<effort>` definition has no model, so a Claude-native model can combin
 
 ## Generated Definitions
 
-`peer route sync` materializes local definitions from each base role and reconciles obsolete generated files. `mise run install-peer` syncs in Claude's configured agent directory, where Phora deploys the compiled base roles. Edit only the base role or registry, then regenerate.
+`peer route sync` materializes local definitions from each base role and reconciles obsolete generated files. Run from the deployed runner, it syncs in Claude's configured agent directory, where Phora deploys the compiled base roles. Edit only the base role or registry, then regenerate.
 
 The routing hook applies a configured Claude-native alias through the Task model field and rewrites a configured proxy alias to its generated definition. It acts only on bare role dispatches when the selected route is reachable and current; an explicit model remains authoritative. Otherwise it leaves the role unchanged. Directly named generated roles still require `peer route check`.
 

@@ -222,7 +222,7 @@ def definition_status(
         return "inactive: no definition — run `peer route sync`"
     source = definition_path(agents_dir, role)
     if not source:
-        return "inactive: no base role — run `mise run install-peer`"
+        return "inactive: no base role — deploy Tropos with Phora, then run `peer route sync`"
     try:
         with open(source, encoding="utf-8") as handle:
             expected = render(handle.read(), name, peer, effort)

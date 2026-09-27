@@ -256,7 +256,7 @@ case "$cmd" in
         *) _usage "review: unexpected '$1'"; return 2 ;;
       esac
     done
-    command -v peer >/dev/null 2>&1 || { _die "peer not found (mise run install-peer) — external review cannot run"; return 3 }
+    command -v peer >/dev/null 2>&1 || { _die "peer not found (deploy Tropos with Phora) — external review cannot run"; return 3 }
     if [[ -z "$reviewers" ]]; then
       reviewers=$(peer defaults reviewers --peer-aliases) || {
         _die "cannot resolve default peer reviewers"
