@@ -202,6 +202,52 @@ Ready to implement <feature-name>
 
 ---
 
+## Removal
+
+`git worktree remove` is the only removal path. Deleting the directory by hand leaves stale metadata in `.git/worktrees/` that `git worktree prune` has to clean up.
+
+### 1. Leave the worktree
+
+```bash
+cd "$(git rev-parse --path-format=absolute --git-common-dir)/.."
+```
+
+Removing the worktree the shell is standing in strands the shell in a deleted directory.
+
+### 2. Check for work that would be lost
+
+```bash
+git -C "$path" status --porcelain
+git -C "$path" log --oneline '@{u}..' 2>/dev/null || git -C "$path" log --oneline "origin/$trunk.."
+```
+
+Any output is work. Commit, push, or report it — never discard it to make removal succeed.
+
+### 3. Remove
+
+```bash
+git worktree remove "$path"
+```
+
+What it refuses and what it ignores:
+
+- Modified tracked files or untracked files — refuses (exit `128`). `--force` discards them.
+- Gitignored files, including `.worktreeinclude` symlinks — removed silently. A symlink is removed as a link; the linked target in the main worktree survives.
+- Locked worktree — refuses even with one `--force`. `git worktree unlock "$path"` first, or `-f -f` after confirming why it was locked.
+- Unpushed commits — not checked. They survive only because the branch does.
+
+### 4. Delete the branch
+
+Removal leaves the branch. Delete it only once its work is merged or pushed:
+
+```bash
+git branch -d "$BRANCH_NAME"
+```
+
+`-d` refuses unmerged branches, and a squash-merged branch always looks unmerged. Confirm the merge on the remote before reaching for `-D`.
+
+---
+
 ## Quick Reference
 
 | Situation | Action |
@@ -218,6 +264,8 @@ Ready to implement <feature-name>
 | `apply` exits 3 | Conflict — resolve target, or `--force` |
 | Repo uses `hk` | Add the post-checkout `worktreeinclude` step |
 | Tests fail | Report failures + ask |
+| Removing a worktree | Check `status` + unpushed log, then `git worktree remove` |
+| `remove` refuses | Uncommitted work — commit or report, never `--force` to get past it |
 
 ---
 
@@ -232,6 +280,7 @@ Ready to implement <feature-name>
 - Skip baseline test verification
 - Proceed with failing tests without asking
 - Assume directory location when ambiguous
+- `git worktree remove --force` or `branch -D` without checking for unsaved work
 
 **Always:**
 - Follow directory priority: existing > config > ask

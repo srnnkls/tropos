@@ -217,4 +217,4 @@ See [reference/commands.md](reference/commands.md) and [reference/history.md](re
 - [reference/branching.md](reference/branching.md) - Cascading branch patterns
 - [reference/commands.md](reference/commands.md) - Command patterns
 - [reference/history.md](reference/history.md) - History management
-- [reference/worktree.md](reference/worktree.md) - Worktree creation with safety checks
+- [reference/worktree.md](reference/worktree.md) - Worktree creation with safety checks, and removal
