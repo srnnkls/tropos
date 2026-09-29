@@ -18,6 +18,11 @@ git = "https://github.com/srnnkls/limen.git"
 branch = "main"
 root = "skills/limen"
 
+[sources.moira]
+git = "https://github.com/srnnkls/moira.git"
+branch = "main"
+root = "rules/fas"
+
 [targets.tropos]
 path = "."
 sources.tropos = { collapse = false }
@@ -33,3 +38,7 @@ sources.gestalt = { collapse = false }
 [targets.limen]
 path = "skills/limen"
 sources.limen = { collapse = false }
+
+[targets.moira]
+path = "rules/fas/moira"
+sources.moira = { collapse = false }
