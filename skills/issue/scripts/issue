@@ -31,7 +31,12 @@
 emulate -L zsh
 setopt localoptions pipefail no_unset
 
-_die()   { print -u2 -- "issue: $*"; return 3 }
+# A copy installed on PATH runs from the deployed skill, where its support files live.
+SKILL_DIR=${0:A:h:h}
+[[ -r "$SKILL_DIR/references/template.md" ]] ||
+  SKILL_DIR="${ISSUE_HOME:-${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/issue}"
+
+_die()  { print -u2 -- "issue: $*"; return 3 }
 _usage() { print -u2 -- "issue: $*"; return 2 }
 
 # --- repo identity (resolved once, memoised in the process) --------------------------
@@ -276,9 +281,9 @@ case "$cmd" in
     local number=${${draft:t}%%[!0-9]*}
     local outdir; outdir=$(peer path "issue-${number}" issue-review) || {
       _die "peer path failed — cannot mint a report dir for issue-${number}"; return 3 }
-    local template_file="${0:A:h:h}/references/template.md"
-    local reviewer_schema_file="${0:A:h:h}/../review/reference/report.md"
-    local finding_bar_file="${0:A:h:h}/../review/reference/finding-bar.md"
+    local template_file="$SKILL_DIR/references/template.md"
+    local reviewer_schema_file="$SKILL_DIR/../review/reference/report.md"
+    local finding_bar_file="$SKILL_DIR/../review/reference/finding-bar.md"
     [[ -f "$template_file" ]] || { _die "canonical template not found: $template_file"; return 3 }
     [[ -f "$reviewer_schema_file" ]] || { _die "reviewer schema not found: $reviewer_schema_file"; return 3 }
     [[ -f "$finding_bar_file" ]] || { _die "finding bar not found: $finding_bar_file"; return 3 }

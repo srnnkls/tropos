@@ -57,6 +57,9 @@ structure = "flat"
 [harness.claude.files]
 "instructions/AGENTS.md" = { source = "instructions/AGENTS.md" }
 "CLAUDE.md" = { source = "instructions/AGENTS.md", replace = { "](../" = "](" } }
+"agents/implementer.toml" = { source = "agents/implementer.toml" }
+"agents/reviewer.toml" = { source = "agents/reviewer.toml" }
+"agents/tester.toml" = { source = "agents/tester.toml" }
 
 [harness.codex.artifact_mappings.agents]
 profile = "portable-agent"
