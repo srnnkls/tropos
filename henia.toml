@@ -84,3 +84,6 @@ structure = "flat"
 [harness.omp.files]
 "instructions/AGENTS.md" = { source = "instructions/AGENTS.md" }
 "AGENTS.md" = { source = "instructions/AGENTS.md" }
+
+[lint]
+external = ["skill:gestalt", "command:plan"]

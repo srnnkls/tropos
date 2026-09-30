@@ -28,35 +28,35 @@
 
 ## Round 1: Opening Arguments
 
-### [RED]
+### [RED] Opening
 
-### [BLUE]
+### [BLUE] Opening
 
-### [GREEN]
+### [GREEN] Opening
 
-### [YELLOW]
+### [YELLOW] Opening
 
-### [PURPLE]
+### [PURPLE] Opening
 
 ---
 
 ## Round 2: Rebuttals
 
-### [RED]
+### [RED] Rebuttal
 
-### [BLUE]
+### [BLUE] Rebuttal
 
-### [GREEN]
+### [GREEN] Rebuttal
 
-### [YELLOW]
+### [YELLOW] Rebuttal
 
-### [PURPLE]
+### [PURPLE] Rebuttal
 
 ---
 
 ## Round 3: Synthesis
 
-### [PURPLE]
+### [PURPLE] Synthesis
 
 ---
 

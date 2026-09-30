@@ -3,6 +3,7 @@
 
 import json
 from pathlib import Path
+import re
 import subprocess
 import sys
 
@@ -20,6 +21,14 @@ CLAUDE_FIELDS = COMMON_FIELDS | {
 def require(condition, message):
     if not condition:
         raise SystemExit(message)
+
+
+def skill_reference(harness, name):
+    if harness == "claude":
+        return f"`/{name}`"
+    if harness in {"pi", "omp"}:
+        return f"`/skill:{name}`"
+    return f"`${name}`"
 
 
 def yaml(path, frontmatter=False):
@@ -92,10 +101,7 @@ def check(root, build):
                 )
                 require(directive in body, f"{path}: incorrect directive rendering")
             if name in {"code", "test"}:
-                reference = "`/implement`" if harness == "claude" else "`$implement`"
-                if harness in {"pi", "omp"}:
-                    reference = "`/skill:implement`"
-                require(reference in body, f"{path}: incorrect skill invocation")
+                require(skill_reference(harness, "implement") in body, f"{path}: incorrect skill invocation")
             if canonical.get("henia", {}).get("auto_invoke") is False and harness in {
                 "claude",
                 "pi",
@@ -156,17 +162,13 @@ def check(root, build):
                 == source.read_text().split("---", 2)[2],
                 f"{deployed}: role contract changed",
             )
-        require(
-            (target / "instructions/AGENTS.md").read_bytes()
-            == (canonical_root / "instructions/AGENTS.md").read_bytes(),
-            f"{target}: instructions differ",
+        instructions = re.sub(
+            r"`\$([a-z0-9][a-z0-9._-]*)`",
+            lambda match: skill_reference(harness, match[1]),
+            (canonical_root / "instructions/AGENTS.md").read_text(),
         )
-        native = target / ("CLAUDE.md" if harness == "claude" else "AGENTS.md")
-        require(
-            native.read_text()
-            == (canonical_root / "instructions/AGENTS.md").read_text().replace("](../", "]("),
-            f"{native}: native instructions differ",
-        )
+        for path in (target / "instructions/AGENTS.md", target / ("CLAUDE.md" if harness == "claude" else "AGENTS.md")):
+            require(path.read_text() == instructions, f"{path}: instructions differ")
         guides = target / "skills/loqui/reference/loqui"
         canonical_guides = canonical_root / "skills/loqui/reference/loqui"
         expected_guides = {str(p.relative_to(canonical_guides)) for p in canonical_guides.rglob("*") if p.is_file()}

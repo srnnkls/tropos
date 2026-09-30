@@ -94,7 +94,7 @@ GitHub-task-list checkboxes (`- [ ]`). Each item testable and binary. End with t
 
 ## Cross-referencing
 
-- Issue references: `#N`, never the full URL.
+- Issue references: `#<number>`, never the full URL.
 - File paths in prose: backticks, with `:line` or `:start-end` for ranges.
 - Repo paths: full path from repo root, no leading `./`.
 

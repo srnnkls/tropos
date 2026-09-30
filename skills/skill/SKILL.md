@@ -63,7 +63,7 @@ the top level. Put harness-specific metadata under `henia.targets.<profile>`.
 Use `henia.auto_invoke: false` for explicit-only skills, `henia.variables` for
 context inputs, and `henia.targets.codex.openai.interface` for Codex UI metadata.
 
-Write canonical skill references as backtick `$skill-name` spans outside code
+Write canonical skill references as backtick `$<skill-name>` spans outside code
 examples. Use portable relative Markdown links in copied reference documents.
 Run `mise run test-artifacts` in the Tropos checkout to compile and check all harnesses.
 
