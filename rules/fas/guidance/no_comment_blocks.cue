@@ -49,6 +49,29 @@ _bashAdded: {
 	}
 }
 
+_bashWrites: {
+	#file: _
+	#text: _
+	out: hook.#PreToolUse & tool.#Bash & {
+		tool_input: {
+			command: #text
+			parsed: attributes: redirections: list.MatchN(>0, =~#"^[0-9&]*>[>|]?"# & #file)
+		}
+	}
+}
+
+_denyComment: {
+	rule_id:  "comment-block"
+	reason:   _injectComment.text
+	severity: "MEDIUM"
+}
+
+_denyLint: {
+	rule_id:  "lint-suppression"
+	reason:   _injectLint.text
+	severity: "MEDIUM"
+}
+
 _injectComment: {
 	rule_id: "comment-block"
 	channel: "agent"
@@ -272,4 +295,39 @@ hash_lint_suppression_bash: {
 dash_lint_suppression_bash: {
 	when: (_bashAdded & {#file: _dashFile, #text: _dashAddedLint}).out
 	then: inject: _injectLint
+}
+
+slash_comment_block_redirect: {
+	when: (_bashWrites & {#file: _slashFile, #text: _slashBlock}).out
+	then: deny: _denyComment
+}
+
+hash_comment_block_redirect: {
+	when: (_bashWrites & {#file: _hashFile, #text: _hashBlock}).out
+	then: deny: _denyComment
+}
+
+semi_comment_block_redirect: {
+	when: (_bashWrites & {#file: _semiFile, #text: _semiBlock}).out
+	then: deny: _denyComment
+}
+
+dash_comment_block_redirect: {
+	when: (_bashWrites & {#file: _dashFile, #text: _dashBlock}).out
+	then: deny: _denyComment
+}
+
+slash_lint_suppression_redirect: {
+	when: (_bashWrites & {#file: _slashFile, #text: _slashLint}).out
+	then: deny: _denyLint
+}
+
+hash_lint_suppression_redirect: {
+	when: (_bashWrites & {#file: _hashFile, #text: _hashLint}).out
+	then: deny: _denyLint
+}
+
+dash_lint_suppression_redirect: {
+	when: (_bashWrites & {#file: _dashFile, #text: _dashLint}).out
+	then: deny: _denyLint
 }
