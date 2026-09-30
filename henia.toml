@@ -56,7 +56,7 @@ structure = "flat"
 
 [harness.claude.files]
 "instructions/AGENTS.md" = { source = "instructions/AGENTS.md" }
-"CLAUDE.md" = { source = "instructions/AGENTS.md", replace = { "](../" = "](" } }
+"CLAUDE.md" = { source = "instructions/AGENTS.md" }
 "agents/implementer.toml" = { source = "agents/implementer.toml" }
 "agents/reviewer.toml" = { source = "agents/reviewer.toml" }
 "agents/tester.toml" = { source = "agents/tester.toml" }
@@ -67,7 +67,7 @@ structure = "flat"
 
 [harness.codex.files]
 "instructions/AGENTS.md" = { source = "instructions/AGENTS.md" }
-"AGENTS.md" = { source = "instructions/AGENTS.md", replace = { "](../" = "](" } }
+"AGENTS.md" = { source = "instructions/AGENTS.md" }
 
 [harness.pi.artifact_mappings.agents]
 profile = "portable-agent"
@@ -75,7 +75,7 @@ structure = "flat"
 
 [harness.pi.files]
 "instructions/AGENTS.md" = { source = "instructions/AGENTS.md" }
-"AGENTS.md" = { source = "instructions/AGENTS.md", replace = { "](../" = "](" } }
+"AGENTS.md" = { source = "instructions/AGENTS.md" }
 
 [harness.omp.artifact_mappings.agents]
 profile = "portable-agent"
@@ -83,4 +83,4 @@ structure = "flat"
 
 [harness.omp.files]
 "instructions/AGENTS.md" = { source = "instructions/AGENTS.md" }
-"AGENTS.md" = { source = "instructions/AGENTS.md", replace = { "](../" = "](" } }
+"AGENTS.md" = { source = "instructions/AGENTS.md" }

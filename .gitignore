@@ -5,6 +5,9 @@ __pycache__/
 .peer/
 .issues/
 skills/loqui/reference/loqui
+/skills/gestalt/
+/skills/limen/
+/rules/fas/moira/
 /.henia/*
 !/.henia/harnesses/
 /.claude/
