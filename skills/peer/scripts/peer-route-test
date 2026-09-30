@@ -117,7 +117,7 @@ expected_route_matrix=$(yq -r '
 shipped_defaults=$("$PEER" defaults reviewers 2>&1); shipped_defaults_rc=$?
 expected_shipped_defaults=$(printf '%-11s %-12s %s\n' \
   ALIAS EXECUTION ROUTE-ID \
-  gpt native-proxy claude-gpt5.6-sol \
+  sol peer peer-gpt6.1-sol \
   opus native claude-opus \
   astra peer peer-gpt6-astra)
 { (( shipped_defaults_rc == 0 )) && [[ "$shipped_defaults" == "$expected_shipped_defaults" ]]; } \

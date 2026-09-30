@@ -118,7 +118,7 @@ surface() {  # EXTRA-ENV...
 check 'peer herdr names the live workspace panes would open in' $?
 
 [[ "$(surface HERDR_STUB_MODE=stale)" == "$(printf 'headless\t-')" ]] \
-  && [[ "$(surface PEER_HERDR=0)" == "$(printf 'headless\t-')" ]]
+  && [[ "$(surface PEER_DISPATCH=cli)" == "$(printf 'headless\t-')" ]]
 check 'peer herdr reports headless for a stale pane and for the opt-out' $?
 
 # --- peer herdr clean reaps finished rounds, and only those ------------------------------
@@ -228,9 +228,28 @@ check "a failed peer's pane transcript outlives the tab as a file" $?
 check 'a peer that reported leaves no pane log behind' $?
 
 # --- opt-out and absence both fall back to headless dispatch ----------------------------
-manifest=$(fanout optout PEER_HERDR=0 HEADLESS_MARKER="$marks/headless.optout")
+manifest=$(fanout optout PEER_DISPATCH=cli HEADLESS_MARKER="$marks/headless.optout")
 [[ ! -s "$tmp/calls.optout" ]] && [[ -s "$marks/headless.optout" ]]
-check 'PEER_HERDR=0 forces the headless path inside a herdr pane' $?
+check 'PEER_DISPATCH=cli forces the headless path inside a herdr pane' $?
+
+yq '.defaults.dispatch = "cli"' "$tmp/registry.yaml" > "$tmp/registry.cli.yaml"
+[[ "$(HERDR_CALLS="$tmp/calls.surface" env "${herdr_env[@]}" PEER_REGISTRY="$tmp/registry.cli.yaml" \
+      PATH="$tmp/bin:$PATH" "$PEER" herdr 2>/dev/null)" == "$(printf 'headless\t-')" ]] \
+  && [[ "$(HERDR_CALLS="$tmp/calls.surface" env "${herdr_env[@]}" PEER_DISPATCH=herdr \
+      PEER_REGISTRY="$tmp/registry.cli.yaml" PATH="$tmp/bin:$PATH" "$PEER" herdr 2>/dev/null)" == "$(printf 'panes\tw1')" ]]
+check 'registry defaults.dispatch selects the surface, and PEER_DISPATCH overrides it' $?
+
+dir=$("$PEER" path subject flag --run "$run_id" -C "$tmp")
+manifest=$(HERDR_CALLS="$tmp/calls.flag" HEADLESS_MARKER="$marks/headless.flag" \
+  env "${herdr_env[@]}" PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
+  "$PEER" -d "$dir" -C "$tmp" --peers paneable,paneable-two --cap 30 --dispatch cli 'ping' 2>"$tmp/err.flag")
+[[ ! -s "$tmp/calls.flag" ]] && [[ -s "$marks/headless.flag" ]]
+check '--dispatch cli forces the headless path inside a herdr pane' $?
+
+HERDR_CALLS="$tmp/calls.bad" env "${herdr_env[@]}" PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
+  "$PEER" -d "$dir" -C "$tmp" --peers paneable --dispatch tmux 'ping' >/dev/null 2>"$tmp/err.bad"
+[[ $? -eq 2 ]] && grep -q "dispatch must be herdr or cli" "$tmp/err.bad"
+check 'an unknown dispatch value is a usage error' $?
 
 manifest=$(fanout stale HERDR_STUB_MODE=stale HEADLESS_MARKER="$marks/headless.stale")
 grep -q '^pane current' "$tmp/calls.stale" \

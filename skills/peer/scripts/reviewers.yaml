@@ -80,6 +80,14 @@ reviewers:
     native: false
     peer: true
     fanout_was: [luna]
+  - id: peer-gpt6.1-sol
+    harness: codex
+    provider: openai
+    model: gpt-6.1-sol
+    alias: sol
+    effort: xhigh
+    native: false
+    peer: true
   - id: peer-gpt6-astra
     harness: codex
     provider: openai
@@ -156,4 +164,5 @@ routing:
 efforts: [medium, high, xhigh]
 
 defaults:
-  reviewers: [claude-gpt5.6-sol, claude-opus, peer-gpt6-astra]
+  dispatch: herdr
+  reviewers: [peer-gpt6.1-sol, claude-opus, peer-gpt6-astra]

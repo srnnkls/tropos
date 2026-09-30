@@ -4,7 +4,7 @@ set -uo pipefail
 
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 PEER="$SCRIPT_DIR/peer"
-export PEER_HERDR=0  # headless path under test; peer-herdr-test owns pane dispatch
+export PEER_DISPATCH=cli  # headless path under test; peer-herdr-test owns pane dispatch
 tmp=$(mktemp -d) || tmp=""
 [[ -n "$tmp" && -d "$tmp" && "$tmp" != "$PWD" && "$tmp" != "/" ]] || {
   printf 'FAIL  refusing to run: temp dir resolved to %s\n' "${tmp:-<empty>}"; exit 1; }
@@ -39,9 +39,36 @@ printf '%s\n' '{"type":"message_end","message":{"role":"assistant","stopReason":
 STUB
 chmod +x "$tmp/bin/pi"
 
+cat >"$tmp/bin/codex" <<'STUB'
+#!/usr/bin/env bash
+[[ "${1:-}" == --version ]] && { printf 'codex-cli %s\n' "$STUB_CODEX_VERSION"; exit 0; }
+exit 1
+STUB
+chmod +x "$tmp/bin/codex"
+mkdir -p "$tmp/codex-home"
+write_codex_cache() {  # CLIENT-VERSION
+  printf '{"client_version":"%s","fetched_at":"%s","models":[{"slug":"gpt-listed"}]}\n' \
+    "$1" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$tmp/codex-home/models_cache.json"
+}
+
 # Dispatch through the canonical report layout, as every real caller does, so the stderr
 # assertions below see only preflight diagnostics.
 run=$("$PEER" run-id)
+
+check_codex() {  # NAME CACHE-VERSION WANT-MISCONFIG
+  local name=$1 dir err
+  write_codex_cache "$2"
+  dir=$("$PEER" path preflight "codex-$2" --run "$run" -C "$tmp")
+  err=$(STUB_CODEX_VERSION=0.159.2 CODEX_HOME="$tmp/codex-home" PATH="$tmp/bin:$PATH" \
+    "$PEER" codex -o "$dir/report.yaml" --model gpt-unlisted --cap 30 --idle 10 'ping' 2>&1 >/dev/null)
+  if { [[ "$3" == yes && "$err" == *"does not offer model 'gpt-unlisted'"* ]]; } ||
+     { [[ "$3" == no && "$err" != *"does not offer model"* ]]; }; then
+    printf 'ok    %s\n' "$name"
+  else
+    printf 'FAIL  %s\n      stderr: %s\n' "$name" "${err:-<empty>}"
+    (( fails++ ))
+  fi
+}
 
 check() {
   local name=$1 mode=$2 want_rc=$3 want_stderr=$4 reject_stderr=$5 rc err dir
@@ -67,6 +94,8 @@ check 'credential-less login notice does not blame the registry' notice 0 \
 check 'absent provider in a real table is misconfig'  table_other_provider 2 "has no provider 'google-vertex'" ''
 check 'absent model in a real table is misconfig'     table_other_model    2 "does not offer model 'gemini-3.7-flash'" ''
 check 'matching provider and model dispatches'        table_match          0 '' 'peer:'
+check_codex 'a catalog from the installed codex rejects an unlisted model' 0.159.2 yes
+check_codex 'a catalog left by an older codex does not reject a model'   0.154.0 no
 
 printf '\n%s\n' "$( ((fails)) && echo "$fails failing" || echo 'all passing')"
 exit $(( fails > 0 ))

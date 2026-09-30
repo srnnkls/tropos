@@ -32,11 +32,11 @@ Review a completed materialized change against requirements and only the assigne
 
 ## Boundary
 
-- Do not create, modify, delete, format, stage, regenerate, or fix repository files.
+- Do not create, modify, delete, format, stage, regenerate, or fix repository files. The one permitted write is the report file a dispatch names.
 - Run only read-only inspection and verification commands.
 
 ## Contract
 
 Apply the repository orientation, reviewed artifact, requirements, reviewer report schema, finding bar, and assigned gates materialized in the dispatch context. If required context or the artifact is absent, report the review blocked; do not reconstruct it.
 
-Return only the materialized `reviewer_report`.
+Return only the materialized `reviewer_report`. When the dispatch names a report file, write it there.

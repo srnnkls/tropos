@@ -104,7 +104,7 @@ The peer writes its own report: the pane agent is pointed at the prompt file and
 
 A round closes its own tab. Before it does, every peer that wrote no report has its pane terminal saved beside the empty report as `{peer-id}.pane.log` — the only account of a peer that declined, stalled, or stopped at a dialog, and it outlives the pane. `PEER_HERDR_KEEP=1` keeps the tab instead, for answering a blocked peer by hand. `peer herdr clean` reaps whatever accumulated: every settled `peer-` tab in the live workspace, sparing tabs that still carry a working or blocked peer and tabs that are not peer rounds.
 
-The manifest, statuses, and exit codes are identical to headless dispatch. `PEER_HERDR=0` forces headless inside a Herdr pane, and a failed `tab create` falls back to it automatically. `peer-herdr-test` covers pane dispatch against a stub Herdr CLI.
+The manifest, statuses, and exit codes are identical to headless dispatch. The dispatch surface is `herdr` or `cli`: `--dispatch` on the fan-out wins, then `PEER_DISPATCH`, then the registry's `defaults.dispatch`, then `herdr`. `cli` always runs headless; `herdr` falls back to headless when there is no live pane or `tab create` fails. `peer-herdr-test` covers pane dispatch against a stub Herdr CLI.
 
 ## Failure classification
 

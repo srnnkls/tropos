@@ -79,12 +79,13 @@ _peer_path_usage() {
 }
 
 _peer_fanout_usage() {
-  printf '%s\n' "usage: peer -d OUTDIR [--peers id|alias,...] [--agent tester|implementer|reviewer] [-C DIR] [--effort L] [--idle S] [--cap S] [PROMPT | --prompt-file FILE]"
+  printf '%s\n' "usage: peer -d OUTDIR [--peers id|alias,...] [--agent tester|implementer|reviewer] [-C DIR] [--effort L] [--idle S] [--cap S] [--dispatch herdr|cli] [PROMPT | --prompt-file FILE]"
   printf '%s\n' "  Fan out to selected external peers; omit --peers to use every external registry entry."
   printf '%s\n' "  OUTDIR comes from 'peer path'. Relative paths resolve beneath DIR."
   printf '%s\n' "  Supply exactly one prompt source: positional PROMPT or a readable --prompt-file."
   printf '%s\n' "  Tester and implementer roles require one peer; reviewer may fan out."
-  printf '%s\n' "  Inside a herdr pane, peers run as agent panes in a new 'peer-<subject>-<stage>' tab; PEER_HERDR=0 forces headless."
+  printf '%s\n' "  --dispatch herdr (default) runs peers as agent panes in a new 'peer-<subject>-<stage>' tab when inside a live herdr pane;"
+  printf '%s\n' "  --dispatch cli always runs them headless. Default: PEER_DISPATCH, then the registry's defaults.dispatch."
   printf '%s\n' "  A round closes its own tab, saving a failed peer's terminal to {peer-id}.pane.log first; PEER_HERDR_KEEP=1 keeps the tab."
 }
 
@@ -230,9 +231,22 @@ PROFILE
 # HERDR_ENV is inherited, so it survives into contexts where the pane behind it is gone. It
 # only selects the check; the live pane, and the workspace peer opens its tab in, come from
 # herdr itself.
+# The dispatch surface is `herdr` (panes when a live pane exists, else headless) or `cli`
+# (always headless). Precedence: fan-out --dispatch, then PEER_DISPATCH, then the
+# registry's defaults.dispatch, then herdr.
+_peer_dispatch_mode() {
+  local mode=${PEER_DISPATCH_FLAG:-${PEER_DISPATCH:-}}
+  [[ -n "$mode" ]] || mode=$(yq -r '.defaults.dispatch // "herdr"' "$REGISTRY" 2>/dev/null)
+  case "${mode:-herdr}" in
+    herdr|cli) printf '%s\n' "${mode:-herdr}" ;;
+    *) printf '%s\n' "peer: dispatch must be herdr or cli, got '$mode'" >&2; return 2 ;;
+  esac
+}
+
 _peer_herdr_ready() {
-  local json
-  [[ "${PEER_HERDR:-1}" != 0 ]] || return 1
+  local json mode
+  mode=$(_peer_dispatch_mode) || exit 2
+  [[ "$mode" == herdr ]] || return 1
   [[ "${HERDR_ENV:-}" == 1 ]] || return 1
   command -v herdr >/dev/null 2>&1 || return 1
   json=$(herdr pane current --current 2>/dev/null) || return 1
@@ -432,10 +446,14 @@ os.execvp(argv[0], argv)'
 _peer_preflight_codex() {
   local model=$1 slugs
   [[ -n "$model" ]] || return 0
-  slugs=$(CACHE="${CODEX_HOME:-$HOME/.codex}/models_cache.json" python3 -c '
+  # The catalog is authoritative only when the installed codex wrote it: an upgraded CLI
+  # can serve models a catalog left by the previous version does not list.
+  slugs=$(CACHE="${CODEX_HOME:-$HOME/.codex}/models_cache.json" \
+    VERSION="$(codex --version 2>/dev/null | awk '{print $NF}')" python3 -c '
 import datetime,json,os,sys
 try: d=json.load(open(os.environ["CACHE"]))
 except Exception: sys.exit(1)
+if not os.environ["VERSION"] or d.get("client_version") != os.environ["VERSION"]: sys.exit(1)
 fetched=(d.get("fetched_at") or "").replace("Z","+00:00")
 try: age=datetime.datetime.now(datetime.timezone.utc)-datetime.datetime.fromisoformat(fetched)
 except Exception: sys.exit(1)
@@ -655,7 +673,7 @@ if [[ "$cmd" != codex && "$cmd" != pi && "$cmd" != claude ]]; then
     exit 0
   fi
   [[ "$cmd" == run ]] && shift
-  outdir=""; peers=""; agent=""; workdir="$PWD"; prompt_file=""; effort=""; idle=120; idle_set=0; cap=600
+  outdir=""; peers=""; agent=""; workdir="$PWD"; prompt_file=""; effort=""; idle=120; idle_set=0; cap=600; PEER_DISPATCH_FLAG=""
   while (( $# )); do
     case "$1" in
       -d|--out-dir)  outdir="$2"; shift 2 ;;
@@ -666,6 +684,7 @@ if [[ "$cmd" != codex && "$cmd" != pi && "$cmd" != claude ]]; then
       --effort)      effort="$2"; shift 2 ;;
       --idle)        idle="$2"; idle_set=1; shift 2 ;;
       --cap)         cap="$2"; shift 2 ;;
+      --dispatch)    PEER_DISPATCH_FLAG="$2"; shift 2 ;;
       --) shift; break ;;
       -*) printf '%s\n' "peer: unknown flag $1" >&2; exit 2 ;;
       *) break ;;
@@ -682,6 +701,7 @@ if [[ "$cmd" != codex && "$cmd" != pi && "$cmd" != claude ]]; then
   fi
   _peer_validate_agent "$agent" || exit 2
   _peer_validate "$effort" "$idle" "$cap" || exit 2
+  _peer_dispatch_mode >/dev/null || exit 2
   workdir=$(cd "$workdir" 2>/dev/null && pwd -P) || { printf '%s\n' "peer: workdir is not accessible: $workdir" >&2; exit 2; }
   if [[ -n "$prompt_file" ]]; then
     case "$prompt_file" in /*) ;; *) prompt_file="$workdir/$prompt_file" ;; esac
