@@ -2,6 +2,7 @@ package guidance
 
 import (
 	"list"
+	"strings"
 
 	"github.com/srnnkls/fas/cue/hook"
 	"github.com/srnnkls/fas/cue/tool"
@@ -17,9 +18,36 @@ _hashBlock:  =~#"(?m)^[ \t]*#[^!\n][^\n]*\n[ \t]*#"#
 _semiBlock:  =~#"(?m)^[ \t]*;[^\n]*\n[ \t]*;"#
 _dashBlock:  =~#"(?m)^[ \t]*--[^\n]*\n[ \t]*--"#
 
-_slashLint: =~#"(?i)(//|/\*)[ \t]*(eslint-disable|@ts-ignore|@ts-expect-error|@ts-nocheck|prettier-ignore|biome-ignore|nolint|istanbul ignore|[cv]8 ignore|stylelint-disable)"#
-_hashLint:  =~#"(?i)#[ \t]*(noqa|type:[ \t]*ignore|pylint:|pyright:|mypy:|ruff:|fmt:[ \t]*(on|off)|nosec|flake8:|pragma:[ \t]*no|shellcheck[ \t]+disable|rubocop:|yamllint|tflint-ignore)"#
-_dashLint:  =~#"(?i)--+[ \t]*(luacheck:|noqa|@diagnostic|stylua:|sqlfluff:)"#
+_slashLintRe: #"(//|/\*)[ \t]*(eslint-disable|@ts-ignore|@ts-expect-error|@ts-nocheck|prettier-ignore|biome-ignore|nolint|istanbul ignore|[cv]8 ignore|stylelint-disable)"#
+_hashLintRe:  #"#[ \t]*(noqa|type:[ \t]*ignore|pylint:|pyright:|mypy:|ruff:|fmt:[ \t]*(on|off)|nosec|flake8:|pragma:[ \t]*no|shellcheck[ \t]+disable|rubocop:|yamllint|tflint-ignore)"#
+_dashLintRe:  #"--+[ \t]*(luacheck:|noqa|@diagnostic|stylua:|sqlfluff:)"#
+
+_slashLint: =~("(?i)" + _slashLintRe)
+_hashLint: =~("(?i)" + _hashLintRe)
+_dashLint: =~("(?i)" + _dashLintRe)
+
+_slashAddedBlock: =~#"(?m)(^\+[ \t]*//[^\n]*\n\+[ \t]*//|^\+[ \t]*/\*\*?[ \t]*$)"#
+_hashAddedBlock:  =~#"(?m)^\+[ \t]*#[^!\n][^\n]*\n\+[ \t]*#"#
+_semiAddedBlock:  =~#"(?m)^\+[ \t]*;[^\n]*\n\+[ \t]*;"#
+_dashAddedBlock:  =~#"(?m)^\+[ \t]*--[^\n]*\n\+[ \t]*--"#
+
+_slashAddedLint: =~(#"(?im)^\+[^\n]*"# + _slashLintRe)
+_hashAddedLint: =~(#"(?im)^\+[^\n]*"# + _hashLintRe)
+_dashAddedLint: =~(#"(?im)^\+[^\n]*"# + _dashLintRe)
+
+_bashAdded: {
+	#file: _
+	#text: _
+	out: hook.#PostToolUse & tool.#Bash & {
+		tool_response: bashEditDiff: files: list.MatchN(>0, {
+			filePath: #file
+			hunks: list.MatchN(>0, {
+				lines: [...string]
+				_text: strings.Join(lines, "\n") & #text
+			})
+		})
+	}
+}
 
 _injectComment: {
 	rule_id: "comment-block"
@@ -208,5 +236,40 @@ dash_lint_suppression_multiedit: {
 		tool_input: file_path: _dashFile
 		tool_input: edits: list.MatchN(>0, {new_string: _dashLint, ...})
 	}
+	then: inject: _injectLint
+}
+
+slash_comment_block_bash: {
+	when: (_bashAdded & {#file: _slashFile, #text: _slashAddedBlock}).out
+	then: inject: _injectComment
+}
+
+hash_comment_block_bash: {
+	when: (_bashAdded & {#file: _hashFile, #text: _hashAddedBlock}).out
+	then: inject: _injectComment
+}
+
+semi_comment_block_bash: {
+	when: (_bashAdded & {#file: _semiFile, #text: _semiAddedBlock}).out
+	then: inject: _injectComment
+}
+
+dash_comment_block_bash: {
+	when: (_bashAdded & {#file: _dashFile, #text: _dashAddedBlock}).out
+	then: inject: _injectComment
+}
+
+slash_lint_suppression_bash: {
+	when: (_bashAdded & {#file: _slashFile, #text: _slashAddedLint}).out
+	then: inject: _injectLint
+}
+
+hash_lint_suppression_bash: {
+	when: (_bashAdded & {#file: _hashFile, #text: _hashAddedLint}).out
+	then: inject: _injectLint
+}
+
+dash_lint_suppression_bash: {
+	when: (_bashAdded & {#file: _dashFile, #text: _dashAddedLint}).out
 	then: inject: _injectLint
 }
