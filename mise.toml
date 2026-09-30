@@ -1,5 +1,5 @@
 [tools]
-"github:srnnkls/henia" = { version = "0.1.0-alpha.2", prerelease = "true" }
+"github:srnnkls/henia" = { version = "0.1.0-alpha.3", prerelease = "true" }
 
 [tasks.test-artifacts]
 description = "Prepare this tree with Phora, compile every harness with Henia, and check the artifacts"
