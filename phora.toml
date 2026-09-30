@@ -2,6 +2,7 @@
 [sources.tropos]
 path = "."
 include = ["skills/**", "agents/**", "instructions/**", "rules/fas/**", "henia.toml", ".henia/harnesses/**", "phora.toml"]
+exclude = ["skills/gestalt/", "skills/limen/", "skills/loqui/reference/loqui", "rules/fas/moira/"]
 
 [sources.loqui]
 git = "https://github.com/srnnkls/loqui.git"
