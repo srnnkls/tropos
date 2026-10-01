@@ -1,7 +1,6 @@
 # Canonical artifacts, their dependency layout, and the harness builds offered to consumers.
-[builders.henia]
-run = "henia build \"$PHORA_INPUT\" --output \"$PHORA_OUTPUT\""
-key = "henia --version"
+[tools."github:srnnkls/henia"]
+mise = true
 
 [sources.loqui]
 git = "https://github.com/srnnkls/loqui.git"
@@ -24,7 +23,7 @@ branch = "main"
 root = "rules/fas"
 
 [sources.harnesses]
-build = { builder = "henia" }
+build = { tool = "github:srnnkls/henia@0.1.0-alpha.4", run = "henia build {input} --output {output}" }
 
 [targets.loqui]
 path = "skills/loqui/reference/loqui"
