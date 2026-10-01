@@ -15,7 +15,7 @@ $ set -eu; \
 > root=$(cd "$TESTDIR/../.." && pwd -P); \
 > printf '%s\n' '[sources]' "tropos = { path = \"$root\", deploy = \"link\", transitive = true }" \
 >   'henia = { build = { inputs = ["tropos"], run = "henia build \"$PHORA_INPUT/tropos\" --output \"$PHORA_OUTPUT\"", key = "henia --version" } }' \
->   '[targets.input]' 'path = "input"' 'imports = ["tropos"]' \
+>   '[targets.input]' 'path = "input"' 'sources = ["tropos"]' \
 >   '[targets.out]' 'path = "out"' 'sources.henia = { collapse = false }' > phora.toml; \
 > phora sync --no-progress > sync.log 2>&1 || { cat sync.log; exit 1; }; \
 > python3 "$TESTDIR/check-artifacts.py" input out

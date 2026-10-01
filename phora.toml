@@ -1,8 +1,7 @@
-# Canonical artifacts and the dependency layout advertised to consumers.
-[sources.tropos]
-path = "."
-include = ["skills/**", "agents/**", "instructions/**", "rules/fas/**", "henia.toml", ".henia/harnesses/**", "phora.toml"]
-exclude = ["skills/gestalt/", "skills/limen/", "skills/loqui/reference/loqui", "rules/fas/moira/"]
+# Canonical artifacts, their dependency layout, and the harness builds offered to consumers.
+[builders.henia]
+run = "henia build \"$PHORA_INPUT\" --output \"$PHORA_OUTPUT\""
+key = "henia --version"
 
 [sources.loqui]
 git = "https://github.com/srnnkls/loqui.git"
@@ -24,9 +23,8 @@ git = "https://github.com/srnnkls/moira.git"
 branch = "main"
 root = "rules/fas"
 
-[targets.tropos]
-path = "."
-sources.tropos = { collapse = false }
+[sources.harnesses]
+build = { builder = "henia" }
 
 [targets.loqui]
 path = "skills/loqui/reference/loqui"
@@ -43,3 +41,41 @@ sources.limen = { collapse = false }
 [targets.moira]
 path = "rules/fas/moira"
 sources.moira = { collapse = false }
+
+[targets.claude]
+path = "dist/claude"
+sources.harnesses = { take = [{ "claude/" = "." }], collapse = false }
+
+[targets.codex]
+path = "dist/codex"
+sources.harnesses = { take = [{ "codex/" = "." }], collapse = false }
+
+[targets.pi]
+path = "dist/pi"
+sources.harnesses = { take = [{ "pi/" = "." }], collapse = false }
+
+[targets.omp]
+path = "dist/omp"
+sources.harnesses = { take = [{ "omp/" = "." }], collapse = false }
+
+[offers.default]
+include = ["skills/**", "agents/**", "instructions/**", "rules/fas/**", "henia.toml", ".henia/harnesses/**", "phora.toml"]
+
+[offers.fas]
+root = "rules/fas"
+
+[offers.claude]
+root = "dist/claude"
+targets = ["claude"]
+
+[offers.codex]
+root = "dist/codex"
+targets = ["codex"]
+
+[offers.pi]
+root = "dist/pi"
+targets = ["pi"]
+
+[offers.omp]
+root = "dist/omp"
+targets = ["omp"]
