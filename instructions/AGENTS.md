@@ -35,16 +35,17 @@ Never use `rm` for interactive file removal. Use `trash`.
 
 ## Workflow boundary
 
-Ordinary work executes directly. Strict delegated RED → GREEN → review and TDD activate only through explicit `$implement`, `$test`, `$continue`, `$loop`, or a direct request for tests. Project instructions and project extensions may tighten this boundary, for example by mandating TDD.
+Ordinary work executes directly. Strict delegated RED → GREEN → review and TDD activate only through explicit `$implement`, `$test`, `$continue`, `$loop`, or a direct request for tests. Project instructions may tighten this boundary, for example by mandating TDD.
 
 For configuration, documentation, maintenance, and platform-validated artifacts, use the native parser, linter, command, or runtime instead of inventing test machinery.
 
-## Project extensions
+## Project slots
 
-A repository extends a global skill with a project skill whose frontmatter carries `metadata.extends: "<skill> [<skill>…]"`; the value may be quoted or bare space-separated names or a `[a, b]` flow list. Project skills take names distinct from global skills and stay complete for collaborators without them.
+A global skill owns named slots, `<skill>.<slot>`, and states each one's coverage in its Slots section. A repository fills slots with a project skill whose frontmatter carries `metadata.provides: "<skill>.<slot> […]"`; the value may be quoted or bare space-separated names or a `[a, b]` flow list. Project skills take names distinct from global skills and stay complete for collaborators without them.
 
-- When a skill's context lists project extensions, read each listed SKILL.md and the files it links before acting.
-- Project skills and project instructions override this contract and the global skill where they conflict; the global workflow governs only what they leave open.
+- When a skill's context lists slot providers, read each listed SKILL.md and the files it links before acting.
+- A provider replaces only what its slot covers; the global skill governs everything else.
+- A project need outside every slot is a missing slot in the global skill, not an override.
 
 ## Single source of truth
 

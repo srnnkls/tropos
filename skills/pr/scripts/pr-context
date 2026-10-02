@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pre-loaded context for the pr skill's `comments` route: project extensions,
+# Pre-loaded context for the pr skill's `comments` route: review.criteria slot providers,
 # PR metadata, inline review comments, the unresolved-thread map, non-anchored
 # bodies, and the HEAD diff. Exits silently on the `tfcprr` route. Prints
 # `no-pr` when none resolves.
@@ -11,8 +11,8 @@ case "$A" in
   tfcprr*) exit 0 ;;
 esac
 
-echo "== project extensions =="
-"$(dirname "$0")/../../skill/scripts/project-extensions" pr review
+echo "== slot providers =="
+"$(dirname "$0")/../../skill/scripts/resolve-slots" review.criteria
 
 case "$A" in
   comments) A="" ;;

@@ -6,13 +6,13 @@ metadata:
 henia:
   variables:
     context_commands:
-      - label: Project extensions
-        extends: git review
+      - label: Slot providers
+        slots: git.commits review.criteria
   targets:
     claude:
       frontmatter:
         argument-hint: '[--issue <id>…] [--report <path>] [-m <msg>] [paths…]'
-        allowed-tools: Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git status *), Bash(git rev-parse *), Bash(git branch *), Bash({{.project_extensions}} *)
+        allowed-tools: Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git status *), Bash(git rev-parse *), Bash(git branch *), Bash({{.resolve_slots}} *)
     codex:
       openai:
         interface:
@@ -28,8 +28,8 @@ henia:
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}
 ```{{end}}
 
 {{end}}
@@ -67,7 +67,7 @@ Everything addressed in one run rides one commit: the fix set is applied togethe
 
 Findings come from the review already in context or from `--report <path>`; `--issue <id>` narrows the input set.
 
-A synthesized report arrives pre-dispositioned. Carry its verdicts without reopening triage. Apply the [finding bar](../review/reference/finding-bar.md) to raw findings and place every finding in exactly one resulting disposition:
+A synthesized report arrives pre-dispositioned. Carry its verdicts without reopening triage. Apply the [finding bar](../review/reference/finding-bar.md) and listed `review.criteria` providers ([review slots](../review/SKILL.md#slots)) to raw findings and place every finding in exactly one resulting disposition:
 
 | Disposition | Outcome |
 |-------------|---------|
@@ -95,7 +95,7 @@ git add <paths…>            # skip if already staged
 git commit -m "<message>"
 ```
 
-Message: conventional commit format (`<type>(<scope>): <description>`), imperative and lowercase, describing the fix.
+Message: conventional commit format (`<type>(<scope>): <description>`), imperative and lowercase, describing the fix. A `git.commits` provider ([git slots](../git/SKILL.md#slots)) replaces this format.
 
 *Hooks gate this step.* If the commit fails (hooks red), stop — report the failing output, fix, and retry. Do not proceed to push.
 

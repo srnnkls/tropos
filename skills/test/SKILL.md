@@ -6,12 +6,12 @@ metadata:
 henia:
   variables:
     context_commands:
-      - label: Project extensions
-        extends: test
+      - label: Slot providers
+        slots: test.conventions
   targets:
     claude:
       frontmatter:
-        allowed-tools: Bash({{.project_extensions}} *)
+        allowed-tools: Bash({{.resolve_slots}} *)
     codex:
       openai:
         interface:
@@ -27,14 +27,20 @@ henia:
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}
 ```{{end}}
 
 {{end}}
 # Bounded Test-Driven Development
 
 Write the smallest discriminating check, watch it fail for the requested missing behavior, add minimal production code, then watch it pass.
+
+## Slots
+
+| Slot | Covers |
+|---|---|
+| `test.conventions` | Test locations, frameworks, fixtures, and the focused test command; settles what RED step 2 would infer from nearby tests. Budget ceilings stay. |
 
 ## Activation
 

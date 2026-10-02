@@ -14,7 +14,7 @@ Load these resources at dispatch time and materialize them verbatim into the nam
 - `{implementer_report_schema}` and `{fix_report_schema}` — [report.md](report.md)
 - `{reviewer_report_schema}` — [review/reference/report.md](../../review/reference/report.md)
 - `{finding_bar}` — [review/reference/finding-bar.md](../../review/reference/finding-bar.md)
-- `{project_extensions}` — verbatim bodies of the listed project extensions whose `extends` names the role's skill (`test` for testers, `implement` for implementers and fixers, `review` for reviewers), or `none`
+- `{slot_providers}` — verbatim bodies of the listed slot providers the role consumes (`test.conventions` for testers; `test.conventions`, `code.style` and `code.validation` for implementers and fixers; `review.criteria` and `code.style` for reviewers), or `none`
 
 Role behavior comes only from `agents/tester.md`, `agents/implementer.md`, and `agents/reviewer.md`. Claude native definitions and `peer` load the selected role directly. A native Codex `codex-*` dispatch prepends `{role_contract}` to its task prompt because `agents/*.toml` are harness shims; all other mechanisms leave that placeholder empty.
 
@@ -35,8 +35,8 @@ Repository orientation:
 Tester contract:
 {tester_contract}
 
-Project extensions:
-{project_extensions}
+Slot providers:
+{slot_providers}
 
 Test failure modes:
 {test_failure_modes}
@@ -69,8 +69,8 @@ RED evidence:
 Existing partial state:
 {partial_state}
 
-Project extensions:
-{project_extensions}
+Slot providers:
+{slot_providers}
 
 Work from: {workdir}
 
@@ -91,7 +91,7 @@ Materialize once per batch:
 - `{finding_bar}`;
 - `{structural_context}` from bounded Gestalt queries;
 - `{guidelines}` containing only material Loqui excerpts;
-- `{project_extensions}`.
+- `{slot_providers}`.
 
 Build General, Architecture, and Compliance prompts from the [code skill](../../code/SKILL.md). Start all native role agents and external role fan-outs in one message. Save each complete prompt as `prompt.md` in its canonical `peer path` directory.
 
@@ -116,8 +116,8 @@ Structural context:
 Applicable language guidance:
 {guidelines}
 
-Project extensions:
-{project_extensions}
+Slot providers:
+{slot_providers}
 
 Finding bar:
 {finding_bar}
@@ -138,8 +138,8 @@ Role contract:
 Repository orientation:
 {repository_map}
 
-Project extensions:
-{project_extensions}
+Slot providers:
+{slot_providers}
 
 Work from: {workdir}
 

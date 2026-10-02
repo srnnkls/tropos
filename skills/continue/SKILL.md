@@ -8,7 +8,7 @@ henia:
     claude:
       frontmatter:
         argument-hint: '[scope-name]'
-        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(peer *), Bash({{.project_extensions}} *)
+        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(peer *), Bash({{.resolve_slots}} *)
     codex:
       openai:
         interface:
@@ -18,8 +18,8 @@ henia:
   auto_invoke: false
   variables:
     context_commands:
-      - label: Project extensions
-        extends: implement test review
+      - label: Slot providers
+        slots: git.branching test.conventions code.style code.validation review.criteria
       - label: Active scopes
         command: find scopes -maxdepth 3 -name scope.md 2>/dev/null || true
       - label: Checkpoints
@@ -39,8 +39,8 @@ henia:
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}
 ```{{end}}
 
 {{end}}

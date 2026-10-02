@@ -1,7 +1,7 @@
 #!/bin/sh
-# Usage: project-extensions <skill> [<skill>...]
-# Prints the SKILL.md path of every project skill whose frontmatter declares
-# `extends:` naming one of the given skills. Always exits 0.
+# Usage: resolve-slots <skill>.<slot> [...]
+# Prints "<slot><TAB><SKILL.md path>" for every project skill whose frontmatter
+# `provides:` names one of the given slots. Always exits 0.
 
 [ "$#" -gt 0 ] || exit 0
 
@@ -13,22 +13,21 @@ done | while IFS= read -r file; do
 	physical=$(cd -P "$(dirname "$file")" 2>/dev/null && pwd -P) || continue
 	printf '%s\t%s\n' "$physical/SKILL.md" "$file"
 done | awk -F '\t' '!seen[$1]++ { print $2 }' | while IFS= read -r file; do
-	awk -v wanted="$*" '
-		NR == 1 { if ($0 !~ /^---[[:space:]]*$/) exit 1; next }
-		/^---[[:space:]]*$/ { exit 1 }
-		/^[[:space:]]*extends:/ {
+	awk -v wanted="$*" -v file="$file" '
+		NR == 1 { if ($0 !~ /^---[[:space:]]*$/) exit; next }
+		/^---[[:space:]]*$/ { exit }
+		/^[[:space:]]*provides:/ {
 			value = $0
-			sub(/^[[:space:]]*extends:[[:space:]]*/, "", value)
+			sub(/^[[:space:]]*provides:[[:space:]]*/, "", value)
 			sub(/[[:space:]]+#.*$/, "", value)
 			gsub(/["'\''\[\],]/, " ", value)
 			n = split(value, names, " ")
-			m = split(wanted, targets, " ")
-			for (i = 1; i <= n; i++)
-				for (j = 1; j <= m; j++)
-					if (names[i] == targets[j]) { found = 1; exit }
+			m = split(wanted, slots, " ")
+			for (j = 1; j <= m; j++)
+				for (i = 1; i <= n; i++)
+					if (names[i] == slots[j]) { printf "%s\t%s\n", slots[j], file; break }
 		}
-		END { exit !found }
-	' "$file" && printf '%s\n' "$file"
+	' "$file"
 done
 
 exit 0

@@ -6,8 +6,8 @@ metadata:
 henia:
   variables:
     context_commands:
-      - label: Project extensions
-        extends: implement test review
+      - label: Slot providers
+        slots: git.branching test.conventions code.style code.validation review.criteria
       - label: Active scopes
         command: find scopes -maxdepth 3 -name scope.md 2>/dev/null || true
       - label: Checkpoints
@@ -24,7 +24,7 @@ henia:
     claude:
       frontmatter:
         argument-hint: '[target]'
-        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(gh *), Bash(peer *), Bash({{.project_extensions}} *)
+        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(gh *), Bash(peer *), Bash({{.resolve_slots}} *)
     codex:
       openai:
         interface:
@@ -40,8 +40,8 @@ henia:
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}
 ```{{end}}
 
 {{end}}
@@ -75,6 +75,7 @@ Never dispatch mutating agents on `main`, `master`, or an unrelated branch.
 - Scope: use `feat/<scope-name>` unless the scope records another branch.
 - GitHub issue: use `<issue-number>-<issue-title>`.
 - Direct task: use the current non-trunk branch; if on trunk, ask for or create a task branch.
+- A `git.branching` provider ([git slots](../git/SKILL.md#slots)) replaces these branch names.
 - Use a worktree only when explicitly requested.
 - Run the base-drift gate once before the first mutating batch and again before PR creation. A later recheck requires new upstream evidence or an observed overlap.
 
@@ -98,7 +99,7 @@ Apply the [canonical RED gate](../test/SKILL.md#red). Return invalid evidence to
 
 ### Phase B: GREEN
 
-Dispatch one fresh configured implementer with the task requirements and tester report. After it returns, verify the focused command and directly affected native validation in one batched tool round, combining compatible selectors. Refactor only the changed mechanism.
+Dispatch one fresh configured implementer with the task requirements and tester report. After it returns, verify the focused command and directly affected native validation (a `code.validation` provider names it; see [code slots](../code/SKILL.md#slots)) in one batched tool round, combining compatible selectors. Refactor only the changed mechanism.
 
 ### Phase C: Initial Review
 

@@ -8,7 +8,7 @@ henia:
     claude:
       frontmatter:
         argument-hint: '[number|pr] [args]'
-        allowed-tools: Bash(gh issue *), Bash(gh pr *), Bash(gh api *), Bash(gh repo view *), Bash(git branch *), Bash(git push *), Bash(git rev-parse *), Bash(git log *), Bash(git merge-base *), Bash(issue *), Bash(peer *), Bash({{.project_extensions}} *)
+        allowed-tools: Bash(gh issue *), Bash(gh pr *), Bash(gh api *), Bash(gh repo view *), Bash(git branch *), Bash(git push *), Bash(git rev-parse *), Bash(git log *), Bash(git merge-base *), Bash(issue *), Bash(peer *), Bash({{.resolve_slots}} *)
     codex:
       openai:
         interface:
@@ -17,8 +17,8 @@ henia:
           default_prompt: Use $issue for the requested task.
   variables:
     context_commands:
-      - label: Project extensions
-        extends: issue
+      - label: Slot providers
+        slots: issue.template
       - label: Current branch
         command: git branch --show-current 2>/dev/null || true
       - label: Default reviewers
@@ -34,8 +34,8 @@ henia:
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}
 ```{{end}}
 
 {{end}}
@@ -46,6 +46,14 @@ GitHub shares one number sequence across issues and PRs. This is a best-effort p
 Authoring and updating GitHub issues against a canonical template, plus PR creation from the current branch.
 
 > **Protocol:** [../dispatch/protocol.md](../dispatch/protocol.md)
+
+---
+
+## Slots
+
+| Slot | Covers |
+|---|---|
+| `issue.template` | Title format, section structure, and type and parent conventions; replaces what it covers in [`references/template.md`](references/template.md) and workflow steps 3–5 |
 
 ---
 

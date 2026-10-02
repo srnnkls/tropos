@@ -12,7 +12,7 @@ Build one self-contained prompt per role before dispatch. Embed:
 - the verbatim finding bar;
 - fresh bounded output from the [repository-orientation contract](../../../instructions/AGENTS.md#tools-and-context) for the reviewed working tree;
 - only material language guidance;
-- verbatim bodies of the project extensions listed in the review context, or `none`.
+- verbatim bodies of the `review.criteria` and `code.style` slot providers listed in the review context, or `none`.
 
 Commands and workdirs supplement the embedded artifact; they never replace it. Save the complete prompt as `prompt.md` in a directory created by `peer path`.
 

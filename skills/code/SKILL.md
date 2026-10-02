@@ -6,8 +6,8 @@ metadata:
 henia:
   variables:
     context_commands:
-      - label: Project extensions
-        extends: code
+      - label: Slot providers
+        slots: code.style code.validation test.conventions review.criteria
       - label: Git status
         command: git status --short 2>/dev/null || true
       - label: Languages detected
@@ -15,7 +15,7 @@ henia:
   targets:
     claude:
       frontmatter:
-        allowed-tools: Bash({{.project_extensions}} *)
+        allowed-tools: Bash({{.resolve_slots}} *)
         argument-hint: '[operation] [target]'
     codex:
       openai:
@@ -32,8 +32,8 @@ henia:
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}
 ```{{end}}
 
 {{end}}
@@ -54,6 +54,13 @@ Compose generic workflows with code-specific Gestalt navigation, language guidan
 No operation is inferred from an ordinary task outside explicit skill invocation.
 :::
 
+## Slots
+
+| Slot | Covers |
+|---|---|
+| `code.style` | Project style guidance; applies ahead of Loqui in Implementation Context and the Compliance role |
+| `code.validation` | Native lint, typecheck, and build commands that make up directly affected native validation |
+
 ## Implementation Context
 
 - Apply the repository-orientation contract in [AGENTS.md](../../instructions/AGENTS.md#tools-and-context).
@@ -63,7 +70,7 @@ No operation is inferred from an ordinary task outside explicit skill invocation
 
 ## Test Context
 
-Use existing nearby tests for conventions. Load a language test guide only when those tests do not settle the pattern. The [test skill](../test/SKILL.md) owns count, time, attempt, tooling, and exploration ceilings.
+A `test.conventions` provider ([test slots](../test/SKILL.md#slots)) settles conventions first; otherwise use existing nearby tests. Load a language test guide only when those tests do not settle the pattern. The [test skill](../test/SKILL.md) owns count, time, attempt, tooling, and exploration ceilings.
 
 ## Review Roles
 
@@ -76,7 +83,7 @@ Use existing nearby tests for conventions. Load a language test guide only when 
 Prepare once:
 
 - materialized target/diff;
-- applicable requirements;
+- applicable requirements, including listed `review.criteria` providers ([review slots](../review/SKILL.md#slots));
 - exact report schema;
 - verbatim [finding bar](../review/reference/finding-bar.md);
 - fresh materialized repository orientation;

@@ -6,8 +6,8 @@ metadata:
 henia:
   variables:
     context_commands:
-      - label: Project extensions
-        extends: review
+      - label: Slot providers
+        slots: review.criteria
       - label: Git status
         command: git status --short 2>/dev/null || true
       - label: Recent commits
@@ -28,7 +28,7 @@ henia:
     claude:
       frontmatter:
         argument-hint: '[target]'
-        allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(find *), Bash(gh pr list *), Bash(peer *), Bash({{.project_extensions}} *)
+        allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(find *), Bash(gh pr list *), Bash(peer *), Bash({{.resolve_slots}} *)
     codex:
       openai:
         interface:
@@ -44,8 +44,8 @@ henia:
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}
 ```{{end}}
 
 {{end}}
@@ -65,6 +65,12 @@ Pre-parse `--reviewers <aliases>` and pass it to downstream review operations.
 | `--test-audit [path]` or test path | [operations/test-audit.md](operations/test-audit.md), explicit or changed tests only |
 | Existing file path | Invoke `$code` with `review --path <path>` |
 | Missing | Ask for PR, commit, diff, path, scope, structural, or test target |
+
+## Slots
+
+| Slot | Covers |
+|---|---|
+| `review.criteria` | Repository review requirements with their canonical citations; reviewers check them as applicable requirements, and triage and PR comment assessment cite them |
 
 ## Canonical Contracts
 
@@ -91,7 +97,7 @@ Standalone scope selection persists to `validation.yaml.review_config`. Implemen
 :::instruction{priority=high}
 ## Dispatch
 
-Materialize reviewed content, requirements, exact schema, and the verbatim finding bar before dispatch. Commands and workdirs supplement the prompt; they do not replace content.
+Materialize reviewed content, requirements including listed `review.criteria` providers, exact schema, and the verbatim finding bar before dispatch. Commands and workdirs supplement the prompt; they do not replace content.
 
 For multi-role review, launch every selected role and reviewer in one assistant message using the mechanisms resolved by peer routing.
 

@@ -8,7 +8,7 @@ henia:
     claude:
       frontmatter:
         argument-hint: '[operation] [args]'
-        allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(git rev-parse *), Bash({{.project_extensions}} *)
+        allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(git rev-parse *), Bash({{.resolve_slots}} *)
     codex:
       openai:
         interface:
@@ -17,8 +17,8 @@ henia:
           default_prompt: Use $git for the requested task.
   variables:
     context_commands:
-      - label: Project extensions
-        extends: git
+      - label: Slot providers
+        slots: git.branching git.commits
       - label: Current branch
         command: git branch --show-current 2>/dev/null || true
       - label: Status
@@ -32,8 +32,8 @@ henia:
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}
 ```{{end}}
 
 {{end}}
@@ -73,6 +73,15 @@ Options:
 |---|---|
 | Rebase | Read and follow [operations/rebase.md](operations/rebase.md) |
 | Reference | Continue with sections below |
+
+---
+
+## Slots
+
+| Slot | Covers |
+|---|---|
+| `git.branching` | Branch naming and merge strategy; replaces the Development Model defaults |
+| `git.commits` | Commit message format, scope vocabulary, signing, and commit granularity |
 
 ---
 

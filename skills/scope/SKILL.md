@@ -8,7 +8,7 @@ henia:
     claude:
       frontmatter:
         argument-hint: '[operation|name] [scope-name]'
-        allowed-tools: Bash(find *), Bash(git branch *), Bash(git log *), Bash(git status *), Bash(git diff *), Bash(git worktree list *), Bash(peer *), Bash({{.project_extensions}} *)
+        allowed-tools: Bash(find *), Bash(git branch *), Bash(git log *), Bash(git status *), Bash(git diff *), Bash(git worktree list *), Bash(peer *), Bash({{.resolve_slots}} *)
     codex:
       openai:
         interface:
@@ -17,8 +17,8 @@ henia:
           default_prompt: Use $scope for the requested task.
   variables:
     context_commands:
-      - label: Project extensions
-        extends: scope
+      - label: Slot providers
+        slots: scope.templates
       - label: Active scopes
         command: find "$(git worktree list --porcelain | awk 'NR==1{print $2}')/scopes" -maxdepth 3 -name scope.md 2>/dev/null || true
       - label: Current branch
@@ -36,8 +36,8 @@ henia:
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}
 ```{{end}}
 
 {{end}}
@@ -49,6 +49,12 @@ Routes to the appropriate operation based on argument or context.
 > **Reference:** See [reference/review.md](reference/review.md) for review workflow, [reference/update.md](reference/update.md) for update workflow, [reference/operations.md](reference/operations.md) for done/list, [reference/issue.md](reference/issue.md) for publishing a scope as a GitHub issue tree.
 
 ---
+
+## Slots
+
+| Slot | Covers |
+|---|---|
+| `scope.templates` | Scope document templates; replaces the files under [Templates](#templates) it covers |
 
 ## Scope Location (All Operations)
 

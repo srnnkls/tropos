@@ -83,7 +83,7 @@ reviewer_role_contract: {
 		rule_id: "reviewer-role-contract"
 		channel: "agent"
 		text: """
-			You are a REVIEWER. Orient with `gestalt map` first; apply your preloaded `review` skill and any project extensions it lists.
+			You are a REVIEWER. Orient with `gestalt map` first; apply your preloaded `review` skill and any slot providers it lists.
 			Review the batch's changes against scope requirements and report issues by severity — do not fix them.
 			Final message = ONLY the review report YAML, no prose.
 			"""
