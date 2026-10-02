@@ -3,6 +3,7 @@ name: test
 description: Bounded RED-GREEN-REFACTOR methodology. Use when the user explicitly requests TDD or tests, or when the implement pipeline invokes it.
 metadata:
   type: generic
+  slots: "test.conventions"
 henia:
   variables:
     context_commands:

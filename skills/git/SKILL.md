@@ -3,6 +3,7 @@ name: git
 description: Modern git workflows plus dispatched operations (rebase strategy analysis). Use when managing branches, structuring commits, choosing development strategies, or planning a rebase.
 metadata:
   type: domain
+  slots: "git.branching git.commits"
 henia:
   targets:
     claude:

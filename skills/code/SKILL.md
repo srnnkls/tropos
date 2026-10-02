@@ -3,6 +3,7 @@ name: code
 description: Code domain context for explicit implementation, review, and test workflows.
 metadata:
   type: domain
+  slots: "code.style code.validation"
 henia:
   variables:
     context_commands:

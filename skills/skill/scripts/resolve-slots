@@ -1,18 +1,27 @@
 #!/bin/sh
 # Usage: resolve-slots <skill>.<slot> [...]
+#        resolve-slots --check
 # Prints "<provided><TAB><tier><TAB><SKILL.md path>" for every skill whose
 # frontmatter `provides:` names a requested slot, a dotted sub-slot of it
 # (code.style.python under code.style) or an enclosing slot. Tier `project`
 # covers the repository's skill directories; tier `global` covers the skills
 # directory this script is deployed in. A project provider shadows every
-# global provider of the same slot or a sub-slot of it. Always exits 0.
+# global provider of the same slot or a sub-slot of it.
+#
+# Skills declare slots in frontmatter `slots:`. Once any declaration exists,
+# a provided slot outside every declared slot prints as
+# "<provided><TAB>unknown<TAB><path>" and a requested one as
+# "<slot><TAB>undeclared<TAB>-". --check prints only those rows, for every
+# provider, and exits 1 when any exist. Otherwise always exits 0.
 
-[ "$#" -gt 0 ] || exit 0
+check=
+[ "${1:-}" = --check ] && { check=1; shift; }
+[ -n "$check" ] || [ "$#" -gt 0 ] || exit 0
 
 root=$(git rev-parse --show-toplevel 2>/dev/null) || root=$(pwd)
 global=$(cd "$(dirname "$0")/../.." 2>/dev/null && pwd -P)
 
-{
+out=$({
 	for dir in .claude/skills .agents/skills .agent/skills .codex/skills .pi/skills .omp/skills .github/skills; do
 		[ -d "$root/$dir" ] && find -L "$root/$dir" -mindepth 2 -maxdepth 2 -name SKILL.md -type f 2>/dev/null | sed 's/^/project	/'
 	done
@@ -21,29 +30,53 @@ global=$(cd "$(dirname "$0")/../.." 2>/dev/null && pwd -P)
 	physical=$(cd -P "$(dirname "$file")" 2>/dev/null && pwd -P) || continue
 	printf '%s\t%s\t%s\n' "$physical/SKILL.md" "$tier" "$file"
 done | awk -F '\t' '!seen[$1]++ { print $2 "\t" $3 }' | while IFS='	' read -r tier file; do
-	awk -v wanted="$*" -v tier="$tier" -v file="$file" '
+	awk -v tier="$tier" -v file="$file" '
 		{ sub(/\r$/, "") }
 		NR == 1 { if ($0 !~ /^---[[:space:]]*$/) exit; next }
 		/^---[[:space:]]*$/ { exit }
-		/^[[:space:]]*provides:/ {
+		/^[[:space:]]*(provides|slots):/ {
+			key = $0
+			sub(/^[[:space:]]*/, "", key)
+			sub(/:.*/, "", key)
 			value = $0
-			sub(/^[[:space:]]*provides:[[:space:]]*/, "", value)
+			sub(/^[[:space:]]*[a-z]+:[[:space:]]*/, "", value)
 			sub(/[[:space:]]+#.*$/, "", value)
 			gsub(/["'\''\[\],]/, " ", value)
 			n = split(value, names, " ")
-			m = split(wanted, slots, " ")
-			for (i = 1; i <= n; i++)
-				for (j = 1; j <= m; j++)
-					if (names[i] == slots[j] || index(names[i], slots[j] ".") == 1 || index(slots[j], names[i] ".") == 1) { printf "%s\t%s\t%s\n", names[i], tier, file; break }
+			for (i = 1; i <= n; i++) printf "%s\t%s\t%s\t%s\n", key, names[i], tier, file
 		}
 	' "$file"
-done | awk -F '\t' '
-	{ line[NR] = $0; slot[NR] = $1; tier[NR] = $2; if ($2 == "project") claimed[$1] = 1 }
-	function shadowed(name,   p) {
-		for (p in claimed) if (name == p || index(name, p ".") == 1) return 1
+done | awk -F '\t' -v wanted="$*" -v check="$check" '
+	function within(name, slot) { return name == slot || index(name, slot ".") == 1 }
+	function related(a, b) { return within(a, b) || within(b, a) }
+	function known(name,   d) {
+		if (!declaring) return 1
+		for (d in declared) if (within(name, d)) return 1
 		return 0
 	}
-	END { for (i = 1; i <= NR; i++) if ((tier[i] == "project" || !shadowed(slot[i])) && !printed[line[i]]++) print line[i] }
-'
+	$1 == "slots" { declared[$2] = 1; declaring = 1; next }
+	{ name[++n] = $2; tier[n] = $3; file[n] = $4 }
+	END {
+		m = split(wanted, slots, " ")
+		for (i = 1; i <= n; i++) {
+			if (!known(name[i])) { problem[++p] = name[i] "\tunknown\t" file[i]; continue }
+			for (j = 1; j <= m; j++) if (related(name[i], slots[j])) { match_[i] = 1; break }
+			if (match_[i] && tier[i] == "project") claimed[name[i]] = 1
+		}
+		if (!check) for (i = 1; i <= n; i++) {
+			if (!match_[i]) continue
+			if (tier[i] == "global") { hidden = 0; for (c in claimed) if (within(name[i], c)) hidden = 1; if (hidden) continue }
+			row = name[i] "\t" tier[i] "\t" file[i]
+			if (!printed[row]++) print row
+		}
+		for (j = 1; j <= m; j++) {
+			ok = !declaring
+			for (d in declared) if (related(slots[j], d)) ok = 1
+			if (!ok) problem[++p] = slots[j] "\tundeclared\t-"
+		}
+		for (i = 1; i <= p; i++) if (!printed[problem[i]]++) print problem[i]
+	}
+')
 
-exit 0
+[ -n "$out" ] && printf '%s\n' "$out"
+[ -z "$check" ] || ! printf '%s\n' "$out" | grep -q '	\(unknown\|undeclared\)	'

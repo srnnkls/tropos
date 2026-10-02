@@ -3,6 +3,7 @@ name: scope
 description: Unified scope lifecycle. Auto-detects operation from argument or presents selection menu. Routes to create, review, update, done, or list. Creation clears a mandatory multi-agent review gate before the scope is implementable.
 metadata:
   type: domain
+  slots: "scope.templates"
 henia:
   targets:
     claude:

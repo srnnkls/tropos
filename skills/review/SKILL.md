@@ -3,6 +3,7 @@ name: review
 description: Unified review dispatcher for code, PR, scope, structural, and bounded test-quality review.
 metadata:
   type: generic
+  slots: "review.criteria"
 henia:
   variables:
     context_commands:

@@ -3,6 +3,7 @@ name: issue
 description: GitHub issue operations — author or update issues against a canonical template, and create PRs from a branch/issue. Authoring drafts to a git-ignored `.issues/` folder, clears the default reviewer gate resolved through canonical routing, then publishes with issue type and parent/depends-on/blocks edges. Use for "create an issue", "open an issue", "update issue
 metadata:
   type: domain
+  slots: "issue.template"
 henia:
   targets:
     claude:

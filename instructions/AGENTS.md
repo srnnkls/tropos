@@ -41,11 +41,12 @@ For configuration, documentation, maintenance, and platform-validated artifacts,
 
 ## Project slots
 
-A global skill owns named slots, `<skill>.<slot>`, and states each one's coverage in its Slots section. A skill fills slots when its frontmatter carries `metadata.provides: "<skill>.<slot> […]"`; the value may be quoted or bare space-separated names or a `[a, b]` flow list. A provider may scope a slot with a dotted sub-slot, such as `code.style.python`; a sub-slot provider covers only that part. Global skills that provide a slot are its defaults; a project provider of a slot shadows its global providers and those of its sub-slots, and a project provider that still wants a default names that skill. Project skills take names distinct from global skills and stay complete for collaborators without them.
+A skill owns named slots, `<skill>.<slot>`, by declaring them in frontmatter `metadata.slots` and stating each one's coverage in its Slots section. A skill fills slots when its frontmatter carries `metadata.provides: "<skill>.<slot> […]"`; the value may be quoted or bare space-separated names or a `[a, b]` flow list. A provider may scope a slot with a dotted sub-slot, such as `code.style.python`; a sub-slot provider covers only that part. Global skills that provide a slot are its defaults; a project provider of a slot shadows its global providers and those of its sub-slots, and a project provider that still wants a default names that skill. Project skills take names distinct from global skills and stay complete for collaborators without them.
 
 - When a skill's context lists slot providers, read each listed SKILL.md before acting, and the files it links that are material to the task.
 - A provider replaces only what its slot covers; the global skill governs everything else.
 - A project need outside every slot is a missing slot in the global skill, not an override.
+- A slot provider row marked `unknown` names a slot no skill declares, and a requested slot marked `undeclared` has no owner; report either to the user before relying on that slot.
 
 ## Single source of truth
 

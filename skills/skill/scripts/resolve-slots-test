@@ -52,4 +52,26 @@ check "lookalike names not matched" "$T" 'code.style global gstyle2\ncode.style 
 RUN="$P/.claude/skills/skill/scripts/resolve-slots"; mkdir -p "$(dirname "$RUN")"; cp "$SRC" "$RUN"
 check "project copy: no global tier" "$P" 'code.style project effect\ncode.style project effect2' code.style
 check "project copy: no duplicates" "$P" 'test.conventions project gtests' test.conventions
+
+# Declarations switch validation on.
+RUN=$R
+mk "$G/gowner/SKILL.md" '---\nname: gowner\nmetadata:\n  slots: "code.style code.validation git.branching git.commits review.criteria test.conventions"\n---\n'
+mk "$P/.claude/skills/typo/SKILL.md" '---\nname: typo\nmetadata:\n  provides: "code.styles git.brnching"\n---\n'
+problems='code.style-guide unknown gstyles\ncode.styles unknown gstyles\ncode.styles unknown typo\ngit.brnching unknown typo'
+check "unknown providers reported"  "$P" "git.commits project acme-commits\n$problems" git.commits
+check "declared sub-slot is known"  "$P" "code.validation global gcrlf\ncode.validation.python global gpylint\ncode.validation.typescript project tsval\n$problems" code.validation
+check "skill root is declared"      "$P" "git.branching global gbranch\ngit.commits project acme-commits\n$problems" git
+check "undeclared request reported" "$P" "git.branchs undeclared -\n$problems" git.branchs
+check "check mode lists problems"   "$P" "$problems" --check
+check_exit() { # name, cwd, expected exit, args...
+	local name=$1 cwd=$2 want=$3; shift 3
+	(cd "$cwd" && "$RUN" "$@" >/dev/null); local got=$?
+	if [ "$got" = "$want" ]; then pass=$((pass+1)); echo "ok   $name"; else fail=$((fail+1)); echo "FAIL $name (exit $got, want $want)"; fi
+}
+check_exit "check mode fails on problems" "$P" 1 --check
+check_exit "lookups still exit 0"         "$P" 0 git.branchs
+rm -rf "$P/.claude/skills/typo" "$G/gstyles"
+check "check mode clean"            "$P" '' --check
+check_exit "check mode passes clean"     "$P" 0 --check
+
 echo "pass=$pass fail=$fail"; [ "$fail" -eq 0 ]
