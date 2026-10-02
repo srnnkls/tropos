@@ -91,3 +91,10 @@ structure = "flat"
 
 [lint]
 external = ["skill:gestalt", "command:plan"]
+
+[[lint.registries]]
+id = "unknown-slot"
+declare = 'frontmatter.metadata?.slots ?? ""'
+reference = '(frontmatter.metadata?.provides ?? "") + " " + join(map(frontmatter.henia?.variables?.context_commands ?? [], #.slots ?? ""), " ")'
+match = "dotted"
+severity = "error"
