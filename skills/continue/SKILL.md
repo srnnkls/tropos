@@ -15,7 +15,6 @@ henia:
           display_name: Continue
           short_description: Apply the canonical continue skill workflow
           default_prompt: Use $continue for the requested task.
-  auto_invoke: false
   variables:
     context_commands:
       - label: Active scopes

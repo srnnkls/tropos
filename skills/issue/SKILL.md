@@ -8,7 +8,7 @@ henia:
     claude:
       frontmatter:
         argument-hint: '[number|pr] [args]'
-        allowed-tools: Bash(gh issue *), Bash(gh pr *), Bash(gh api *), Bash(gh repo view *), Bash(git branch *), Bash(git push *), Bash(git rev-parse *), Bash(git log *), Bash(git merge-base *), Bash(issue *), Bash(peer *)
+        allowed-tools: Bash(gh issue *), Bash(gh pr *), Bash(gh api *), Bash(gh repo view *), Bash(git branch *), Bash(git push *), Bash(git rev-parse *), Bash(git log *), Bash(git merge-base *), Bash(issue *), Bash(peer *), Bash(grep *)
     codex:
       openai:
         interface:
@@ -17,6 +17,8 @@ henia:
           default_prompt: Use $issue for the requested task.
   variables:
     context_commands:
+      - label: Project extensions
+        command: grep -rlsE --include=SKILL.md '^[[:space:]]+extends:.*[ "]issue([ "]|$)' .claude/skills .agents/skills 2>/dev/null || true
       - label: Current branch
         command: git branch --show-current 2>/dev/null || true
       - label: Default reviewers

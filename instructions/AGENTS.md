@@ -39,6 +39,13 @@ Ordinary work executes directly. Strict delegated RED → GREEN → review and T
 
 For configuration, documentation, maintenance, and platform-validated artifacts, use the native parser, linter, command, or runtime instead of inventing test machinery.
 
+## Project extensions
+
+A repository extends a global skill with a project skill whose frontmatter carries `metadata.extends: "<skill> [<skill>…]"`. Project skills take names distinct from global skills and stay complete for collaborators without them.
+
+- When a skill's context lists project extensions, load each listed skill before acting.
+- Project skills and project instructions override this contract and the global skill where they conflict; the global workflow governs only what they leave open.
+
 ## Single source of truth
 
 Give every procedure, policy list, schema, routing matrix, gate, and failure-mode catalog one canonical Tropos skill or resource.

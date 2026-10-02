@@ -4,7 +4,10 @@ description: Bounded RED-GREEN-REFACTOR methodology. Use when the user explicitl
 metadata:
   type: generic
 henia:
-  auto_invoke: false
+  variables:
+    context_commands:
+      - label: Project extensions
+        command: grep -rlsE --include=SKILL.md '^[[:space:]]+extends:.*[ "]test([ "]|$)' .claude/skills .agents/skills 2>/dev/null || true
   targets:
     codex:
       openai:
@@ -16,6 +19,16 @@ henia:
 
 <!-- Generated from skills/test/SKILL.md by henia build; edit the canonical source. -->
 
+## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
+
+{{.context_instruction}}
+
+{{range .context_commands}}{{.label}}:
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{.command}}
+```{{end}}
+
+{{end}}
 # Bounded Test-Driven Development
 
 Write the smallest discriminating check, watch it fail for the requested missing behavior, add minimal production code, then watch it pass.

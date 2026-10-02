@@ -4,9 +4,10 @@ description: Strict delegated RED → GREEN → review workflow. Use only when e
 metadata:
   type: generic
 henia:
-  auto_invoke: false
   variables:
     context_commands:
+      - label: Project extensions
+        command: grep -rlsE --include=SKILL.md '^[[:space:]]+extends:.*[ "]implement([ "]|$)' .claude/skills .agents/skills 2>/dev/null || true
       - label: Active scopes
         command: find scopes -maxdepth 3 -name scope.md 2>/dev/null || true
       - label: Checkpoints
@@ -23,7 +24,7 @@ henia:
     claude:
       frontmatter:
         argument-hint: '[target]'
-        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(gh *), Bash(peer *)
+        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(gh *), Bash(peer *), Bash(grep *)
     codex:
       openai:
         interface:

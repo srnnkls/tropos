@@ -8,7 +8,7 @@ henia:
     claude:
       frontmatter:
         argument-hint: '[operation] [args]'
-        allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(git rev-parse *)
+        allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(git rev-parse *), Bash(grep *)
     codex:
       openai:
         interface:
@@ -17,6 +17,8 @@ henia:
           default_prompt: Use $git for the requested task.
   variables:
     context_commands:
+      - label: Project extensions
+        command: grep -rlsE --include=SKILL.md '^[[:space:]]+extends:.*[ "]git([ "]|$)' .claude/skills .agents/skills 2>/dev/null || true
       - label: Current branch
         command: git branch --show-current 2>/dev/null || true
       - label: Status

@@ -62,6 +62,8 @@ Keep portable `name`, `description`, `metadata`, `license` and `compatibility` a
 the top level. Put harness-specific metadata under `henia.targets.<profile>`.
 Use `henia.auto_invoke: false` for explicit-only skills, `henia.variables` for
 context inputs, and `henia.targets.codex.openai.interface` for Codex UI metadata.
+A skill that repositories may extend lists a `Project extensions` context command;
+the interface is defined in the global contract's Project extensions section.
 
 Write canonical skill references as backtick `$<skill-name>` spans outside code
 examples. Use portable relative Markdown links in copied reference documents.

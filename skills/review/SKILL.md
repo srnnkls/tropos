@@ -6,6 +6,8 @@ metadata:
 henia:
   variables:
     context_commands:
+      - label: Project extensions
+        command: grep -rlsE --include=SKILL.md '^[[:space:]]+extends:.*[ "]review([ "]|$)' .claude/skills .agents/skills 2>/dev/null || true
       - label: Git status
         command: git status --short 2>/dev/null || true
       - label: Recent commits
@@ -26,7 +28,7 @@ henia:
     claude:
       frontmatter:
         argument-hint: '[target]'
-        allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(find *), Bash(gh pr list *), Bash(peer *)
+        allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(find *), Bash(gh pr list *), Bash(peer *), Bash(grep *)
     codex:
       openai:
         interface:
