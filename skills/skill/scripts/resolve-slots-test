@@ -8,14 +8,19 @@ mkdir -p "$G/skill/scripts"; cp "$SRC" "$G/skill/scripts/resolve-slots"; R="$G/s
 mk "$G/loqui/SKILL.md"   '---\nname: loqui\nmetadata:\n  provides: "code.style"\n---\n'
 mk "$G/gstyle2/SKILL.md" '---\nname: gstyle2\nmetadata:\n  provides: [code.style, review.criteria]  # two\n---\n'
 mk "$G/gbranch/SKILL.md" '---\nname: gbranch\nmetadata:\n  provides: git.branching\n---\n'
+mk "$G/gcommits/SKILL.md" '---\nname: gcommits\nmetadata:\n  provides: git.commits\n---\n'
 mk "$G/gtests/SKILL.md"  '---\nname: gtests\nmetadata:\n  provides: test.conventions\n---\n'
 mk "$G/gnone/SKILL.md"   '---\nname: gnone\n---\nprovides: code.style\n'
 mk "$G/gcrlf/SKILL.md"   '---\r\nname: gcrlf\r\nmetadata:\r\n  provides: "code.validation"\r\n---\r\n'
 mk "$G/loqui/reference/nested/SKILL.md" '---\nname: nested\nmetadata:\n  provides: code.style\n---\n'
+mk "$G/gpy/SKILL.md"      '---\nname: gpy\nmetadata:\n  provides: code.style.python\n---\n'
+mk "$G/gpylint/SKILL.md"  '---\nname: gpylint\nmetadata:\n  provides: code.validation.python\n---\n'
+mk "$G/gstyles/SKILL.md"  '---\nname: gstyles\nmetadata:\n  provides: code.styles code.style-guide\n---\n'
 ln -s "$T/nowhere" "$G/broken"
 mkdir -p "$P"; git -C "$P" init -q
 mk "$P/.claude/skills/effect/SKILL.md"       '---\nname: effect\nmetadata:\n  provides: "code.style"\n---\n'
 mk "$P/.agents/skills/effect2/SKILL.md"      '---\nname: effect2\nmetadata:\n  provides: '"'"'code.style'"'"'\n---\n'
+mk "$P/.claude/skills/tsval/SKILL.md"        '---\nname: tsval\nmetadata:\n  provides: code.validation.typescript\n---\n'
 mk "$P/.omp/skills/acme-commits/SKILL.md"    '---\nname: acme-commits\nmetadata:\n  provides: git.commits\n---\n'
 ln -s "$G/gtests" "$P/.claude/skills/gtests"
 mkdir -p "$P/sub/dir"
@@ -33,13 +38,17 @@ check "shadowing is per slot"       "$P" 'code.style project effect\ncode.style 
 check "two globals, no project"     "$P" 'review.criteria global gstyle2' review.criteria
 check "project-only slot"           "$P" 'git.commits project acme-commits' git.commits
 check "symlinked global = project"  "$P" 'test.conventions project gtests' test.conventions
-check "CRLF frontmatter"            "$P" 'code.validation global gcrlf' code.validation
+check "CRLF frontmatter"            "$P" 'code.validation global gcrlf' code.validation.zig
 check "unknown slot"                "$P" '' git.nothing
 check "no args"                     "$P" ''
 check "duplicate args"              "$P" 'git.branching global gbranch' git.branching git.branching
 check "subdirectory cwd"            "$P/sub/dir" 'git.commits project acme-commits' git.commits
-check "outside git, globals only"   "$T" 'code.style global gstyle2\ncode.style global loqui' code.style
-check "bare skill name ignored"     "$P" '' git
+check "outside git, globals only"   "$T" 'git.commits global gcommits' git.commits
+check "skill root resolves all"     "$P" 'git.branching global gbranch\ngit.commits project acme-commits' git
+check "ancestor shadows descendant" "$P" 'code.style project effect\ncode.style project effect2' code.style.python
+check "narrower keeps broader"      "$P" 'code.validation global gcrlf\ncode.validation.python global gpylint\ncode.validation.typescript project tsval' code.validation
+check "request matches ancestor"    "$P" 'code.validation global gcrlf\ncode.validation.python global gpylint' code.validation.python
+check "lookalike names not matched" "$T" 'code.style global gstyle2\ncode.style global loqui\ncode.style.python global gpy' code.style
 RUN="$P/.claude/skills/skill/scripts/resolve-slots"; mkdir -p "$(dirname "$RUN")"; cp "$SRC" "$RUN"
 check "project copy: no global tier" "$P" 'code.style project effect\ncode.style project effect2' code.style
 check "project copy: no duplicates" "$P" 'test.conventions project gtests' test.conventions

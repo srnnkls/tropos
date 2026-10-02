@@ -58,7 +58,7 @@ No operation is inferred from an ordinary task outside explicit skill invocation
 
 | Slot | Covers |
 |---|---|
-| `code.style` | Style guidance for Implementation Context and the Compliance role |
+| `code.style` | Style guidance for Implementation Context and the Compliance role; providers scope it per language as `code.style.<language>` |
 | `code.validation` | Native lint, typecheck, and build commands that make up directly affected native validation |
 
 ## Implementation Context
