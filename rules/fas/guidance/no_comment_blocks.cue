@@ -76,7 +76,7 @@ _injectComment: {
 	rule_id: "comment-block"
 	channel: "agent"
 	text: """
-		STOP — delete this comment block. House style (AGENTS.md → Comments & Documentation) forbids comment blocks; the default answer is DELETE, not justify.
+		STOP — delete this comment block. House style (AGENTS.md → Artifact purity, Economy and style) forbids comment blocks; the default answer is DELETE, not justify.
 		Before you keep ANY of it, the burden is on you to pass all three, out loud: (1) name the exact category — hidden constraint / non-obvious invariant / workaround tied to a NAMED bug+issue / external quirk with a NAMED source; nothing else exists. (2) Show why a better NAME cannot carry it. (3) Show why a TEST cannot pin it.
 		There is NO length exception — collapsing the block to a single line does not redeem it. The bar is the category test above, not brevity. Fail it → delete, whatever the length.
 		Fail any step, or find yourself reaching for words like "load-bearing", "subtle", "important to note", "for clarity", or any defense of your own choices → that IS the leakage; delete the whole block now and fix the name.
@@ -88,7 +88,7 @@ _injectLint: {
 	rule_id: "lint-suppression"
 	channel: "agent"
 	text: """
-		STOP — delete this linter directive. House style (AGENTS.md → Comments & Documentation) bans non-technical comments, suppressions, and pragmas (# noqa, # type: ignore, // eslint-disable, // @ts-expect-error, # shellcheck disable, and the like).
+		STOP — delete this linter directive. House style (AGENTS.md → Artifact purity, Economy and style) bans non-technical comments, suppressions, and pragmas (# noqa, # type: ignore, // eslint-disable, // @ts-expect-error, # shellcheck disable, and the like).
 		A suppression silences the tool instead of fixing the code. Fix the underlying issue — the type, the unused import, the real violation — so the directive is unnecessary.
 		If the suppression is genuinely unavoidable, that is a NAMED external-quirk exception: state the tool, the exact rule, and why the code cannot satisfy it — out loud, before keeping it. Default is DELETE.
 		"""

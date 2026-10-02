@@ -2,24 +2,9 @@ package guidance
 
 import "github.com/srnnkls/fas/cue/hook"
 
-sg_debug: {
-	when: hook.#UserPromptSubmit & {prompt: =~#"(?i)\b(bug|debug|error|failing|broken|not working|crash|exception|traceback|stack trace|unexpected|investigate)\b"#}
-	then: inject: {rule_id: "suggest-debug", channel: "agent", text: "Consider using `implement` skill for systematic debugging."}
-}
-
-sg_debug_intent: {
-	when: hook.#UserPromptSubmit & {prompt: =~"(?i)(fix|debug|investigate|find).*(bug|error|issue|problem)"}
-	then: inject: {rule_id: "suggest-debug", channel: "agent", text: "Consider using `implement` skill for systematic debugging."}
-}
-
 sg_test: {
-	when: hook.#UserPromptSubmit & {prompt: =~#"(?i)\b(tdd|test-driven|write test|add test|unit test|test first|red green)\b"#}
-	then: inject: {rule_id: "suggest-test", channel: "agent", text: "Consider using `test` skill for TDD workflow."}
-}
-
-sg_implement: {
-	when: hook.#UserPromptSubmit & {prompt: =~#"(?i)\b(implement|add feature|create function|write code|new feature)\b"#}
-	then: inject: {rule_id: "suggest-test", channel: "agent", text: "Consider using `test` skill for TDD workflow."}
+	when: hook.#UserPromptSubmit & {prompt: =~#"(?i)\b(tdd|test-driven|write tests?|add tests?|test first|red green)\b"#}
+	then: inject: {rule_id: "suggest-test", channel: "agent", text: "A direct request for tests or TDD: use the `test` skill."}
 }
 
 sg_review: {
@@ -28,18 +13,18 @@ sg_review: {
 }
 
 sg_scope: {
-	when: hook.#UserPromptSubmit & {prompt: =~#"(?i)\b(specification|validate spec|clarify requirements|requirements|scope|unclear|ambiguous)\b"#}
-	then: inject: {rule_id: "suggest-scope", channel: "agent", text: "Consider using `scope` skill for requirements clarification."}
+	when: hook.#UserPromptSubmit & {prompt: =~#"(?i)\b(create|new|review|update|finish|list) (a |the )?scope\b"#}
+	then: inject: {rule_id: "suggest-scope", channel: "agent", text: "Consider using `scope` skill for the scope lifecycle."}
 }
 
 sg_scope_docs: {
-	when: hook.#UserPromptSubmit & {prompt: =~#"(?i)\b(create spec|document spec|write spec|spec documents|done speccing|ready to implement|finalize spec)\b"#}
+	when: hook.#UserPromptSubmit & {prompt: =~#"(?i)\b(create spec|document spec|write spec|spec documents|done speccing|finalize spec)\b"#}
 	then: inject: {rule_id: "suggest-scope-docs", channel: "agent", text: "Consider using `scope` skill to generate spec documents."}
 }
 
 sg_dispatch: {
-	when: hook.#UserPromptSubmit & {prompt: =~#"(?i)\b(execute spec|execute tasks|run tasks|dispatch tasks|dispatch|subagent|parallel tasks)\b"#}
-	then: inject: {rule_id: "suggest-dispatch", channel: "agent", text: "Consider using `implement` skill for subagent execution."}
+	when: hook.#UserPromptSubmit & {prompt: =~#"(?i)\b(execute|run|implement) (the )?(scope|spec)\b"#}
+	then: inject: {rule_id: "suggest-dispatch", channel: "agent", text: "Consider using `dispatch` skill to route an explicit scope execution request."}
 }
 
 sg_skill: {

@@ -8,13 +8,15 @@ import (
 
 _mutatingRole: "^(tester|implementer)(-|$)"
 
+_scopeRun: #"(^|[^\w.-])scopes/[^/\s]+/[^/\s]+|\.peer/[^/\s]+/[^/\s]+/b[0-9]+-"#
+
 _stageEntry: "Before this dispatch, checkpoint.yaml needs an `incomplete_stages` entry: batch, task, phase (tester|implementer|fix), agent alias, report_dir, `status: in_progress`, and pre-dispatch `git status --short` plus the relevant diff. Write it now if it isn't there — a stall past this point is unrecoverable without it."
 
 _cursorEntry: "Before this review gate, set `phase_cursor` to the gate phase with `status: in_progress` and one entry per configured alias (test_review/targeted_review → `reports`; code_review/final_review → `roles`), each with its report_dir and `status: pending`. Preserve roles already completed."
 
 checkpoint_brief_staged: {
 	when: hook.#PostToolUse & hook.#MainThread & tool.#Write & {
-		tool_input: file_path: =~#"\.peer/.*(tester|implementer|fix)[^/]*brief"#
+		tool_input: file_path: =~#"\.peer/[^/]+/[^/]+/b[0-9]+-.*(tester|implementer|fix)[^/]*brief"#
 	}
 	then: inject: {
 		rule_id:  "checkpoint-brief-staged"
@@ -26,7 +28,10 @@ checkpoint_brief_staged: {
 
 checkpoint_stage_before_mutating_dispatch: {
 	when: hook.#PreToolUse & hook.#MainThread & (tool.#Task | tool.#Agent) & {
-		tool_input: subagent_type: =~_mutatingRole
+		tool_input: {
+			subagent_type: =~_mutatingRole
+			prompt:        =~_scopeRun
+		}
 	}
 	then: inject: {
 		rule_id:  "checkpoint-stage-before-mutating-dispatch"
@@ -39,7 +44,7 @@ checkpoint_stage_before_mutating_dispatch: {
 checkpoint_stage_before_mutating_peer: {
 	when: hook.#PreToolUse & hook.#MainThread & tool.#Bash & (bash.#call & {
 		#match: bash.#argumentPair & {command: "peer", #first: "--agent", #second: =~_mutatingRole}
-	})
+	}) & {tool_input: command: =~_scopeRun}
 	then: inject: {
 		rule_id:  "checkpoint-stage-before-mutating-peer"
 		channel:  "agent"
@@ -50,7 +55,10 @@ checkpoint_stage_before_mutating_peer: {
 
 checkpoint_cursor_before_review_dispatch: {
 	when: hook.#PreToolUse & hook.#MainThread & (tool.#Task | tool.#Agent) & {
-		tool_input: subagent_type: =~"^reviewer(-|$)"
+		tool_input: {
+			subagent_type: =~"^reviewer(-|$)"
+			prompt:        =~_scopeRun
+		}
 	}
 	then: inject: {
 		rule_id:  "checkpoint-cursor-before-review-dispatch"
@@ -63,7 +71,7 @@ checkpoint_cursor_before_review_dispatch: {
 checkpoint_cursor_before_review_peer: {
 	when: hook.#PreToolUse & hook.#MainThread & tool.#Bash & (bash.#call & {
 		#match: bash.#argumentPair & {command: "peer", #first: "--agent", #second: =~"^reviewer(-|$)"}
-	})
+	}) & {tool_input: command: =~_scopeRun}
 	then: inject: {
 		rule_id:  "checkpoint-cursor-before-review-peer"
 		channel:  "agent"
@@ -75,7 +83,7 @@ checkpoint_cursor_before_review_peer: {
 checkpoint_peer_launch_handle: {
 	when: hook.#PostToolUse & hook.#MainThread & tool.#Bash & (bash.#call & {
 		#match: bash.#argumentPair & {command: "peer", #first: "--agent", #second: =~"^(tester|implementer|reviewer)(-|$)"}
-	})
+	}) & {tool_input: command: =~_scopeRun}
 	then: inject: {
 		rule_id:  "checkpoint-peer-launch-handle"
 		channel:  "agent"
@@ -86,7 +94,7 @@ checkpoint_peer_launch_handle: {
 
 checkpoint_clear_after_peer_report: {
 	when: hook.#PostToolUse & hook.#MainThread & tool.#Read & {
-		tool_input: file_path: =~#"\.peer/.*\.ya?ml$"#
+		tool_input: file_path: =~#"\.peer/[^/]+/[^/]+/b[0-9]+-[^/]+/.*\.ya?ml$"#
 	}
 	then: inject: {
 		rule_id:  "checkpoint-clear-after-peer-report"

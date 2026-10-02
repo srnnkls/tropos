@@ -16,7 +16,7 @@ dispatch_use_tester: {
 		rule_id:  "dispatch-use-tester"
 		channel:  "agent"
 		priority: 60
-		text:     "This is Phase A (tester) work — dispatch it as the dedicated `tester` subagent, not a generic Agent, so the phase-transition protocol engages (A → A.5 test-review gate → B → C). The orchestrator NEVER authors tests; delegate. Verify RED before moving on."
+		text:     "This is tester (RED) work — dispatch it as the dedicated `tester` subagent, not a generic Agent, so the `implement` phase protocol engages (tester RED → implementer GREEN → review). The orchestrator NEVER authors tests; delegate. Verify RED before moving on."
 	}
 }
 
@@ -31,7 +31,7 @@ dispatch_use_implementer: {
 		rule_id:  "dispatch-use-implementer"
 		channel:  "agent"
 		priority: 60
-		text:     "This is Phase B (implementer) work — dispatch it as the dedicated `implementer` subagent, not a generic Agent. Precondition: tests exist, are RED, and cleared the Phase A.5 review gate. The orchestrator NEVER writes code; delegate, then verify GREEN."
+		text:     "This is implementer (GREEN) work — dispatch it as the dedicated `implementer` subagent, not a generic Agent. Precondition: tests exist and are verified RED. The orchestrator NEVER writes code; delegate, then verify GREEN."
 	}
 }
 
@@ -47,7 +47,7 @@ dispatch_use_reviewer: {
 		rule_id:  "dispatch-use-reviewer"
 		channel:  "agent"
 		priority: 60
-		text:     "Review work — per role, dispatch a Claude `reviewer` subagent PLUS one `peer run` for the external reviewers (codex + gemini, per validation.yaml review_config). `peer run` fans out to all external harnesses; never shell out to codex/gemini directly. Every batch is reviewed before commit. See the `peer` skill."
+		text:     "Review work — dispatch a Claude `reviewer` subagent PLUS one `peer run` for the external reviewers from `peer defaults reviewers`. `peer run` fans out to all external harnesses; never shell out to an external CLI directly. Every batch is reviewed before commit. See the `peer` skill."
 	}
 }
 
@@ -57,7 +57,7 @@ tester_role_contract: {
 		rule_id: "tester-role-contract"
 		channel: "agent"
 		text: """
-			You are a TESTER (Phase A). Orient with `gestalt map` first.
+			You are a TESTER (RED). Orient with `gestalt map` first.
 			Iron Law of TDD: write FAILING tests, then verify RED — tests must fail because the feature is MISSING, not from typos or imports. Discover expected behavior from specs/code independently; never mirror an implementation or assume the answer in a mock.
 			Final message = ONLY the tester_report YAML, no prose.
 			"""
@@ -70,7 +70,7 @@ implementer_role_contract: {
 		rule_id: "implementer-role-contract"
 		channel: "agent"
 		text: """
-			You are an IMPLEMENTER (Phase B). Orient with `gestalt map` first; consult `loqui` for language guidelines.
+			You are an IMPLEMENTER (GREEN). Orient with `gestalt map` first; consult `loqui` for language guidelines.
 			Run the failing tests, write the MINIMAL code to make them GREEN, then refactor while staying green. Do NOT weaken, skip, or edit the tests to pass.
 			Final message = ONLY the implementer_report YAML, no prose.
 			"""
@@ -83,7 +83,7 @@ reviewer_role_contract: {
 		rule_id: "reviewer-role-contract"
 		channel: "agent"
 		text: """
-			You are a REVIEWER (Phase C). Orient with `gestalt map` first; apply `/code-review` methodology.
+			You are a REVIEWER. Orient with `gestalt map` first; apply your preloaded `review` skill and any project extensions it lists.
 			Review the batch's changes against scope requirements and report issues by severity — do not fix them.
 			Final message = ONLY the review report YAML, no prose.
 			"""

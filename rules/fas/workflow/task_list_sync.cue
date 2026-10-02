@@ -7,24 +7,15 @@ import (
 
 implement_populate_task_list: {
 	when: hook.#PreToolUse & tool.#Skill & {
-		tool_input: skill: =~"(?i)^(implement|loop|continue)$"
+		tool_input: {
+			skill: =~"(?i)^(implement|loop|continue)$"
+			args:  =~#"(^|[\s/])scopes/[^/\s]+/[^/\s]+"#
+		}
 	}
 	then: inject: {
 		rule_id:  "implement-populate-task-list"
 		channel:  "agent"
 		priority: 60
-		text:     "Before dispatching any subagent: read ./scopes/<state>/<name>/tasks.yaml and populate the task list with EVERY uncompleted task (first one in_progress, rest pending). This is a precondition, not bookkeeping — batching, resume, and the tasks.yaml write-back all read from it."
-	}
-}
-
-implement_task_list_before_phase_a: {
-	when: hook.#PreToolUse & (tool.#Task | tool.#Agent) & {
-		tool_input: subagent_type: "tester"
-	}
-	then: inject: {
-		rule_id:  "implement-task-list-before-phase-a"
-		channel:  "agent"
-		priority: 55
-		text:     "Batch opening — the task list must already carry this batch's tasks, with the ones now in flight marked in_progress. If it's empty or stale (resumed session, new batch), refresh it from tasks.yaml in this same message."
+		text:     "Scope run — read the scope's tasks.yaml before dispatching; it is the sole task-status authority. A task list, if kept, mirrors it as display state only (see `implement` operations/execute.md)."
 	}
 }
