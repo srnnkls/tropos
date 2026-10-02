@@ -130,11 +130,24 @@ git_add_all: {
 _discardReason: "This discards uncommitted changes irrecoverably. To commit them separately, stage hunks from the diff instead of resetting: git diff > p.patch, filter the hunks you want, git apply --cached p.patch. A submodule gitlink is not a file — its diff is one SHA line with no hunks to stage, the commit it pointed at survives in the submodule's reflog, and `git update-index --skip-worktree <path>` hides the delta while discarding nothing. See the git skill, reference/commands.md."
 
 git_discard_uncommitted: {
+	_ref: !~"^-" & !~"^(HEAD|@)$"
+
 	when: hook.#PreToolUse & tool.#Bash & (bash.#call & {
-		#match: {command: "git", subcommand: "checkout", arguments: list.MatchN(>0, "--")} |
-			{command: "git", subcommand: "reset", flags: list.MatchN(>0, "--hard")} |
-			{command: "git", subcommand: "clean", flags: list.MatchN(>0, "-f" | "--force")} |
-			{command: "git", subcommand: "restore", flags: list.MatchN(0, "--staged" | "-S")}
+		#match: {
+			command:     "git"
+			subcommand!: "checkout"
+			arguments:   list.MatchN(>0, "--")
+			flags:       list.MatchN(0, "--ours" | "--theirs")
+			argument_pairs: list.MatchN(0, {first: _ref & !="checkout", second: "--", ...})
+		} |
+			{command: "git", subcommand!: "reset", flags: list.MatchN(>0, "--hard")} |
+			{command: "git", subcommand!: "clean", flags: list.MatchN(>0, "-f" | "--force")} |
+			{
+				command:     "git"
+				subcommand!: "restore"
+				flags:       list.MatchN(0, "--staged" | "-S")
+				argument_pairs: list.MatchN(0, {first: "--source" | "-s", second: _ref, ...})
+			}
 	})
 	then: deny: {
 		rule_id:  "git-discard-uncommitted"
