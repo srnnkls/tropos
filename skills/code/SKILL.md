@@ -58,14 +58,14 @@ No operation is inferred from an ordinary task outside explicit skill invocation
 
 | Slot | Covers |
 |---|---|
-| `code.style` | Project style guidance; applies ahead of Loqui in Implementation Context and the Compliance role |
+| `code.style` | Style guidance for Implementation Context and the Compliance role |
 | `code.validation` | Native lint, typecheck, and build commands that make up directly affected native validation |
 
 ## Implementation Context
 
 - Apply the repository-orientation contract in [AGENTS.md](../../instructions/AGENTS.md#tools-and-context).
 - Use named `gestalt callers`, `callees`, or `refs` only when a changed symbol's immediate relationship is unresolved.
-- Load the Loqui README once per language when language behavior, APIs, or unfamiliar style choices are material. Read only topic files needed by the change.
+- Apply the listed `code.style` providers when language behavior, APIs, or unfamiliar style choices are material. Read each provider once and only the topic files needed by the change.
 - Follow direct execution unless explicit `$implement` activated the strict delegated pipeline.
 
 ## Test Context
@@ -88,7 +88,7 @@ Prepare once:
 - verbatim [finding bar](../review/reference/finding-bar.md);
 - fresh materialized repository orientation;
 - bounded Gestalt context;
-- only material Loqui excerpts.
+- only material `code.style` provider excerpts.
 
 For implementation-owned initial review, launch every role and configured reviewer in one assistant message. Standalone review launches selected roles the same way. Post-fix verification never uses this fan-out; [review synthesis](../review/reference/synthesis.md#46-fix-and-re-review-protocol) owns its single targeted reviewer. Resolve mechanisms through [peer routing](../peer/reference/routing.md); review-specific materialization and coverage live in [review harnesses](../review/reference/harnesses.md).
 

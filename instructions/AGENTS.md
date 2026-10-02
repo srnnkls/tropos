@@ -41,9 +41,9 @@ For configuration, documentation, maintenance, and platform-validated artifacts,
 
 ## Project slots
 
-A global skill owns named slots, `<skill>.<slot>`, and states each one's coverage in its Slots section. A repository fills slots with a project skill whose frontmatter carries `metadata.provides: "<skill>.<slot> […]"`; the value may be quoted or bare space-separated names or a `[a, b]` flow list. Project skills take names distinct from global skills and stay complete for collaborators without them.
+A global skill owns named slots, `<skill>.<slot>`, and states each one's coverage in its Slots section. A skill fills slots when its frontmatter carries `metadata.provides: "<skill>.<slot> […]"`; the value may be quoted or bare space-separated names or a `[a, b]` flow list. Global skills that provide a slot are its defaults; a project provider of a slot shadows all of its global providers, and a project provider that still wants a default names that skill. Project skills take names distinct from global skills and stay complete for collaborators without them.
 
-- When a skill's context lists slot providers, read each listed SKILL.md and the files it links before acting.
+- When a skill's context lists slot providers, read each listed SKILL.md before acting, and the files it links that are material to the task.
 - A provider replaces only what its slot covers; the global skill governs everything else.
 - A project need outside every slot is a missing slot in the global skill, not an override.
 

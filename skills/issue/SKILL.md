@@ -95,7 +95,7 @@ The raw `gh api graphql` mutations are documented below as the reference the wra
 ## Workflow
 
 1. **Read the template structure.** Consult [`references/template.md`](references/template.md) for the section list, header ordering, and what each section must contain.
-2. Orient in the target repo before sketching. Apply the repository-orientation contract in [AGENTS.md](../../instructions/AGENTS.md#tools-and-context) and the query semantics in the [Gestalt skill](../gestalt/SKILL.md#subagent-orientation). Then use `$loqui`, `CLAUDE.md` / `AGENTS.md`, and neighbouring modules to match naming, error handling, and layering conventions.
+2. Orient in the target repo before sketching. Apply the repository-orientation contract in [AGENTS.md](../../instructions/AGENTS.md#tools-and-context) and the query semantics in the [Gestalt skill](../gestalt/SKILL.md#subagent-orientation). Then use the listed `code.style` providers, `CLAUDE.md` / `AGENTS.md`, and neighbouring modules to match naming, error handling, and layering conventions.
 3. **Draft the issue body.** Use the section order in `references/template.md`. For implementation sketches, follow [`references/sketches.md`](references/sketches.md) — illustrative shapes (signatures, not bodies) written in the repo's own idioms.
 4. **Title format.** `<Module> — <short summary>` with an em-dash (—), not a hyphen. Examples: `Discovery — dependency traversal from activities to tables`, `Catalog — migration catalog with priority, stats, and export`.
 5. **Determine issue type, parent, and dependencies (depends-on / blocks) before submitting** (see [Issue metadata](#issue-metadata-type-parent-dependencies) below). If the user hasn't specified type or parent, ask via `AskUserQuestion` — don't guess. Ask about depends-on / blocks only when the body sketch hints at sequencing between issues; skip for standalone work. For updates, inspect the existing metadata first via `gh api graphql` and only change what the user asked to change.
@@ -298,7 +298,7 @@ Report back: issue URL, type, parent, depends-on (= `blockedBy`), blocks (= `blo
 - `$git` — branch naming, commit prefixes (relevant when the issue references commits or you follow up with `pr`).
 - `$peer` — external reviewer dispatch contract, registry, and auth for the review gate.
 - `$review` — review checklist for verifying drafts conform.
-- `$loqui` — language-specific patterns and idioms, consulted before writing sketches.
+- `code.style` providers ([code slots](../code/SKILL.md#slots)) — language-specific patterns and idioms, consulted before writing sketches.
 - `$gestalt` — repo orientation (map / analyze / callers) before sketching.
 
 ## Reference

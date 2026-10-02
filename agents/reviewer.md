@@ -13,7 +13,6 @@ henia:
         skills:
           - gestalt
           - review
-          - loqui
         color: yellow
 ---
 

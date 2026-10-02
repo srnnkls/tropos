@@ -70,7 +70,7 @@ implementer_role_contract: {
 		rule_id: "implementer-role-contract"
 		channel: "agent"
 		text: """
-			You are an IMPLEMENTER (GREEN). Orient with `gestalt map` first; consult `loqui` for language guidelines.
+			You are an IMPLEMENTER (GREEN). Orient with `gestalt map` first; apply the `code.style` slot providers for language guidelines.
 			Run the failing tests, write the MINIMAL code to make them GREEN, then refactor while staying green. Do NOT weaken, skip, or edit the tests to pass.
 			Final message = ONLY the implementer_report YAML, no prose.
 			"""

@@ -37,9 +37,9 @@ sg_pr: {
 	then: inject: {rule_id: "suggest-pr", channel: "agent", text: "Consider using `review` skill for GitHub PR review."}
 }
 
-sg_loqui: {
+sg_code_style: {
 	when: hook.#UserPromptSubmit & {prompt: =~#"(?i)\b(commit guideline|coding guideline|coding standard|code convention|style guide|naming convention|best practice)\b"#}
-	then: inject: {rule_id: "suggest-loqui", channel: "agent", text: "Consider using `loqui` skill for language-specific guidelines."}
+	then: inject: {rule_id: "suggest-code-style", channel: "agent", text: "Consider the `code.style` slot providers for language-specific guidelines; the `skill` skill's `scripts/resolve-slots code.style` lists them."}
 }
 
 sg_worktree: {

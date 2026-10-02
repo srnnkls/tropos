@@ -103,7 +103,7 @@ Dispatch one fresh configured implementer with the task requirements and tester 
 
 ### Phase C: Initial Review
 
-Materialize the diff, requirements, report schema, finding bar, bounded Gestalt context, and applicable Loqui excerpts once. In one message, dispatch all configured reviewers for General, Architecture, and Compliance. Wait once and synthesize once.
+Materialize the diff, requirements, report schema, finding bar, bounded Gestalt context, and applicable `code.style` provider excerpts once. In one message, dispatch all configured reviewers for General, Architecture, and Compliance. Wait once and synthesize once.
 
 Apply [review synthesis](../review/reference/synthesis.md) for admission, grouping, fixes, `needs decision`, re-review, and round limits. A post-fix re-review follows its targeted protocol and never re-enters Phase C.
 

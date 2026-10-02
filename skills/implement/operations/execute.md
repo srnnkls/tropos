@@ -88,7 +88,7 @@ Prepare shared inputs once:
 - exact report schema;
 - verbatim [finding bar](../../review/reference/finding-bar.md);
 - repository orientation from the batch snapshot plus bounded Gestalt context for changed symbols/files;
-- only the Loqui excerpts material to changed language patterns.
+- only the `code.style` provider excerpts material to changed language patterns.
 
 Create General, Architecture, and Compliance prompts from the canonical code-review roles. In one assistant message, dispatch every configured native reviewer for all three roles and start each role's external peer fan-out. The route snapshot and [configuration.md](../reference/configuration.md) determine the mechanism; alias names do not.
 

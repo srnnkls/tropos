@@ -1,19 +1,27 @@
 #!/bin/sh
 # Usage: resolve-slots <skill>.<slot> [...]
-# Prints "<slot><TAB><SKILL.md path>" for every project skill whose frontmatter
-# `provides:` names one of the given slots. Always exits 0.
+# Prints "<slot><TAB><tier><TAB><SKILL.md path>" for every skill whose
+# frontmatter `provides:` names one of the given slots. Tier `project` covers
+# the repository's skill directories; tier `global` covers the skills directory
+# this script is deployed in. A project provider shadows every global provider
+# of the same slot. Always exits 0.
 
 [ "$#" -gt 0 ] || exit 0
 
 root=$(git rev-parse --show-toplevel 2>/dev/null) || root=$(pwd)
+global=$(cd "$(dirname "$0")/../.." 2>/dev/null && pwd -P)
 
-for dir in .claude/skills .agents/skills .agent/skills .codex/skills .pi/skills .omp/skills .github/skills; do
-	[ -d "$root/$dir" ] && find -L "$root/$dir" -name SKILL.md -type f 2>/dev/null
-done | while IFS= read -r file; do
+{
+	for dir in .claude/skills .agents/skills .agent/skills .codex/skills .pi/skills .omp/skills .github/skills; do
+		[ -d "$root/$dir" ] && find -L "$root/$dir" -mindepth 2 -maxdepth 2 -name SKILL.md -type f 2>/dev/null | sed 's/^/project	/'
+	done
+	[ -n "$global" ] && find -L "$global" -mindepth 2 -maxdepth 2 -name SKILL.md -type f 2>/dev/null | sed 's/^/global	/'
+} | while IFS='	' read -r tier file; do
 	physical=$(cd -P "$(dirname "$file")" 2>/dev/null && pwd -P) || continue
-	printf '%s\t%s\n' "$physical/SKILL.md" "$file"
-done | awk -F '\t' '!seen[$1]++ { print $2 }' | while IFS= read -r file; do
-	awk -v wanted="$*" -v file="$file" '
+	printf '%s\t%s\t%s\n' "$physical/SKILL.md" "$tier" "$file"
+done | awk -F '\t' '!seen[$1]++ { print $2 "\t" $3 }' | while IFS='	' read -r tier file; do
+	awk -v wanted="$*" -v tier="$tier" -v file="$file" '
+		{ sub(/\r$/, "") }
 		NR == 1 { if ($0 !~ /^---[[:space:]]*$/) exit; next }
 		/^---[[:space:]]*$/ { exit }
 		/^[[:space:]]*provides:/ {
@@ -25,9 +33,12 @@ done | awk -F '\t' '!seen[$1]++ { print $2 }' | while IFS= read -r file; do
 			m = split(wanted, slots, " ")
 			for (j = 1; j <= m; j++)
 				for (i = 1; i <= n; i++)
-					if (names[i] == slots[j]) { printf "%s\t%s\n", slots[j], file; break }
+					if (names[i] == slots[j]) { printf "%s\t%s\t%s\n", slots[j], tier, file; break }
 		}
 	' "$file"
-done
+done | awk -F '\t' '
+	{ line[NR] = $0; slot[NR] = $1; tier[NR] = $2; if ($2 == "project") shadowed[$1] = 1 }
+	END { for (i = 1; i <= NR; i++) if ((tier[i] == "project" || !shadowed[slot[i]]) && !printed[line[i]]++) print line[i] }
+'
 
 exit 0

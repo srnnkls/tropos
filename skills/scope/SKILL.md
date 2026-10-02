@@ -460,7 +460,7 @@ scopes/<state>/<name>/   # <state> ∈ {draft, active, done}
 scopes/<state>/<name>/
 ├── tasks.yaml        # Authoritative task status, dependencies, and mutation paths
 ├── dependencies.yaml # Parallel dispatch DAG
-└── validation.yaml   # Audit trail, gate checks, reviewer config, loqui validation
+└── validation.yaml   # Audit trail, gate checks, reviewer config, code style validation
 ```
 
 ---

@@ -74,7 +74,7 @@ gh pr view {pr} --repo {owner}/{repo} --json files --jq '.files[].path' | \
 
 Load:
 - `code` domain — review process and checklist
-- `../../loqui/reference/loqui/languages/{language}/*` — language-specific resources based on file extensions
+- the listed `code.style` providers ([code slots](../../code/SKILL.md#slots)) — only the parts material to the changed languages
 
 ### 6. Reference Style Guides
 
@@ -162,7 +162,6 @@ gh review discard {pr} -R {owner}/{repo}
 ## Related Skills
 
 - `code`: Review methodology (focus, severity, checklist) and language guidelines
-- `loqui`: Language guidelines
 
 ---
 

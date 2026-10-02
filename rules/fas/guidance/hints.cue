@@ -5,14 +5,14 @@ import (
 	"github.com/srnnkls/fas/cue/tool"
 )
 
-loqui_hint: {
+code_style_hint: {
 	when: hook.#PreToolUse & (tool.#Edit | tool.#Write | tool.#MultiEdit) & {
 		tool_input: file_path: =~#"\.(py|go|rs|sh|bash|zig|el)$"#
 	}
 	then: inject: {
-		rule_id: "loqui-hint"
+		rule_id: "code-style-hint"
 		channel: "agent"
-		text:    "HINT: Use `loqui` skill for language-specific coding guidelines and best practices."
+		text:    "HINT: Apply the `code.style` slot providers for language-specific coding guidelines; the `skill` skill's `scripts/resolve-slots code.style` lists them."
 	}
 }
 

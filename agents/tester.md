@@ -8,7 +8,6 @@ henia:
         skills:
           - gestalt
           - test
-          - loqui
         color: red
 ---
 

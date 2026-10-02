@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Checks resolve-slots tiers, shadowing and discovery against an isolated fixture.
+set -u
+SRC=${1:-$(cd "$(dirname "$0")" && pwd -P)/resolve-slots}
+T=$(mktemp -d); trap 'rm -rf "$T"' EXIT; G="$T/global skills"; P="$T/my repo"; pass=0; fail=0
+mk() { mkdir -p "$(dirname "$1")"; printf -- "$2" > "$1"; }
+mkdir -p "$G/skill/scripts"; cp "$SRC" "$G/skill/scripts/resolve-slots"; R="$G/skill/scripts/resolve-slots"
+mk "$G/loqui/SKILL.md"   '---\nname: loqui\nmetadata:\n  provides: "code.style"\n---\n'
+mk "$G/gstyle2/SKILL.md" '---\nname: gstyle2\nmetadata:\n  provides: [code.style, review.criteria]  # two\n---\n'
+mk "$G/gbranch/SKILL.md" '---\nname: gbranch\nmetadata:\n  provides: git.branching\n---\n'
+mk "$G/gtests/SKILL.md"  '---\nname: gtests\nmetadata:\n  provides: test.conventions\n---\n'
+mk "$G/gnone/SKILL.md"   '---\nname: gnone\n---\nprovides: code.style\n'
+mk "$G/gcrlf/SKILL.md"   '---\r\nname: gcrlf\r\nmetadata:\r\n  provides: "code.validation"\r\n---\r\n'
+mk "$G/loqui/reference/nested/SKILL.md" '---\nname: nested\nmetadata:\n  provides: code.style\n---\n'
+ln -s "$T/nowhere" "$G/broken"
+mkdir -p "$P"; git -C "$P" init -q
+mk "$P/.claude/skills/effect/SKILL.md"       '---\nname: effect\nmetadata:\n  provides: "code.style"\n---\n'
+mk "$P/.agents/skills/effect2/SKILL.md"      '---\nname: effect2\nmetadata:\n  provides: '"'"'code.style'"'"'\n---\n'
+mk "$P/.omp/skills/acme-commits/SKILL.md"    '---\nname: acme-commits\nmetadata:\n  provides: git.commits\n---\n'
+ln -s "$G/gtests" "$P/.claude/skills/gtests"
+mkdir -p "$P/sub/dir"
+
+check() { # name, cwd, expected (lines "slot tier name"), args...
+	local name=$1 cwd=$2 want=$3; shift 3
+	local got; got=$(cd "$cwd" && "$RUN" "$@" | awk -F '\t' '{ n = $3; sub(/\/SKILL\.md$/, "", n); sub(/.*\//, "", n); print $1, $2, n }' | sort)
+	want=$(printf '%b' "$want" | sed '/^$/d' | sort)
+	if [ "$got" = "$want" ]; then pass=$((pass+1)); echo "ok   $name"; else fail=$((fail+1)); echo "FAIL $name"; echo "  want: $(echo "$want" | tr '\n' '|')"; echo "  got:  $(echo "$got" | tr '\n' '|')"; fi
+}
+RUN=$R
+check "global only"                 "$P" 'git.branching global gbranch' git.branching
+check "project shadows global"      "$P" 'code.style project effect\ncode.style project effect2' code.style
+check "shadowing is per slot"       "$P" 'code.style project effect\ncode.style project effect2\nreview.criteria global gstyle2' code.style review.criteria
+check "two globals, no project"     "$P" 'review.criteria global gstyle2' review.criteria
+check "project-only slot"           "$P" 'git.commits project acme-commits' git.commits
+check "symlinked global = project"  "$P" 'test.conventions project gtests' test.conventions
+check "CRLF frontmatter"            "$P" 'code.validation global gcrlf' code.validation
+check "unknown slot"                "$P" '' git.nothing
+check "no args"                     "$P" ''
+check "duplicate args"              "$P" 'git.branching global gbranch' git.branching git.branching
+check "subdirectory cwd"            "$P/sub/dir" 'git.commits project acme-commits' git.commits
+check "outside git, globals only"   "$T" 'code.style global gstyle2\ncode.style global loqui' code.style
+check "bare skill name ignored"     "$P" '' git
+RUN="$P/.claude/skills/skill/scripts/resolve-slots"; mkdir -p "$(dirname "$RUN")"; cp "$SRC" "$RUN"
+check "project copy: no global tier" "$P" 'code.style project effect\ncode.style project effect2' code.style
+check "project copy: no duplicates" "$P" 'test.conventions project gtests' test.conventions
+echo "pass=$pass fail=$fail"; [ "$fail" -eq 0 ]

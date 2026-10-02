@@ -115,7 +115,7 @@ readiness:
   integration_points_identified: ${BOOL}
   edge_cases_addressed: ${BOOL}
 
-loqui_check:
+code_style_check:
   present: ${BOOL}
   language: ${LANG}
   status: ${STATUS}
