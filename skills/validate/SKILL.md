@@ -1,6 +1,6 @@
 ---
 name: validate
-description: Unified validation dispatcher. Auto-detects validation type from argument or presents selection menu. Routes to test, implement (verify), or hooks-test.
+description: Unified validation dispatcher. Auto-detects validation type from argument or presents selection menu. Routes to test, implement (verify), or, on Claude Code with the hooks-test skill installed, hooks-test.
 metadata:
   type: generic
 henia:
@@ -41,7 +41,7 @@ Apply these rules to `$ARGUMENTS` in order:
 
 | Pattern | Route | Action |
 |---|---|---|
-| Contains "hook" or path to hooks file | Hooks | `Skill(hooks-test, $ARGUMENTS)` |
+| Contains "hook" or path to hooks file | Hooks | `Skill(hooks-test, $ARGUMENTS)` on Claude Code with `hooks-test` installed; otherwise the menu fallback |
 | Contains "completion", "done", or "verify" | Completion | `Skill(implement, verify)` |
 | Contains "test" or "tdd" | TDD | `Skill(test)` |
 | No argument | Menu fallback | See below |
@@ -59,7 +59,7 @@ multiSelect: false
 Options:
 - TDD: RED-GREEN-REFACTOR test-driven development
 - Completion: Evidence-based verification before claiming done
-- Hooks: Test Claude Code hooks at unit/integration/e2e levels
+- Hooks: Test Claude Code hooks at unit/integration/e2e levels (only when `hooks-test` is available)
 ```
 
 | Selection | Action |

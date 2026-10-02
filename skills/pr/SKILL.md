@@ -31,7 +31,7 @@ All shell lives in [scripts/pr-context](scripts/pr-context), resolved against th
 scripts/pr-context $ARGUMENTS
 ```{{end}}
 
-Sections, in order: `== pr ==` (metadata), `== inline comments ==` (`node_id` feeds `tfcprr --comment`, `original_line` anchors the relevant-vs-outdated check), `== unresolved threads ==` (resolved threads collapse — don't re-litigate), `== review bodies ==` and `== conversation ==` (not line-anchored), `== diff ==` (HEAD, first 800 lines).
+Sections, in order: `== project extensions ==` (project skills extending `pr` or `review`), `== pr ==` (metadata), `== inline comments ==` (`node_id` feeds `tfcprr --comment`, `original_line` anchors the relevant-vs-outdated check), `== unresolved threads ==` (resolved threads collapse — don't re-litigate), `== review bodies ==` and `== conversation ==` (not line-anchored), `== diff ==` (HEAD, first 800 lines).
 
 On the `tfcprr` route the script exits silently. If it printed `no-pr`, ask the user for the PR number, then re-run the script with `comments <number>`.
 
@@ -66,8 +66,8 @@ Work from the pre-loaded context above. For each **inline review comment**, in f
 1. **Relevant vs outdated** — locate `path:original_line` at HEAD (`headRefOid`) using the diff. Outdated if the cited hunk was removed or rewritten beyond recognition; otherwise still relevant.
 2. **Valid vs invalid** — judge against the *current* code, not the snapshot the reviewer saw:
    - *Valid*: the concern still applies and the suggestion is correct.
-   - *Invalid*: a misread, already addressed, or contradicts the repo's own conventions (`CLAUDE.md` / `AGENTS.md` / `STYLE.md`, and any project review skill).
-3. **Structural view (optional)** — if the project ships a structural-review skill (e.g. an `effect` / `lens` skill), run it on the cited file and map the reviewer's concern onto it; quote the canonical citation, else "no finding at this line". Skip if no such skill exists.
+   - *Invalid*: a misread, already addressed, or contradicts the repo's own conventions (`CLAUDE.md` / `AGENTS.md` / `STYLE.md`, and the listed project extensions).
+3. **Project extensions** — apply listed project extensions to the cited file and map the reviewer's concern onto them; quote the canonical citation, else "no finding at this line". Skip when none are listed.
 
 Resolved threads (from the resolution map) and replies (`in_reply_to_id`) collapse with their parent — assess the thread, not each turn.
 

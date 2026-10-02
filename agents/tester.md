@@ -10,15 +10,6 @@ henia:
           - test
           - loqui
         color: red
-        hooks:
-          PreToolUse:
-            - hooks:
-                - type: command
-                  command: fas eval --harness claude
-          PostToolUse:
-            - hooks:
-                - type: command
-                  command: fas eval --harness claude
 ---
 
 ## Role

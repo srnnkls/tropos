@@ -8,7 +8,7 @@ henia:
     claude:
       frontmatter:
         argument-hint: '[number|pr] [args]'
-        allowed-tools: Bash(gh issue *), Bash(gh pr *), Bash(gh api *), Bash(gh repo view *), Bash(git branch *), Bash(git push *), Bash(git rev-parse *), Bash(git log *), Bash(git merge-base *), Bash(issue *), Bash(peer *), Bash(grep *)
+        allowed-tools: Bash(gh issue *), Bash(gh pr *), Bash(gh api *), Bash(gh repo view *), Bash(git branch *), Bash(git push *), Bash(git rev-parse *), Bash(git log *), Bash(git merge-base *), Bash(issue *), Bash(peer *), Bash({{.project_extensions}} *)
     codex:
       openai:
         interface:
@@ -18,7 +18,7 @@ henia:
   variables:
     context_commands:
       - label: Project extensions
-        command: grep -rlsE --include=SKILL.md '^[[:space:]]+extends:.*[ "]issue([ "]|$)' .claude/skills .agents/skills 2>/dev/null || true
+        extends: issue
       - label: Current branch
         command: git branch --show-current 2>/dev/null || true
       - label: Default reviewers
@@ -34,8 +34,8 @@ henia:
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
-{{.command}}
+{{if eq $.preload_context "true"}}!`{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}
 ```{{end}}
 
 {{end}}
@@ -74,7 +74,7 @@ The gh/GraphQL plumbing is wrapped by the **`issue` command** (deployed onto PAT
 
 | Endpoint | Does |
 |---|---|
-| `issue next` | predicted next number (the [Pre-loaded Context](#pre-loaded-context) one-liner) |
+| `issue next` | predicted next number (the one-liner in the context block above) |
 | `issue draft <n> <type> "<title>"` | ensure `.issues/`, print `.issues/<n>-<type>-<slug>.md` |
 | `issue review <n>\|<draft> [--reviewers aliases] [--effort level]` | run the default peer reviewers or an explicit peer subset under canonical routing; reports use the canonical [`peer path` interface](../peer/SKILL.md#report-layout--peer) |
 | `issue create --type T --title … --body-file F [--parent N] [--depends-on L] [--blocks L]` | publish, auto-reconcile the draft filename to the real number, apply parent/dependency edges; prints `<number>\t<url>` |
@@ -87,7 +87,7 @@ The raw `gh api graphql` mutations are documented below as the reference the wra
 ## Workflow
 
 1. **Read the template structure.** Consult [`references/template.md`](references/template.md) for the section list, header ordering, and what each section must contain.
-2. Orient in the target repo before sketching. Apply the repository-orientation contract in [AGENTS.md](../../instructions/AGENTS.md#tools-and-context) and the query semantics in the [Gestalt skill](../gestalt/SKILL.md#subagent-orientation). Then use `/loqui`, `CLAUDE.md` / `AGENTS.md`, and neighbouring modules to match naming, error handling, and layering conventions.
+2. Orient in the target repo before sketching. Apply the repository-orientation contract in [AGENTS.md](../../instructions/AGENTS.md#tools-and-context) and the query semantics in the [Gestalt skill](../gestalt/SKILL.md#subagent-orientation). Then use `$loqui`, `CLAUDE.md` / `AGENTS.md`, and neighbouring modules to match naming, error handling, and layering conventions.
 3. **Draft the issue body.** Use the section order in `references/template.md`. For implementation sketches, follow [`references/sketches.md`](references/sketches.md) — illustrative shapes (signatures, not bodies) written in the repo's own idioms.
 4. **Title format.** `<Module> — <short summary>` with an em-dash (—), not a hyphen. Examples: `Discovery — dependency traversal from activities to tables`, `Catalog — migration catalog with priority, stats, and export`.
 5. **Determine issue type, parent, and dependencies (depends-on / blocks) before submitting** (see [Issue metadata](#issue-metadata-type-parent-dependencies) below). If the user hasn't specified type or parent, ask via `AskUserQuestion` — don't guess. Ask about depends-on / blocks only when the body sketch hints at sequencing between issues; skip for standalone work. For updates, inspect the existing metadata first via `gh api graphql` and only change what the user asked to change.
@@ -118,7 +118,7 @@ Give every selected reviewer the same embedded draft, canonical template, criter
 
 Reject malformed output as unsuccessful. Apply the canonical [finding bar](../review/reference/finding-bar.md), [result gate](../review/reference/harnesses.md#results), and [review synthesis](../review/reference/synthesis.md). Fold admitted blocking findings into the draft before re-running the whole gate. Each round mints a fresh `<run>` so earlier evidence remains intact.
 
-Consult the `/peer` skill for the live registry, dispatch contract, and harness authentication requirements.
+Consult the `$peer` skill for the live registry, dispatch contract, and harness authentication requirements.
 
 ## Issue metadata (type, parent, dependencies)
 

@@ -60,10 +60,17 @@ description: |            # Max 1024 chars
 
 Keep portable `name`, `description`, `metadata`, `license` and `compatibility` at
 the top level. Put harness-specific metadata under `henia.targets.<profile>`.
-Use `henia.auto_invoke: false` for explicit-only skills, `henia.variables` for
-context inputs, and `henia.targets.codex.openai.interface` for Codex UI metadata.
-A skill that repositories may extend lists a `Project extensions` context command;
-the interface is defined in the global contract's Project extensions section.
+`henia.auto_invoke: false` removes both model invocation and subagent preload;
+use it only for skills that no agent preloads. A preloadable workflow skill states
+its explicit-use policy in `description` instead. Use `henia.variables` for
+context inputs and `henia.targets.codex.openai.interface` for Codex UI metadata.
+
+A skill that repositories may extend lists a `Project extensions` context entry
+with `extends: <skill> [<skill>…]`; the context template renders it as the
+harness's `project_extensions` command, which runs
+[scripts/project-extensions](scripts/project-extensions), and grants that command
+in Claude `allowed-tools`. The interface is defined in the global contract's
+Project extensions section.
 
 Write canonical skill references as backtick `$<skill-name>` spans outside code
 examples. Use portable relative Markdown links in copied reference documents.

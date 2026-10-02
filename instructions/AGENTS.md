@@ -35,15 +35,15 @@ Never use `rm` for interactive file removal. Use `trash`.
 
 ## Workflow boundary
 
-Ordinary work executes directly. Strict delegated RED → GREEN → review and TDD activate only through explicit `$implement`, `$test`, or a direct request for tests.
+Ordinary work executes directly. Strict delegated RED → GREEN → review and TDD activate only through explicit `$implement`, `$test`, `$continue`, `$loop`, or a direct request for tests. Project instructions and project extensions may tighten this boundary, for example by mandating TDD.
 
 For configuration, documentation, maintenance, and platform-validated artifacts, use the native parser, linter, command, or runtime instead of inventing test machinery.
 
 ## Project extensions
 
-A repository extends a global skill with a project skill whose frontmatter carries `metadata.extends: "<skill> [<skill>…]"`. Project skills take names distinct from global skills and stay complete for collaborators without them.
+A repository extends a global skill with a project skill whose frontmatter carries `metadata.extends: "<skill> [<skill>…]"`; the value may be quoted or bare space-separated names or a `[a, b]` flow list. Project skills take names distinct from global skills and stay complete for collaborators without them.
 
-- When a skill's context lists project extensions, load each listed skill before acting.
+- When a skill's context lists project extensions, read each listed SKILL.md and the files it links before acting.
 - Project skills and project instructions override this contract and the global skill where they conflict; the global workflow governs only what they leave open.
 
 ## Single source of truth

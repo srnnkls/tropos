@@ -15,15 +15,6 @@ henia:
           - review
           - loqui
         color: yellow
-        hooks:
-          PreToolUse:
-            - hooks:
-                - type: command
-                  command: fas eval --harness claude
-          PostToolUse:
-            - hooks:
-                - type: command
-                  command: fas eval --harness claude
 ---
 
 ## Role

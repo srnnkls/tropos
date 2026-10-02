@@ -8,15 +8,18 @@ henia:
     claude:
       frontmatter:
         argument-hint: '[scope-name]'
-        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(peer *)
+        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(peer *), Bash({{.project_extensions}} *)
     codex:
       openai:
         interface:
           display_name: Continue
           short_description: Apply the canonical continue skill workflow
           default_prompt: Use $continue for the requested task.
+  auto_invoke: false
   variables:
     context_commands:
+      - label: Project extensions
+        extends: implement test review
       - label: Active scopes
         command: find scopes -maxdepth 3 -name scope.md 2>/dev/null || true
       - label: Checkpoints
@@ -36,8 +39,8 @@ henia:
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
-{{.command}}
+{{if eq $.preload_context "true"}}!`{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}
 ```{{end}}
 
 {{end}}
@@ -79,7 +82,7 @@ Priority:
 
 ### Mutating wave
 
-Compare the entry's baseline/current diff with any saved report. Accept it only if its RED/GREEN/fix gate now passes. Otherwise `$continue` authorizes deliberate redispatch of that exact task and phase with the partial edits and evidence supplied.
+Compare the entry's baseline/current diff with any saved report. Accept it only if its RED/GREEN/fix gate now passes. Otherwise a user-issued `$continue` authorizes deliberate redispatch of that exact task and phase with the partial edits and evidence supplied.
 
 Dispatch every independent missing task in one message. Write one checkpoint before the wave and one after all results land.
 

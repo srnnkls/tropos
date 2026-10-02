@@ -7,7 +7,7 @@ henia:
   variables:
     context_commands:
       - label: Project extensions
-        command: grep -rlsE --include=SKILL.md '^[[:space:]]+extends:.*[ "]implement([ "]|$)' .claude/skills .agents/skills 2>/dev/null || true
+        extends: implement test review
       - label: Active scopes
         command: find scopes -maxdepth 3 -name scope.md 2>/dev/null || true
       - label: Checkpoints
@@ -24,7 +24,7 @@ henia:
     claude:
       frontmatter:
         argument-hint: '[target]'
-        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(gh *), Bash(peer *), Bash(grep *)
+        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(gh *), Bash(peer *), Bash({{.project_extensions}} *)
     codex:
       openai:
         interface:
@@ -40,8 +40,8 @@ henia:
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
-{{.command}}
+{{if eq $.preload_context "true"}}!`{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}
 ```{{end}}
 
 {{end}}
@@ -66,7 +66,7 @@ Pre-parse `--config`, `--worktree`, `--base`, `--state`, and GitHub issue refere
 | File path or task description | Run the single-task pipeline below |
 | Missing or ambiguous | Ask for the target |
 
-Invoking this skill is the opt-in. Do not downgrade an explicit task to direct current-agent authoring.
+The opt-in is the user's explicit `$implement` or a route the user selected. Do not downgrade an explicit task to direct current-agent authoring.
 
 ## Branch Gate
 
@@ -121,7 +121,7 @@ No serial dispatch is allowed inside a boundary unless one result changes anothe
 
 ## Failure and Recovery
 
-For a failed or interrupted mutating subagent, preserve partial edits and record the relevant status, diff, report directory, and failure. Do not auto-retry, roll back, or advance. `$continue` is deliberate redispatch authorization for the exact recorded wave.
+For a failed or interrupted mutating subagent, preserve partial edits and record the relevant status, diff, report directory, and failure. Do not auto-retry, roll back, or advance. A user-issued `$continue` is deliberate redispatch authorization for the exact recorded wave.
 
 Reviewer failures apply the [canonical result-eligibility gate](../review/reference/harnesses.md#results).
 

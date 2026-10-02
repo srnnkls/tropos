@@ -4,11 +4,15 @@ description: Close PR review threads you've addressed — tfcp (triage + fix + c
 metadata:
   type: domain
 henia:
+  variables:
+    context_commands:
+      - label: Project extensions
+        extends: git review
   targets:
     claude:
       frontmatter:
         argument-hint: --comment <id> [--comment <id>…] [--reply <text>] [-m <msg>] [--pr <n>] [--resolve-only] [paths…]
-        allowed-tools: Bash(gh review *), Bash(gh pr *), Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git rev-parse *), Bash(git branch *)
+        allowed-tools: Bash(gh review *), Bash(gh pr *), Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git rev-parse *), Bash(git branch *), Bash({{.project_extensions}} *)
     codex:
       openai:
         interface:
@@ -19,6 +23,16 @@ henia:
 
 <!-- Generated from skills/tfcprr/SKILL.md by henia build; edit the canonical source. -->
 
+## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
+
+{{.context_instruction}}
+
+{{range .context_commands}}{{.label}}:
+{{if eq $.preload_context "true"}}!`{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}
+```{{end}}
+
+{{end}}
 # tfcprr — tfcp + reply + resolve
 
 Close the loop on the PR review threads you've addressed: land the fixes through [`tfcp`](../tfcp/SKILL.md), then reply to each thread referencing the commit and resolve it.

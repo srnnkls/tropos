@@ -6,6 +6,8 @@ metadata:
 henia:
   variables:
     context_commands:
+      - label: Project extensions
+        extends: code
       - label: Git status
         command: git status --short 2>/dev/null || true
       - label: Languages detected
@@ -13,6 +15,7 @@ henia:
   targets:
     claude:
       frontmatter:
+        allowed-tools: Bash({{.project_extensions}} *)
         argument-hint: '[operation] [target]'
     codex:
       openai:
@@ -29,8 +32,8 @@ henia:
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
-{{.command}}
+{{if eq $.preload_context "true"}}!`{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}
 ```{{end}}
 
 {{end}}

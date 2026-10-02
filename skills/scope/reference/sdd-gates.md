@@ -57,7 +57,7 @@ When gates are checked by task-dispatch:
 2. If issue_type is Initiative and any gate status is "fail":
    - Block dispatch
    - Report which gates failed
-   - Prompt user to resolve via /clarify or manual edit
+   - Prompt user to resolve via `$clarify` or manual edit
 3. If all gates pass or issue_type is not Initiative: proceed
 
 ## Resolution

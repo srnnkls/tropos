@@ -1,6 +1,6 @@
 ---
 name: dotfiles
-description: Manage dotfiles using dotter (symlink manager and templater). Use when deploying, adding, removing, or organizing configuration files in ~/dotfiles.
+description: Manage dotfiles deployed with phora (git-based artifact deployer) and the Henia-compiled Tropos harnesses. Use when deploying, adding, removing, previewing, or organizing configuration files in ~/dotfiles.
 metadata:
   type: domain
 henia:
@@ -15,135 +15,77 @@ henia:
 
 <!-- Generated from skills/dotfiles/SKILL.md by henia build; edit the canonical source. -->
 
-Manage dotfiles using [dotter](https://github.com/SuperCuber/dotter) - a dotfile manager and templater.
+`~/dotfiles` deploys with [phora](https://github.com/srnnkls/phora). The deployment model and the Scrut checks live in `~/dotfiles/README.md`, `phora.toml` and `tests/scrut/`. Read them before changing mappings; this skill covers the day-to-day workflow only.
 
-## Select the deployment path
+## Configuration split
 
-Check the active checkout's deployment documentation before changing mappings.
-On the Phora migration branch, use `bin/phora-tropos` to compile the selected
-Tropos checkout and deploy all four harness bundles into its probe home. The
-runner's Scrut post-sync hook verifies that tree. `bin/phora-shadow` separately
-checks equivalence with the existing Dotter deployment. Neither command performs
-a live home cutover. On the established Dotter branch, use the workflow below.
+| File | Holds | Tracked |
+|---|---|---|
+| `phora.toml` | Sources: what the repository offers (`path`, `root`, `include`/`exclude`, `deploy = "link"`), the `henia` build source, hooks | yes |
+| `phora.local.toml` | Targets: home destinations and which sources bind to them (`take`, `collapse`) | no |
+| `phora.local.example.toml` | Template for `phora.local.toml` | yes |
 
-## Environment
+Run every command from `~/dotfiles` or pass `-C ~/dotfiles`.
 
-- **Dotfiles repo**: `~/dotfiles`
-- **Dotter config**: `~/dotfiles/.dotter/`
-  - `global.toml`: Package definitions (files to deploy)
-  - `local.toml`: Machine-specific package selection
-  - `cache.toml`: Deployment state cache
+## Preview
 
-## Core Commands
-
-```bash
-dotter deploy
-dotter deploy --dry-run
-dotter undeploy
-dotter watch
+```sh
+phora preview                       # offline, from the lock
+phora preview --target claude --files
 ```
 
-## Workflow: Add New Dotfile
+Preview before every sync that changes mappings.
 
-### Step 1: Add Source File
+## Add a dotfile
 
-Place the configuration file in `~/dotfiles`:
+1. Place the file in the repository, e.g. `~/dotfiles/.config/app/config.toml`.
+2. If an existing source already offers that directory, skip to step 4.
+3. Add a source to `phora.toml`:
 
-```bash
-cp ~/.config/app/config.toml ~/dotfiles/.config/app/config.toml
+   ```toml
+   app = { path = ".", root = ".config/app", deploy = "link" }
+   ```
+
+4. Bind it in `phora.local.toml` (and the example file, for new programs):
+
+   ```toml
+   app = { path = "~/.config/app", sources = ["app"] }
+   ```
+
+   Use `sources.app = { collapse = false }` when the program writes its own files into the directory.
+5. `phora preview`, then `phora sync --prune`.
+
+## Remove a dotfile
+
+1. Delete the file, or its source and target entries.
+2. `phora sync --prune` removes the deployed links phora no longer manages.
+
+## Advance Tropos
+
+Syncs build the locked Tropos commit. Move the pin explicitly:
+
+```sh
+phora update tropos --fast-forward --prune
 ```
 
-### Step 2: Define in global.toml
+## Live Tropos edits
 
-Add a new package or extend existing one in `~/dotfiles/.dotter/global.toml`:
+Point the source at a working tree in `phora.local.toml`:
 
 ```toml
-[myapp.files]
-".config/app/config.toml" = "~/.config/app/config.toml"
-
-# Or extend existing package
-[existing-package.files]
-".config/app/config.toml" = "~/.config/app/config.toml"
+[sources.tropos]
+path = "~/projects/tropos"
+deploy = "link"
 ```
 
-Source is a relative path from the dotfiles repo root; target is an absolute path or `~`-relative.
-
-### Step 3: Enable Package (if new)
-
-Add package to `~/dotfiles/.dotter/local.toml`:
-
-```toml
-packages = ["doom", "myapp"]
-```
-
-### Step 4: Deploy
-
-```bash
-cd ~/dotfiles && dotter deploy
-```
-
-## Workflow: Remove Dotfile
-
-1. **Undeploy first**: `dotter undeploy`
-2. **Remove from global.toml**: Delete the file mapping
-3. **Remove package from local.toml** (if removing entire package)
-4. **Redeploy**: `dotter deploy`
-5. Remove file from dotfiles repo if desired
-
-## Package Organization
-
-Group related files into packages:
-
-```toml
-[shell.files]
-".zshrc" = "~/.zshrc"
-".zprofile" = "~/.zprofile"
-".config/starship.toml" = "~/.config/starship.toml"
-
-[nvim.files]
-".config/nvim" = "~/.config/nvim"
-
-[git.files]
-".gitconfig" = "~/.gitconfig"
-".gitignore_global" = "~/.gitignore_global"
-```
-
-## Templating
-
-Dotter supports Handlebars templating for machine-specific values:
-
-In `global.toml`:
-
-```toml
-[package.variables]
-email = "default@example.com"
-```
-
-In `local.toml` (machine override):
-
-```toml
-[variables]
-email = "work@company.com"
-```
-
-In template files, enclose the variable name `email` in two opening and two closing braces.
+Remove the override and run `phora sync --prune` to return to the pin. A dotfiles override cannot replace a Tropos dependency such as Gestalt.
 
 ## Troubleshooting
 
-### Conflict with existing file
-
-```bash
-dotter deploy --force
-```
-
-### Check deployment status
-
-```bash
-dotter deploy --dry-run --verbose
-```
-
-### View what's currently deployed
-
-```bash
-cat ~/dotfiles/.dotter/cache.toml
-```
+| Need | Command |
+|---|---|
+| Deployed state per source and target | `phora list` |
+| Deployed files match their recorded hashes | `phora verify` |
+| Why a path is or is not deployed | `phora explain <target> <source> [path]` |
+| Overwrite a conflicting file | `phora sync --force` |
+| Deploy without hooks | `phora sync --no-hooks` |

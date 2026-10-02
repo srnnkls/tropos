@@ -8,7 +8,7 @@ henia:
     claude:
       frontmatter:
         argument-hint: '[operation] [args]'
-        allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(git rev-parse *), Bash(grep *)
+        allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(git rev-parse *), Bash({{.project_extensions}} *)
     codex:
       openai:
         interface:
@@ -18,7 +18,7 @@ henia:
   variables:
     context_commands:
       - label: Project extensions
-        command: grep -rlsE --include=SKILL.md '^[[:space:]]+extends:.*[ "]git([ "]|$)' .claude/skills .agents/skills 2>/dev/null || true
+        extends: git
       - label: Current branch
         command: git branch --show-current 2>/dev/null || true
       - label: Status
@@ -32,8 +32,8 @@ henia:
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
-{{.command}}
+{{if eq $.preload_context "true"}}!`{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}
 ```{{end}}
 
 {{end}}

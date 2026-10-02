@@ -6,7 +6,7 @@ henia:
     claude:
       frontmatter:
         argument-hint: <focus topic>
-        allowed-tools: Bash(find *), Bash(git *), Bash(peer *)
+        allowed-tools: Bash(find *), Bash(git *), Bash(peer *), Bash({{.project_extensions}} *)
         context: fork
         hooks:
           Stop:
@@ -24,6 +24,8 @@ henia:
   auto_invoke: false
   variables:
     context_commands:
+      - label: Project extensions
+        extends: implement test review
       - label: Pending tasks
         command: 'find scopes -maxdepth 3 -name "tasks.yaml" -type f 2>/dev/null | xargs -I{} sh -c ''echo "=== {} ===" && grep -A1 "status: pending" {} 2>/dev/null'''
       - label: Git status
@@ -43,8 +45,8 @@ metadata:
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
-{{.command}}
+{{if eq $.preload_context "true"}}!`{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}
 ```{{end}}
 
 {{end}}

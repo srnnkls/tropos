@@ -7,8 +7,11 @@ henia:
   variables:
     context_commands:
       - label: Project extensions
-        command: grep -rlsE --include=SKILL.md '^[[:space:]]+extends:.*[ "]test([ "]|$)' .claude/skills .agents/skills 2>/dev/null || true
+        extends: test
   targets:
+    claude:
+      frontmatter:
+        allowed-tools: Bash({{.project_extensions}} *)
     codex:
       openai:
         interface:
@@ -24,8 +27,8 @@ henia:
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
-{{.command}}
+{{if eq $.preload_context "true"}}!`{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}
 ```{{end}}
 
 {{end}}

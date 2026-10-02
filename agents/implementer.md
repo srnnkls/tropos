@@ -8,18 +8,8 @@ henia:
         skills:
           - gestalt
           - test
-          - implement
           - loqui
         color: green
-        hooks:
-          PreToolUse:
-            - hooks:
-                - type: command
-                  command: fas eval --harness claude
-          PostToolUse:
-            - hooks:
-                - type: command
-                  command: fas eval --harness claude
 ---
 
 ## Role

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Pre-loaded context for the pr skill's `comments` route: PR metadata, inline
-# review comments, the unresolved-thread map, non-anchored bodies, and the HEAD
-# diff. Exits silently on the `tfcprr` route. Prints `no-pr` when none resolves.
+# Pre-loaded context for the pr skill's `comments` route: project extensions,
+# PR metadata, inline review comments, the unresolved-thread map, non-anchored
+# bodies, and the HEAD diff. Exits silently on the `tfcprr` route. Prints
+# `no-pr` when none resolves.
 set -uo pipefail
 
 A="${*:-}"
@@ -9,6 +10,9 @@ A="${*:-}"
 case "$A" in
   tfcprr*) exit 0 ;;
 esac
+
+echo "== project extensions =="
+"$(dirname "$0")/../../skill/scripts/project-extensions" pr review
 
 case "$A" in
   comments) A="" ;;

@@ -5,30 +5,27 @@ and declarative harness profiles. The Gestalt and Limen skills live in their own
 repositories beside the commands they document. Henia compiles a prepared copy
 of them into Claude, Codex, Pi and OMP artifacts.
 
-[phora.toml](../phora.toml) advertises the package: the committed canonical
-files, the FAS rules, and relative installation targets for Loqui and the
-Gestalt and Limen skills. A consumer imports Tropos into a preparation target of
-its own, receiving the pinned Tropos snapshot with Loqui under
-`skills/loqui/reference/loqui`, the Gestalt skill under `skills/gestalt` and the
-Limen skill under `skills/limen`.
-Nothing is written into this checkout.
+[phora.toml](../phora.toml) declares the package. Its targets install Loqui
+under `skills/loqui/reference/loqui`, the Gestalt skill under `skills/gestalt`,
+the Limen skill under `skills/limen` and the Moira FAS rules under
+`rules/fas/moira`. Its `[sources.harnesses]` entry,
+`build = { tool = "github:srnnkls/henia@…", run = "henia build {input} --output {output}" }`,
+compiles the prepared tree into all four harnesses, and the `claude`, `codex`,
+`pi` and `omp` targets take one harness each under `dist/`.
 
-The dotfiles consumer names both sides of the compiler explicitly:
-
-```text
-phora prepares .tropos → henia builds .tropos into .henia → phora links .henia slices → Scrut
-```
-
-Its `post_prepare` hook runs `henia build .tropos --output .henia --clean --harness claude,codex,pi`;
-Henia reads the prepared [henia.toml](../henia.toml) from the input directory,
-preserves executable helpers and publishes output atomically. Dotfiles selects
-Claude, Codex and Pi; OMP reads Claude natively. FAS rules deploy from the same
-prepared snapshot, so skills and rules share one pin.
+Consumers import Tropos as a transitive source, so its dependencies and the
+harness build resolve in the consumer's sync, and select slices through
+`[offers.*]`: `claude`, `codex`, `pi` and `omp` offer one compiled harness,
+`fas` offers the FAS rules, and `default` offers the canonical files. Henia reads
+[henia.toml](../henia.toml) from the build input and preserves executable
+helpers. Skills and rules come from the same Tropos snapshot and share one pin.
 
 Builds use the locked Tropos commit. `phora update tropos --fast-forward --prune`
 advances it. For uncommitted edits, a consumer's local configuration points
-`tropos` at a working tree with `deploy = "link"`; Phora then prepares the live
-files while Loqui stays pinned. A frozen replay skips generation and requires
+`tropos` at a working tree with `deploy = "link"`; `phora sync` then builds the
+harnesses from the working tree. Compiled skills are copied build output, so a
+skill edit reaches a harness only after the next `phora sync`; FAS rules are
+symlinked and take effect live. A frozen replay skips generation and requires
 existing output.
 
 `mise run test-artifacts` prepares this working tree through a throwaway

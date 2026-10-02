@@ -4,11 +4,15 @@ description: Land the fixes for a local review — triage, fix, commit, push. Di
 metadata:
   type: domain
 henia:
+  variables:
+    context_commands:
+      - label: Project extensions
+        extends: git review
   targets:
     claude:
       frontmatter:
         argument-hint: '[--issue <id>…] [--report <path>] [-m <msg>] [paths…]'
-        allowed-tools: Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git status *), Bash(git rev-parse *), Bash(git branch *)
+        allowed-tools: Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git status *), Bash(git rev-parse *), Bash(git branch *), Bash({{.project_extensions}} *)
     codex:
       openai:
         interface:
@@ -19,6 +23,16 @@ henia:
 
 <!-- Generated from skills/tfcp/SKILL.md by henia build; edit the canonical source. -->
 
+## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
+
+{{.context_instruction}}
+
+{{range .context_commands}}{{.label}}:
+{{if eq $.preload_context "true"}}!`{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .extends}}{{$.project_extensions}} {{.extends}}{{else}}{{.command}}{{end}}
+```{{end}}
+
+{{end}}
 # tfcp — triage + fix + commit + push
 
 Land the findings of a local review: give every finding a disposition, apply the ones that clear, commit behind the hook gate, push.
