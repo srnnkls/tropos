@@ -10,7 +10,7 @@ priorities and shadowing; each owner's Slots section states what a slot covers.
 | Slot | Type | Owner | Applied by | Providers |
 |---|---|---|---|---|
 | `code.style` | `keyed(list)` | [code](skills/code/SKILL.md#slots) | [code](skills/code/SKILL.md), [continue](skills/continue/SKILL.md), [implement](skills/implement/SKILL.md), [loop](skills/loop/SKILL.md) | [loqui](skills/loqui/SKILL.md) (`code.style.bash`, `code.style.elisp`, `code.style.go`, `code.style.python`, `code.style.rust`, `code.style.zig`) |
-| `code.validation` | `keyed(list)` | [code](skills/code/SKILL.md#slots) | [code](skills/code/SKILL.md), [continue](skills/continue/SKILL.md), [implement](skills/implement/SKILL.md), [loop](skills/loop/SKILL.md) | — |
+| `code.validation` | `keyed(list(command))` | [code](skills/code/SKILL.md#slots) | [code](skills/code/SKILL.md), [continue](skills/continue/SKILL.md), [implement](skills/implement/SKILL.md), [loop](skills/loop/SKILL.md) | [loqui](skills/loqui/SKILL.md) (`code.validation.go`) |
 | `git.branching` | `keyed(list)` | [git](skills/git/SKILL.md#slots) | [continue](skills/continue/SKILL.md), [git](skills/git/SKILL.md), [implement](skills/implement/SKILL.md), [loop](skills/loop/SKILL.md) | — |
 | `git.commits` | `keyed(list)` | [git](skills/git/SKILL.md#slots) | [git](skills/git/SKILL.md), [tfcp](skills/tfcp/SKILL.md), [tfcprr](skills/tfcprr/SKILL.md) | — |
 | `issue.template` | `keyed(list)` | [issue](skills/issue/SKILL.md#slots) | [issue](skills/issue/SKILL.md) | — |
