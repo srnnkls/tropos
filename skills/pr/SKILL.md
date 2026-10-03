@@ -4,11 +4,15 @@ description: GitHub PR review-comment operations. `comments` assesses each revie
 metadata:
   type: domain
 henia:
+  variables:
+    context_commands:
+      - label: Slot providers
+        slots: review.criteria
   targets:
     claude:
       frontmatter:
         argument-hint: '[comments [N] | tfcprr <args>]'
-        allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/pr-context), Bash(${CLAUDE_SKILL_DIR}/scripts/pr-context *), Bash(gh api *), Bash(gh pr *), Bash(gh review *), Bash(gh repo view *), Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git rev-parse *), Bash(git branch *)
+        allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/pr-context), Bash(${CLAUDE_SKILL_DIR}/scripts/pr-context *), Bash(gh api *), Bash(gh pr *), Bash(gh review *), Bash(gh repo view *), Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git rev-parse *), Bash(git branch *), Bash({{.resolve_slots}} *)
     codex:
       openai:
         interface:
@@ -23,7 +27,12 @@ henia:
 
 {{.context_instruction}}
 
-All shell lives in [scripts/pr-context](scripts/pr-context), resolved against this skill's directory.
+{{range .context_commands}}{{.label}}:
+{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}
+```{{end}}
+
+{{end}}All other shell lives in [scripts/pr-context](scripts/pr-context), resolved against this skill's directory.
 {{if eq .preload_context "true"}}`${CLAUDE_SKILL_DIR}` is substituted in both the block below and the `allowed-tools` rule, so the rule matches the command verbatim and the fetch runs without a permission check.
 
 !`${CLAUDE_SKILL_DIR}/scripts/pr-context $ARGUMENTS`{{else}}
@@ -31,7 +40,7 @@ All shell lives in [scripts/pr-context](scripts/pr-context), resolved against th
 scripts/pr-context $ARGUMENTS
 ```{{end}}
 
-Sections, in order: `== slot providers ==` (`review.criteria` providers; see [review slots](../review/SKILL.md#slots)), `== pr ==` (metadata), `== inline comments ==` (`node_id` feeds `tfcprr --comment`, `original_line` anchors the relevant-vs-outdated check), `== unresolved threads ==` (resolved threads collapse — don't re-litigate), `== review bodies ==` and `== conversation ==` (not line-anchored), `== diff ==` (HEAD, first 800 lines).
+The slot providers are the `review.criteria` providers; see [review slots](../review/SKILL.md#slots). Script sections, in order: `== pr ==` (metadata), `== inline comments ==` (`node_id` feeds `tfcprr --comment`, `original_line` anchors the relevant-vs-outdated check), `== unresolved threads ==` (resolved threads collapse — don't re-litigate), `== review bodies ==` and `== conversation ==` (not line-anchored), `== diff ==` (HEAD, first 800 lines).
 
 On the `tfcprr` route the script exits silently. If it printed `no-pr`, ask the user for the PR number, then re-run the script with `comments <number>`.
 

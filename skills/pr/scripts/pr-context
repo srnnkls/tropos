@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Pre-loaded context for the pr skill's `comments` route: review.criteria slot providers,
-# PR metadata, inline review comments, the unresolved-thread map, non-anchored
-# bodies, and the HEAD diff. Exits silently on the `tfcprr` route. Prints
+# Pre-loaded context for the pr skill's `comments` route: PR metadata, inline
+# review comments, the unresolved-thread map, non-anchored bodies, and the HEAD
+# diff. Exits silently on the `tfcprr` route. Prints
 # `no-pr` when none resolves.
 set -uo pipefail
 
@@ -10,9 +10,6 @@ A="${*:-}"
 case "$A" in
   tfcprr*) exit 0 ;;
 esac
-
-echo "== slot providers =="
-henia slots --global "$(dirname "$0")/../.." review.criteria
 
 case "$A" in
   comments) A="" ;;
