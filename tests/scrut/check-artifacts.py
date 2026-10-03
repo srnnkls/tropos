@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import tomllib
 
 
 COMMON_FIELDS = {"name", "description", "metadata"}
@@ -38,16 +39,29 @@ def yaml(path, frontmatter=False):
     return json.loads(subprocess.check_output([*args, ".", str(path)], text=True))
 
 
+def projected(config, harness, skills):
+    settings = config.get("harness", {}).get(harness, {})
+    selected = skills & set(settings["include"]) if "include" in settings else skills
+    return selected - set(settings.get("exclude", []))
+
+
+def invocable(root, name):
+    fm = yaml(root / "skills" / name / "SKILL.md", frontmatter=True)
+    auto = fm.get("henia", {}).get("auto_invoke", fm.get("auto_invoke"))
+    return auto is not False
+
+
 def check(root, build):
     canonical_root = root
     skills = {path.parent.name for path in (canonical_root / "skills").glob("*/SKILL.md") }
     require(bool(skills), "canonical skill inventory is empty")
+    config = tomllib.loads((canonical_root / "henia.toml").read_text())
     for harness in ("claude", "codex", "pi", "omp"):
         target = build / harness
         mains = sorted((target / "skills").glob("*/SKILL.md"))
         require(
-            {path.parent.name for path in mains} == skills,
-            f"{harness}: expected the complete canonical skill inventory",
+            {path.parent.name for path in mains} == projected(config, harness, skills),
+            f"{harness}: expected the projected canonical skill inventory",
         )
         for path in mains:
             name = path.parent.name
@@ -164,22 +178,25 @@ def check(root, build):
             )
         instructions = re.sub(
             r"`\$([a-z0-9][a-z0-9._-]*)`",
-            lambda match: skill_reference(harness, match[1]),
+            lambda match: skill_reference(harness, match[1])
+            if match[1] in projected(config, harness, skills) and invocable(canonical_root, match[1])
+            else f"`henia show {match[1]}`",
             (canonical_root / "instructions/AGENTS.md").read_text(),
         )
         for path in (target / "instructions/AGENTS.md", target / ("CLAUDE.md" if harness == "claude" else "AGENTS.md")):
             require(path.read_text() == instructions, f"{path}: instructions differ")
-        guides = target / "skills/loqui/reference/loqui"
         canonical_guides = canonical_root / "skills/loqui/reference/loqui"
         expected_guides = {str(p.relative_to(canonical_guides)) for p in canonical_guides.rglob("*") if p.is_file()}
         require(bool(expected_guides), "transitive Loqui input is missing")
-        require(expected_guides == {str(p.relative_to(guides)) for p in guides.rglob("*") if p.is_file()}, f"{guides}: dependency inventory differs")
-        for relative in expected_guides:
-            require((guides / relative).read_bytes() == (canonical_guides / relative).read_bytes(), f"{guides / relative}: dependency bytes differ")
-        for language in ("bash", "elisp", "go", "python", "rust", "zig"):
-            require((guides / "languages" / language / "README.md").is_file(), f"{guides}: missing {language} guidance")
+        if "loqui" in projected(config, harness, skills):
+            guides = target / "skills/loqui/reference/loqui"
+            require(expected_guides == {str(p.relative_to(guides)) for p in guides.rglob("*") if p.is_file()}, f"{guides}: dependency inventory differs")
+            for relative in expected_guides:
+                require((guides / relative).read_bytes() == (canonical_guides / relative).read_bytes(), f"{guides / relative}: dependency bytes differ")
+            for language in ("bash", "elisp", "go", "python", "rust", "zig"):
+                require((guides / "languages" / language / "README.md").is_file(), f"{guides}: missing {language} guidance")
         print(
-            f"{harness}: {len(skills)} skills; metadata, body, resources and support OK"
+            f"{harness}: {len(mains)} skills; metadata, body, resources and support OK"
         )
 
 
