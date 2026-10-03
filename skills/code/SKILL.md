@@ -3,7 +3,7 @@ name: code
 description: Code domain context for explicit implementation, review, and test workflows.
 metadata:
   type: domain
-  slots: "code.style code.validation"
+  slots: "code.style code.validation:keyed(list(command))"
   applies: "code.style code.validation test.conventions review.criteria"
 henia:
   variables:
@@ -61,7 +61,7 @@ No operation is inferred from an ordinary task outside explicit skill invocation
 | Slot | Covers |
 |---|---|
 | `code.style` | Style guidance for Implementation Context and the Compliance role; providers scope it per language as `code.style.<language>` |
-| `code.validation` | Native lint, typecheck, and build commands that make up directly affected native validation |
+| `code.validation` | Native lint, typecheck, and build commands that make up directly affected native validation; each provider supplies one command per language as `code.validation.<language>`, run as is |
 
 ## Implementation Context
 

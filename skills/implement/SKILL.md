@@ -100,7 +100,7 @@ Apply the [canonical RED gate](../test/SKILL.md#red). Return invalid evidence to
 
 ### Phase B: GREEN
 
-Dispatch one fresh configured implementer with the task requirements and tester report. After it returns, verify the focused command and directly affected native validation (a `code.validation` provider names it; see [code slots](../code/SKILL.md#slots)) in one batched tool round, combining compatible selectors. Refactor only the changed mechanism.
+Dispatch one fresh configured implementer with the task requirements and tester report. After it returns, verify the focused command and directly affected native validation (the `code.validation` slot rows carry its commands, run as is; see [code slots](../code/SKILL.md#slots)) in one batched tool round, combining compatible selectors. Refactor only the changed mechanism.
 
 ### Phase C: Initial Review
 

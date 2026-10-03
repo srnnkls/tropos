@@ -14,7 +14,7 @@ Load these resources at dispatch time and materialize them verbatim into the nam
 - `{implementer_report_schema}` and `{fix_report_schema}` — [report.md](report.md)
 - `{reviewer_report_schema}` — [review/reference/report.md](../../review/reference/report.md)
 - `{finding_bar}` — [review/reference/finding-bar.md](../../review/reference/finding-bar.md)
-- `{slot_providers}` — verbatim bodies of the listed slot providers the role consumes (`test.conventions` and `code.style` for testers; `test.conventions`, `code.style` and `code.validation` for implementers and fixers; `review.criteria` and `code.style` for reviewers), or `none`
+- `{slot_providers}` — verbatim bodies of the listed skill slot providers and the commands of the `code.validation` rows the role consumes (`test.conventions` and `code.style` for testers; `test.conventions`, `code.style` and `code.validation` for implementers and fixers; `review.criteria` and `code.style` for reviewers), or `none`
 
 Role behavior comes only from `agents/tester.md`, `agents/implementer.md`, and `agents/reviewer.md`. Claude native definitions and `peer` load the selected role directly. A native Codex `codex-*` dispatch prepends `{role_contract}` to its task prompt because `agents/*.toml` are harness shims; all other mechanisms leave that placeholder empty.
 

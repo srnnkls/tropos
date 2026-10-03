@@ -4,7 +4,8 @@ description: |
   Access language-specific coding guidelines from loqui. Use when implementing code and needing patterns, style guidance, or best practices for Python, Go, Rust, Zig, Bash, or Emacs Lisp.
 metadata:
   type: generic
-  provides: "code.style.bash code.style.elisp code.style.go code.style.python code.style.rust code.style.zig"
+  provides: "code.style.bash code.style.elisp code.style.go code.style.python code.style.rust code.style.zig code.validation.go"
+  code.validation.go: "go vet ./... && go build ./..."
 henia:
   targets:
     codex:
