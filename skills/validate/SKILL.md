@@ -15,24 +15,15 @@ henia:
           display_name: Validate
           short_description: Apply the canonical validate skill workflow
           default_prompt: Use $validate for the requested task.
-  variables:
-    context_commands:
-      - label: Uncommitted
-        command: git status --short 2>/dev/null || true
 ---
 
 <!-- Generated from skills/validate/SKILL.md by henia build; edit the canonical source. -->
 
-## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
+## Context
 
-{{.context_instruction}}
+Uncommitted:
+!`git --no-optional-locks status --short 2>/dev/null || true`
 
-{{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
-{{.command}}
-```{{end}}
-
-{{end}}
 # Validate Dispatcher
 
 ## Auto-Detect Rules
