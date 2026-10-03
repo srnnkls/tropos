@@ -3,11 +3,12 @@ name: tfcp
 description: Land the fixes for a local review — triage, fix, commit, push. Dispositions every finding of a code review (in-context or from a `.peer/` report directory) as fix, residual, or needs-decision, applies the fix bucket, commits once behind the hook gate, and pushes. Use for "tfcp", "triage the review findings", "apply the review findings", "fix and push the review issues"; `tfcprr` composes on it for PR threads.
 metadata:
   type: domain
+  applies: "git.commits review.criteria"
 henia:
   variables:
     context_commands:
       - label: Slot providers
-        slots: git.commits review.criteria
+        slots: true
   targets:
     claude:
       frontmatter:
@@ -28,8 +29,8 @@ henia:
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}
 ```{{end}}
 
 {{end}}

@@ -3,6 +3,7 @@ name: continue
 description: Resume an interrupted explicit implementation from its exact checkpoint wave.
 metadata:
   type: generic
+  applies: "git.branching test.conventions code.style code.validation review.criteria"
 henia:
   targets:
     claude:
@@ -19,7 +20,7 @@ henia:
   variables:
     context_commands:
       - label: Slot providers
-        slots: git.branching test.conventions code.style code.validation review.criteria
+        slots: true
       - label: Active scopes
         command: find scopes -maxdepth 3 -name scope.md 2>/dev/null || true
       - label: Checkpoints
@@ -39,8 +40,8 @@ henia:
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}
 ```{{end}}
 
 {{end}}

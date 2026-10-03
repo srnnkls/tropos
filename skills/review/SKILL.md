@@ -4,11 +4,12 @@ description: Unified review dispatcher for code, PR, scope, structural, and boun
 metadata:
   type: generic
   slots: "review.criteria"
+  applies: "review.criteria"
 henia:
   variables:
     context_commands:
       - label: Slot providers
-        slots: review.criteria
+        slots: true
       - label: Git status
         command: git status --short 2>/dev/null || true
       - label: Recent commits
@@ -45,8 +46,8 @@ henia:
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}
 ```{{end}}
 
 {{end}}

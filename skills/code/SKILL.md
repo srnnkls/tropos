@@ -4,11 +4,12 @@ description: Code domain context for explicit implementation, review, and test w
 metadata:
   type: domain
   slots: "code.style code.validation"
+  applies: "code.style code.validation test.conventions review.criteria"
 henia:
   variables:
     context_commands:
       - label: Slot providers
-        slots: code.style code.validation test.conventions review.criteria
+        slots: true
       - label: Git status
         command: git status --short 2>/dev/null || true
       - label: Languages detected
@@ -33,8 +34,8 @@ henia:
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}
 ```{{end}}
 
 {{end}}

@@ -4,6 +4,7 @@ description: Unified scope lifecycle. Auto-detects operation from argument or pr
 metadata:
   type: domain
   slots: "scope.templates"
+  applies: "scope.templates"
 henia:
   targets:
     claude:
@@ -19,7 +20,7 @@ henia:
   variables:
     context_commands:
       - label: Slot providers
-        slots: scope.templates
+        slots: true
       - label: Active scopes
         command: find "$(git worktree list --porcelain | awk 'NR==1{print $2}')/scopes" -maxdepth 3 -name scope.md 2>/dev/null || true
       - label: Current branch
@@ -37,8 +38,8 @@ henia:
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}
 ```{{end}}
 
 {{end}}

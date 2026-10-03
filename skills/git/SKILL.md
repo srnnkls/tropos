@@ -4,6 +4,7 @@ description: Modern git workflows plus dispatched operations (rebase strategy an
 metadata:
   type: domain
   slots: "git.branching git.commits"
+  applies: "git.branching git.commits"
 henia:
   targets:
     claude:
@@ -19,7 +20,7 @@ henia:
   variables:
     context_commands:
       - label: Slot providers
-        slots: git.branching git.commits
+        slots: true
       - label: Current branch
         command: git branch --show-current 2>/dev/null || true
       - label: Status
@@ -33,8 +34,8 @@ henia:
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}
 ```{{end}}
 
 {{end}}

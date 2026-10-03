@@ -3,11 +3,12 @@ name: pr
 description: GitHub PR review-comment operations. `comments` assesses each review comment (relevant vs outdated, valid vs invalid) and proposes an action; `tfcprr` closes the threads you've addressed (tfcp — triage + fix + commit + push — then reply + resolve) by delegating to the `tfcprr` skill. Use for "pr comments", "assess PR feedback", "review PR comments", "reply to a PR comment", "resolve a thread", or "tfcprr".
 metadata:
   type: domain
+  applies: "review.criteria"
 henia:
   variables:
     context_commands:
       - label: Slot providers
-        slots: review.criteria
+        slots: true
   targets:
     claude:
       frontmatter:
@@ -28,8 +29,8 @@ henia:
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .slots}}{{$.resolve_slots}} {{.slots}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}`{{else}}```bash
+{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}
 ```{{end}}
 
 {{end}}All other shell lives in [scripts/pr-context](scripts/pr-context), resolved against this skill's directory.
