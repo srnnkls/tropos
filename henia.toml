@@ -9,6 +9,7 @@ artifacts = ["skills", "agents"]
 profile = "claude"
 format = "xml"
 strict = true
+exclude = ["debate", "dispatch", "limen", "loqui", "validate"]
 
 [harness.claude.variables]
 preload_context = "true"

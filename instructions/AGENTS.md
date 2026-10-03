@@ -39,11 +39,15 @@ Ordinary work executes directly. Strict delegated RED → GREEN → review and T
 
 For configuration, documentation, maintenance, and platform-validated artifacts, use the native parser, linter, command, or runtime instead of inventing test machinery.
 
+## Skill runtime
+
+Skills beyond those listed are served by Henia: `henia ls` lists them, and `henia show <skill>[#section]` reads one, rendered for this harness. Read library skills only through `henia show`, never as files.
+
 ## Project slots
 
 A skill owns named slots, `<skill>.<slot>`, by declaring them in frontmatter `metadata.slots` as `<slot>[:<type>]` entries and stating each one's coverage in its Slots section. A slot's type composes its providers: `list` keeps every provider, `unique` admits one, and `keyed(list)` or `keyed(unique)` apply that per dotted sub-slot, such as `code.style.python`; an untyped slot is `keyed(list)`. A skill fills slots when its frontmatter carries `metadata.provides: "<skill>.<slot>[@<priority>] […]"`; the value may be quoted or bare space-separated names or a `[a, b]` flow list. A slot typed `list(command)`, `unique(text)` or `keyed(… (path))` takes the provider's value, set under the provided slot's name, instead of its SKILL.md. A skill that preloads slot providers names those slots in `metadata.applies`. A sub-slot provider covers only that part. Priorities are `force`, `normal` and `fallback`, after Nix's `mkForce`, plain definitions and `mkDefault`: global providers imply `fallback` and project providers `normal`, and a provider shadows every worse-priority provider of its slot and of its sub-slots. A project provider that keeps the global fallbacks beside it gives its entry the `fallback` priority. Project skills take names distinct from global skills and stay complete for collaborators without them.
 
-- When a skill's context lists slot providers, read each listed SKILL.md before acting, and the files it links that are material to the task.
+- When a skill's context lists slot providers, read each listed provider before acting: its SKILL.md, or the `henia show` command a library provider names; then the files it links that are material to the task.
 - A provider replaces only what its slot covers; the global skill governs everything else.
 - A project need outside every slot is a missing slot in the global skill, not an override.
 - A slot provider row marked `unknown` names a slot no skill declares or a sub-slot of a slot that is not keyed, a requested slot marked `undeclared` has no owner, `invalid` marks a malformed entry, and `conflict` marks a `unique` slot with several providers or a slot declared with different types; report any of them to the user before relying on that slot. `henia slots --explain <slot>` shows where each provider and override comes from.

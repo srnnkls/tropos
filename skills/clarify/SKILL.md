@@ -4,6 +4,7 @@ description: Resolve ambiguities interactively with tracked changes. Works with 
 metadata:
   type: domain
 henia:
+  auto_invoke: false
   targets:
     codex:
       openai:

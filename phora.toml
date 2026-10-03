@@ -23,7 +23,7 @@ branch = "main"
 root = "rules/fas"
 
 [sources.harnesses]
-build = { tool = "github:srnnkls/henia@0.1.0-alpha.7", run = "henia build {input} --output {output}" }
+build = { tool = "github:srnnkls/henia@0.1.0-alpha.9", run = "henia build {input} --output {output}" }
 
 [targets.loqui]
 path = "skills/loqui/reference/loqui"
@@ -59,6 +59,10 @@ sources.harnesses = { take = [{ "omp/" = "." }], collapse = false }
 
 [offers.default]
 include = ["skills/**", "agents/**", "instructions/**", "rules/fas/**", "henia.toml", ".henia/harnesses/**", "phora.toml"]
+
+[offers.library]
+include = ["skills/**", "henia.toml", ".henia/harnesses/**"]
+targets = ["loqui", "gestalt", "limen"]
 
 [offers.fas]
 root = "rules/fas"
