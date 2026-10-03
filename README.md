@@ -26,6 +26,42 @@ A cross-harness configuration for agentic development. Ordinary work stays direc
 - *[skills](skills/)* — Progressively disclosed workflows and domain policy
 - *[agents](agents/)* — Implementer, reviewer, and tester boundaries
 
+## Composition
+
+Skills expose seams as typed slots that other skills fill without editing them.
+The owner declares a slot and states what it covers; a provider names the slot
+in `metadata.provides`; every skill that applies a slot preloads its providers
+through `henia slots`, at runtime, over the harness's skills and the project's.
+The [Project slots](instructions/AGENTS.md#project-slots) contract defines types,
+priorities and shadowing; [Henia](https://github.com/srnnkls/henia/blob/main/docs/slots.md)
+resolves them.
+
+| Seam | Owner | Applied by | Default providers |
+|---|---|---|---|
+| `code.style` | [code](skills/code/SKILL.md#slots) | code, implement, continue, loop | [loqui](skills/loqui/SKILL.md) per language |
+| `code.validation` | [code](skills/code/SKILL.md#slots) | code, implement, continue, loop | — |
+| `test.conventions` | [test](skills/test/SKILL.md#slots) | test, code, implement, continue, loop | — |
+| `review.criteria` | [review](skills/review/SKILL.md#slots) | review, code, implement, continue, loop, tfcp, tfcprr, pr | — |
+| `git.branching` | [git](skills/git/SKILL.md#slots) | git, implement, continue, loop | — |
+| `git.commits` | [git](skills/git/SKILL.md#slots) | git, tfcp, tfcprr | — |
+| `scope.templates` | [scope](skills/scope/SKILL.md#slots) | scope | — |
+| `issue.template` | [issue](skills/issue/SKILL.md#slots) | issue | — |
+
+A repository fills a seam with a project skill; it shadows the global providers
+of that slot and its sub-slots, or sits beside them at `fallback` priority:
+
+```markdown
+---
+name: house-go
+description: Go conventions for this repository.
+metadata:
+  provides: "code.style.go review.criteria@fallback"
+---
+```
+
+`henia slots --global ~/.claude/skills --explain` shows every seam with its
+declaration, its providers and which provider shadows which.
+
 ## Development
 
 Henia compiles the canonical skills for Claude Code, Codex, Pi and OMP; Phora
