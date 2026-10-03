@@ -12,7 +12,7 @@ case "$A" in
 esac
 
 echo "== slot providers =="
-"$(dirname "$0")/../../skill/scripts/resolve-slots" review.criteria
+henia slots --global "$(dirname "$0")/../.." review.criteria
 
 case "$A" in
   comments) A="" ;;

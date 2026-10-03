@@ -12,7 +12,7 @@ code_style_hint: {
 	then: inject: {
 		rule_id: "code-style-hint"
 		channel: "agent"
-		text:    "HINT: Apply the `code.style` slot providers for language-specific coding guidelines; the `skill` skill's `scripts/resolve-slots code.style` lists them."
+		text:    "HINT: Apply the `code.style` slot providers for language-specific coding guidelines; `henia slots --global <harness skills directory> code.style` lists them."
 	}
 }
 

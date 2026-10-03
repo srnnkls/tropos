@@ -70,9 +70,8 @@ A skill that owns slots declares them in `metadata.slots` and lists them in a
 Every skill that applies slots, owned or consumed, lists a `Slot providers`
 context entry with `slots: <skill>.<slot> […]`; seams that a slot replaces name
 it and link the owner's Slots section. The context template renders the entry as
-the harness's `resolve_slots` command, which runs
-[scripts/resolve-slots](scripts/resolve-slots), and grants that command in
-Claude `allowed-tools`. The interface is defined in the global contract's
+the harness's `resolve_slots` command, `henia slots` over that harness's global
+skills directory, and grants that command in Claude `allowed-tools`. The interface is defined in the global contract's
 Project slots section.
 
 Write canonical skill references as backtick `$<skill-name>` spans outside code

@@ -15,7 +15,6 @@ GIT_ROOT="$(git rev-parse --show-toplevel)"
 cd "$GIT_ROOT"
 
 skills/skill/scripts/workflow-contract-test
-skills/skill/scripts/resolve-slots-test
 for test in layout preflight fanout classify route; do
   "skills/peer/scripts/peer-${test}-test"
 done

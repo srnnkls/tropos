@@ -39,7 +39,7 @@ sg_pr: {
 
 sg_code_style: {
 	when: hook.#UserPromptSubmit & {prompt: =~#"(?i)\b(commit guideline|coding guideline|coding standard|code convention|style guide|naming convention|best practice)\b"#}
-	then: inject: {rule_id: "suggest-code-style", channel: "agent", text: "Consider the `code.style` slot providers for language-specific guidelines; the `skill` skill's `scripts/resolve-slots code.style` lists them."}
+	then: inject: {rule_id: "suggest-code-style", channel: "agent", text: "Consider the `code.style` slot providers for language-specific guidelines; `henia slots --global <harness skills directory> code.style` lists them."}
 }
 
 sg_worktree: {
