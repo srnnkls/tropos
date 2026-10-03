@@ -1,5 +1,9 @@
 [tools]
-"github:srnnkls/henia" = { version = "0.1.0-alpha.5", prerelease = "true" }
+"github:srnnkls/henia" = { version = "0.1.0-alpha.6", prerelease = "true" }
+
+[tasks.composition]
+description = "Generate COMPOSITION.md from the skills' slots"
+run = "scripts/composition"
 
 [tasks.test-artifacts]
 description = "Prepare this tree with Phora, compile every harness with Henia, and check the artifacts"

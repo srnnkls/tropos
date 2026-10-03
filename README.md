@@ -36,16 +36,21 @@ The [Project slots](instructions/AGENTS.md#project-slots) contract defines types
 priorities and shadowing; [Henia](https://github.com/srnnkls/henia/blob/main/docs/slots.md)
 resolves them.
 
-| Seam | Owner | Applied by | Default providers |
-|---|---|---|---|
-| `code.style` | [code](skills/code/SKILL.md#slots) | code, implement, continue, loop | [loqui](skills/loqui/SKILL.md) per language |
-| `code.validation` | [code](skills/code/SKILL.md#slots) | code, implement, continue, loop | — |
-| `test.conventions` | [test](skills/test/SKILL.md#slots) | test, code, implement, continue, loop | — |
-| `review.criteria` | [review](skills/review/SKILL.md#slots) | review, code, implement, continue, loop, tfcp, tfcprr, pr | — |
-| `git.branching` | [git](skills/git/SKILL.md#slots) | git, implement, continue, loop | — |
-| `git.commits` | [git](skills/git/SKILL.md#slots) | git, tfcp, tfcprr | — |
-| `scope.templates` | [scope](skills/scope/SKILL.md#slots) | scope | — |
-| `issue.template` | [issue](skills/issue/SKILL.md#slots) | issue | — |
+For example, `code` owns `code.style`, `implement` preloads its providers,
+Loqui provides `code.style.go`, and a repository's own Go skill replaces it:
+
+```text
+$ henia slots --global ~/.claude/skills --explain code.style.go
+code.style.go
+  code.style.go (keyed(list) of code.style, declared by ~/.claude/skills/code/SKILL.md)
+    selected house-go [project, normal from tier] .agents/skills/house-go/SKILL.md
+    shadowed loqui [global, fallback from tier] ~/.claude/skills/loqui/SKILL.md
+      by house-go [project, normal from tier] for code.style.go, .agents/skills/house-go/SKILL.md
+```
+
+[COMPOSITION.md](COMPOSITION.md) lists every seam with its type, owner, the
+skills that apply it and the providers Tropos ships. `scripts/composition`
+generates it, and CI commits the result on every push to `main` that changes it.
 
 A repository fills a seam with a project skill; it shadows the global providers
 of that slot and its sub-slots, or sits beside them at `fallback` priority:

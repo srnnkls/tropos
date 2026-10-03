@@ -1,0 +1,35 @@
+name: composition
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "skills/*/SKILL.md"
+      - "scripts/composition"
+      - ".github/workflows/composition.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: composition
+  cancel-in-progress: false
+
+jobs:
+  composition:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: jdx/mise-action@v4
+        with:
+          experimental: true
+      - run: mise run composition
+      - name: Commit COMPOSITION.md
+        run: |
+          git add COMPOSITION.md
+          git diff --cached --quiet && exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "docs(composition): regenerate from skill slots"
+          git push
