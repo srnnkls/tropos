@@ -40,9 +40,14 @@ def yaml(path, frontmatter=False):
 
 
 def projected(config, harness, skills):
-    settings = config.get("harness", {}).get(harness, {})
-    selected = skills & set(settings["include"]) if "include" in settings else skills
-    return selected - set(settings.get("exclude", []))
+    settings = config.get("harness", {}).get(harness, {}).get("skills", {})
+    selected = skills & set(settings["static"]) if "static" in settings else skills
+    return selected - set(settings.get("dynamic", []))
+
+
+def catalog(config, harness, skills):
+    settings = config.get("harness", {}).get(harness, {}).get("skills", {})
+    return settings.get("catalog", True) and projected(config, harness, skills) != skills
 
 
 def invocable(root, name):
@@ -59,12 +64,22 @@ def check(root, build):
     for harness in ("claude", "codex", "pi", "omp"):
         target = build / harness
         mains = sorted((target / "skills").glob("*/SKILL.md"))
+        expected = projected(config, harness, skills)
+        if catalog(config, harness, skills):
+            expected = expected | {"henia"}
         require(
-            {path.parent.name for path in mains} == projected(config, harness, skills),
+            {path.parent.name for path in mains} == expected,
             f"{harness}: expected the projected canonical skill inventory",
         )
         for path in mains:
             name = path.parent.name
+            if name == "henia" and name not in skills:
+                fm = yaml(path, frontmatter=True)
+                body = path.read_text()
+                dynamic = sorted(skills - projected(config, harness, skills))
+                require(fm.get("name") == "henia" and fm.get("description"), f"{path}: catalog metadata")
+                require(all(f"- `{skill}`:" in body for skill in dynamic), f"{path}: catalog must name every dynamic skill")
+                continue
             fm = yaml(path, frontmatter=True)
             require(fm.get("name") == name, f"{path}: name must match directory")
             require(
