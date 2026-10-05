@@ -13,7 +13,7 @@ branch = "main"
 root = "rules/fas"
 
 [sources.harnesses]
-build = { tool = "github:srnnkls/henia@0.1.0-alpha.12", run = "henia build {input} --output {output}" }
+build = { tool = "github:srnnkls/henia@0.1.0-alpha.13", run = "henia build {input} --output {output}" }
 
 [targets.loqui]
 path = "skills/loqui/reference/loqui"
