@@ -1,34 +1,12 @@
-# Canonical artifacts, their dependency layout, and the harness builds offered to consumers.
-[tools."github:srnnkls/henia"]
-mise = true
-
+# Canonical artifacts and their dependency layout, offered to consumers.
 [sources.moira]
 git = "https://github.com/srnnkls/moira.git"
 branch = "main"
 root = "rules/fas"
 
-[sources.harnesses]
-build = { tool = "github:srnnkls/henia@0.1.0-alpha.14", run = "henia build {input} --output {output}" }
-
 [targets.moira]
 path = "rules/fas/moira"
 sources.moira = { collapse = false }
-
-[targets.claude]
-path = "dist/claude"
-sources.harnesses = { take = [{ "claude/" = "." }], collapse = false }
-
-[targets.codex]
-path = "dist/codex"
-sources.harnesses = { take = [{ "codex/" = "." }], collapse = false }
-
-[targets.pi]
-path = "dist/pi"
-sources.harnesses = { take = [{ "pi/" = "." }], collapse = false }
-
-[targets.omp]
-path = "dist/omp"
-sources.harnesses = { take = [{ "omp/" = "." }], collapse = false }
 
 [offers.default]
 include = ["skills/**", "agents/**", "instructions/**", "rules/fas/**", "henia.toml", "henia.lock", ".henia/harnesses/**", "phora.toml"]
@@ -38,19 +16,3 @@ include = ["skills/**", "henia.toml", "henia.lock", ".henia/harnesses/**"]
 
 [offers.fas]
 root = "rules/fas"
-
-[offers.claude]
-root = "dist/claude"
-targets = ["claude"]
-
-[offers.codex]
-root = "dist/codex"
-targets = ["codex"]
-
-[offers.pi]
-root = "dist/pi"
-targets = ["pi"]
-
-[offers.omp]
-root = "dist/omp"
-targets = ["omp"]

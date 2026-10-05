@@ -26,7 +26,8 @@ directives = "xml"
 strict = true
 
 [harness.claude.skills]
-dynamic = ["debate", "dispatch", "limen", "loqui", "validate"]
+default = "dynamic"
+hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "issue", "loop", "pr", "review", "scope", "tfcp", "tfcprr", "validate"]
 
 [harness.claude.variables]
 preload_context = "true"
@@ -38,6 +39,10 @@ profile = "codex"
 directives = "keep"
 strict = true
 
+[harness.codex.skills]
+default = "dynamic"
+hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "issue", "loop", "pr", "review", "scope", "tfcp", "tfcprr", "validate"]
+
 [harness.codex.variables]
 preload_context = "false"
 context_instruction = "Run these commands with the shell tool from the working directory before applying the workflow, resolving `scripts/` and `../` script paths against this skill's directory; use their output as context."
@@ -47,6 +52,10 @@ artifacts = ["skills", "agents"]
 profile = "pi-omp"
 directives = "keep"
 strict = true
+
+[harness.pi.skills]
+default = "dynamic"
+hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "issue", "loop", "pr", "review", "scope", "tfcp", "tfcprr", "validate"]
 
 [harness.pi.variables]
 preload_context = "false"
@@ -60,6 +69,10 @@ artifacts = ["skills", "agents"]
 profile = "pi-omp"
 directives = "keep"
 strict = true
+
+[harness.omp.skills]
+default = "dynamic"
+hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "issue", "loop", "pr", "review", "scope", "tfcp", "tfcprr", "validate"]
 
 [harness.omp.variables]
 preload_context = "false"

@@ -39,10 +39,15 @@ def yaml(path, frontmatter=False):
     return json.loads(subprocess.check_output([*args, ".", str(path)], text=True))
 
 
-def projected(config, harness, skills):
+def modes(config, harness, skills):
     settings = config.get("harness", {}).get(harness, {}).get("skills", {})
-    selected = skills & set(settings["static"]) if "static" in settings else skills
-    return selected - set(settings.get("dynamic", []))
+    listed = {mode: set(settings.get(mode, [])) for mode in ("static", "dynamic", "hybrid")}
+    default = settings.get("default") or ("dynamic" if listed["static"] | listed["hybrid"] else "static")
+    return {name: next((mode for mode, names in listed.items() if name in names), default) for name in skills}
+
+
+def projected(config, harness, skills):
+    return {name for name, mode in modes(config, harness, skills).items() if mode != "dynamic"}
 
 
 def catalog(config, harness, skills):
@@ -68,6 +73,7 @@ def check(root, build):
     for harness in ("claude", "codex", "pi", "omp"):
         target = build / harness
         mains = sorted((target / "skills").glob("*/SKILL.md"))
+        mode = modes(config, harness, skills)
         expected = projected(config, harness, skills)
         if catalog(config, harness, skills):
             expected = expected | {"henia"}
@@ -115,7 +121,18 @@ def check(root, build):
                 set(canonical) <= COMMON_FIELDS | {"license", "compatibility", "henia"},
                 f"{name}: native metadata outside henia.targets",
             )
-            if canonical.get("henia", {}).get("variables", {}).get("context_commands"):
+            if mode[name] == "hybrid":
+                if harness == "claude":
+                    require(
+                        re.fullmatch(rf"\s*!`henia preload --skill {name} -- 'henia show {name} --head --digest [0-9a-f]+'`\s*", body),
+                        f"{path}: hybrid head must be one head preload",
+                    )
+                else:
+                    require(
+                        f"henia show {name} --toc --digest" in body and f"'henia context {name}'" in body and "!`" not in body,
+                        f"{path}: hybrid head must run its contents and context first",
+                    )
+            elif canonical.get("henia", {}).get("variables", {}).get("context_commands"):
                 if harness == "claude":
                     require(
                         "## Pre-loaded Context" in body and "!`" in body,
@@ -128,14 +145,14 @@ def check(root, build):
                         and "```bash" in body,
                         f"{path}: harness must receive shell instructions",
                     )
-            if name in {"code", "implement"}:
+            if name in {"code", "implement"} and (mode[name] == "static" or harness != "claude"):
                 directive = (
                     '<instruction priority="high">'
                     if harness == "claude"
                     else ':::instruction{priority="high"}'
                 )
                 require(directive in body, f"{path}: incorrect directive rendering")
-            if name in {"code", "test"}:
+            if name in {"code", "test"} and mode[name] == "static":
                 require(skill_reference(harness, "implement") in body, f"{path}: incorrect skill invocation")
             if canonical.get("henia", {}).get("auto_invoke") is False and harness in {
                 "claude",
@@ -167,7 +184,7 @@ def check(root, build):
                         is False,
                         f"{path}: explicit invocation required",
                     )
-            for resource in (canonical_root / "skills" / name).rglob("*"):
+            for resource in (canonical_root / "skills" / name).rglob("*") if mode[name] == "static" else ():
                 if resource.is_file() and resource.name != "SKILL.md":
                     deployed = path.parent / resource.relative_to(
                         canonical_root / "skills" / name
