@@ -3,12 +3,9 @@ name: implement
 description: Strict delegated RED → GREEN → review workflow. Use only when explicitly invoked for a task, scope, verification, or debugging.
 metadata:
   type: generic
-  applies: "git.branching test.conventions code.style code.validation review.criteria"
 henia:
   variables:
     context_commands:
-      - label: Slot providers
-        slots: true
       - label: Active scopes
         command: find scopes -maxdepth 3 -name scope.md 2>/dev/null || true
       - label: Checkpoints
@@ -25,7 +22,7 @@ henia:
     claude:
       frontmatter:
         argument-hint: '[target]'
-        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(gh *), Bash(peer *), Bash({{.resolve_slots}} *)
+        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(gh *), Bash(peer *)
     codex:
       openai:
         interface:
@@ -40,9 +37,13 @@ henia:
 
 {{.context_instruction}}
 
+Slot providers:
+
+:slot[git.branching test.conventions code.style code.validation review.criteria]
+
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{.command}}
 ```{{end}}
 
 {{end}}

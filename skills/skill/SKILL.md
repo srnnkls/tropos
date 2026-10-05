@@ -65,15 +65,13 @@ use it only for skills that no agent preloads. A preloadable workflow skill stat
 its explicit-use policy in `description` instead. Use `henia.variables` for
 context inputs and `henia.targets.codex.openai.interface` for Codex UI metadata.
 
-A skill that owns slots declares them in `metadata.slots` and lists them in a
+A skill that owns slots declares them in `henia.slots` and lists them in a
 `## Slots` table, one `<skill>.<slot>` per row with what a provider covers.
-Every skill that applies slots, owned or consumed, names them in
-`metadata.applies` and lists a `Slot providers` context entry with `slots: true`;
-seams that a slot replaces name it and link the owner's Slots section. The
-context template renders the entry as the harness's `resolve_slots` command with
-`--for <skill>`, `henia slots` over that harness's global skills directory, and
-grants that command in Claude `allowed-tools`. The interface is defined in the
-global contract's Project slots section.
+Every skill that applies slots, owned or consumed, lists a `Slot providers`
+context entry whose `slots` names them; seams that a slot replaces name it and
+link the owner's Slots section. The context template renders the entry as a
+`:slot[...]` directive, which Henia turns into a `henia slots` preload. The
+interface is defined in the global contract's Project slots section.
 
 Write canonical skill references as backtick `$<skill-name>` spans outside code
 examples. Use portable relative Markdown links in copied reference documents.

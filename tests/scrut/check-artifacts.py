@@ -51,6 +51,8 @@ def catalog(config, harness, skills):
 
 
 def invocable(root, name):
+    if not (root / "skills" / name / "SKILL.md").is_file():
+        return True
     fm = yaml(root / "skills" / name / "SKILL.md", frontmatter=True)
     auto = fm.get("henia", {}).get("auto_invoke", fm.get("auto_invoke"))
     return auto is not False
@@ -61,6 +63,8 @@ def check(root, build):
     skills = {path.parent.name for path in (canonical_root / "skills").glob("*/SKILL.md") }
     require(bool(skills), "canonical skill inventory is empty")
     config = tomllib.loads((canonical_root / "henia.toml").read_text())
+    packages = {skill for d in config.get("dependencies", {}).values() for skill in d.get("skills", [])}
+    skills = skills | packages
     for harness in ("claude", "codex", "pi", "omp"):
         target = build / harness
         mains = sorted((target / "skills").glob("*/SKILL.md"))
@@ -104,6 +108,8 @@ def check(root, build):
                 "{{" not in body and "<no value>" not in body,
                 f"{path}: unexpanded template",
             )
+            if name in packages:
+                continue
             canonical = yaml(canonical_root / "skills" / name / "SKILL.md", frontmatter=True)
             require(
                 set(canonical) <= COMMON_FIELDS | {"license", "compatibility", "henia"},

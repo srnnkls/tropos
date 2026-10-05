@@ -3,17 +3,12 @@ name: pr
 description: GitHub PR review-comment operations. `comments` assesses each review comment (relevant vs outdated, valid vs invalid) and proposes an action; `tfcprr` closes the threads you've addressed (tfcp — triage + fix + commit + push — then reply + resolve) by delegating to the `tfcprr` skill. Use for "pr comments", "assess PR feedback", "review PR comments", "reply to a PR comment", "resolve a thread", or "tfcprr".
 metadata:
   type: domain
-  applies: "review.criteria"
 henia:
-  variables:
-    context_commands:
-      - label: Slot providers
-        slots: true
   targets:
     claude:
       frontmatter:
         argument-hint: '[comments [N] | tfcprr <args>]'
-        allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/pr-context), Bash(${CLAUDE_SKILL_DIR}/scripts/pr-context *), Bash(gh api *), Bash(gh pr *), Bash(gh review *), Bash(gh repo view *), Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git rev-parse *), Bash(git branch *), Bash({{.resolve_slots}} *)
+        allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/pr-context), Bash(${CLAUDE_SKILL_DIR}/scripts/pr-context *), Bash(gh api *), Bash(gh pr *), Bash(gh review *), Bash(gh repo view *), Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git rev-parse *), Bash(git branch *)
     codex:
       openai:
         interface:
@@ -28,12 +23,11 @@ henia:
 
 {{.context_instruction}}
 
-{{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}
-```{{end}}
+Slot providers:
 
-{{end}}All other shell lives in [scripts/pr-context](scripts/pr-context), resolved against this skill's directory.
+:slot[review.criteria]
+
+All other shell lives in [scripts/pr-context](scripts/pr-context), resolved against this skill's directory.
 {{if eq .preload_context "true"}}`${CLAUDE_SKILL_DIR}` is substituted in both the block below and the `allowed-tools` rule, so the rule matches the command verbatim and the fetch runs without a permission check.
 
 !`${CLAUDE_SKILL_DIR}/scripts/pr-context $ARGUMENTS`{{else}}

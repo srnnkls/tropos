@@ -3,17 +3,12 @@ name: test
 description: Bounded RED-GREEN-REFACTOR methodology. Use when the user explicitly requests TDD or tests, or when the implement pipeline invokes it.
 metadata:
   type: generic
-  slots: "test.conventions"
-  applies: "test.conventions"
 henia:
-  variables:
-    context_commands:
-      - label: Slot providers
-        slots: true
+  slots:
+    test.conventions:
   targets:
     claude:
       frontmatter:
-        allowed-tools: Bash({{.resolve_slots}} *)
     codex:
       openai:
         interface:
@@ -28,12 +23,11 @@ henia:
 
 {{.context_instruction}}
 
-{{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}
-```{{end}}
+Slot providers:
 
-{{end}}
+:slot[test.conventions]
+
+
 # Bounded Test-Driven Development
 
 Write the smallest discriminating check, watch it fail for the requested missing behavior, add minimal production code, then watch it pass.

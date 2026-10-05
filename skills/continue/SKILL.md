@@ -3,13 +3,12 @@ name: continue
 description: Resume an interrupted explicit implementation from its exact checkpoint wave.
 metadata:
   type: generic
-  applies: "git.branching test.conventions code.style code.validation review.criteria"
 henia:
   targets:
     claude:
       frontmatter:
         argument-hint: '[scope-name]'
-        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(peer *), Bash({{.resolve_slots}} *)
+        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(peer *)
     codex:
       openai:
         interface:
@@ -19,8 +18,6 @@ henia:
   auto_invoke: false
   variables:
     context_commands:
-      - label: Slot providers
-        slots: true
       - label: Active scopes
         command: find scopes -maxdepth 3 -name scope.md 2>/dev/null || true
       - label: Checkpoints
@@ -39,9 +36,13 @@ henia:
 
 {{.context_instruction}}
 
+Slot providers:
+
+:slot[git.branching test.conventions code.style code.validation review.criteria]
+
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{.command}}
 ```{{end}}
 
 {{end}}

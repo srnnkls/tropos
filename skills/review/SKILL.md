@@ -3,13 +3,11 @@ name: review
 description: Unified review dispatcher for code, PR, scope, structural, and bounded test-quality review.
 metadata:
   type: generic
-  slots: "review.criteria"
-  applies: "review.criteria"
 henia:
+  slots:
+    review.criteria:
   variables:
     context_commands:
-      - label: Slot providers
-        slots: true
       - label: Git status
         command: git status --short 2>/dev/null || true
       - label: Recent commits
@@ -30,7 +28,7 @@ henia:
     claude:
       frontmatter:
         argument-hint: '[target]'
-        allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(find *), Bash(gh pr list *), Bash(peer *), Bash({{.resolve_slots}} *)
+        allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(find *), Bash(gh pr list *), Bash(peer *)
     codex:
       openai:
         interface:
@@ -45,9 +43,13 @@ henia:
 
 {{.context_instruction}}
 
+Slot providers:
+
+:slot[review.criteria]
+
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{.command}}
 ```{{end}}
 
 {{end}}

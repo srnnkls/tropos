@@ -6,7 +6,7 @@ henia:
     claude:
       frontmatter:
         argument-hint: <focus topic>
-        allowed-tools: Bash(find *), Bash(git *), Bash(peer *), Bash({{.resolve_slots}} *)
+        allowed-tools: Bash(find *), Bash(git *), Bash(peer *)
         context: fork
         hooks:
           Stop:
@@ -24,8 +24,6 @@ henia:
   auto_invoke: false
   variables:
     context_commands:
-      - label: Slot providers
-        slots: true
       - label: Pending tasks
         command: 'find scopes -maxdepth 3 -name "tasks.yaml" -type f 2>/dev/null | xargs -I{} sh -c ''echo "=== {} ===" && grep -A1 "status: pending" {} 2>/dev/null'''
       - label: Git status
@@ -36,7 +34,6 @@ henia:
         command: peer route show -C . 2>/dev/null || true
 metadata:
   type: generic
-  applies: "git.branching test.conventions code.style code.validation review.criteria"
 ---
 
 <!-- Generated from skills/loop/SKILL.md by henia build; edit the canonical source. -->
@@ -45,9 +42,13 @@ metadata:
 
 {{.context_instruction}}
 
+Slot providers:
+
+:slot[git.branching test.conventions code.style code.validation review.criteria]
+
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{.command}}
 ```{{end}}
 
 {{end}}

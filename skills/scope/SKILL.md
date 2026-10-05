@@ -3,14 +3,14 @@ name: scope
 description: Unified scope lifecycle. Auto-detects operation from argument or presents selection menu. Routes to create, review, update, done, or list. Creation clears a mandatory multi-agent review gate before the scope is implementable.
 metadata:
   type: domain
-  slots: "scope.templates"
-  applies: "scope.templates"
 henia:
+  slots:
+    scope.templates:
   targets:
     claude:
       frontmatter:
         argument-hint: '[operation|name] [scope-name]'
-        allowed-tools: Bash(find *), Bash(git branch *), Bash(git log *), Bash(git status *), Bash(git diff *), Bash(git worktree list *), Bash(peer *), Bash({{.resolve_slots}} *)
+        allowed-tools: Bash(find *), Bash(git branch *), Bash(git log *), Bash(git status *), Bash(git diff *), Bash(git worktree list *), Bash(peer *)
     codex:
       openai:
         interface:
@@ -19,8 +19,6 @@ henia:
           default_prompt: Use $scope for the requested task.
   variables:
     context_commands:
-      - label: Slot providers
-        slots: true
       - label: Active scopes
         command: find "$(git worktree list --porcelain | awk 'NR==1{print $2}')/scopes" -maxdepth 3 -name scope.md 2>/dev/null || true
       - label: Current branch
@@ -37,9 +35,13 @@ henia:
 
 {{.context_instruction}}
 
+Slot providers:
+
+:slot[scope.templates]
+
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{.command}}
 ```{{end}}
 
 {{end}}

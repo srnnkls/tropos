@@ -3,14 +3,15 @@ name: git
 description: Modern git workflows plus dispatched operations (rebase strategy analysis). Use when managing branches, structuring commits, choosing development strategies, or planning a rebase.
 metadata:
   type: domain
-  slots: "git.branching git.commits"
-  applies: "git.branching git.commits"
 henia:
+  slots:
+    git.branching:
+    git.commits:
   targets:
     claude:
       frontmatter:
         argument-hint: '[operation] [args]'
-        allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(git rev-parse *), Bash({{.resolve_slots}} *)
+        allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(git rev-parse *)
     codex:
       openai:
         interface:
@@ -19,8 +20,6 @@ henia:
           default_prompt: Use $git for the requested task.
   variables:
     context_commands:
-      - label: Slot providers
-        slots: true
       - label: Current branch
         command: git branch --show-current 2>/dev/null || true
       - label: Status
@@ -33,9 +32,13 @@ henia:
 
 {{.context_instruction}}
 
+Slot providers:
+
+:slot[git.branching git.commits]
+
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{.command}}
 ```{{end}}
 
 {{end}}

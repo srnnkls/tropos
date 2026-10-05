@@ -3,13 +3,12 @@ name: code
 description: Code domain context for explicit implementation, review, and test workflows.
 metadata:
   type: domain
-  slots: "code.style code.validation:keyed(list(command))"
-  applies: "code.style code.validation test.conventions review.criteria"
 henia:
+  slots:
+    code.style:
+    code.validation: keyed(list(command))
   variables:
     context_commands:
-      - label: Slot providers
-        slots: true
       - label: Git status
         command: git status --short 2>/dev/null || true
       - label: Languages detected
@@ -17,7 +16,6 @@ henia:
   targets:
     claude:
       frontmatter:
-        allowed-tools: Bash({{.resolve_slots}} *)
         argument-hint: '[operation] [target]'
     codex:
       openai:
@@ -33,9 +31,13 @@ henia:
 
 {{.context_instruction}}
 
+Slot providers:
+
+:slot[code.style code.validation test.conventions review.criteria]
+
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{.command}}
 ```{{end}}
 
 {{end}}

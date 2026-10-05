@@ -3,14 +3,14 @@ name: issue
 description: GitHub issue operations — author or update issues against a canonical template, and create PRs from a branch/issue. Authoring drafts to a git-ignored `.issues/` folder, clears the default reviewer gate resolved through canonical routing, then publishes with issue type and parent/depends-on/blocks edges. Use for "create an issue", "open an issue", "update issue
 metadata:
   type: domain
-  slots: "issue.template"
-  applies: "issue.template"
 henia:
+  slots:
+    issue.template:
   targets:
     claude:
       frontmatter:
         argument-hint: '[number|pr] [args]'
-        allowed-tools: Bash(gh issue *), Bash(gh pr *), Bash(gh api *), Bash(gh repo view *), Bash(git branch *), Bash(git push *), Bash(git rev-parse *), Bash(git log *), Bash(git merge-base *), Bash(issue *), Bash(peer *), Bash({{.resolve_slots}} *)
+        allowed-tools: Bash(gh issue *), Bash(gh pr *), Bash(gh api *), Bash(gh repo view *), Bash(git branch *), Bash(git push *), Bash(git rev-parse *), Bash(git log *), Bash(git merge-base *), Bash(issue *), Bash(peer *)
     codex:
       openai:
         interface:
@@ -19,8 +19,6 @@ henia:
           default_prompt: Use $issue for the requested task.
   variables:
     context_commands:
-      - label: Slot providers
-        slots: true
       - label: Current branch
         command: git branch --show-current 2>/dev/null || true
       - label: Default reviewers
@@ -35,9 +33,13 @@ henia:
 
 {{.context_instruction}}
 
+Slot providers:
+
+:slot[issue.template]
+
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{.command}}
 ```{{end}}
 
 {{end}}

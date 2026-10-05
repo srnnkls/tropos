@@ -3,17 +3,12 @@ name: tfcprr
 description: Close PR review threads you've addressed — tfcp (triage + fix + commit + push) then reply + resolve. Runs the `tfcp` skill over every accepted comment — triaging each into fix, residual, or needs-decision — then replies to and resolves the threads it fixed, referencing the commit. `--resolve-only` closes dismissed threads with a rationale reply and no fix. Use for "tfcprr", "close a review thread I fixed", "resolve threads I've addressed", "reply and resolve a dismissed thread".
 metadata:
   type: domain
-  applies: "git.commits review.criteria"
 henia:
-  variables:
-    context_commands:
-      - label: Slot providers
-        slots: true
   targets:
     claude:
       frontmatter:
         argument-hint: --comment <id> [--comment <id>…] [--reply <text>] [-m <msg>] [--pr <n>] [--resolve-only] [paths…]
-        allowed-tools: Bash(gh review *), Bash(gh pr *), Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git rev-parse *), Bash(git branch *), Bash({{.resolve_slots}} *)
+        allowed-tools: Bash(gh review *), Bash(gh pr *), Bash(git add *), Bash(git commit *), Bash(git push *), Bash(git rev-parse *), Bash(git branch *)
     codex:
       openai:
         interface:
@@ -28,12 +23,11 @@ henia:
 
 {{.context_instruction}}
 
-{{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}`{{else}}```bash
-{{if .slots}}{{$.resolve_slots}} --for {{$.name}}{{else}}{{.command}}{{end}}
-```{{end}}
+Slot providers:
 
-{{end}}
+:slot[git.commits review.criteria]
+
+
 # tfcprr — tfcp + reply + resolve
 
 Close the loop on the PR review threads you've addressed: land the fixes through [`tfcp`](../tfcp/SKILL.md), then reply to each thread referencing the commit and resolve it.

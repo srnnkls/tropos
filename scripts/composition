@@ -4,12 +4,13 @@ root=$(git -C "$(dirname "$0")" rev-parse --show-toplevel)
 cd "$root"
 empty=$(mktemp -d)
 trap 'rm -rf "$empty"' EXIT
+slots() { XDG_DATA_HOME="$empty" XDG_CONFIG_HOME="$empty" henia slots --project "$empty" --package "$root" "$@"; }
 
-henia slots --global skills --project "$empty" --check > /dev/null || {
-	henia slots --global skills --project "$empty" --check >&2
+slots --check > /dev/null || {
+	slots --check >&2
 	exit 1
 }
-resolution=$(henia slots --global skills --project "$empty" --json)
+resolution=$(slots --json)
 render() {
 	jq -r --arg root "$root/" '
 		def within($slot): . == $slot or startswith($slot + ".");
@@ -31,7 +32,7 @@ render() {
 		(.declarations | sort_by(.slot)[] as $owner
 			| ($consumers | map(select(related(.slot; $owner.slot))) | map(.skill) | unique | map("[\(.)](skills/\(.)/SKILL.md)") | join(", ")) as $users
 			| ($providers | map(select(.slot | within($owner.slot))) | group_by(.skill)
-				| map("\(.[0] | {skill, path} | link) (\(map("`\(.entry)`") | join(", ")))") | join("; ")) as $filled
+				| map("\(.[0] | {skill, path} | link) (\(map("`\(.slot)`") | join(", ")))") | join("; ")) as $filled
 			| "| `\($owner.slot)` | `\($owner.type)` | [\($owner.path | ltrimstr($root) | split("/")[1])](\($owner.path | ltrimstr($root))#slots) | \(if $users == "" then "—" else $users end) | \(if $filled == "" then "—" else $filled end) |")
 	' <<< "$resolution"
 }

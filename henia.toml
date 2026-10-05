@@ -26,7 +26,6 @@ dynamic = ["debate", "dispatch", "limen", "loqui", "validate"]
 [harness.claude.variables]
 preload_context = "true"
 context_instruction = ""
-resolve_slots = "henia slots --global ${CLAUDE_SKILL_DIR}/.."
 
 [harness.codex]
 artifacts = ["skills", "agents"]
@@ -37,7 +36,6 @@ strict = true
 [harness.codex.variables]
 preload_context = "false"
 context_instruction = "Run these commands with the shell tool from the working directory before applying the workflow, resolving `scripts/` and `../` script paths against this skill's directory; use their output as context."
-resolve_slots = 'henia slots --global "${CODEX_HOME:-$HOME/.codex}/skills"'
 
 [harness.pi]
 artifacts = ["skills", "agents"]
@@ -48,7 +46,6 @@ strict = true
 [harness.pi.variables]
 preload_context = "false"
 context_instruction = "Run these commands with the shell tool from the working directory before applying the workflow, resolving `scripts/` and `../` script paths against this skill's directory; use their output as context."
-resolve_slots = 'henia slots --global "$HOME/.pi/agent/skills"'
 
 [harness.pi.references]
 skill = "/skill:{{.Name}}"
@@ -62,7 +59,6 @@ strict = true
 [harness.omp.variables]
 preload_context = "false"
 context_instruction = "Run these commands with the shell tool from the working directory before applying the workflow, resolving `scripts/` and `../` script paths against this skill's directory; use their output as context."
-resolve_slots = 'henia slots --global "$HOME/.omp/agent/skills"'
 
 [harness.omp.references]
 skill = "/skill:{{.Name}}"
