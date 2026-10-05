@@ -1,0 +1,17 @@
+version = 1
+
+[[sources]]
+name = "gestalt"
+git = "https://github.com/srnnkls/gestalt.git"
+resolved = "main"
+commit = "092feb81cf53a56b7f70c72fc82001467d852722"
+digest = "blake3:79969c2182b2279ce42d377c11e7de41ed17115543fa58772b3df862cb01e56d"
+config_digest = "blake3:8050152f8543187fc66bc0c7b9161de07a1ac8af49322598e12bf3f94c6ccd71"
+
+[[sources]]
+name = "limen"
+git = "https://github.com/srnnkls/limen.git"
+resolved = "main"
+commit = "fa917d657b44101a9376f0a05e816b55a2221150"
+digest = "blake3:def76e99f1696ae5dbc5fb1281ea1bc553860a7431192c712dfd4d539b2b9fde"
+config_digest = "blake3:381f265eabdcfa13530d12c1fa8b5db688a4c19120ce96f1674c86424c16c762"

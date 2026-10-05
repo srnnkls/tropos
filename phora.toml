@@ -7,16 +7,6 @@ git = "https://github.com/srnnkls/loqui.git"
 branch = "main"
 include = ["README.md", "languages/**", "resources/**"]
 
-[sources.gestalt]
-git = "https://github.com/srnnkls/gestalt.git"
-branch = "main"
-root = "skills/gestalt"
-
-[sources.limen]
-git = "https://github.com/srnnkls/limen.git"
-branch = "main"
-root = "skills/limen"
-
 [sources.moira]
 git = "https://github.com/srnnkls/moira.git"
 branch = "main"
@@ -28,14 +18,6 @@ build = { tool = "github:srnnkls/henia@0.1.0-alpha.12", run = "henia build {inpu
 [targets.loqui]
 path = "skills/loqui/reference/loqui"
 sources.loqui = { collapse = false }
-
-[targets.gestalt]
-path = ".henia/sources/gestalt/skills/gestalt"
-sources.gestalt = { collapse = false }
-
-[targets.limen]
-path = ".henia/sources/limen/skills/limen"
-sources.limen = { collapse = false }
 
 [targets.moira]
 path = "rules/fas/moira"
@@ -58,11 +40,11 @@ path = "dist/omp"
 sources.harnesses = { take = [{ "omp/" = "." }], collapse = false }
 
 [offers.default]
-include = ["skills/**", "agents/**", "instructions/**", "rules/fas/**", "henia.toml", ".henia/harnesses/**", "phora.toml"]
+include = ["skills/**", "agents/**", "instructions/**", "rules/fas/**", "henia.toml", "henia.lock", ".henia/harnesses/**", "phora.toml"]
 
 [offers.library]
-include = ["skills/**", "henia.toml", ".henia/harnesses/**"]
-targets = ["loqui", "gestalt", "limen"]
+include = ["skills/**", "henia.toml", "henia.lock", ".henia/harnesses/**"]
+targets = ["loqui"]
 
 [offers.fas]
 root = "rules/fas"
