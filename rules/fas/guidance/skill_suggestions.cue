@@ -44,5 +44,5 @@ sg_code_style: {
 
 sg_worktree: {
 	when: hook.#UserPromptSubmit & {prompt: =~#"(?i)(worktree|\.worktrees|isolated workspace|parallel branch|separate workspace|work in isolation|isolate work|branch isolation)"#}
-	then: inject: {rule_id: "suggest-worktree", channel: "agent", text: "Before a worktree operation, load the git skill and read reference/worktree.md. If unavailable, report the gap instead of reconstructing the procedure."}
+	then: inject: {rule_id: "suggest-worktree", channel: "agent", text: "Before a worktree operation, read `henia show git/reference/worktree.md`. If unavailable, report the gap instead of reconstructing the procedure."}
 }
