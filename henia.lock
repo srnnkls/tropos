@@ -19,7 +19,7 @@ config_digest = "blake3:381f265eabdcfa13530d12c1fa8b5db688a4c19120ce96f1674c8642
 [[sources]]
 name = "loqui"
 git = "https://github.com/srnnkls/loqui.git"
-resolved = "feat/henia-package"
-commit = "8e1b9dd65e840eda32b4fe7603a99766fc12a53d"
+resolved = "main"
+commit = "1560170e2ed42738d5d2dddcb226a14306f5f1ca"
 digest = "blake3:3c26d048bd8870523182b3e0b52727b052ba8be13f38797b1e2a28bf78f043f7"
 config_digest = "blake3:f321478087723b2b30ccd500aa9b7994564183e3429b4e934b5ff0eedb90cc76"

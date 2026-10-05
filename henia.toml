@@ -12,7 +12,7 @@ skills = ["limen"]
 
 [dependencies.loqui]
 git = "https://github.com/srnnkls/loqui.git"
-branch = "feat/henia-package"
+branch = "main"
 skills = ["loqui"]
 
 [build]
