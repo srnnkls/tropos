@@ -16,7 +16,7 @@ peer_prompt_missing_finding_bar: {
 		rule_id:  "peer-prompt-missing-finding-bar"
 		channel:  "agent"
 		priority: 60
-		text:     "This reviewer prompt has no FINDING BAR. Materialize skills/review/reference/finding-bar.md into it verbatim before dispatch — a prompt without it is what produces one-assertion-per-round refinement spirals. No reviewer prompt goes out without it."
+		text:     "This reviewer prompt has no FINDING BAR. Materialize `henia show review/reference/finding-bar.md` into it verbatim before dispatch — a prompt without it is what produces one-assertion-per-round refinement spirals. No reviewer prompt goes out without it."
 	}
 }
 
@@ -27,7 +27,7 @@ peer_reviewer_fanout: {
 	then: inject: {
 		rule_id: "peer-reviewer-fanout-bar"
 		channel: "agent"
-		text:    "Before this fan-out: the prompt file must carry the finding bar verbatim (skills/review/reference/finding-bar.md), plus the materialized diff, requirements, and exact report schema. External high-effort reviewers produce refinement spirals without it."
+		text:    "Before this fan-out: the prompt file must carry the finding bar verbatim (`henia show review/reference/finding-bar.md`), plus the materialized diff, requirements, and exact report schema. External high-effort reviewers produce refinement spirals without it."
 	}
 }
 
@@ -40,7 +40,7 @@ fix_round_convergence: {
 		channel:  "agent"
 		priority: 60
 		text: """
-			TRIAGE BEFORE DISPATCH (skills/review/reference/synthesis.md §4.5–4.6):
+			TRIAGE BEFORE DISPATCH (`henia show review/reference/synthesis.md`, §4.5–4.6):
 			- Batch by mechanism, not by assertion. Two findings on the same state machine → sweep the machine and fix the set together; never open a round on the first one.
 			- Two fix rounds per subject. A third opens only for a verified failure in a component no prior round examined — otherwise stop, record survivors as residual, and report to the user.
 			- A finding whose suggestion reads `needs decision:` never goes to a fix agent. Surface it with its constraint.

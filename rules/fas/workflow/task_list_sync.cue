@@ -16,6 +16,6 @@ implement_populate_task_list: {
 		rule_id:  "implement-populate-task-list"
 		channel:  "agent"
 		priority: 60
-		text:     "Scope run — read the scope's tasks.yaml before dispatching; it is the sole task-status authority. A task list, if kept, mirrors it as display state only (see `implement` operations/execute.md)."
+		text:     "Scope run — read the scope's tasks.yaml before dispatching; it is the sole task-status authority. A task list, if kept, mirrors it as display state only (see `henia show implement/operations/execute.md`)."
 	}
 }

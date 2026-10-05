@@ -8,7 +8,7 @@ import (
 	"github.com/srnnkls/fas/cue/tool"
 )
 
-_worktreePolicy: "Load the git skill and read reference/worktree.md. If unavailable, report the gap and stop."
+_worktreePolicy: "Read `henia show git/reference/worktree.md`. If unavailable, report the gap and stop."
 
 #WorktreeCreation: (tool.#Bash & (bash.#call & {
 	#match: {command: "git", subcommand: "worktree", subcommand_args: ["add", ...]}
