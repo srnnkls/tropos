@@ -30,11 +30,11 @@ path = "skills/loqui/reference/loqui"
 sources.loqui = { collapse = false }
 
 [targets.gestalt]
-path = "skills/gestalt"
+path = ".henia/sources/gestalt/skills/gestalt"
 sources.gestalt = { collapse = false }
 
 [targets.limen]
-path = "skills/limen"
+path = ".henia/sources/limen/skills/limen"
 sources.limen = { collapse = false }
 
 [targets.moira]
