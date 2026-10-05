@@ -1,6 +1,7 @@
 .DS_Store
 __pycache__/
-*.local.toml
+*.local
+*.local.*
 .worktrees/
 .peer/
 .issues/
@@ -14,7 +15,4 @@ __pycache__/
 /.pi/
 /.omp/
 /phora.lock
-
-/phora.local.lock
-
 /dist/
