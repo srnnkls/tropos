@@ -74,6 +74,6 @@ declaration, its providers and which provider shadows which.
 ## Development
 
 Henia compiles the canonical skills for Claude Code, Codex, Pi and OMP; Phora
-deploys them and installs Loqui as a transitive dependency. See
+deploys them, and Henia fetches the Gestalt, Limen and Loqui skill packages. See
 [Henia and Phora](docs/henia-phora.md). Run `mise run test-artifacts` to prepare
 this tree, compile every harness and check the results.

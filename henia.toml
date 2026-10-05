@@ -10,6 +10,11 @@ git = "https://github.com/srnnkls/limen.git"
 branch = "main"
 skills = ["limen"]
 
+[dependencies.loqui]
+git = "https://github.com/srnnkls/loqui.git"
+branch = "feat/henia-package"
+skills = ["loqui"]
+
 [build]
 output = ".henia/build"
 clean = true

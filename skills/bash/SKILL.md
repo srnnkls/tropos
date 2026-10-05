@@ -74,7 +74,7 @@ diff <(cmd1) <(cmd2)
 
 ## Full Guidelines
 
-`../loqui/reference/loqui/languages/bash/reference/commands.md`
+`henia show loqui/languages/bash/reference/commands.md`
 
 ---
 

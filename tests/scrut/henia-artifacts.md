@@ -1,7 +1,7 @@
 # Compiled harness contracts
 
 A throwaway Phora consumer prepares this working tree the way a deployment
-does, with its pinned Loqui dependency, and Henia compiles every harness from
+does, and Henia compiles every harness from
 it. The checker reads the prepared input and the compiled trees using parsed
 YAML, rendered bodies, resource bytes and executable modes. The expected paths
 and fields follow the [Claude Code skill contract](https://code.claude.com/docs/en/skills),

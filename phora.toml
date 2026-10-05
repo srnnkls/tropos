@@ -2,11 +2,6 @@
 [tools."github:srnnkls/henia"]
 mise = true
 
-[sources.loqui]
-git = "https://github.com/srnnkls/loqui.git"
-branch = "main"
-include = ["README.md", "languages/**", "resources/**"]
-
 [sources.moira]
 git = "https://github.com/srnnkls/moira.git"
 branch = "main"
@@ -14,10 +9,6 @@ root = "rules/fas"
 
 [sources.harnesses]
 build = { tool = "github:srnnkls/henia@0.1.0-alpha.14", run = "henia build {input} --output {output}" }
-
-[targets.loqui]
-path = "skills/loqui/reference/loqui"
-sources.loqui = { collapse = false }
 
 [targets.moira]
 path = "rules/fas/moira"
@@ -44,7 +35,6 @@ include = ["skills/**", "agents/**", "instructions/**", "rules/fas/**", "henia.t
 
 [offers.library]
 include = ["skills/**", "henia.toml", "henia.lock", ".henia/harnesses/**"]
-targets = ["loqui"]
 
 [offers.fas]
 root = "rules/fas"

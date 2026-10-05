@@ -206,16 +206,10 @@ def check(root, build):
         )
         for path in (target / "instructions/AGENTS.md", target / ("CLAUDE.md" if harness == "claude" else "AGENTS.md")):
             require(path.read_text() == instructions, f"{path}: instructions differ")
-        canonical_guides = canonical_root / "skills/loqui/reference/loqui"
-        expected_guides = {str(p.relative_to(canonical_guides)) for p in canonical_guides.rglob("*") if p.is_file()}
-        require(bool(expected_guides), "transitive Loqui input is missing")
         if "loqui" in projected(config, harness, skills):
-            guides = target / "skills/loqui/reference/loqui"
-            require(expected_guides == {str(p.relative_to(guides)) for p in guides.rglob("*") if p.is_file()}, f"{guides}: dependency inventory differs")
-            for relative in expected_guides:
-                require((guides / relative).read_bytes() == (canonical_guides / relative).read_bytes(), f"{guides / relative}: dependency bytes differ")
+            guides = target / "skills/loqui/languages"
             for language in ("bash", "elisp", "go", "python", "rust", "zig"):
-                require((guides / "languages" / language / "README.md").is_file(), f"{guides}: missing {language} guidance")
+                require((guides / language / "README.md").is_file(), f"{guides}: missing {language} guidance")
         print(
             f"{harness}: {len(mains)} skills; metadata, body, resources and support OK"
         )

@@ -4,7 +4,6 @@ __pycache__/
 .worktrees/
 .peer/
 .issues/
-skills/loqui/reference/loqui
 /rules/fas/moira/
 /.henia/*
 !/.henia/harnesses/

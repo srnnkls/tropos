@@ -1,14 +1,14 @@
 # Canonical Tropos with Henia and Phora
 
-Tropos contains 24 canonical skills, three agent contracts, shared instructions
-and declarative harness profiles. The Gestalt and Limen skills live in their own
-repositories beside the commands they document. Henia compiles a prepared copy
-of them into Claude, Codex, Pi and OMP artifacts.
+Tropos contains 23 canonical skills, three agent contracts, shared instructions
+and declarative harness profiles. The Gestalt, Limen and Loqui skills live in
+their own repositories beside the commands and guides they document. Henia
+compiles a prepared copy of them into Claude, Codex, Pi and OMP artifacts.
 
-[phora.toml](../phora.toml) declares the package. Its targets install Loqui
-under `skills/loqui/reference/loqui`, the Gestalt skill under `skills/gestalt`,
-the Limen skill under `skills/limen` and the Moira FAS rules under
-`rules/fas/moira`. Its `[sources.harnesses]` entry,
+[phora.toml](../phora.toml) declares the package. Its `moira` target installs
+the Moira FAS rules under `rules/fas/moira`; Henia fetches the Gestalt, Limen
+and Loqui skill packages declared in [henia.toml](../henia.toml). Its
+`[sources.harnesses]` entry,
 `build = { tool = "github:srnnkls/henia@…", run = "henia build {input} --output {output}" }`,
 compiles the prepared tree into all four harnesses, and the `claude`, `codex`,
 `pi` and `omp` targets take one harness each under `dist/`.
@@ -31,6 +31,6 @@ existing output.
 `mise run test-artifacts` prepares this working tree through a throwaway
 consumer, compiles all four harnesses, and runs
 [check-artifacts.py](../tests/scrut/check-artifacts.py) over the prepared input
-and the output: harness contracts, the skill inventory and the Loqui guides.
+and the output: harness contracts, the skill inventory and the Loqui language guides.
 Consumers check only their deployment: links, modes, pins and frozen replay. No
 live model invocation is required.
