@@ -8,7 +8,7 @@ import (
 	"github.com/srnnkls/fas/cue/tool"
 )
 
-_heniaLibrary: =~#"(^|/)(\.henia/skills|henia/sources)(/|$)"#
+_heniaLibrary: =~#"(^|/)(\.henia/skills|henia/(sources|packages))(/|$)"#
 
 _libraryReadVerb: "cat" | "less" | "more" | "head" | "tail" | "bat" | "nl" | "tac" |
 	"xxd" | "od" | "hexdump" | "strings" | "base64" | "cp" | "scp" | "rsync" |
