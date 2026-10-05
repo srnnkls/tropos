@@ -92,12 +92,3 @@ layout = "flat"
 "instructions/AGENTS.md" = { source = "instructions/AGENTS.md" }
 "AGENTS.md" = { source = "instructions/AGENTS.md" }
 
-[lint]
-external = ["skill:gestalt", "command:plan"]
-
-[[lint.registries]]
-id = "unknown-slot"
-declare = 'map(split(frontmatter.metadata?.slots ?? "", " "), split(#, ":")[0])'
-reference = 'map(split((frontmatter.metadata?.provides ?? "") + " " + (frontmatter.metadata?.applies ?? ""), " "), split(#, "@")[0])'
-match = "dotted"
-severity = "error"
