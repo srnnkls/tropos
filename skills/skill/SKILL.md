@@ -73,8 +73,23 @@ link the owner's Slots section. The context template renders the entry as a
 `:slot[...]` directive, which Henia turns into a `henia slots` preload. The
 interface is defined in the global contract's Project slots section.
 
+**Skill modes:** each harness serves a skill in one mode, set in `henia.toml`
+under `[harness.<name>.skills]` (`default`, plus `static`, `dynamic` and `hybrid`
+lists). `static` installs the whole skill; `dynamic` installs nothing, the
+generated `henia` catalog lists it and `henia show` serves it; `hybrid` installs a
+head that renders from the library when the skill loads. Make user entry skills
+hybrid and keep the rest dynamic.
+
+**Hybrid heads:** wrap what the head carries upfront in `:::static` container
+blocks: routes, hard rules, the context template and its `:slot[...]` directives.
+Several blocks keep document order; everything else stays dynamic and is read by
+section with `henia show <skill>#<section>`. Wrap an existing
+`:::instruction` block with a four-colon `::::static` fence. A hybrid skill
+without `:::static` is a thin launcher. Henia lint caps the marked lines at 150.
+
 Write canonical skill references as backtick `$<skill-name>` spans outside code
-examples. Use portable relative Markdown links in copied reference documents.
+examples. Read another skill's files as `henia show <skill>/<path>`, never
+through a relative path into its directory. Use portable relative Markdown links in copied reference documents.
 Run `mise run test-artifacts` in the Tropos checkout to compile and check all harnesses.
 
 **Naming pattern:** `<namespace>[-<subnamespace>]-<action>`
@@ -109,7 +124,7 @@ skills/{skill-name}/
 
 **Test with real tasks:**
 1. Does the description trigger correctly?
-2. Can each harness find bundled resources?
+2. Does `henia show <skill>` list the bundled resources, and does each hybrid head carry its routes?
 3. Does the workflow complete successfully?
 
 ---

@@ -41,7 +41,7 @@ For configuration, documentation, maintenance, and platform-validated artifacts,
 
 ## Skill runtime
 
-Skills beyond those listed are served by Henia: `henia ls` lists them, and `henia show <skill>[#section]` reads one, rendered for this harness. Read library skills only through `henia show`, never as files.
+Skills beyond those listed are served by Henia: `henia ls` lists them, and `henia show <skill>[#section]` reads one, rendered for this harness. Read library skills only through `henia show`, never as files. A hybrid skill installs only its head: the routes and rules it carries upfront, its contents as `henia show <skill>#<section>` addresses and the contents of related skills. Read a listed section with `henia show` before acting on it.
 
 ## Project slots
 
