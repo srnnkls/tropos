@@ -6,6 +6,8 @@ metadata:
 henia:
   slots:
     scope.templates:
+  provides:
+    scope.templates: {section: templates}
   targets:
     claude:
       frontmatter:

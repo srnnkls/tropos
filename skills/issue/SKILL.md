@@ -6,6 +6,8 @@ metadata:
 henia:
   slots:
     issue.template:
+  provides:
+    issue.template: {section: template}
   targets:
     claude:
       frontmatter:
@@ -61,7 +63,7 @@ Authoring and updating GitHub issues against a canonical template, plus PR creat
 
 | Slot | Covers |
 |---|---|
-| `issue.template` | Title format, section structure, and type and parent conventions; replaces what it covers in [`references/template.md`](references/template.md) and workflow steps 3–5 |
+| `issue.template` | Title format, section structure, and type and parent conventions; replaces the [Template](#template) defaults |
 
 ---
 
@@ -100,13 +102,19 @@ The gh/GraphQL plumbing is wrapped by the **`issue` command** (deployed onto PAT
 
 The raw `gh api graphql` mutations are documented below as the reference the wrapper implements.
 
+## Template
+
+- Section structure: [`references/template.md`](references/template.md) holds the section list, header ordering, and what each section must contain.
+- Title: `<Module> — <short summary>` with an em-dash (—), not a hyphen. Examples: `Discovery — dependency traversal from activities to tables`, `Catalog — migration catalog with priority, stats, and export`.
+- Type and parent: [Choosing the type](#choosing-the-type) and [Choosing the parent](#choosing-the-parent).
+
 ## Workflow
 
-1. **Read the template structure.** Consult [`references/template.md`](references/template.md) for the section list, header ordering, and what each section must contain.
+1. **Read the template.** The `issue.template` providers set the section structure, title format, and type and parent conventions.
 2. Orient in the target repo before sketching. Apply the repository-orientation contract in [AGENTS.md](../../instructions/AGENTS.md#tools-and-context) and the query semantics in the Gestalt skill (`henia show gestalt#subagent-orientation`). Then use the listed `code.style` providers, `CLAUDE.md` / `AGENTS.md`, and neighbouring modules to match naming, error handling, and layering conventions.
-3. **Draft the issue body.** Use the section order in `references/template.md`. For implementation sketches, follow [`references/sketches.md`](references/sketches.md) — illustrative shapes (signatures, not bodies) written in the repo's own idioms.
-4. **Title format.** `<Module> — <short summary>` with an em-dash (—), not a hyphen. Examples: `Discovery — dependency traversal from activities to tables`, `Catalog — migration catalog with priority, stats, and export`.
-5. **Determine issue type, parent, and dependencies (depends-on / blocks) before submitting** (see [Issue metadata](#issue-metadata-type-parent-dependencies) below). If the user hasn't specified type or parent, ask via `AskUserQuestion` — don't guess. Ask about depends-on / blocks only when the body sketch hints at sequencing between issues; skip for standalone work. For updates, inspect the existing metadata first via `gh api graphql` and only change what the user asked to change.
+3. **Draft the issue body.** Use the template's section order. For implementation sketches, follow [`references/sketches.md`](references/sketches.md) — illustrative shapes (signatures, not bodies) written in the repo's own idioms.
+4. **Title.** Use the template's title format.
+5. **Determine issue type, parent, and dependencies (depends-on / blocks) before submitting**, following the template's type and parent conventions and [Issue metadata](#issue-metadata-type-parent-dependencies) below. If the user hasn't specified type or parent, ask via `AskUserQuestion` — don't guess. Ask about depends-on / blocks only when the body sketch hints at sequencing between issues; skip for standalone work. For updates, inspect the existing metadata first via `gh api graphql` and only change what the user asked to change.
 6. Draft to the local `.issues/` folder (repo-local, git-ignored — never `$TMPDIR`). `.issues/` holds drafts and nothing else; review reports live under `.peer/` (see [Review gate](#review-gate-before-publish)). `issue draft` adds `.issues/` to `.gitignore` when absent. Name the file `<issue-number>-<type>-<slug>.md` — e.g. `745-feature-discovery-dependency-traversal.md` (`<type>` is `feature`/`task` lowercase; `<slug>` is the kebab-cased title). `issue draft <n> <type> "<title>"` prints the path and creates `.issues/`.
    - Create: use the next issue number from `issue next`. Draft the body into `.issues/<next>-<type>-<slug>.md`.
    - Update: the number is the issue you're editing. Preserve the live body first — `gh issue view <n> --json body -q .body > ".issues/<n>-<type>-<slug>.orig.md"` — then draft into `.issues/<n>-<type>-<slug>.md`. Surface a diff (`diff ".issues/<n>-<type>-<slug>.orig.md" ".issues/<n>-<type>-<slug>.md"`) before the gate if rewriting an existing body.
