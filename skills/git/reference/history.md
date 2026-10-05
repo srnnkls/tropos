@@ -11,19 +11,9 @@ git commit -m "feat: add auth"    # Conventional commit format
 
 When the changes are already mixed together in a dirty tree, splitting them into separate commits means staging a subset of hunks — see [commands.md](commands.md#hunk-level-staging).
 
-### Conventional Commits
+### Commit Format
 
-```
-<type>(<scope>): <description>
-
-feat:     New functionality
-fix:      Bug fix
-refactor: Restructuring without behavior change
-chore:    Maintenance, deps, config
-docs:     Documentation
-test:     Test additions/changes
-perf:     Performance improvement
-```
+The `git.commits` providers set the message format; the default is [Commits](../SKILL.md#commits).
 
 ## Fixup Workflow
 

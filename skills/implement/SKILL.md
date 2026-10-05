@@ -78,10 +78,8 @@ The opt-in is the user's explicit `$implement` or a route the user selected. Do 
 
 Never dispatch mutating agents on `main`, `master`, or an unrelated branch.
 
-- Scope: use `feat/<scope-name>` unless the scope records another branch.
-- GitHub issue: use `<issue-number>-<issue-title>`.
+- Scope or GitHub issue: use the branch the `git.branching` providers ([git slots](../git/SKILL.md#slots)) name for it.
 - Direct task: use the current non-trunk branch; if on trunk, ask for or create a task branch.
-- A `git.branching` provider ([git slots](../git/SKILL.md#slots)) replaces these branch names.
 - Use a worktree only when explicitly requested.
 - Run the base-drift gate once before the first mutating batch and again before PR creation. A later recheck requires new upstream evidence or an observed overlap.
 

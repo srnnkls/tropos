@@ -92,7 +92,7 @@ git add <paths…>            # skip if already staged
 git commit -m "<message>"
 ```
 
-Message: conventional commit format (`<type>(<scope>): <description>`), imperative and lowercase, describing the fix. A `git.commits` provider ([git slots](../git/SKILL.md#slots)) replaces this format.
+Message: in the format the `git.commits` providers ([git slots](../git/SKILL.md#slots)) set, describing the fix.
 
 *Hooks gate this step.* If the commit fails (hooks red), stop — report the failing output, fix, and retry. Do not proceed to push.
 

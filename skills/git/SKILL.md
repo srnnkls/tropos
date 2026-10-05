@@ -7,6 +7,9 @@ henia:
   slots:
     git.branching:
     git.commits:
+  provides:
+    git.branching: {section: development-model}
+    git.commits: {section: commits}
   targets:
     claude:
       frontmatter:
@@ -89,8 +92,8 @@ Options:
 
 | Slot | Covers |
 |---|---|
-| `git.branching` | Branch naming and merge strategy; replaces the Development Model defaults |
-| `git.commits` | Commit message format, scope vocabulary, signing, and commit granularity |
+| `git.branching` | Branch naming and merge strategy; replaces the [Development Model](#development-model) defaults |
+| `git.commits` | Commit message format, scope vocabulary, signing, and commit granularity; replaces the [Commits](#commits) defaults |
 
 :::
 
@@ -113,7 +116,29 @@ Trunk-based development with short-lived branches, squash merges, and modern git
 - Branches live hours to days, not weeks
 - Merge often — pain comes from divergence
 
-**Branch naming:** `<type>/<short-description>` (e.g., `feat/auth`, `fix/null-check`, `chore/deps`)
+**Branch naming:**
+
+- Default: `<type>/<short-description>` (e.g., `feat/auth`, `fix/null-check`, `chore/deps`)
+- Scope: `feat/<scope-name>`, unless the scope records another branch
+- GitHub issue: `<issue-number>-<issue-title>`; `issue pr` reads the issue number from this prefix
+
+## Commits
+
+Conventional commit format, imperative and lowercase:
+
+```
+<type>(<scope>): <description>
+
+feat:     New functionality
+fix:      Bug fix
+refactor: Restructuring without behavior change
+chore:    Maintenance, deps, config
+docs:     Documentation
+test:     Test additions/changes
+perf:     Performance improvement
+```
+
+One logical change per commit; stage specific paths.
 
 :::
 
