@@ -28,6 +28,8 @@ henia:
 
 <!-- Generated from skills/git/SKILL.md by henia build; edit the canonical source. -->
 
+:::static
+
 ## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
 {{.context_instruction}}
@@ -37,9 +39,11 @@ Slot providers:
 :slot[git.branching git.commits]
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else -}}
+```bash
 {{.command}}
-```{{end}}
+```
+{{- end}}
 
 {{end}}
 # Git Skill
@@ -88,6 +92,8 @@ Options:
 | `git.branching` | Branch naming and merge strategy; replaces the Development Model defaults |
 | `git.commits` | Commit message format, scope vocabulary, signing, and commit granularity |
 
+:::
+
 ---
 
 # Modern Git Workflows
@@ -95,6 +101,8 @@ Options:
 Trunk-based development with short-lived branches, squash merges, and modern git tooling.
 
 ---
+
+:::static
 
 ## Development Model
 
@@ -106,6 +114,8 @@ Trunk-based development with short-lived branches, squash merges, and modern git
 - Merge often — pain comes from divergence
 
 **Branch naming:** `<type>/<short-description>` (e.g., `feat/auth`, `fix/null-check`, `chore/deps`)
+
+:::
 
 ---
 

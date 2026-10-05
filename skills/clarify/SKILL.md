@@ -37,6 +37,8 @@ Don't use for:
 
 ---
 
+:::static
+
 ## Context Detection
 
 The skill auto-detects context based on what's available:
@@ -146,6 +148,8 @@ For Initiative scopes:
 1. Re-evaluate gates in validation.yaml
 2. Update gate status if resolution changes assessment
 3. Report gate status
+
+:::
 
 ---
 

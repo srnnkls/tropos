@@ -19,6 +19,8 @@ henia:
 
 <!-- Generated from skills/pr/SKILL.md by henia build; edit the canonical source. -->
 
+:::static
+
 ## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
 {{.context_instruction}}
@@ -33,7 +35,8 @@ All other shell lives in [scripts/pr-context](scripts/pr-context), resolved agai
 !`${CLAUDE_SKILL_DIR}/scripts/pr-context $ARGUMENTS`{{else}}
 ```bash
 scripts/pr-context $ARGUMENTS
-```{{end}}
+```
+{{- end}}
 
 The slot providers are the `review.criteria` providers; see [review slots](../review/SKILL.md#slots). Script sections, in order: `== pr ==` (metadata), `== inline comments ==` (`node_id` feeds `tfcprr --comment`, `original_line` anchors the relevant-vs-outdated check), `== unresolved threads ==` (resolved threads collapse — don't re-litigate), `== review bodies ==` and `== conversation ==` (not line-anchored), `== diff ==` (HEAD, first 800 lines).
 
@@ -106,6 +109,8 @@ Threads you defer or flag needs-discussion stay open. See [operations/tfcprr.md]
 Order is load-bearing — triage decides what gets touched, `tfcp` must land the commit on the remote before the reply names its SHA, and the reply precedes the resolve. A failure at any step stops the rest.
 
 Dismissed threads take the `--resolve-only` path — the `rr` of `(tfcp)rr` — skipping triage, fix, commit, and push: reply the rationale, resolve. Your `comments` verdict already dispositioned them.
+
+:::
 
 ---
 

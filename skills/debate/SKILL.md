@@ -35,6 +35,8 @@ Orchestrate multi-perspective debates on a topic using color-coded team subagent
 
 ---
 
+:::static
+
 ## Workflow
 
 ### Step 1: Initialize Debate
@@ -153,6 +155,8 @@ Main agent writes Conclusion section:
 - Recommendations: Suggested path forward (if applicable)
 
 Update scratchpad status to "Completed".
+
+:::
 
 ---
 

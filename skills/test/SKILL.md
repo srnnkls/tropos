@@ -19,6 +19,8 @@ henia:
 
 <!-- Generated from skills/test/SKILL.md by henia build; edit the canonical source. -->
 
+:::static
+
 ## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
 {{.context_instruction}}
@@ -92,3 +94,5 @@ Do not add adjacent behavior, configurability, cleanup, or another confidence ru
 ## Evidence
 
 Return the exact [tester report](reference/report.md) during RED. Implementers return the report owned by the [implementation workflow](../implement/reference/report.md).
+
+:::

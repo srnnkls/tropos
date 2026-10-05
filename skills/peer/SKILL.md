@@ -26,16 +26,22 @@ henia:
 
 <!-- Generated from skills/peer/SKILL.md by henia build; edit the canonical source. -->
 
+:::static
+
 ## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
 {{.context_instruction}}
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else -}}
+```bash
 {{.command}}
-```{{end}}
+```
+{{- end}}
 
 {{end}}
+
+:::
 # peer
 
 `peer` ships at `skills/peer/scripts/peer`.
@@ -142,6 +148,8 @@ these properties.
 
 Run `peer --help` for the positional Codex, Pi, and Claude forms. They remain compatibility interfaces; registry-driven callers use the fan-out interface and [routing contract](reference/routing.md). Exit status follows the failure-classification table.
 
+::::static
+
 :::instruction{priority=high}
 ## Dispatch contract for skills
 
@@ -155,6 +163,8 @@ prompts must include any command-only context they need—especially a materiali
 requirements, and the required report schema. They can still inspect repository files
 with read, search, find, and list tools.
 :::
+
+::::
 
 ## Report triage
 

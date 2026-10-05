@@ -32,6 +32,8 @@ henia:
 
 <!-- Generated from skills/continue/SKILL.md by henia build; edit the canonical source. -->
 
+:::static
+
 ## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
 {{.context_instruction}}
@@ -41,9 +43,11 @@ Slot providers:
 :slot[git.branching test.conventions code.style code.validation review.criteria]
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else -}}
+```bash
 {{.command}}
-```{{end}}
+```
+{{- end}}
 
 {{end}}
 # Continue Implementation
@@ -108,3 +112,5 @@ After the recovered batch completes, derive the next batch, snapshot current `co
 ## Completion
 
 When the checkpoint phase is `complete`, verify authoritative task/review state and report completion without dispatch. A one-batch run has no duplicate final review; a multi-batch run completes after its holistic integration gate.
+
+:::

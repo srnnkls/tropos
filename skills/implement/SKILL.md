@@ -33,6 +33,8 @@ henia:
 
 <!-- Generated from skills/implement/SKILL.md by henia build; edit the canonical source. -->
 
+::::static
+
 ## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
 {{.context_instruction}}
@@ -42,9 +44,11 @@ Slot providers:
 :slot[git.branching test.conventions code.style code.validation review.criteria]
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else -}}
+```bash
 {{.command}}
-```{{end}}
+```
+{{- end}}
 
 {{end}}
 # Strict Implementation
@@ -80,6 +84,8 @@ Never dispatch mutating agents on `main`, `master`, or an unrelated branch.
 - A `git.branching` provider ([git slots](../git/SKILL.md#slots)) replaces these branch names.
 - Use a worktree only when explicitly requested.
 - Run the base-drift gate once before the first mutating batch and again before PR creation. A later recheck requires new upstream evidence or an observed overlap.
+
+::::
 
 ## Configuration
 

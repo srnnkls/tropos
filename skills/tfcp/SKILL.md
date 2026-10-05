@@ -19,6 +19,8 @@ henia:
 
 <!-- Generated from skills/tfcp/SKILL.md by henia build; edit the canonical source. -->
 
+:::static
+
 ## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
 {{.context_instruction}}
@@ -127,6 +129,8 @@ A `needs decision` finding is the user's next move, so it never gets buried unde
 | Commit fails (hooks red) | Stop, surface hook output, fix, retry; do not push |
 | Push rejected (non-fast-forward) | Stop, reconcile (pull/rebase), retry; do not report as landed |
 | No upstream for the branch | `git push -u origin <branch>` |
+
+:::
 
 ---
 

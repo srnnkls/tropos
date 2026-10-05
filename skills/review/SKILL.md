@@ -39,6 +39,8 @@ henia:
 
 <!-- Generated from skills/review/SKILL.md by henia build; edit the canonical source. -->
 
+:::static
+
 ## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
 {{.context_instruction}}
@@ -48,9 +50,11 @@ Slot providers:
 :slot[review.criteria]
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else -}}
+```bash
 {{.command}}
-```{{end}}
+```
+{{- end}}
 
 {{end}}
 # Review Dispatcher
@@ -69,6 +73,8 @@ Pre-parse `--reviewers <aliases>` and pass it to downstream review operations.
 | `--test-audit [path]` or test path | [operations/test-audit.md](operations/test-audit.md), explicit or changed tests only |
 | Existing file path | Invoke `$code` with `review --path <path>` |
 | Missing | Ask for PR, commit, diff, path, scope, structural, or test target |
+
+:::
 
 ## Slots
 
@@ -98,6 +104,8 @@ Resolve and validate the selection under the canonical [peer routing contract](.
 
 Standalone scope selection persists to `validation.yaml.review_config`. Implementation-owned review ignores that file and uses its immutable batch routing snapshot.
 
+::::static
+
 :::instruction{priority=high}
 ## Dispatch
 
@@ -107,6 +115,8 @@ For multi-role review, launch every selected role and reviewer in one assistant 
 
 Apply the [canonical review result gate](reference/harnesses.md#results).
 :::
+
+::::
 
 ## Report Paths
 

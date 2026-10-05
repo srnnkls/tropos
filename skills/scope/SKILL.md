@@ -31,6 +31,8 @@ henia:
 
 <!-- Generated from skills/scope/SKILL.md by henia build; edit the canonical source. -->
 
+:::static
+
 ## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
 {{.context_instruction}}
@@ -40,9 +42,11 @@ Slot providers:
 :slot[scope.templates]
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else -}}
+```bash
 {{.command}}
-```{{end}}
+```
+{{- end}}
 
 {{end}}
 # Scope Dispatcher
@@ -133,6 +137,8 @@ When resuming a scope:
    - Update `status: active` in `scope.md` frontmatter
    - `git mv scopes/draft/<name> scopes/active/<name>` (or `mv` if the scope is untracked)
 4. Show scope summary and offer operations
+
+:::
 
 ---
 

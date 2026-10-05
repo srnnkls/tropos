@@ -19,6 +19,8 @@ henia:
 
 <!-- Generated from skills/tfcprr/SKILL.md by henia build; edit the canonical source. -->
 
+:::static
+
 ## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
 {{.context_instruction}}
@@ -137,6 +139,8 @@ Triage, fix, commit, and push failures are `tfcp`'s — see its table. They stop
 | `tfcp` stops (hooks red, push rejected) | Stop — do not reply; the SHA must exist on the remote |
 | `reply`/`resolve` reports no thread for the comment | Wrong or already-resolved id — re-check with `gh review comments "$PR" --ids` |
 | `gh` not authenticated | Report: run `gh auth login` |
+
+:::
 
 ---
 

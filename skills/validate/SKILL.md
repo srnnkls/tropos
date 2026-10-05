@@ -19,6 +19,8 @@ henia:
 
 <!-- Generated from skills/validate/SKILL.md by henia build; edit the canonical source. -->
 
+:::static
+
 ## Context
 
 Uncommitted:
@@ -60,3 +62,5 @@ Options:
 | Hooks | `Skill(hooks-test)` |
 
 > Protocol: [dispatch/protocol.md](../dispatch/protocol.md)
+
+:::

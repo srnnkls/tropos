@@ -18,6 +18,8 @@ henia:
 
 <!-- Generated from skills/dispatch/SKILL.md by henia build; edit the canonical source. -->
 
+:::static
+
 # Intent Router
 
 Workflow skills are explicit opt-ins. A file path or task description stays in direct current-agent execution.
@@ -57,3 +59,5 @@ Options:
 With “Other” covering debug or direct execution.
 
 > Protocol: [protocol.md](protocol.md)
+
+:::

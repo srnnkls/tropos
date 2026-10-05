@@ -38,6 +38,8 @@ metadata:
 
 <!-- Generated from skills/loop/SKILL.md by henia build; edit the canonical source. -->
 
+:::static
+
 ## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
 {{.context_instruction}}
@@ -47,9 +49,11 @@ Slot providers:
 :slot[git.branching test.conventions code.style code.validation review.criteria]
 
 {{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else}}```bash
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else -}}
+```bash
 {{.command}}
-```{{end}}
+```
+{{- end}}
 
 {{end}}
 # Autonomous Implementation Loop
@@ -74,6 +78,8 @@ TodoWrite is optional display state and never drives selection or completion.
 ## Concurrency
 
 Within a batch, dispatch all ready testers together, all cleared implementers together, and all review roles/reviewer routes together. A serial wait is valid only at the RED→GREEN and GREEN→review data boundaries or when one result changes another prompt.
+
+:::
 
 ## Related
 
