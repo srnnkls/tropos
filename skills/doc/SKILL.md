@@ -21,15 +21,6 @@ Domain-specific reference documents for non-code artifacts.
 
 ---
 
-## When to Use
-
-- Creating architecture documentation
-- Writing strategy or decision documents
-- Drafting specifications
-- Authoring guides or playbooks
-
----
-
 ## Domains
 
 | Domain | Purpose |

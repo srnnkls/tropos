@@ -26,15 +26,6 @@ Orchestrate multi-perspective debates on a topic using color-coded team subagent
 
 ---
 
-## When to Use
-
-- Exploring trade-offs in architectural decisions
-- Evaluating competing approaches or technologies
-- Risk analysis requiring devil's advocate perspectives
-- Any topic benefiting from structured adversarial review
-
----
-
 :::head
 
 ## Workflow
