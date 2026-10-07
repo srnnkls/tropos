@@ -104,10 +104,8 @@ Dismissed threads take the `--resolve-only` path — the `rr` of `(tfcp)rr` — 
 
 :::
 
----
-
-## Related Skills
-
-- `review pr` — interactive review of a PR (draft comments, submit a verdict)
-- `issue pr` — open a PR for the current branch
+:::related
+- `review` — interactive review of a PR: draft comments, submit a verdict
+- `issue` — open a PR for the current branch
 - `git` — branch and commit workflows
+:::

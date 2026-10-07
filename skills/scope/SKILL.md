@@ -471,14 +471,9 @@ Located in `templates/` directory:
 - [dependencies.yaml](templates/dependencies.yaml)
 - [validation.yaml](templates/validation.yaml)
 
----
-
-## Integration
-
-**Command:** `$scope` with `[operation] [name]`
-
-**Related skills:**
-- `clarify` — Resolve ambiguities in scope context
-- `implement` — Execute tasks from scope
-- `continue` — Resume from checkpoint
-- `review` — Routes to `$scope` with `review` for scope targets
+:::related
+- `clarify` — resolve ambiguities in scope context
+- `implement` — execute tasks from a scope
+- `continue` — resume from a checkpoint
+- `review` — routes scope targets to `$scope` with `review`
+:::

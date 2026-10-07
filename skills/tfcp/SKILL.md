@@ -124,9 +124,7 @@ A `needs decision` finding is the user's next move, so it never gets buried unde
 
 :::
 
----
-
-## Related Skills
-
+:::related
 - `tfcprr` — the PR variant: this chain, then reply to and resolve each review thread
-- `review` / `code review` — produces the findings this operates on
+- `review` — produces the findings this operates on
+:::

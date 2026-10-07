@@ -66,8 +66,8 @@ Within a batch, dispatch all ready testers together, all cleared implementers to
 
 :::
 
-## Related
-
+:::related
 - `implement` — canonical strict pipeline
 - `continue` — exact checkpoint recovery
 - `scope` — requirements and task state
+:::

@@ -134,9 +134,7 @@ Triage, fix, commit, and push failures are `tfcp`'s — see its table. They stop
 
 :::
 
----
-
-## Related Skills
-
-- `tfcp` — the local-review half: triage + fix + commit + push, without the PR thread steps
-- `pr comments` — assesses the threads, producing the accepted/dismissed split this consumes
+:::related
+- `tfcp` — the local-review half: triage, fix, commit, push, without the PR thread steps
+- `pr` — `comments` assesses the threads and produces the accepted and dismissed split this consumes
+:::
