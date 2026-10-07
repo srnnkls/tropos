@@ -43,16 +43,12 @@ A checkpoint or active scope is context, not permission to resume or implement. 
 
 When no route is named, use AskUserQuestion:
 
-```text
-Header: Dispatch
-Question: Which workflow should run?
-multiSelect: false
-Options:
+:::menu{header="Dispatch" question="Which workflow should run?"}
 - Implement: Strict delegated RED → GREEN → review
 - Continue: Resume an interrupted implementation scope
 - Test: Run explicit RED-GREEN-REFACTOR
 - Verify: Verify completion from current evidence
-```
+:::
 
 With “Other” covering debug or direct execution.
 

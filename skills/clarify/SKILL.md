@@ -40,7 +40,7 @@ Don't use for:
 
 ---
 
-:::head
+::::head
 
 ## Context Detection
 
@@ -81,14 +81,10 @@ Standalone:
 
 For each candidate (prioritized by impact), use AskUserQuestion:
 
-```
-Header: ${AREA}
-Question: ${DESCRIPTION}
-multiSelect: false
-Options:
+:::menu{header="${AREA}" question="${DESCRIPTION}"}
 - [Generated options based on context]
 - Defer: Skip for now
-```
+:::
 
 Prioritization: Scope > Behavior > Data Model > Constraints > Edge Cases > Integration > Terminology
 
@@ -152,7 +148,7 @@ For Initiative scopes:
 2. Update gate status if resolution changes assessment
 3. Report gate status
 
-:::
+::::
 
 ---
 

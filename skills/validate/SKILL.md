@@ -43,15 +43,11 @@ Uncommitted:
 
 When no argument or ambiguous, use `AskUserQuestion`:
 
-```
-Header: Validate
-Question: What would you like to validate?
-multiSelect: false
-Options:
+:::menu{header="Validate" question="What would you like to validate?"}
 - TDD: RED-GREEN-REFACTOR test-driven development
 - Completion: Evidence-based verification before claiming done
 - Hooks: Test Claude Code hooks at unit/integration/e2e levels (only when `hooks-test` is available)
-```
+:::
 
 | Selection | Action |
 |---|---|
