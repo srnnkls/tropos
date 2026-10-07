@@ -21,15 +21,6 @@ Patterns for interactive bash commands, one-liners, and CLI usage.
 
 ---
 
-## When to Use
-
-- Constructing shell commands
-- Writing one-liners
-- Interactive CLI usage
-- Command debugging or improvement
-
----
-
 ## Quick Reference
 
 Quote paths with spaces:

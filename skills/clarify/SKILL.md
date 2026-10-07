@@ -1,6 +1,6 @@
 ---
 name: clarify
-description: Resolve ambiguities interactively with tracked changes. Works with scope, code review, and other skills.
+description: Resolve ambiguities interactively with tracked changes. Use when resolving scope markers, ambiguous requirements, ambiguity-scan gaps or code review questions with an audit trail; not for initial scope validation or changing a scope fundamentally.
 metadata:
   type: domain
 henia:
@@ -22,21 +22,6 @@ henia:
 # Clarify Skill
 
 Resolve ambiguities by updating documents directly with tracked changes. Context-aware: adapts to scopes, code reviews, or standalone use.
-
----
-
-## When to Use
-
-Use for:
-- Resolving markers before implementation (especially for Initiatives)
-- Clarifying ambiguous requirements discovered post-validation
-- Addressing gaps identified in ambiguity_scan
-- Resolving questions from code review findings
-- Any interactive clarification with audit trail
-
-Don't use for:
-- Initial validation (handled during `$scope` creation)
-- Changing fundamental scope (re-run `$scope`)
 
 ---
 
