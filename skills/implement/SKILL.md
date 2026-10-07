@@ -33,7 +33,7 @@ henia:
 
 <!-- Generated from skills/implement/SKILL.md by henia build; edit the canonical source. -->
 
-::::head{.context slots="git.branching test.conventions code.style code.validation review.criteria"}
+::::head{.context slots="workflow"}
 
 
 # Strict Implementation
