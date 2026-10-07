@@ -27,12 +27,14 @@ Workflow skills are explicit opt-ins. A file path or task description stays in d
 :::routes{.ordered .protocol}
 | Pattern | Action |
 |---|---|
-| `continue` or `resume` | `Skill(continue, $ARGUMENTS)` |
-| `implement ...` | `Skill(implement, $REST)` |
-| `debug` or `trace` | `Skill(implement, debug $REST)` |
-| `test` or `tdd` | `Skill(test, $REST)` |
-| `verify` or `done` | `Skill(implement, verify $REST)` |
-| Explicit scope path | `Skill(implement, $ARGUMENTS)` |
+| `continue` or `resume` | Invoke `$continue` with `$ARGUMENTS` |
+| `implement ...` | Invoke `$implement` with `$REST` |
+| `debug` or `trace` | Invoke `$implement` with `debug $REST` |
+| `test` or `tdd` | Invoke `$test` with `$REST` |
+| `verify` or `done` | Invoke `$implement` with `verify $REST` |
+| `issue ...` | Invoke `$issue` with `$REST` |
+| `pr ...` | Invoke `$pr` with `$REST` |
+| Explicit scope path | Invoke `$implement` with `$ARGUMENTS` |
 | File path or task description | Execute directly; do not invoke `implement` |
 | No argument | Ask which explicit workflow to run |
 
