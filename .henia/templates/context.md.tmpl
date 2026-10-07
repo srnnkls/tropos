@@ -2,7 +2,7 @@
 
 {{with .context_instruction}}{{.}}
 
-{{end}}{{with .args.slots}}{{template "slots" $}}{{end}}{{range .context_commands}}{{.label}}:
+{{end}}{{with .args.slots}}{{template "providers" $}}{{end}}{{range .context_commands}}{{.label}}:
 {{if eq $.preload_context "true"}}!`{{.command}}`{{else -}}
 ```bash
 {{.command}}

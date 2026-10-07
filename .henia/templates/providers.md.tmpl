@@ -1,0 +1,4 @@
+{{$slots := .args.slots}}{{if eq $slots "workflow"}}{{$slots = "git.branching test.conventions code.style code.validation review.criteria"}}{{end}}Slot providers:
+
+:slot[{{$slots}}]
+
