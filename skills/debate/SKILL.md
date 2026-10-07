@@ -26,7 +26,7 @@ Orchestrate multi-perspective debates on a topic using color-coded team subagent
 
 ---
 
-:::head
+::::head
 
 ## Workflow
 
@@ -41,14 +41,14 @@ Orchestrate multi-perspective debates on a topic using color-coded team subagent
 
 Use `AskUserQuestion` to gather team configuration:
 
-Question 1: Optional Teams (multiSelect: true)
-```
-Which additional teams should participate beyond Red and Blue?
+Question 1: Optional Teams
+
+:::menu{header="Teams" question="Which additional teams should participate beyond Red and Blue?" .multi}
 - None: Just Red and Blue
 - Green Team: Pragmatic/implementation focus
 - Yellow Team: Risk/safety analysis
 - Purple Team: Synthesis/integration bridge
-```
+:::
 
 Question 2: Red Team Stance
 ```
@@ -68,37 +68,7 @@ Write all stances to the scratchpad's Team Positions section.
 
 Launch all team subagents simultaneously using the Task tool:
 
-```
-Task(subagent_type="general", prompt="""
-You are the {COLOR} TEAM in a debate on: {topic}
-
-Your stance: {stance}
-
-## Research Phase
-Gather evidence before writing using read-only tools.
-
-**Codebase research:**
-- Glob/Grep/Read: Find relevant code, patterns, prior decisions
-
-**External research (encouraged):**
-- WebSearch: Find industry practices, benchmarks, expert opinions, case studies
-- WebFetch: Retrieve specific documentation, articles, or technical references
-
-For deep research questions, spawn focused subagents:
-  Task(subagent_type="general", prompt="Research {specific question}...")
-
-## Writing Phase
-1. Read ./debates/{topic}_{context}.md
-2. Edit your section for the current round: ### [{COLOR}] Opening, Rebuttal, or Synthesis
-3. Structure: Position → Evidence → Implications
-4. Cite sources (files, URLs) for claims
-
-## Constraints
-- Read-only tools only (no code modifications)
-- Stay on assigned perspective
-- Arguments must be evidence-backed
-""")
-```
+Fill [templates/team-prompt.md](templates/team-prompt.md) once per team.
 
 ### Step 4: Monitor and Moderate
 
@@ -147,7 +117,7 @@ Main agent writes Conclusion section:
 
 Update scratchpad status to "Completed".
 
-:::
+::::
 
 ---
 
