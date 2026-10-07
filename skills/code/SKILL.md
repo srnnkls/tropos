@@ -100,10 +100,10 @@ Compliance loads only language guidance material to changed patterns. It does no
 
 Apply [review synthesis](../review/reference/synthesis.md); it owns disposition, grouping, user decisions, re-review, and stopping.
 
-## References
-
+:::references
 - [reference/playbook.md](reference/playbook.md) — bounded edge-case handling
 - [reference/checklist.md](reference/checklist.md) — gate checklist
 - [review report](../review/reference/report.md) — YAML schemas
 - [review finding bar](../review/reference/finding-bar.md) — admission and sufficiency
 - [review synthesis](../review/reference/synthesis.md) — disposition and round limits
+:::

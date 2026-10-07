@@ -170,9 +170,7 @@ Do not modify flags.
 - References point to authoritative sources
 - No emojis (text markers only)
 
----
-
-## Reference
-
-- [best-practices.md](best-practices.md) - Core principles, patterns, checklist
-- [reference.md](reference.md) - Project patterns, frontmatter specs, anti-patterns
+:::references
+- [best-practices.md](best-practices.md) — Core principles, patterns, checklist
+- [reference.md](reference.md) — Project patterns, frontmatter specs, anti-patterns
+:::

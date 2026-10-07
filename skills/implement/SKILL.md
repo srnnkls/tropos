@@ -121,8 +121,7 @@ Reviewer failures apply the [canonical result-eligibility gate](../review/refere
 
 Stop when the requested requirements are implemented, focused and directly affected native validation passes, the review gate clears, and no known blocker remains. Do not add adjacent cleanup, another review wave, or another confidence run.
 
-## References
-
+:::references
 - [operations/execute.md](operations/execute.md) — scope execution
 - [operations/verify.md](operations/verify.md) — completion evidence
 - [operations/debug.md](operations/debug.md) — bounded root-cause work
@@ -134,3 +133,4 @@ Stop when the requested requirements are implemented, focused and directly affec
 - [reference/checkpoint-format.md](reference/checkpoint-format.md) — recovery state
 - [reference/parallel-detection.md](reference/parallel-detection.md) — task batching
 - [tester role](../../agents/tester.md), [implementer role](../../agents/implementer.md), and [reviewer role](../../agents/reviewer.md) — canonical role contracts
+:::
