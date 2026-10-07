@@ -1,8 +1,8 @@
 {{if .args.context}}## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
-{{.context_instruction}}
+{{with .context_instruction}}{{.}}
 
-{{end}}{{with .args.slots}}{{template "slots" $}}{{end}}{{if .args.context}}{{range .context_commands}}{{.label}}:
+{{end}}{{end}}{{with .args.slots}}{{template "slots" $}}{{end}}{{if .args.context}}{{range .context_commands}}{{.label}}:
 {{if eq $.preload_context "true"}}!`{{.command}}`{{else -}}
 ```bash
 {{.command}}
