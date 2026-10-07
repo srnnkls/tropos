@@ -33,14 +33,13 @@ henia:
 
 <!-- Generated from skills/scope/SKILL.md by henia build; edit the canonical source. -->
 
-:::head{.context slots="scope.templates"}
+::::head{.context slots="scope.templates"}
 
 
 # Scope Dispatcher
 
 Routes to the appropriate operation based on argument or context.
 
-> **Protocol:** [dispatch/protocol.md](../dispatch/protocol.md)
 > **Reference:** See [reference/review.md](reference/review.md) for review workflow, [reference/update.md](reference/update.md) for update workflow, [reference/operations.md](reference/operations.md) for done/list, [reference/issue.md](reference/issue.md) for publishing a scope as a GitHub issue tree.
 
 ---
@@ -65,10 +64,7 @@ To make a scope reachable as `./scopes/` from inside a worktree, add `scopes/  s
 
 ---
 
-## Auto-Detect Rules
-
-Parse `$ARGUMENTS` in order:
-
+:::routes{.ordered .protocol}
 | Pattern | Route | Action |
 |---|---|---|
 | `review [name]` | Review | Multi-agent review, produce review.yaml |
@@ -80,6 +76,7 @@ Parse `$ARGUMENTS` in order:
 | `<name>` not matching existing | Create | Create new scope under `scopes/draft/<name>/` |
 | No argument, branch-associated scope exists | Resume | Show it; promote `draft`→`active` if work has started |
 | No argument, no scope | Create | Ask what to scope |
+:::
 
 ---
 
@@ -125,7 +122,7 @@ When resuming a scope:
    - `git mv scopes/draft/<name> scopes/active/<name>` (or `mv` if the scope is untracked)
 4. Show scope summary and offer operations
 
-:::
+::::
 
 ---
 

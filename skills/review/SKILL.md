@@ -39,13 +39,12 @@ henia:
 
 <!-- Generated from skills/review/SKILL.md by henia build; edit the canonical source. -->
 
-:::head{.context slots="review.criteria"}
+::::head{.context slots="review.criteria"}
 
 
 # Review Dispatcher
 
-## Routes
-
+:::routes
 Pre-parse `--reviewers <aliases>` and pass it to downstream review operations.
 
 | Target | Action |
@@ -58,8 +57,9 @@ Pre-parse `--reviewers <aliases>` and pass it to downstream review operations.
 | `--test-audit [path]` or test path | [operations/test-audit.md](operations/test-audit.md), explicit or changed tests only |
 | Existing file path | Invoke `$code` with `review --path <path>` |
 | Missing | Ask for PR, commit, diff, path, scope, structural, or test target |
-
 :::
+
+::::
 
 ## Slots
 

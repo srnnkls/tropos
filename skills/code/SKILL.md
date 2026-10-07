@@ -27,16 +27,15 @@ henia:
 
 <!-- Generated from skills/code/SKILL.md by henia build; edit the canonical source. -->
 
-::::head{.context slots="code.style code.validation test.conventions review.criteria"}
+:::::head{.context slots="code.style code.validation test.conventions review.criteria"}
 
 
 # Code Domain
 
 Compose generic workflows with code-specific Gestalt navigation, language guidance, and review lenses.
 
-:::instruction{priority=high}
-## Routes
-
+::::instruction{priority=high}
+:::routes
 | Argument | Action |
 |---|---|
 | `implement <target>` | Invoke `$implement` with `<target>` and code context |
@@ -48,6 +47,8 @@ No operation is inferred from an ordinary task outside explicit skill invocation
 :::
 
 ::::
+
+:::::
 
 ## Slots
 

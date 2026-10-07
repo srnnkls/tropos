@@ -19,7 +19,7 @@ henia:
 
 <!-- Generated from skills/validate/SKILL.md by henia build; edit the canonical source. -->
 
-:::head
+::::head
 
 ## Context
 
@@ -28,16 +28,14 @@ Uncommitted:
 
 # Validate Dispatcher
 
-## Auto-Detect Rules
-
-Apply these rules to `$ARGUMENTS` in order:
-
+:::routes{.ordered .protocol}
 | Pattern | Route | Action |
 |---|---|---|
 | Contains "hook" or path to hooks file | Hooks | `Skill(hooks-test, $ARGUMENTS)` on Claude Code with `hooks-test` installed; otherwise the menu fallback |
 | Contains "completion", "done", or "verify" | Completion | `Skill(implement, verify)` |
 | Contains "test" or "tdd" | TDD | `Skill(test)` |
 | No argument | Menu fallback | See below |
+:::
 
 ---
 
@@ -61,6 +59,4 @@ Options:
 | Completion | `Skill(implement, verify)` |
 | Hooks | `Skill(hooks-test)` |
 
-> Protocol: [dispatch/protocol.md](../dispatch/protocol.md)
-
-:::
+::::

@@ -1,0 +1,7 @@
+## Routes
+
+{{if .args.ordered}}Apply the first row that matches `$ARGUMENTS`:
+
+{{end}}{{.content}}{{if .args.protocol}}{{$p := "../dispatch/protocol.md"}}{{if eq .name "dispatch"}}{{$p = "protocol.md"}}{{end}}
+> **Protocol:** [{{$p}}]({{$p}})
+{{end}}

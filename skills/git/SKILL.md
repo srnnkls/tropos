@@ -29,17 +29,15 @@ henia:
         command: git status --short 2>/dev/null | head -10
 ---
 
-:::head{.context title="Git" slots="git.branching git.commits"}
+::::head{.context title="Git" slots="git.branching git.commits"}
 Trunk-based development with short-lived branches, squash merges and modern git commands, plus a dispatched `rebase` operation that analyzes branch state and recommends a strategy.
 
-## Routes
-
+:::routes{.protocol}
 | `$ARGUMENTS` | Action |
 |---|---|
 | `rebase [args]` | Read and follow [operations/rebase.md](operations/rebase.md) |
 | None | Use the sections below as reference |
-
-> **Protocol:** [../dispatch/protocol.md](../dispatch/protocol.md)
+:::
 
 ## Slots
 
@@ -47,7 +45,7 @@ Trunk-based development with short-lived branches, squash merges and modern git 
 |---|---|
 | `git.branching` | Branch naming and merge strategy; replaces [Development Model](#development-model) |
 | `git.commits` | Commit format, scope vocabulary, signing and granularity; replaces [Commits](#commits) |
-:::
+::::
 
 :::head
 
