@@ -39,9 +39,7 @@ Domain-specific reference documents for non-code artifacts.
 | specs | API contracts, interface definitions |
 | guides | How-to documentation, playbooks |
 
----
-
-## Related Skills
-
-- **implement**: Language-specific coding guidelines
-- **scope**: Scope documents with validation
+:::related
+- `implement` — language-specific coding guidelines
+- `scope` — scope documents with validation
+:::

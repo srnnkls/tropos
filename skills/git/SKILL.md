@@ -92,7 +92,7 @@ Merge a chain bottom-up: merge `A`, rebase `B` onto main, merge `B`.
 - Inverting `rebase --onto`: state "X will sit on top of Y" before running it.
 - Committing, force-pushing or squash-merging after a rebase without checking `git log --oneline --graph <base>..HEAD`.
 
-## See also
-
-- `bash`: shell command patterns
-- `issue`: PRs and issue links to branches
+:::related
+- `bash` — shell command patterns
+- `issue` — PRs and issue links to branches
+:::

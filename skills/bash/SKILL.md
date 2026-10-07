@@ -85,9 +85,7 @@ diff <(cmd1) <(cmd2)
 - ✘ Using `;` when `&&` is needed
 - ✘ Backticks instead of `$()`
 
----
-
-## Related Skills
-
-- `implement`: Language-specific patterns (includes bash)
-- `test`: TDD workflow
+:::related
+- `implement` — language-specific patterns, bash included
+- `test` — TDD workflow
+:::

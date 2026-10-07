@@ -6,6 +6,9 @@ metadata:
 henia:
   auto_invoke: false
   targets:
+    claude:
+      frontmatter:
+        argument-hint: '[context]'
     codex:
       openai:
         interface:
@@ -219,17 +222,8 @@ scope:
   gaps: []
 ```
 
----
-
-## Integration
-
-**Command:** `$clarify` with `[context]`
-
-**Invoked from:**
-- `scope` - Clarify during scope creation or review
-- `code review` - Clarify code review findings
-- `implement` - Resolve blocking markers before execution
-
-**Related skills:**
-- `scope` - Creates scopes with ambiguity_scan and markers
-- `implement` - Checks for blocking markers before execution
+:::related
+- `scope` — creates scopes with ambiguity scans and markers, and clarifies during creation or review
+- `implement` — checks for blocking markers before execution
+- `code` — clarifies code review findings
+:::
