@@ -18,16 +18,13 @@ henia:
 
 <!-- Generated from skills/dispatch/SKILL.md by henia build; edit the canonical source. -->
 
-:::head
+::::head
 
 # Intent Router
 
 Workflow skills are explicit opt-ins. A file path or task description stays in direct current-agent execution.
 
-## Routes
-
-Apply these rules to `$ARGUMENTS` in order:
-
+:::routes{.ordered .protocol}
 | Pattern | Action |
 |---|---|
 | `continue` or `resume` | `Skill(continue, $ARGUMENTS)` |
@@ -40,6 +37,7 @@ Apply these rules to `$ARGUMENTS` in order:
 | No argument | Ask which explicit workflow to run |
 
 A checkpoint or active scope is context, not permission to resume or implement. Require an explicit route.
+:::
 
 ## Menu
 
@@ -58,6 +56,4 @@ Options:
 
 With “Other” covering debug or direct execution.
 
-> Protocol: [protocol.md](protocol.md)
-
-:::
+::::

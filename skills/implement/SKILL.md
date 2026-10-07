@@ -44,8 +44,7 @@ Explicit `$implement` is the high-assurance path. Ordinary requests do not enter
 The orchestrator coordinates and verifies. Fresh subagents write tests and production code. Every task follows RED → GREEN → review; no independent pre-implementation test-review phase exists.
 :::
 
-## Routes
-
+:::routes
 Pre-parse `--config`, `--worktree`, `--base`, `--state`, and GitHub issue references as documented in [configuration.md](reference/configuration.md) and [execute.md](operations/execute.md).
 
 | Target | Action |
@@ -58,6 +57,7 @@ Pre-parse `--config`, `--worktree`, `--base`, `--state`, and GitHub issue refere
 | Missing or ambiguous | Ask for the target |
 
 The opt-in is the user's explicit `$implement` or a route the user selected. Do not downgrade an explicit task to direct current-agent authoring.
+:::
 
 ## Branch Gate
 

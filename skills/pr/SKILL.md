@@ -19,7 +19,7 @@ henia:
 
 <!-- Generated from skills/pr/SKILL.md by henia build; edit the canonical source. -->
 
-:::head{.context slots="review.criteria"}
+::::head{.context slots="review.criteria"}
 
 All other shell lives in [scripts/pr-context](scripts/pr-context), resolved against this skill's directory.
 {{if eq .preload_context "true"}}`${CLAUDE_SKILL_DIR}` is substituted in both the block below and the `allowed-tools` rule, so the rule matches the command verbatim and the fetch runs without a permission check.
@@ -43,18 +43,14 @@ Two operations on a pull request's review feedback:
 
 Requires the `gh-review` extension (`gh extension install srnnkls/gh-review`), exposed as `gh review`.
 
-> **Protocol:** [../dispatch/protocol.md](../dispatch/protocol.md)
-
 ---
 
-## Auto-Detect Rules
-
-Apply to `$ARGUMENTS` in order, first match wins:
-
+:::routes{.ordered .protocol}
 | Pattern | Route | Action |
 |---|---|---|
 | `tfcprr` (with or without args) | Close addressed threads | Read and follow [operations/tfcprr.md](operations/tfcprr.md) |
 | `comments`, a bare PR number, or empty | Assess comments | This file — `comments` below |
+:::
 
 ---
 
@@ -102,7 +98,7 @@ Order is load-bearing — triage decides what gets touched, `tfcp` must land the
 
 Dismissed threads take the `--resolve-only` path — the `rr` of `(tfcp)rr` — skipping triage, fix, commit, and push: reply the rationale, resolve. Your `comments` verdict already dispositioned them.
 
-:::
+::::
 
 :::related
 - `review` — interactive review of a PR: draft comments, submit a verdict
