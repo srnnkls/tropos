@@ -32,24 +32,9 @@ henia:
 
 <!-- Generated from skills/continue/SKILL.md by henia build; edit the canonical source. -->
 
-:::static
+:::head{.context slots="git.branching test.conventions code.style code.validation review.criteria"}
 
-## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
-{{.context_instruction}}
-
-Slot providers:
-
-:slot[git.branching test.conventions code.style code.validation review.criteria]
-
-{{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else -}}
-```bash
-{{.command}}
-```
-{{- end}}
-
-{{end}}
 # Continue Implementation
 
 Resume the exact RED, GREEN, review, fix, or integration wave recorded by an explicit `$implement` run. Do not restart the pipeline from task status alone.

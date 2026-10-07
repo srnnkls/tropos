@@ -19,15 +19,7 @@ henia:
 
 <!-- Generated from skills/tfcprr/SKILL.md by henia build; edit the canonical source. -->
 
-:::static
-
-## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
-
-{{.context_instruction}}
-
-Slot providers:
-
-:slot[git.commits review.criteria]
+:::head{.context slots="git.commits review.criteria"}
 
 
 # tfcprr — tfcp + reply + resolve
