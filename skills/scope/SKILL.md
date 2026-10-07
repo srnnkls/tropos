@@ -33,24 +33,9 @@ henia:
 
 <!-- Generated from skills/scope/SKILL.md by henia build; edit the canonical source. -->
 
-:::static
+:::head{.context slots="scope.templates"}
 
-## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
-{{.context_instruction}}
-
-Slot providers:
-
-:slot[scope.templates]
-
-{{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else -}}
-```bash
-{{.command}}
-```
-{{- end}}
-
-{{end}}
 # Scope Dispatcher
 
 Routes to the appropriate operation based on argument or context.

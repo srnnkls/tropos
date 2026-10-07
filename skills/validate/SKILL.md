@@ -19,7 +19,7 @@ henia:
 
 <!-- Generated from skills/validate/SKILL.md by henia build; edit the canonical source. -->
 
-:::static
+:::head
 
 ## Context
 

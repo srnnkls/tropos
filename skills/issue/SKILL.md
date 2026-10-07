@@ -31,24 +31,9 @@ henia:
 
 <!-- Generated from skills/issue/SKILL.md by henia build; edit the canonical source. -->
 
-:::static
+:::head{.context slots="issue.template"}
 
-## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
-{{.context_instruction}}
-
-Slot providers:
-
-:slot[issue.template]
-
-{{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else -}}
-```bash
-{{.command}}
-```
-{{- end}}
-
-{{end}}
 GitHub shares one number sequence across issues and PRs. This is a best-effort prediction — the draft filename is reconciled to the real number after publish (step 8). On update, the number is the issue you're editing.
 
 # Issue Skill

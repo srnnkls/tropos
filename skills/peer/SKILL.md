@@ -26,20 +26,9 @@ henia:
 
 <!-- Generated from skills/peer/SKILL.md by henia build; edit the canonical source. -->
 
-:::static
+:::head{.context}
 
-## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
-{{.context_instruction}}
-
-{{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else -}}
-```bash
-{{.command}}
-```
-{{- end}}
-
-{{end}}
 
 :::
 # peer
@@ -148,7 +137,7 @@ these properties.
 
 Run `peer --help` for the positional Codex, Pi, and Claude forms. They remain compatibility interfaces; registry-driven callers use the fan-out interface and [routing contract](reference/routing.md). Exit status follows the failure-classification table.
 
-::::static
+::::head
 
 :::instruction{priority=high}
 ## Dispatch contract for skills

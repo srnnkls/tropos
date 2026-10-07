@@ -35,7 +35,7 @@ Orchestrate multi-perspective debates on a topic using color-coded team subagent
 
 ---
 
-:::static
+:::head
 
 ## Workflow
 

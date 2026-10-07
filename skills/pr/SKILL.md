@@ -19,15 +19,7 @@ henia:
 
 <!-- Generated from skills/pr/SKILL.md by henia build; edit the canonical source. -->
 
-:::static
-
-## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
-
-{{.context_instruction}}
-
-Slot providers:
-
-:slot[review.criteria]
+:::head{.context slots="review.criteria"}
 
 All other shell lives in [scripts/pr-context](scripts/pr-context), resolved against this skill's directory.
 {{if eq .preload_context "true"}}`${CLAUDE_SKILL_DIR}` is substituted in both the block below and the `allowed-tools` rule, so the rule matches the command verbatim and the fetch runs without a permission check.

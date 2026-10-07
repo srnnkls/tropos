@@ -18,7 +18,7 @@ henia:
 
 <!-- Generated from skills/dispatch/SKILL.md by henia build; edit the canonical source. -->
 
-:::static
+:::head
 
 # Intent Router
 

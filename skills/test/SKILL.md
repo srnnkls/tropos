@@ -19,15 +19,7 @@ henia:
 
 <!-- Generated from skills/test/SKILL.md by henia build; edit the canonical source. -->
 
-:::static
-
-## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
-
-{{.context_instruction}}
-
-Slot providers:
-
-:slot[test.conventions]
+:::head{.context slots="test.conventions"}
 
 
 # Bounded Test-Driven Development

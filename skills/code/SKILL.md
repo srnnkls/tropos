@@ -27,24 +27,9 @@ henia:
 
 <!-- Generated from skills/code/SKILL.md by henia build; edit the canonical source. -->
 
-::::static
+::::head{.context slots="code.style code.validation test.conventions review.criteria"}
 
-## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
-{{.context_instruction}}
-
-Slot providers:
-
-:slot[code.style code.validation test.conventions review.criteria]
-
-{{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else -}}
-```bash
-{{.command}}
-```
-{{- end}}
-
-{{end}}
 # Code Domain
 
 Compose generic workflows with code-specific Gestalt navigation, language guidance, and review lenses.

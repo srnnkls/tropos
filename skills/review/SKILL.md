@@ -39,24 +39,9 @@ henia:
 
 <!-- Generated from skills/review/SKILL.md by henia build; edit the canonical source. -->
 
-:::static
+:::head{.context slots="review.criteria"}
 
-## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
 
-{{.context_instruction}}
-
-Slot providers:
-
-:slot[review.criteria]
-
-{{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else -}}
-```bash
-{{.command}}
-```
-{{- end}}
-
-{{end}}
 # Review Dispatcher
 
 ## Routes
@@ -104,7 +89,7 @@ Resolve and validate the selection under the canonical [peer routing contract](.
 
 Standalone scope selection persists to `validation.yaml.review_config`. Implementation-owned review ignores that file and uses its immutable batch routing snapshot.
 
-::::static
+::::head
 
 :::instruction{priority=high}
 ## Dispatch

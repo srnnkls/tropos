@@ -37,7 +37,7 @@ Don't use for:
 
 ---
 
-:::static
+:::head
 
 ## Context Detection
 
