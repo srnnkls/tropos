@@ -84,17 +84,13 @@ To make a scope reachable as `./scopes/` from inside a worktree, add `scopes/  s
 
 When no argument or unrecognized keyword, use **AskUserQuestion**:
 
-```
-Header: Scope
-Question: What would you like to do?
-multiSelect: false
-Options:
+:::menu{header="Scope" question="What would you like to do?"}
 - Create: Define a new scope with requirements and tasks
 - Review: Multi-agent scope review with parallel reviewers
 - Issue: Publish the scope as a GitHub issue tree
 - Update: Sync task status from git history
 - List: Show all scopes with status
-```
+:::
 
 | Selection | Action |
 |---|---|
@@ -144,14 +140,10 @@ Creates structured tracking documents for complex development tasks.
 
 Ask this once, up front — before the numbered steps. It gates the guided decision questions:
 
-```
-Header: Depth
-Question: How thorough should requirement validation be?
-multiSelect: false
-Options:
+:::menu{header="Depth" question="How thorough should requirement validation be?"}
 - Guided: Add decision questions — approach selection, strategy & story prioritization, design-alternatives probing (Recommended for Features/Initiatives)
 - Standard: Taxonomy clarification loop only — skip the guided decision questions
-```
+:::
 
 Set `guided = true` when **Guided** is selected. Steps marked **[guided]** below run only when `guided = true`; otherwise skip them silently. Guided steps carry additional gates (issue type / opt-in) as noted on each.
 
@@ -178,16 +170,12 @@ Apply the repository-orientation contract in [AGENTS.md](../../instructions/AGEN
 
 **FIRST QUESTION (Always)** — Use AskUserQuestion:
 
-```
-Header: Work type
-Question: What type of work is this?
-multiSelect: false
-Options:
+:::menu{header="Work type" question="What type of work is this?"}
 - Initiative: Strategic coordination (months) - Multiple features toward business goal
 - Feature: User-facing capability (weeks) - Deliverable value, multiple tasks
 - Task: Implementation item (days) - Single concrete deliverable
 - Exploratory: Not sure yet - Gather context first, then classify
-```
+:::
 
 This determines:
 - **Question limit:** Tasks get 3, Features/Initiatives get 5
@@ -232,15 +220,11 @@ Routing:
 6. Repeat until limit reached or primary areas covered
 
 **Batch format:**
-```
-Header: [Area, max 12 chars]
-Question: [Clear question ending with ?]
-multiSelect: false
-Options:
+:::menu{header="[Area, max 12 chars]" question="[Clear question ending with ?]"}
 - Option A: [choice] - [implication]
 - Option B: [choice] - [implication]
 - None: [default/skip]
-```
+:::
 
 **Taxonomy areas:**
 
@@ -254,15 +238,11 @@ Options:
 
 After the validation loop, present concrete options — never proceed on an unstated default:
 
-```
-Header: Approach
-Question: Which approach should we take?
-multiSelect: false
-Options:
+:::menu{header="Approach" question="Which approach should we take?"}
 - Approach A: [brief] - Trade-off: [X]
 - Approach B: [brief] - Trade-off: [Y]
 - Approach C: [brief] - Trade-off: [Z]
-```
+:::
 
 Lead with your recommendation (mark it). Drop options that add cost without clear value. Record the selected approach in `validation.yaml`; seeds the Implementation Strategy / Approach in scope.md.
 
@@ -270,56 +250,40 @@ Lead with your recommendation (mark it). Drop options that add cost without clea
 
 For Initiatives, probe prioritization and rollout:
 
-```
-Header: User Stories
-Question: How should user stories be prioritized?
-multiSelect: false
-Options:
+:::menu{header="User Stories" question="How should user stories be prioritized?"}
 - MVP First: P1 delivers standalone value, P2/P3 incremental (Recommended)
 - Parallel Tracks: Stories developed independently by different teams
 - Sequential: Strict dependencies, complete in order
-```
+:::
 
-```
-Header: Strategy
-Question: What implementation approach fits best?
-multiSelect: false
-Options:
+:::menu{header="Strategy" question="What implementation approach fits best?"}
 - MVP First: Ship P1, iterate on P2/P3 from feedback (Recommended)
 - Incremental: Each phase adds value, all planned upfront
 - Parallel Team: Multiple workstreams, integration points defined
-```
+:::
 
 Record selections in `validation.yaml`; they populate the User Stories and Implementation Strategy sections of scope.md.
 
 ### Step 3.5: SDD Section Opt-ins (Features/Initiatives)
 
-```
-Header: Sections
-Question: Which detailed sections do you want?
-multiSelect: true
-Options:
+:::menu{header="Sections" question="Which detailed sections do you want?" .multi}
 - Tech Decisions: Document technology choices and rationale
 - API Contract: Define API endpoints and schemas
 - Data Model: Document entities and relationships
 - Design: Design document with alternatives, invariants, complexity analysis
 - None: Keep scope lightweight
-```
+:::
 
 ### Step 3.55: Design Probing [guided, when Design opt-in selected]
 
 If **Design** was selected in Step 3.5, probe for alternatives context:
 
-```
-Header: Alternatives
-Question: Were other approaches considered before this one?
-multiSelect: false
-Options:
+:::menu{header="Alternatives" question="Were other approaches considered before this one?"}
 - Yes, describe: I can list rejected alternatives and why
 - Partially: Some were considered informally
 - No: This is the first approach explored
 - Skip: I'll fill in design.md directly
-```
+:::
 
 Record the response in `validation.yaml`; seeds the Alternatives section of `design.md`.
 
