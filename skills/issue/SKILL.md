@@ -31,7 +31,7 @@ henia:
 
 <!-- Generated from skills/issue/SKILL.md by henia build; edit the canonical source. -->
 
-:::head{.context slots="issue.template"}
+::::head{.context slots="issue.template"}
 
 
 GitHub shares one number sequence across issues and PRs. This is a best-effort prediction — the draft filename is reconciled to the real number after publish (step 8). On update, the number is the issue you're editing.
@@ -39,8 +39,6 @@ GitHub shares one number sequence across issues and PRs. This is a best-effort p
 # Issue Skill
 
 Authoring and updating GitHub issues against a canonical template, plus PR creation from the current branch.
-
-> **Protocol:** [../dispatch/protocol.md](../dispatch/protocol.md)
 
 ---
 
@@ -52,15 +50,13 @@ Authoring and updating GitHub issues against a canonical template, plus PR creat
 
 ---
 
-## Auto-Detect Rules
-
-Apply to `$ARGUMENTS` in order, first match wins:
-
+:::routes{.ordered .protocol}
 | Pattern | Route | Action |
 |---|---|---|
 | `pr` (with or without args) | Create PR | Read and follow [operations/pr.md](operations/pr.md) |
 | Issue number (`172`, `#172`, "update #172") | Update issue | This file — Mode dispatch → update |
 | Anything else (free-text subject, or empty) | Create issue | This file — Mode dispatch → create |
+:::
 
 ---
 
@@ -129,7 +125,7 @@ Reject malformed output as unsuccessful. Apply the canonical [finding bar](../re
 
 Consult the `$peer` skill for the live registry, dispatch contract, and harness authentication requirements.
 
-:::
+::::
 
 ## Issue metadata (type, parent, dependencies)
 
@@ -304,8 +300,8 @@ Report back: issue URL, type, parent, depends-on (= `blockedBy`), blocks (= `blo
 - `code.style` providers ([code slots](../code/SKILL.md#slots)) — language-specific patterns and idioms, consulted before writing sketches.
 - `$gestalt` — repo orientation (map / analyze / callers) before sketching.
 
-## Reference
-
+:::references
 - [operations/pr.md](operations/pr.md) — create a PR from the current branch, optionally linked to an issue.
 - [`references/template.md`](references/template.md) — section-by-section template structure.
 - [`references/sketches.md`](references/sketches.md) — patterns and anti-patterns for implementation sketches.
+:::
