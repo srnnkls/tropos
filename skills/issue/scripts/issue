@@ -81,13 +81,10 @@ _kebab() {
   print -r -- "${1:l}" | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//; s/-+/-/g'
 }
 
-_ensure_ignored() {
-  local root gi
-  root=$(git rev-parse --show-toplevel 2>/dev/null) || return 0
-  gi="$root/.gitignore"
-  grep -qxF '.issues/' "$gi" 2>/dev/null && return 0
-  [[ -s "$gi" && -n "$(tail -c1 "$gi")" ]] && print -n $'\n' >>"$gi"
-  print -r -- '.issues/' >>"$gi" 2>/dev/null
+_warn_unignored() {
+  git rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
+  git check-ignore -q .issues/ \
+    || print -u2 -r -- "issue: .issues/ is not git-ignored; add it to a local excludes file"
   return 0
 }
 
@@ -199,7 +196,7 @@ case "$cmd" in
   draft)
     [[ -n "${3:-}" ]] || { _usage 'draft NUMBER TYPE "TITLE"'; return 2 }
     mkdir -p .issues || { _die "cannot create .issues/"; return 3 }
-    _ensure_ignored
+    _warn_unignored
     print -r -- ".issues/$1-${2:l}-$(_kebab "$3").md" ;;
 
   create)
