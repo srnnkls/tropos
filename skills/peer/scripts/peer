@@ -84,9 +84,9 @@ _peer_fanout_usage() {
   printf '%s\n' "  OUTDIR comes from 'peer path'. Relative paths resolve beneath DIR."
   printf '%s\n' "  Supply exactly one prompt source: positional PROMPT or a readable --prompt-file."
   printf '%s\n' "  Tester and implementer roles require one peer; reviewer may fan out."
-  printf '%s\n' "  --dispatch herdr (default) runs peers as agent panes in a new 'peer-<subject>-<stage>' tab when inside a live herdr pane;"
+  printf '%s\n' "  --dispatch herdr (default) runs peers in the 'peer-review' herdr session when inside a live herdr pane: one 'peer-<subject>-<stage>' workspace per round, one tab per peer;"
   printf '%s\n' "  --dispatch cli always runs them headless. Default: PEER_DISPATCH, then the registry's defaults.dispatch."
-  printf '%s\n' "  A round closes its own tab, saving a failed peer's terminal to {peer-id}.pane.log first; PEER_HERDR_KEEP=1 keeps the tab."
+  printf '%s\n' "  A round closes its own workspace, saving a failed peer's terminal to {peer-id}.pane.log first; PEER_HERDR_KEEP=1 keeps it."
 }
 
 _peer_harness_usage() {
@@ -226,14 +226,17 @@ PROFILE
 }
 
 # --- herdr pane dispatch ---------------------------------------------------------------
-# Inside a herdr pane, peers run as visible agent panes in their own tab instead of headless
-# child processes: the caller watches the run and keeps the transcript after it ends.
+# Inside a herdr pane, peers run as visible agents in a dedicated `peer-review` herdr session
+# instead of headless child processes: the caller watches the run and keeps the transcript
+# after it ends. Each round gets its own workspace and each peer its own tab, so a round never
+# crowds the caller's session.
 # HERDR_ENV is inherited, so it survives into contexts where the pane behind it is gone. It
-# only selects the check; the live pane, and the workspace peer opens its tab in, come from
-# herdr itself.
+# only selects the check; the live pane comes from herdr itself.
 # The dispatch surface is `herdr` (panes when a live pane exists, else headless) or `cli`
 # (always headless). Precedence: fan-out --dispatch, then PEER_DISPATCH, then the
 # registry's defaults.dispatch, then herdr.
+PEER_HERDR_SESSION=peer-review
+
 _peer_dispatch_mode() {
   local mode=${PEER_DISPATCH_FLAG:-${PEER_DISPATCH:-}}
   [[ -n "$mode" ]] || mode=$(yq -r '.defaults.dispatch // "herdr"' "$REGISTRY" 2>/dev/null)
@@ -250,8 +253,7 @@ _peer_herdr_ready() {
   [[ "${HERDR_ENV:-}" == 1 ]] || return 1
   command -v herdr >/dev/null 2>&1 || return 1
   json=$(herdr pane current --current 2>/dev/null) || return 1
-  HERDR_WORKSPACE_ID=$(_peer_herdr_field result.pane.workspace_id <<< "$json") || return 1
-  [[ -n "$HERDR_WORKSPACE_ID" ]]
+  _peer_herdr_field result.pane.pane_id <<< "$json" >/dev/null
 }
 
 _peer_herdr_field() {  # DOTTED-PATH <json
@@ -267,32 +269,62 @@ if node is None:
 print(node)'
 }
 
-# .peer/<subject>/<run>/<stage> names the round, so the tab carries subject and stage.
-_peer_herdr_tab_label() {  # OUTDIR
+# .peer/<subject>/<run>/<stage> names the round, so the workspace carries subject and stage.
+_peer_herdr_round_label() {  # OUTDIR
   local rest=${1%/} stage subject
   stage=${rest##*/}; rest=${rest%/*}; rest=${rest%/*}; subject=${rest##*/}
   printf 'peer-%s-%s\n' "$subject" "$stage"
 }
 
-_peer_herdr_open_tab() {  # OUTDIR WORKDIR -> "<tab-id> <root-pane-id>"
-  local json tab root
-  json=$(herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "$2" \
-           --label "$(_peer_herdr_tab_label "$1")" --no-focus 2>&1) || {
-    printf '%s\n' "peer: herdr tab create failed, dispatching headless - $json" >&2
-    return 1
-  }
-  tab=$(_peer_herdr_field result.tab.tab_id <<< "$json") || return 1
-  root=$(_peer_herdr_field result.root_pane.pane_id <<< "$json") || return 1
-  printf '%s %s\n' "$tab" "$root"
+_peer_herdr_session_socket() {  # -> socket path of the running peer session
+  herdr session list --json 2>/dev/null | PEER_HERDR_SESSION=$PEER_HERDR_SESSION python3 -c '
+import json, os, sys
+for session in json.load(sys.stdin).get("sessions", []):
+    if session.get("name") == os.environ["PEER_HERDR_SESSION"] and session.get("running"):
+        print(session["socket_path"])
+        sys.exit(0)
+sys.exit(1)'
 }
 
-_peer_herdr_split() {  # PANE DIRECTION WORKDIR -> <pane-id>
-  local json
-  json=$(herdr pane split --pane "$1" --direction "$2" --cwd "$3" --no-focus 2>&1) || {
-    printf '%s\n' "peer: herdr pane split failed - $json" >&2
+# Points every later herdr call - this process and the peers it spawns - at the peer
+# session, starting its headless server first when none runs.
+_peer_herdr_enter_session() {
+  local socket tries
+  if ! socket=$(_peer_herdr_session_socket); then
+    ( nohup herdr --session "$PEER_HERDR_SESSION" server >/dev/null 2>&1 & )
+    for (( tries = 0; tries < 50; tries++ )); do
+      socket=$(_peer_herdr_session_socket) \
+        && HERDR_SOCKET_PATH=$socket herdr workspace list >/dev/null 2>&1 && break
+      socket=""; sleep 0.1
+    done
+    [[ -n "$socket" ]] || {
+      printf '%s\n' "peer: herdr session $PEER_HERDR_SESSION did not start, dispatching headless" >&2
+      return 1
+    }
+  fi
+  export HERDR_SOCKET_PATH=$socket
+}
+
+_peer_herdr_open_workspace() {  # OUTDIR WORKDIR -> "<workspace-id> <tab-id> <root-pane-id>"
+  local json ws tab root
+  json=$(herdr workspace create --cwd "$2" --label "$(_peer_herdr_round_label "$1")" \
+           --no-focus 2>&1) || {
+    printf '%s\n' "peer: herdr workspace create failed, dispatching headless - $json" >&2
     return 1
   }
-  _peer_herdr_field result.pane.pane_id <<< "$json"
+  ws=$(_peer_herdr_field result.workspace.workspace_id <<< "$json") || return 1
+  tab=$(_peer_herdr_field result.tab.tab_id <<< "$json") || return 1
+  root=$(_peer_herdr_field result.root_pane.pane_id <<< "$json") || return 1
+  printf '%s %s %s\n' "$ws" "$tab" "$root"
+}
+
+_peer_herdr_open_tab() {  # WORKSPACE WORKDIR LABEL -> <root-pane-id>
+  local json
+  json=$(herdr tab create --workspace "$1" --cwd "$2" --label "$3" --no-focus 2>&1) || {
+    printf '%s\n' "peer: herdr tab create failed - $json" >&2
+    return 1
+  }
+  _peer_herdr_field result.root_pane.pane_id <<< "$json"
 }
 
 # Display-only; a metadata failure never decides a dispatch.
@@ -551,28 +583,31 @@ if [[ "$cmd" == herdr ]]; then
   case "${2:-}" in
     '')
       if _peer_herdr_ready; then
-        printf 'panes\t%s\n' "$HERDR_WORKSPACE_ID"
+        printf 'panes\t%s\n' "$PEER_HERDR_SESSION"
       else
         printf 'headless\t-\n'
       fi
       exit 0 ;;
     clean)
-      # A round's tab outlives it on purpose - the transcript is why peers run in panes.
-      # Reaping is therefore explicit, and never takes a tab still carrying a live peer.
+      # A round's workspace outlives it on purpose - the transcript is why peers run in panes.
+      # Reaping is therefore explicit, and never takes a workspace still carrying a live peer.
       [[ -z "${3:-}" ]] || { printf '%s\n' "usage: peer herdr clean" >&2; exit 2; }
-      _peer_herdr_ready || { printf '%s\n' "peer: no live herdr pane, no tabs to clean" >&2; exit 1; }
-      while read -r tab label; do
-        if herdr tab close "$tab" >/dev/null 2>&1; then
-          printf 'closed\t%s\t%s\n' "$tab" "$label"
+      command -v herdr >/dev/null 2>&1 || { printf '%s\n' "peer: herdr is not installed" >&2; exit 1; }
+      HERDR_SOCKET_PATH=$(_peer_herdr_session_socket) || {
+        printf '%s\n' "peer: herdr session $PEER_HERDR_SESSION is not running, nothing to clean" >&2; exit 0; }
+      export HERDR_SOCKET_PATH
+      while read -r ws label; do
+        if herdr workspace close "$ws" >/dev/null 2>&1; then
+          printf 'closed\t%s\t%s\n' "$ws" "$label"
         else
-          printf '%s\n' "peer: could not close $tab ($label)" >&2
+          printf '%s\n' "peer: could not close $ws ($label)" >&2
         fi
-      done < <(herdr tab list --workspace "$HERDR_WORKSPACE_ID" 2>/dev/null | python3 -c '
+      done < <(herdr workspace list 2>/dev/null | python3 -c '
 import json, sys
-for tab in json.load(sys.stdin).get("result", {}).get("tabs", []):
-    label = tab.get("label") or ""
-    if label.startswith("peer-") and tab.get("agent_status") not in ("working", "blocked"):
-        print(tab["tab_id"], label)')
+for ws in json.load(sys.stdin).get("result", {}).get("workspaces", []):
+    label = ws.get("label") or ""
+    if label.startswith("peer-") and ws.get("agent_status") not in ("working", "blocked"):
+        print(ws["workspace_id"], label)')
       exit 0 ;;
     *)
       printf '%s\n' "usage: peer herdr [clean]" >&2; exit 2 ;;
@@ -744,27 +779,24 @@ if [[ "$cmd" != codex && "$cmd" != pi && "$cmd" != claude ]]; then
   prompt_arg=( "$prompt" ); [[ -n "$prompt_file" ]] && prompt_arg=( --prompt-file "$prompt_file" )
 
   declare -A HERDR_PANE_FOR
-  herdr_tab=""
-  if _peer_herdr_ready; then
-    if read -r herdr_tab herdr_pane < <(_peer_herdr_open_tab "$outdir" "$workdir"); then
-      printf '%s\n' "peer: dispatching into herdr tab $herdr_tab ($(_peer_herdr_tab_label "$outdir"))" >&2
-      direction=right; first=1
-      for id in "${selected[@]}"; do
-        if (( first )); then
-          pane="$herdr_pane"; first=0
-        else
-          # Alternating splits keep a three-peer fan-out out of unusably narrow columns.
-          pane=$(_peer_herdr_split "$herdr_pane" "$direction" "$workdir") || break
-          [[ "$direction" == right ]] && direction=down || direction=right
-          herdr_pane="$pane"
-        fi
-        HERDR_PANE_FOR[$id]="$pane"
-        _peer_herdr_metadata "$pane" --title "peer $id" \
-          --display-agent "${ALIAS[$id]} (peer ${agent:-reviewer})" \
-          --state-label working="${agent:-reviewer}" \
-          --token peer="$id" --token role="${agent:-reviewer}"
-      done
-    fi
+  herdr_ws=""
+  if _peer_herdr_ready && _peer_herdr_enter_session \
+     && read -r herdr_ws herdr_tab herdr_pane < <(_peer_herdr_open_workspace "$outdir" "$workdir"); then
+    printf '%s\n' "peer: dispatching into herdr session $PEER_HERDR_SESSION, workspace $herdr_ws ($(_peer_herdr_round_label "$outdir"))" >&2
+    first=1
+    for id in "${selected[@]}"; do
+      if (( first )); then
+        pane="$herdr_pane"; first=0
+        herdr tab rename "$herdr_tab" "$id" >/dev/null 2>&1 || true
+      else
+        pane=$(_peer_herdr_open_tab "$herdr_ws" "$workdir" "$id") || break
+      fi
+      HERDR_PANE_FOR[$id]="$pane"
+      _peer_herdr_metadata "$pane" --title "peer $id" \
+        --display-agent "${ALIAS[$id]} (peer ${agent:-reviewer})" \
+        --state-label working="${agent:-reviewer}" \
+        --token peer="$id" --token role="${agent:-reviewer}"
+    done
   fi
 
   for id in "${selected[@]}"; do
@@ -794,10 +826,10 @@ if [[ "$cmd" != codex && "$cmd" != pi && "$cmd" != claude ]]; then
     printf '%s\n' "peer: re-run without the restriction before acting on any of them" >&2
   fi
 
-  # The round's tab goes either way, so a failed peer's terminal is saved beside its empty
-  # report first: that transcript is the only account of a peer that declined, stalled, or
-  # stopped at a dialog, and it outlives the pane as a file.
-  if [[ -n "$herdr_tab" && "${PEER_HERDR_KEEP:-0}" != 1 ]]; then
+  # The round's workspace goes either way, so a failed peer's terminal is saved beside its
+  # empty report first: that transcript is the only account of a peer that declined, stalled,
+  # or stopped at a dialog, and it outlives the pane as a file.
+  if [[ -n "$herdr_ws" && "${PEER_HERDR_KEEP:-0}" != 1 ]]; then
     for id in "${ran[@]}"; do
       [[ "${STATUS[$id]}" != ok && -n "${HERDR_PANE_FOR[$id]:-}" ]] || continue
       if herdr pane read "${HERDR_PANE_FOR[$id]}" >"$outdir/$id.pane.log" 2>/dev/null \
@@ -807,8 +839,8 @@ if [[ "$cmd" != codex && "$cmd" != pi && "$cmd" != claude ]]; then
         rm -f "$outdir/$id.pane.log"
       fi
     done
-    herdr tab close "$herdr_tab" >/dev/null 2>&1 \
-      || printf '%s\n' "peer: herdr tab $herdr_tab did not close" >&2
+    herdr workspace close "$herdr_ws" >/dev/null 2>&1 \
+      || printf '%s\n' "peer: herdr workspace $herdr_ws did not close" >&2
   fi
 
   for id in "${ran[@]}"; do
