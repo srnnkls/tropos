@@ -124,12 +124,19 @@ def check(root, build):
             if mode[name] == "hybrid":
                 if harness == "claude":
                     require(
-                        re.fullmatch(rf"\s*!`henia preload --skill {name} -- 'henia show {name} --head'`\s*", body),
+                        re.fullmatch(rf"\s*!`henia show {name} --head`\s*", body),
                         f"{path}: hybrid head must be one head preload",
+                    )
+                    tools = fm.get("allowed-tools")
+                    require(
+                        "Bash(henia show *)" in (tools or []),
+                        f"{path}: hybrid head must allow henia show",
                     )
                 else:
                     require(
-                        f"'henia show {name} --toc'" in body and f"'henia context {name}'" in body and "!`" not in body,
+                        f"run first: `henia show {name} --toc`" in body
+                        and f"run first: `henia context {name}`" in body
+                        and "!`" not in body,
                         f"{path}: hybrid head must run its contents and context first",
                     )
             elif canonical.get("henia", {}).get("variables", {}).get("context_commands"):
