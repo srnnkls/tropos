@@ -102,6 +102,7 @@ STUB
 cat >"$tmp/bin/claude" <<'STUB'
 #!/usr/bin/env bash
 printf 'headless claude ran\n' >>"${HEADLESS_MARKER:-/dev/null}"
+env | grep '^HERDR_' >>"${HEADLESS_ENV:-/dev/null}"
 printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"OK"}'
 STUB
 cp "$tmp/bin/claude" "$tmp/bin/codex"
@@ -280,6 +281,13 @@ manifest=$(HERDR_CALLS="$tmp/calls.flag" HEADLESS_MARKER="$marks/headless.flag" 
   "$PEER" -d "$dir" -C "$tmp" --peers paneable,paneable-two --cap 30 --dispatch cli 'ping' 2>"$tmp/err.flag")
 [[ ! -s "$tmp/calls.flag" ]] && [[ -s "$marks/headless.flag" ]]
 check '--dispatch cli forces the headless path inside a herdr pane' $?
+
+dir=$("$PEER" path subject env --run "$run_id" -C "$tmp")
+HEADLESS_ENV="$marks/env.cli" HERDR_CALLS="$tmp/calls.env" env "${herdr_env[@]}" \
+  PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
+  "$PEER" -d "$dir" -C "$tmp" --peers paneable --cap 30 --dispatch cli 'ping' >/dev/null 2>"$tmp/err.env"
+[[ -e "$marks/env.cli" && ! -s "$marks/env.cli" ]]
+check 'a headless peer cannot report its session as the caller pane' $?
 
 HERDR_CALLS="$tmp/calls.bad" env "${herdr_env[@]}" PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
   "$PEER" -d "$dir" -C "$tmp" --peers paneable --dispatch tmux 'ping' >/dev/null 2>"$tmp/err.bad"

@@ -468,7 +468,10 @@ _peer_terminate_group() {
 
 ERRNO_DENIAL='not permitted|eperm|eacces|erofs|read-only file system|os error 1|no provider table'
 
+# A headless peer is no herdr pane: inheriting the caller's HERDR_* would let its harness
+# hooks report the peer's session as the caller's.
 SESSION_EXEC='import os,sys
+for k in [k for k in os.environ if k.startswith("HERDR_")]: del os.environ[k]
 cwd=sys.argv[1]
 argv=sys.argv[2:]
 os.chdir(cwd)
