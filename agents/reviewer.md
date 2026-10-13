@@ -11,7 +11,6 @@ henia:
           - Read
           - Bash
         skills:
-          - gestalt
           - review
         color: yellow
 ---
