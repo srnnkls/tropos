@@ -29,7 +29,9 @@ When the user is asking or thinking aloud, return the assessment without applyin
 
 At each tool boundary, batch every ready operation whose inputs are known. Direct tool calls execute sequentially; independent subagents dispatched together execute concurrently. Continue ready local work while subagents run.
 
-Before repository work, run `gestalt map` or `gestalt analyze`; delegated agents orient as their first repository action. Follow with bounded symbol queries and `rg` only where an unresolved relationship affects the change.
+Before repository work, orient; delegated agents orient as their first repository action. Follow with bounded symbol queries and `rg` only where an unresolved relationship affects the change.
+
+:slot[code.orientation]{.inline}
 
 Never use `rm` for interactive file removal. Use `trash`.
 

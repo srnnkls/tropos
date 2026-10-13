@@ -228,8 +228,10 @@ def check(root, build):
             else f"`henia show {match[1]}`",
             (canonical_root / "instructions/AGENTS.md").read_text(),
         )
+        head, *_, tail = re.split(r"^:slot\[[^\]]*\]\{\.inline\}\n\n?", instructions, flags=re.M)
         for path in (target / "instructions/AGENTS.md", target / ("CLAUDE.md" if harness == "claude" else "AGENTS.md")):
-            require(path.read_text() == instructions, f"{path}: instructions differ")
+            text = path.read_text()
+            require(text.startswith(head) and text.endswith(tail), f"{path}: instructions differ")
         if modes(config, harness, skills).get("loqui") == "static":
             guides = target / "skills/loqui/languages"
             for language in ("bash", "elisp", "go", "python", "rust", "zig"):
