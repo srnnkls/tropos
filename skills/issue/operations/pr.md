@@ -60,9 +60,9 @@ Parse from `$ARGUMENTS`; ignore other tokens. Without `--issue` or a branch pref
 
 Commit-message format and type vocabulary from the `git.commits` providers ([Commits](../../git/SKILL.md#commits)), suffixed ` (#<ISSUE_NUM>)` when an issue is linked.
 
-- Type: dominant commit type from context; else the `git.commits` type matching the issue labels; else `feat`.
-- Scope: when derivable, the most specific issue-title noun.
-- Description: without the issue number or type prefix.
+- Type: dominant commit type from context; else by issue label: `bug`/`fix` → `fix`, `feature`/`enhancement` → `feat`, `refactor` → `refactor`, `docs`/`documentation` → `docs`, `chore`/`maintenance` → `chore`, `perf`/`performance` → `perf`, `test` → `test`; else `feat`.
+- Scope: when derivable, the most specific issue-title noun, lowercase without spaces.
+- Description: without the issue number, type prefix, or trailing period.
 
 Source: `--title` (warn if not conventional), else issue title, else branch slug with `feat`. Total ≤ 72 characters; truncate only the description.
 

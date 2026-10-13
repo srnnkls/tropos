@@ -19,6 +19,7 @@ Implement one task from orchestrator-verified RED evidence and prove GREEN.
 - Modify only production code and directly required non-test configuration inside the task's declared paths.
 - Do not create, edit, delete, or weaken tests or fixtures.
 - Do not broaden behavior or perform adjacent cleanup.
+- For an implementation task, run the focused command to confirm RED, make the smallest production change, verify GREEN, and refactor only the changed mechanism.
 
 ## Contract
 
