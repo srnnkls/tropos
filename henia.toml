@@ -1,10 +1,5 @@
 artifacts = ["skills"]
 
-[dependencies.gestalt]
-git = "https://github.com/srnnkls/gestalt.git"
-branch = "main"
-skills = ["gestalt"]
-
 [dependencies.limen]
 git = "https://github.com/srnnkls/limen.git"
 branch = "main"
