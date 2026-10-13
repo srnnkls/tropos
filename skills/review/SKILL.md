@@ -56,7 +56,7 @@ Pre-parse `--reviewers <aliases>` and pass it to downstream review operations.
 | Commit SHA | Invoke `$code` with `review --rev <sha>` |
 | `--final <scope>` | Standalone holistic scope review |
 | Scope path/name | Invoke `$scope` with `review <name>` |
-| `gestalt` or `--structural` | Invoke `$gestalt` with `review <target>` |
+| `--structural` | Structural review of `<target>` from its definition-level diff and the changed symbols' callers |
 | `--test-audit [path]` or test path | [operations/test-audit.md](operations/test-audit.md), explicit or changed tests only |
 | Existing file path | Invoke `$code` with `review --path <path>` |
 | Missing | Ask for PR, commit, diff, path, scope, structural, or test target |

@@ -5,11 +5,11 @@ import (
 	"github.com/srnnkls/fas/cue/hook"
 )
 
-gestalt_orient: {
+orient: {
 	when: hook.#SubagentStart & (agent.#Explore | agent.#Plan | agent.#GeneralPurpose)
 	then: inject: {
-		rule_id: "gestalt-orient"
+		rule_id: "orient"
 		channel: "agent"
-		text:    "First action: `gestalt map` (Plan: also `gestalt analyze`); then `gestalt callers|callees|refs <symbol>`; rg after."
+		text: [if #slots.orientation != "" {"First action: orient.\n\n\(#slots.orientation)"}, "First action: orient per CLAUDE.md (Tools and context); rg after."][0]
 	}
 }

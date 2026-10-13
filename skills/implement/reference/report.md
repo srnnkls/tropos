@@ -19,7 +19,7 @@ implementer_report:
   blocked_reason: null
 ```
 
-`ownership` lists each definition the change adds that owns behavior, with candidates from `gestalt map`, `refs`, and `callers` and from installed dependencies' APIs as `path:symbol` or package API; `[]` when none. `success` requires verified GREEN evidence. `blocked` names the conflicting requirement, invalid RED evidence, unavailable dependency, or public-surface decision.
+`ownership` lists each definition the change adds that owns behavior, with candidates from structural queries and from installed dependencies' APIs as `path:symbol` or package API; `[]` when none. `success` requires verified GREEN evidence. `blocked` names the conflicting requirement, invalid RED evidence, unavailable dependency, or public-surface decision.
 
 ## Fix
 

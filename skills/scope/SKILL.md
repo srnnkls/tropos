@@ -253,7 +253,7 @@ Conditional sections in scope.md:
 
 ### Step 5: Validate Execution Metadata
 
-Before the scope is implementable, every task names explicit `depends_on` and `files` (expected mutation paths); these drive parallel dispatch. Set optional `domain` where the work belongs to one; it keys the approach providers its subagents receive ([implement slots](../implement/SKILL.md#slots)). Resolve missing paths with one bounded Gestalt-first discovery wave, else record a scope gap; never force one serial pipeline per task. Executors use `dependencies.yaml` `batches[*]` after validating current task state. TodoWrite may mirror tasks for display; `tasks.yaml` stays authoritative, with no reverse sync.
+Before the scope is implementable, every task names explicit `depends_on` and `files` (expected mutation paths); these drive parallel dispatch. Set optional `domain` where the work belongs to one; it keys the approach providers its subagents receive ([implement slots](../implement/SKILL.md#slots)). Resolve missing paths with one bounded discovery wave, else record a scope gap; never force one serial pipeline per task. Executors use `dependencies.yaml` `batches[*]` after validating current task state. TodoWrite may mirror tasks for display; `tasks.yaml` stays authoritative, with no reverse sync.
 
 ### Step 6: Present Summary
 

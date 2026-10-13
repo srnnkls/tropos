@@ -77,7 +77,7 @@ Requires `issue`, `peer`, authenticated `gh`; the review gate also needs `peer r
 
 ## Workflow
 
-1. Read the `issue.template` providers. Orient per `henia show gestalt#subagent-orientation` and [match the repo](references/sketches.md#the-one-rule-match-the-repo), including its layering.
+1. Read the `issue.template` providers. Orient per [AGENTS.md](../../instructions/AGENTS.md#tools-and-context) and [match the repo](references/sketches.md#the-one-rule-match-the-repo), including its layering.
 2. Draft the body and title per the template; sketches per [`references/sketches.md`](references/sketches.md).
 3. Settle type, parent, and depends-on / blocks per [Issue metadata](#issue-metadata-type-parent-dependencies) before submitting. On update, read existing metadata with `issue verify <n>`; change only what the user asked.
 4. Draft into `.issues/<n>-<type>-<slug>.md` via `issue draft <n> <type> "<title>"`; never `$TMPDIR`. `.issues/` holds drafts only; if `issue draft` warns it is not git-ignored, ignore it in a local excludes file, not `.gitignore`.

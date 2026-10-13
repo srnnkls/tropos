@@ -77,7 +77,7 @@ path = "~/projects/tropos"
 deploy = "link"
 ```
 
-FAS rules link into the working tree; skills and harnesses stay copied Henia build output, so `phora sync` after editing them. Remove the overrides and `phora sync --prune` to return to the pin. The override cannot replace a Tropos dependency such as Gestalt.
+FAS rules link into the working tree; skills and harnesses stay copied Henia build output, so `phora sync` after editing them. Remove the overrides and `phora sync --prune` to return to the pin.
 
 ## Troubleshooting
 
