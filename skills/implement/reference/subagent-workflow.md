@@ -80,7 +80,7 @@ Return only this schema:
 
 ## Initial Review Wave
 
-Materialize once per batch; `{structural_context}` comes from bounded Gestalt queries and `{guidelines}` holds only material `code.style` excerpts. Build one prompt per [code review role](../../code/SKILL.md#review-roles) and save it as `prompt.md` in its `peer path` directory.
+Materialize once per batch; `{structural_context}` comes from bounded structural queries and `{guidelines}` holds only material `code.style` excerpts. Build one prompt per [code review role](../../code/SKILL.md#review-roles) and save it as `prompt.md` in its `peer path` directory.
 
 ```text
 Review this completed change against only the assigned {role} gates.

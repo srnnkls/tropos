@@ -17,15 +17,11 @@ henia:
           default_prompt: Use $pr for the requested task.
 ---
 
-::::head{.context slots="review.criteria"}
+::::head{context slots="review.criteria"}
 
 All other shell lives in [scripts/pr-context](scripts/pr-context), resolved against this skill's directory.
-{{if eq .preload_context "true"}}
-!`${CLAUDE_SKILL_DIR}/scripts/pr-context $ARGUMENTS`{{else}}
-```bash
-scripts/pr-context $ARGUMENTS
-```
-{{- end}}
+
+!`scripts/pr-context $ARGUMENTS`
 
 Slot providers: the `review.criteria` providers; see [review slots](../review/SKILL.md#slots). Script sections, in order: `== pr ==` (metadata), `== inline comments ==` (`node_id` feeds `tfcprr --comment`; `original_line` anchors the outdated check), `== unresolved threads ==` (resolved threads collapse; don't re-litigate), `== review bodies ==` and `== conversation ==` (not line-anchored), `== diff ==` (HEAD, first 800 lines). The `review` route adds `== review context ==` (body, size, files, commits) and `== pending drafts ==` after `== pr ==`.
 
@@ -35,7 +31,7 @@ On the `tfcprr` route the script exits silently. If it printed `no-pr`, ask for 
 
 Requires the `gh-review` extension (`gh extension install srnnkls/gh-review`), exposed as `gh review`.
 
-:::routes{.ordered .protocol}
+:::routes{ordered protocol}
 | Pattern | Route | Action |
 |---|---|---|
 | `tfcprr` (with or without args) | Close addressed threads | Read and follow [operations/tfcprr.md](operations/tfcprr.md) |

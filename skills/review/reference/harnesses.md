@@ -10,7 +10,7 @@ Build one self-contained prompt per role before dispatch, embedding:
 - applicable requirements;
 - the exact canonical reviewer schema;
 - the verbatim finding bar;
-- fresh bounded output from the [repository-orientation contract](../../../instructions/AGENTS.md#tools-and-context) for the reviewed working tree, plus bounded Gestalt context for changed symbols;
+- fresh bounded output from the [repository-orientation contract](../../../instructions/AGENTS.md#tools-and-context) for the reviewed working tree, plus bounded structural context for changed symbols;
 - only material language guidance;
 - verbatim bodies of the `review.criteria` slot providers, the role's [review slots](../SKILL.md#slots), and `code.style` for Compliance, listed in the review context, or `none`;
 - for Abstractions, the output of each listed `review.detectors` command run on the change and the implementer report's `ownership` entries, or `none`.

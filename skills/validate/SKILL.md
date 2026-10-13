@@ -26,7 +26,7 @@ Uncommitted:
 
 # Validate Dispatcher
 
-:::routes{.ordered .protocol}
+:::routes{ordered protocol}
 | Pattern | Route | Action |
 |---|---|---|
 | Contains "hook" or path to hooks file | Hooks | `Skill(hooks-test, $ARGUMENTS)` on Claude Code with `hooks-test` installed; otherwise the menu fallback |
@@ -39,7 +39,7 @@ Uncommitted:
 
 When the argument is missing or ambiguous, ask with `AskUserQuestion`, then run the matching route's action (Hooks: `Skill(hooks-test)`):
 
-:::menu{header="Validate" question="What would you like to validate?"}
+:::user-question{header="Validate" question="What would you like to validate?"}
 - TDD: RED-GREEN-REFACTOR test-driven development
 - Completion: Evidence-based verification before claiming done
 - Hooks: Test Claude Code hooks at unit/integration/e2e levels (only when `hooks-test` is available)

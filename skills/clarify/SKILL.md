@@ -43,7 +43,7 @@ Resolve ambiguities by editing the source documents and recording each change.
 
 Per candidate, in the row order of the scope [ambiguity scan](../scope/SKILL.md#step-3-validation-human-in-the-loop) table, use AskUserQuestion:
 
-:::menu{header="${AREA}" question="${DESCRIPTION}"}
+:::user-question{header="${AREA}" question="${DESCRIPTION}"}
 - [Generated options based on context]
 - Defer: Skip for now
 :::

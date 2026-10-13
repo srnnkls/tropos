@@ -24,7 +24,7 @@ henia:
           default_prompt: Use $peer to resolve routes and dispatch the selected peers.
 ---
 
-:::head{.context}
+:::head{context}
 
 
 

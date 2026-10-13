@@ -11,7 +11,7 @@ The error surfaces below the boundary that supplied the bad value, the responsib
 1. State the observed trigger and wrong outcome.
 2. Identify the operation that produced it.
 3. Name the concrete input or state that made it wrong.
-4. When the current frame cannot explain that input, follow one caller/data edge backward (`gestalt callers`, `callees`, or `refs` for the named symbol; bounded `rg` for exact text).
+4. When the current frame cannot explain that input, follow one caller/data edge backward (a caller, callee, or reference query for the named symbol; bounded `rg` for exact text).
 5. Stop at the first source that fully explains the failure and owns the invariant. Do not enumerate the repository.
 
 ## Instrumentation

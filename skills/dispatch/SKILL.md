@@ -20,7 +20,7 @@ henia:
 
 # Intent Router
 
-:::routes{.ordered .protocol}
+:::routes{ordered protocol}
 | Pattern | Action |
 |---|---|
 | `continue` or `resume` | Invoke `$continue` with `$ARGUMENTS` |
@@ -41,7 +41,7 @@ A checkpoint or active scope is context, not permission to resume or implement; 
 
 When no route is named, use AskUserQuestion:
 
-:::menu{header="Dispatch" question="Which workflow should run?"}
+:::user-question{header="Dispatch" question="Which workflow should run?"}
 - Implement: Strict delegated RED → GREEN → review
 - Continue: Resume an interrupted implementation scope
 - Test: Run explicit RED-GREEN-REFACTOR

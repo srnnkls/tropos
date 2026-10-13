@@ -17,7 +17,7 @@ A finding states both, or it is not a finding:
 Abstractions findings, each with its evidence:
 
 - Duplicated knowledge: two locations, one in the change, encoding one rule. Trigger: a change to
-  that rule; co-change history (`gestalt log` on both locations) evidences it. Wrong outcome: a
+  that rule; co-change history of both locations evidences it. Wrong outcome: a
   one-sided edit leaves them disagreeing.
 - Reimplemented owner: an existing symbol, installed dependency API, or standard library API whose
   contract (results, errors, ordering, mutation) matches on the change's inputs. Wrong outcome: two owners of one

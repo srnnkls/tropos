@@ -17,7 +17,7 @@ henia:
           default_prompt: Use $tfcprr for the requested task.
 ---
 
-:::head{.context slots="git.commits review.criteria"}
+:::head{context slots="git.commits review.criteria"}
 
 
 # tfcprr — tfcp + reply + resolve

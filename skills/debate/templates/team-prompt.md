@@ -10,7 +10,7 @@ Your stance: {stance}
 
 ## Research Phase
 Gather evidence with read-only tools before writing:
-- Code: orient per `henia show gestalt#subagent-orientation`, then `rg`/Read for relevant code, patterns, prior decisions
+- Code: orient per AGENTS.md (Tools and context), then `rg`/Read for relevant code, patterns, prior decisions
 - WebSearch/WebFetch: industry practice, benchmarks, documentation, case studies
 - Deep questions: Task(subagent_type="general", prompt="Research {specific question}...")
 

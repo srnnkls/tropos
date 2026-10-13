@@ -1,14 +1,6 @@
 version = 1
 
 [[sources]]
-name = "gestalt"
-git = "https://github.com/srnnkls/gestalt.git"
-resolved = "main"
-commit = "092feb81cf53a56b7f70c72fc82001467d852722"
-digest = "blake3:79969c2182b2279ce42d377c11e7de41ed17115543fa58772b3df862cb01e56d"
-config_digest = "blake3:8532047ea4ebb82f678a2001e29adc3c9140b1956906cb46afcd16fc6c317c18"
-
-[[sources]]
 name = "ponytail"
 git = "https://github.com/DietrichGebert/ponytail.git"
 resolved = "v5.2.0"

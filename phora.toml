@@ -28,10 +28,10 @@ path = "resources/prompting"
 sources = ["prompting-opus", "prompting-sonnet", "prompting-openai", "prompting-openai-prompt-engineering", "prompting-openai-latest-model"]
 
 [offers.default]
-include = ["skills/**", "agents/**", "instructions/**", "rules/fas/**", "henia.toml", "henia.lock", ".henia/harnesses/**", "phora.toml"]
+include = ["skills/**", "agents/**", "instructions/**", "rules/fas/**", "henia.toml", "henia.lock", ".henia/harnesses/**", ".henia/components/**", "phora.toml"]
 
 [offers.library]
-include = ["skills/**", "henia.toml", "henia.lock", ".henia/harnesses/**"]
+include = ["skills/**", "henia.toml", "henia.lock", ".henia/harnesses/**", ".henia/components/**"]
 
 [offers.fas]
 root = "rules/fas"

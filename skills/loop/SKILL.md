@@ -36,7 +36,7 @@ metadata:
   type: generic
 ---
 
-:::head{.context slots="workflow"}
+:::head{context slots="git.branching test.conventions test.approach implement.approach code.orientation code.style code.validation review.criteria review.general review.architecture review.tests review.abstractions review.detectors"}
 
 
 # Autonomous Implementation Loop

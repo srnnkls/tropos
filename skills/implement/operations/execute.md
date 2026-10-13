@@ -41,7 +41,7 @@ Dispatch all implementers, each with its requirements, tester report, partial st
 
 Materialize role prompts once per [review harnesses](../../review/reference/harnesses.md#materialization), with the batch diff as the target and its tasks' acceptance criteria among the requirements.
 
-Dispatch, per [code review role](../../code/SKILL.md#review-roles) and within its gates, every configured native reviewer and the external fan-out; the route snapshot decides the mechanism, not alias names. Architecture uses `gestalt diff` or named-symbol queries only when the changed structure needs them. Apply the [review result gate](../../review/reference/harnesses.md#results).
+Dispatch, per [code review role](../../code/SKILL.md#review-roles) and within its gates, every configured native reviewer and the external fan-out; the route snapshot decides the mechanism, not alias names. Architecture uses diff or named-symbol queries only when the changed structure needs them. Apply the [review result gate](../../review/reference/harnesses.md#results).
 
 ## 7. Synthesize and Fix
 

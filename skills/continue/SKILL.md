@@ -30,7 +30,7 @@ henia:
         command: peer route show -C . 2>/dev/null || true
 ---
 
-:::head{.context slots="workflow"}
+:::head{context slots="git.branching test.conventions test.approach implement.approach code.orientation code.style code.validation review.criteria review.general review.architecture review.tests review.abstractions review.detectors"}
 
 
 # Continue Implementation

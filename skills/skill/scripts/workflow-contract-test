@@ -54,7 +54,7 @@ REQUIRED_SNIPPETS = (
 
 def tracked_markdown() -> list[Path]:
     result = subprocess.run(
-        ["git", "ls-files", "*.md"],
+        ["git", "ls-files", "*.md", ":(exclude).henia/components/"],
         cwd=ROOT,
         check=True,
         capture_output=True,

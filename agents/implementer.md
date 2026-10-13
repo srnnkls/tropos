@@ -6,7 +6,6 @@ henia:
     claude-agent:
       frontmatter:
         skills:
-          - gestalt
           - test
         color: green
 ---
