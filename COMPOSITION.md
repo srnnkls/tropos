@@ -9,11 +9,19 @@ priorities and shadowing; each owner's Slots section states what a slot covers.
 
 | Slot | Type | Owner | Applied by | Providers |
 |---|---|---|---|---|
-| `code.style` | `keyed(list)` | [code](skills/code/SKILL.md#slots) | [code](skills/code/SKILL.md), [continue](skills/continue/SKILL.md), [implement](skills/implement/SKILL.md), [loop](skills/loop/SKILL.md) | [loqui](https://github.com/srnnkls/loqui/blob/HEAD/skills/loqui/SKILL.md) (`code.style.bash`, `code.style.elisp`, `code.style.go`, `code.style.python`, `code.style.rust`, `code.style.zig`) |
-| `code.validation` | `keyed(list(command))` | [code](skills/code/SKILL.md#slots) | [code](skills/code/SKILL.md), [continue](skills/continue/SKILL.md), [implement](skills/implement/SKILL.md), [loop](skills/loop/SKILL.md) | [loqui](https://github.com/srnnkls/loqui/blob/HEAD/skills/loqui/SKILL.md) (`code.validation.go`) |
-| `git.branching` | `keyed(list)` | [git](skills/git/SKILL.md#slots) | [continue](skills/continue/SKILL.md), [git](skills/git/SKILL.md), [implement](skills/implement/SKILL.md), [loop](skills/loop/SKILL.md) | [git](skills/git/SKILL.md) (`git.branching`) |
-| `git.commits` | `keyed(list)` | [git](skills/git/SKILL.md#slots) | [git](skills/git/SKILL.md), [tfcp](skills/tfcp/SKILL.md), [tfcprr](skills/tfcprr/SKILL.md) | [git](skills/git/SKILL.md) (`git.commits`) |
-| `issue.template` | `keyed(list)` | [issue](skills/issue/SKILL.md#slots) | [issue](skills/issue/SKILL.md) | [issue](skills/issue/SKILL.md) (`issue.template`) |
-| `review.criteria` | `keyed(list)` | [review](skills/review/SKILL.md#slots) | [code](skills/code/SKILL.md), [continue](skills/continue/SKILL.md), [implement](skills/implement/SKILL.md), [loop](skills/loop/SKILL.md), [pr](skills/pr/SKILL.md), [review](skills/review/SKILL.md), [tfcp](skills/tfcp/SKILL.md), [tfcprr](skills/tfcprr/SKILL.md) | — |
-| `scope.templates` | `keyed(list)` | [scope](skills/scope/SKILL.md#slots) | [scope](skills/scope/SKILL.md) | [scope](skills/scope/SKILL.md) (`scope.templates`) |
-| `test.conventions` | `keyed(list)` | [test](skills/test/SKILL.md#slots) | [code](skills/code/SKILL.md), [continue](skills/continue/SKILL.md), [implement](skills/implement/SKILL.md), [loop](skills/loop/SKILL.md), [test](skills/test/SKILL.md) | — |
+| `code.orientation` | `keyed(list)` | [code](skills/code/SKILL.md#slots) | [code](skills/code/SKILL.md) | — |
+| `code.style` | `keyed(list)` | [code](skills/code/SKILL.md#slots) | — | [loqui](https://github.com/srnnkls/loqui/blob/HEAD/skills/loqui/SKILL.md) (`code.style.bash`, `code.style.elisp`, `code.style.go`, `code.style.python`, `code.style.rust`, `code.style.zig`) |
+| `code.validation` | `keyed(list(command))` | [code](skills/code/SKILL.md#slots) | — | [loqui](https://github.com/srnnkls/loqui/blob/HEAD/skills/loqui/SKILL.md) (`code.validation.go`) |
+| `git.branching` | `keyed(list)` | [git](skills/git/SKILL.md#slots) | — | [git](skills/git/SKILL.md) (`git.branching`) |
+| `git.commits` | `keyed(list)` | [git](skills/git/SKILL.md#slots) | — | [git](skills/git/SKILL.md) (`git.commits`) |
+| `implement.approach` | `keyed(list)` | [implement](skills/implement/SKILL.md#slots) | — | [ponytail](https://github.com/DietrichGebert/ponytail/blob/HEAD/skills/ponytail/SKILL.md) (`implement.approach`) |
+| `issue.template` | `keyed(list)` | [issue](skills/issue/SKILL.md#slots) | — | [issue](skills/issue/SKILL.md) (`issue.template`) |
+| `review.abstractions` | `keyed(list)` | [review](skills/review/SKILL.md#slots) | — | — |
+| `review.architecture` | `keyed(list)` | [review](skills/review/SKILL.md#slots) | — | — |
+| `review.criteria` | `keyed(list)` | [review](skills/review/SKILL.md#slots) | — | — |
+| `review.detectors` | `keyed(list(command))` | [review](skills/review/SKILL.md#slots) | — | — |
+| `review.general` | `keyed(list)` | [review](skills/review/SKILL.md#slots) | — | — |
+| `review.tests` | `keyed(list)` | [review](skills/review/SKILL.md#slots) | — | — |
+| `scope.templates` | `keyed(list)` | [scope](skills/scope/SKILL.md#slots) | — | [scope](skills/scope/SKILL.md) (`scope.templates`) |
+| `test.approach` | `keyed(unique)` | [test](skills/test/SKILL.md#slots) | — | [strict-tdd](skills/strict-tdd/SKILL.md) (`test.approach`) |
+| `test.conventions` | `keyed(list)` | [test](skills/test/SKILL.md#slots) | — | — |
