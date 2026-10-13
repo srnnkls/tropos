@@ -53,6 +53,7 @@ Pre-parse `--config`, `--worktree`, `--base`, `--state`, and GitHub issue refere
 | `verify` or `done` | Follow [verify.md](operations/verify.md) |
 | `debug` or `trace` | Follow [debug.md](operations/debug.md) |
 | Scope path or unique active scope | Follow [execute.md](operations/execute.md) |
+| GitHub issue (`#N` or URL) without a scope | Run the single-task pipeline with the issue body as requirements |
 | File path or task description | Run the single-task pipeline below |
 | Missing or ambiguous | Ask for the target |
 :::
