@@ -32,7 +32,7 @@ Slug the topic and a context of at most 3 words ("API Design" → `api-design`),
 
 Ask with `AskUserQuestion`:
 
-:::menu{header="Teams" question="Which additional teams should participate beyond Red and Blue?" .multi}
+:::user-question{header="Teams" question="Which additional teams should participate beyond Red and Blue?" multi}
 - None: Just Red and Blue
 - Green Team: Pragmatic/implementation focus
 - Yellow Team: Risk/safety analysis

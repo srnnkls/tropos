@@ -31,7 +31,7 @@ henia:
         command: peer defaults reviewers 2>/dev/null || true
 ---
 
-::::head{.context slots="scope.templates"}
+::::head{context slots="scope.templates"}
 
 
 # Scope Dispatcher
@@ -58,7 +58,7 @@ Locate `<name>` by searching `scopes/{draft,active,done}/<name>/`; without a nam
 
 Promote `draft` → `active` by setting `status: active` in `scope.md` frontmatter and running `git mv scopes/draft/<name> scopes/active/<name>` (`mv` if untracked), always together.
 
-:::routes{.ordered .protocol}
+:::routes{ordered protocol}
 | Pattern | Route | Action |
 |---|---|---|
 | `review [name]` | Review | Multi-agent review; record the result in `validation.yaml.review_gate` |
@@ -76,7 +76,7 @@ Promote `draft` → `active` by setting `status: active` in `scope.md` frontmatt
 
 With no argument or an unrecognized keyword, ask via AskUserQuestion and run the selected route:
 
-:::menu{header="Scope" question="What would you like to do?"}
+:::user-question{header="Scope" question="What would you like to do?"}
 - Create: Define a new scope with requirements and tasks
 - Review: Multi-agent scope review with parallel reviewers
 - Issue: Publish the scope as a GitHub issue tree
@@ -100,7 +100,7 @@ Use for tasks with 3+ phases, non-trivial features, or after ExitPlanMode; not f
 
 Ask once, before Step 0:
 
-:::menu{header="Depth" question="How thorough should requirement validation be?"}
+:::user-question{header="Depth" question="How thorough should requirement validation be?"}
 - Guided: Add decision questions — approach selection, strategy & story prioritization, design-alternatives probing (Recommended for Features/Initiatives)
 - Standard: Taxonomy clarification loop only — skip the guided decision questions
 :::
@@ -121,7 +121,7 @@ Apply the repository-orientation contract in [AGENTS.md](../../instructions/AGEN
 
 Ask first, always:
 
-:::menu{header="Work type" question="What type of work is this?"}
+:::user-question{header="Work type" question="What type of work is this?"}
 - Initiative: Strategic coordination (months) - Multiple features toward business goal
 - Feature: User-facing capability (weeks) - Deliverable value, multiple tasks
 - Task: Implementation item (days) - Single concrete deliverable
@@ -148,7 +148,7 @@ Ambiguity scan: rate each of the type's taxonomy areas and record it in `validat
 
 All clear: skip to Step 3.5. Otherwise run the validation loop in [question taxonomy](reference/question-taxonomy.md) over the `partial`/`missing` areas, in batches of this form:
 
-:::menu{header="[Area, max 12 chars]" question="[Clear question ending with ?]"}
+:::user-question{header="[Area, max 12 chars]" question="[Clear question ending with ?]"}
 - Option A: [choice] - [implication]
 - Option B: [choice] - [implication]
 - None: [default/skip]
@@ -160,7 +160,7 @@ Initiatives only: read `.claude/constitution.md`, flag conflicts, and ask the us
 
 Never proceed on an unstated default:
 
-:::menu{header="Approach" question="Which approach should we take?"}
+:::user-question{header="Approach" question="Which approach should we take?"}
 - Approach A: [brief] - Trade-off: [X]
 - Approach B: [brief] - Trade-off: [Y]
 - Approach C: [brief] - Trade-off: [Z]
@@ -170,13 +170,13 @@ Mark your recommendation first. Drop options that add cost without clear value. 
 
 ### Step 3.45: Initiative Strategy & Story Prioritization [guided, Initiatives only]
 
-:::menu{header="User Stories" question="How should user stories be prioritized?"}
+:::user-question{header="User Stories" question="How should user stories be prioritized?"}
 - MVP First: P1 delivers standalone value, P2/P3 incremental (Recommended)
 - Parallel Tracks: Stories developed independently by different teams
 - Sequential: Strict dependencies, complete in order
 :::
 
-:::menu{header="Strategy" question="What implementation approach fits best?"}
+:::user-question{header="Strategy" question="What implementation approach fits best?"}
 - MVP First: Ship P1, iterate on P2/P3 from feedback (Recommended)
 - Incremental: Each phase adds value, all planned upfront
 - Parallel Team: Multiple workstreams, integration points defined
@@ -186,7 +186,7 @@ Record both in `validation.yaml`; they populate User Stories and Implementation 
 
 ### Step 3.5: SDD Section Opt-ins (Features/Initiatives)
 
-:::menu{header="Sections" question="Which detailed sections do you want?" .multi}
+:::user-question{header="Sections" question="Which detailed sections do you want?" multi}
 - Tech Decisions: Document technology choices and rationale
 - API Contract: Define API endpoints and schemas
 - Data Model: Document entities and relationships
@@ -196,7 +196,7 @@ Record both in `validation.yaml`; they populate User Stories and Implementation 
 
 ### Step 3.55: Design Probing [guided, when Design opt-in selected]
 
-:::menu{header="Alternatives" question="Were other approaches considered before this one?"}
+:::user-question{header="Alternatives" question="Were other approaches considered before this one?"}
 - Yes, describe: I can list rejected alternatives and why
 - Partially: Some were considered informally
 - No: This is the first approach explored

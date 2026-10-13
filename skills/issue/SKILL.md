@@ -29,7 +29,7 @@ henia:
         command: gh api 'repos/{owner}/{repo}/issues?state=all&per_page=1' --jq '(.[0].number // 0) + 1' 2>/dev/null || echo "?"
 ---
 
-::::head{.context slots="issue.template"}
+::::head{context slots="issue.template"}
 
 
 Publish reconciles the predicted number to the real one. On update, use the edited issue's number.
@@ -42,7 +42,7 @@ Publish reconciles the predicted number to the real one. On update, use the edit
 |---|---|
 | `issue.template` | Title format, section structure, and type and parent conventions; replaces the [Template](#template) defaults |
 
-:::routes{.ordered .protocol}
+:::routes{ordered protocol}
 | Pattern | Route | Action |
 |---|---|---|
 | `pr` (with or without args) | Create PR | Read and follow [operations/pr.md](operations/pr.md) |

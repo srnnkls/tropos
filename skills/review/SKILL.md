@@ -42,7 +42,7 @@ henia:
           default_prompt: Use $review to review the requested target.
 ---
 
-::::head{.context slots="review.criteria review.general review.architecture review.tests review.abstractions review.detectors"}
+::::head{context slots="review.criteria review.general review.architecture review.tests review.abstractions review.detectors"}
 
 
 # Review Dispatcher

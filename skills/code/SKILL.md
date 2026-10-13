@@ -26,7 +26,7 @@ henia:
           default_prompt: Use $code to select an explicit code workflow.
 ---
 
-:::::head{.context slots="code.orientation code.style code.validation test.conventions review.criteria review.general review.architecture review.tests review.abstractions review.detectors"}
+:::::head{context slots="code.orientation code.style code.validation test.conventions review.criteria review.general review.architecture review.tests review.abstractions review.detectors"}
 
 
 # Code Domain
