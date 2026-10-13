@@ -1,10 +1,6 @@
 # Checkpoint Format
 
-A checkpoint stores only durable recovery state for an explicit scope implementation. Task status belongs to `tasks.yaml`; findings and deferred issues belong to `review.yaml`.
-
-## Location
-
-`scopes/<state>/<scope>/checkpoint.yaml`
+Durable recovery state only, at `scopes/<state>/<scope>/checkpoint.yaml`. Task status lives in `tasks.yaml`; findings and deferred issues in `review.yaml`.
 
 ## Schema
 
@@ -38,6 +34,7 @@ checkpoint:
       general: .peer/auth-system/<run>/b3-review-general
       architecture: .peer/auth-system/<run>/b3-review-architecture
       compliance: .peer/auth-system/<run>/b3-review-compliance
+      abstractions: .peer/auth-system/<run>/b3-review-abstractions
 
   in_flight_mutations:
     - task: T003
@@ -51,25 +48,24 @@ checkpoint:
       failure: null
 ```
 
-Omit empty report sections and `in_flight_mutations` entries. Do not mirror done/pending task lists, next-batch calculations, TodoWrite, or deferred findings.
+Omit empty report sections and `in_flight_mutations` entries. Do not mirror task lists, next-batch calculations, TodoWrite, or deferred findings.
 
 ## Writes
 
-Write at true wave boundaries:
+One write per boundary:
 
-1. Batch start: persist the immutable routing snapshot, tasks, phase, report directories, and every tester mutation before dispatch.
-2. Mutating-wave boundary: after results land, clear successful entries, retain failed/interrupted evidence, and arm every mutation in the next wave in one write before dispatch.
-3. Read-only boundary: only after every mutation clears its gate, remove those entries, set the review phase, and record report directories in one write. A failed mutation retains its mutating phase and pauses.
-4. After review or fix synthesis: advance the phase once. Every fix wave still receives durable mutation markers before dispatch and one result write afterward.
-5. Batch completion: after the commit exists, record its actual ID and the next derived batch/phase. Task and review details remain in their authoritative files.
+1. Batch start, before tester dispatch: snapshot, tasks, phase, report directories, and every task as an in-flight tester mutation with baseline status/diff.
+2. Mutating boundary (RED→GREEN, fix): clear entries whose gate passed, retain failed/interrupted evidence, and arm the next wave's mutations before dispatch.
+3. Read-only boundary: only once every mutation clears its gate, remove the entries, set phase `review`, and record review report directories; otherwise keep the mutating phase and pause.
+4. After review or fix synthesis: advance the phase once.
+5. After the batch commit: record its ID and the next batch/phase.
 
-A successful process exit alone never clears a mutating entry; its report and RED/GREEN/fix gate must pass.
+A process exit alone never clears a mutating entry.
 
 ## Recovery Priority
 
-1. Recover `in_flight_mutations` exactly; preserve partial edits.
-2. Otherwise resume the recorded batch phase and read existing reports from their directories.
-3. Redispatch only missing work in that wave.
-4. Derive task readiness from `tasks.yaml` and dependency batches; never from TodoWrite or copied checkpoint summaries.
+1. Recover `in_flight_mutations` exactly, preserving partial edits.
+2. Otherwise resume the recorded phase, reading existing reports and redispatching only missing work.
+3. Otherwise derive readiness from `tasks.yaml` and dependency batches.
 
-The routing snapshot remains fixed for a recovered batch. Current `config.yaml` applies only after that batch completes. Legacy checkpoints may be normalized once after the live branch is active; ask when more than one recovery phase is plausible.
+A recovered batch keeps its routing snapshot; current `config.yaml` applies after it completes. Normalize a legacy checkpoint once after the live branch is active; ask when more than one recovery phase is plausible.

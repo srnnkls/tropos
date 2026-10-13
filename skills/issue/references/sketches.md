@@ -1,39 +1,34 @@
 # Implementation sketches — patterns
 
-Guidance for the code that appears in `# Implementation plan`. Sketches are illustrative, not literal — they bind shape (signatures, module structure, error flow), not bodies.
+Applies to code in `# Implementation plan`.
 
 ## The one rule: match the repo
 
-A sketch must read as if someone fluent in this codebase wrote it. Apply the [repository-orientation contract](../../../instructions/AGENTS.md#tools-and-context), then use the `code.style` providers ([code slots](../../code/SKILL.md#slots)), `CLAUDE.md` / `AGENTS.md`, and neighbouring modules to learn and mirror naming grammar, error handling, public surfaces, and dependency wiring. Do not import a pattern the codebase does not use.
+Apply the [repository-orientation contract](../../../instructions/AGENTS.md#tools-and-context), then mirror naming, error handling, public surfaces, and dependency wiring from the `code.style` providers ([code slots](../../code/SKILL.md#slots)), `CLAUDE.md` / `AGENTS.md`, and neighbouring modules. Use no pattern, stdlib facility, or combinator the codebase does not already use.
 
 ## What a sketch shows
 
-Order:
-1. Public surface — the signatures a caller sees (function/method/endpoint shapes with their input and output types) before any internals.
-2. Internals — the main flow or algorithm, in the repo's idiom (its loop/iteration constructs, its composition style). Phase-by-phase comments are fine; keep them to one line each.
-3. Types — the domain types and identifiers introduced, in the repo's type vocabulary.
-4. Errors — the failure modes and how they surface at the boundary, following the repo's error convention.
-5. Wiring — how the piece is constructed and its dependencies are supplied, at the repo's composition root.
+Signatures and shapes, never full bodies, in order:
 
-Show signatures and shapes, never full bodies. The implementer writes the bodies.
-
-## Prefer idiomatic constructs
-
-Reach for the language's and the repo's idiomatic stdlib / combinators over hand-rolled equivalents — but only the ones the codebase already uses. Don't extract a helper purely to deduplicate boilerplate; extract only when it names a real intent.
+1. Public surface — caller-visible signatures with input and output types.
+2. Internals — main flow in the repo's idiom; phase comments one line each.
+3. Types — domain types and identifiers in the repo's type vocabulary.
+4. Errors — failure modes at the boundary, per the repo's error convention.
+5. Wiring — construction and dependency supply at the composition root.
 
 ## What NOT to put in sketches
 
-- Implementation bodies past the shape — leave bodies to the implementer.
-- Defensive validation on values already parsed/typed at the boundary (re-checking guaranteed fields, optional-chaining around non-nullable values).
-- Test doubles written against a mocking library when the repo uses a different doubling strategy — match the repo's testing approach.
-- Type casts or escape hatches where the language offers proper narrowing.
-- Helper extraction motivated only by line count or DRY.
-- Divider comments (`// ---`) and other decorative noise.
-- Variable names referencing data structures (`tableMap`, `nodeArray`) — name by domain concept.
-- Stub or placeholder nodes/edges standing in for real ones.
+- Defensive validation of values already parsed/typed at the boundary.
+- Test doubles from a mocking library the repo does not use.
+- Type casts or escape hatches where the language offers narrowing.
+- Helpers extracted only for line count or DRY.
+- Hand-rolled equivalents of stdlib or combinators the codebase uses.
+- Divider comments (`// ---`).
+- Names after data structures (`tableMap`, `nodeArray`) instead of domain concepts.
+- Stub or placeholder nodes/edges.
 
 ## When sketching the test plan in `Definition of done`
 
-- State the doubling strategy the repo uses for unexercised collaborators (whatever the codebase's convention is — don't introduce a new one).
-- Call out which tests need live/integration resources versus pure unit coverage.
+- State the repo's doubling strategy for unexercised collaborators.
+- Mark tests needing live/integration resources versus pure unit.
 - End with the project's check command (typecheck + lint + tests).

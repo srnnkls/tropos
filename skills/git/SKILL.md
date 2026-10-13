@@ -73,15 +73,7 @@ Conventional commits, imperative and lowercase: `<type>(<scope>): <description>`
 
 ## Cascading Branches
 
-Rebase downstream branches before the upstream ref changes identity through a squash merge, force-push or delete. After squash-merging `A`:
-
-```bash
-git switch B
-git rebase --onto main A
-git branch -d A
-```
-
-Merge a chain bottom-up: merge `A`, rebase `B` onto main, merge `B`.
+Rebase downstream branches before the upstream ref changes identity through a squash merge, force-push or delete; merge a chain bottom-up. Procedure: [reference/branching.md](reference/branching.md).
 
 ## Anti-Patterns
 

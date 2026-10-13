@@ -15,6 +15,11 @@ git = "https://github.com/srnnkls/loqui.git"
 branch = "main"
 skills = ["loqui"]
 
+[dependencies.ponytail]
+git = "https://github.com/DietrichGebert/ponytail.git"
+tag = "v5.2.0"
+skills = ["ponytail"]
+
 [build]
 output = ".henia/build"
 clean = true
@@ -27,7 +32,7 @@ strict = true
 
 [harness.claude.skills]
 default = "dynamic"
-hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "issue", "loop", "pr", "review", "scope", "tfcp", "tfcprr", "validate"]
+hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "issue", "loop", "loqui", "pr", "review", "scope", "tfcp", "tfcprr", "validate"]
 
 [harness.claude.variables]
 preload_context = "true"
@@ -41,7 +46,7 @@ strict = true
 
 [harness.codex.skills]
 default = "dynamic"
-hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "issue", "loop", "pr", "review", "scope", "tfcp", "tfcprr", "validate"]
+hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "issue", "loop", "loqui", "pr", "review", "scope", "tfcp", "tfcprr", "validate"]
 
 [harness.codex.variables]
 preload_context = "false"
@@ -55,7 +60,7 @@ strict = true
 
 [harness.pi.skills]
 default = "dynamic"
-hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "issue", "loop", "pr", "review", "scope", "tfcp", "tfcprr", "validate"]
+hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "issue", "loop", "loqui", "pr", "review", "scope", "tfcp", "tfcprr", "validate"]
 
 [harness.pi.variables]
 preload_context = "false"
@@ -72,7 +77,7 @@ strict = true
 
 [harness.omp.skills]
 default = "dynamic"
-hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "issue", "loop", "pr", "review", "scope", "tfcp", "tfcprr", "validate"]
+hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "issue", "loop", "loqui", "pr", "review", "scope", "tfcp", "tfcprr", "validate"]
 
 [harness.omp.variables]
 preload_context = "false"
@@ -116,3 +121,5 @@ layout = "flat"
 "instructions/AGENTS.md" = { source = "instructions/AGENTS.md" }
 "AGENTS.md" = { source = "instructions/AGENTS.md" }
 
+[slots."implement.approach"]
+provide = ["ponytail:ponytail"]

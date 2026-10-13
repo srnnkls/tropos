@@ -6,6 +6,7 @@ metadata:
 henia:
   slots:
     test.conventions:
+    test.approach: keyed(unique)
   targets:
     claude:
       frontmatter:
@@ -17,71 +18,58 @@ henia:
           default_prompt: Use $test to test the requested behavior.
 ---
 
-<!-- Generated from skills/test/SKILL.md by henia build; edit the canonical source. -->
-
 :::head{.context slots="test.conventions"}
 
 
 # Bounded Test-Driven Development
 
-Write the smallest discriminating check, watch it fail for the requested missing behavior, add minimal production code, then watch it pass.
+Watch a check fail for the requested missing behavior, add minimal production code, then watch it pass.
 
 ## Slots
 
 | Slot | Covers |
 |---|---|
-| `test.conventions` | Test locations, frameworks, fixtures, and the focused test command; settles what RED step 2 would infer from nearby tests. Budget ceilings stay. |
+| `test.conventions` | Test locations, frameworks, fixtures, and the focused test command, in place of inference from nearby tests. Budget ceilings stay. |
+| `test.approach` | Test design: oracle, test level and seam, falsifier selection. Keyed `test.approach.<domain>`, one provider per domain; the slot's own provider serves every domain without one. The budget, test value gate, and RED evidence stay. |
 
 ## Activation
 
-Use this workflow only when:
-
-- the user invokes `$test` or `$implement`;
-- the user explicitly asks for tests or TDD; or
-- an active implementation pipeline dispatches a tester or implementer.
-
-Ordinary edits follow the direct-execution policy and native validation. Static configuration, generated declarations, and platform-validated artifacts do not justify invented test machinery.
+Use only within the [workflow boundary](../../instructions/AGENTS.md#workflow-boundary), or when an active implementation pipeline dispatches a tester or implementer.
 
 ## Tester Budget
 
-The dispatch prompt may lower these ceilings. It may not raise them without user authorization.
+The dispatch prompt may lower these ceilings; raising them needs user authorization.
 
-- Default: one test. Maximum: three tests per task.
-- Merge assertions that exercise one failure mechanism.
-- Maximum: two RED attempts and ten minutes total.
-- Use existing local test infrastructure, installed dependencies, and the smallest focused native command; do not run a repository-wide suite when that command can falsify the behavior.
-- If the behavior cannot be falsified within the budget, return `status: gap` with the missing tool, requirement, or decision.
+- One test by default, three per task at most; merge assertions that exercise one failure mechanism.
+- At most two RED attempts and ten minutes total.
+- Use existing local test infrastructure, installed dependencies, and the smallest focused native command; no repository-wide suite when that command can falsify the behavior.
+- Behavior not falsifiable within budget, or a test needing substitute infrastructure: return `status: gap` with the missing tool, requirement, or decision.
 
-Apply the [tester mutation boundary](../../agents/tester.md#boundary). A test that needs substitute infrastructure is a gap, not a larger test task.
+Apply the [tester mutation boundary](../../agents/tester.md#boundary).
 
 ## Test Value Gate
 
-Read and apply [reference/failure-modes.md](reference/failure-modes.md) before writing tests and again before reporting RED. It owns test-value rejection; prompts, role files, and reports do not maintain another catalog.
+Apply [reference/failure-modes.md](reference/failure-modes.md) before writing tests and again before reporting RED.
 
 ## RED
 
-1. Derive the oracle from the requirement before reading implementation bodies.
-2. Read existing tests and the target public interface for conventions and the test seam. Read implementation only as far as needed to locate that seam; never copy its behavior into the oracle.
-3. Write the smallest representative falsifier set.
-4. Run the focused command and record the exact failure.
+Design the tests with the task's `test.approach` provider (`henia slots --inline test.approach.<domain>`). The dispatch materializes it; a direct `$test` run names the domain from the task's files and requirements. Run the focused command and record the exact failure.
 
-Valid RED evidence is either:
+Valid RED evidence:
 
 - a test assertion failing because the requested behavior is absent or wrong; or
 - a native compiler/typechecker failure that directly names a requested missing API or contract.
 
 Setup, import, syntax, dependency, unrelated compilation, and environment failures are invalid. A test that passes immediately does not establish RED.
 
-Before reporting, choose the most important test and name one plausible wrong implementation it rejects. If it would pass, sharpen or delete it.
-
 ## GREEN and Refactor
 
-1. Add the minimum production change needed for the RED check.
+1. Add the minimum production change for the RED check.
 2. Run the focused command and directly affected native validation once.
-3. Refactor only the changed mechanism while staying green.
+3. Refactor only the changed mechanism, staying green.
 4. Stop when the requested acceptance condition passes and no known blocker remains.
 
-Do not add adjacent behavior, configurability, cleanup, or another confidence run.
+Add no adjacent behavior, configurability, cleanup, or extra confidence run.
 
 ## Evidence
 

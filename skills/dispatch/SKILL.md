@@ -16,13 +16,9 @@ henia:
           default_prompt: Use $dispatch for the requested task.
 ---
 
-<!-- Generated from skills/dispatch/SKILL.md by henia build; edit the canonical source. -->
-
 ::::head
 
 # Intent Router
-
-Workflow skills are explicit opt-ins. A file path or task description stays in direct current-agent execution.
 
 :::routes{.ordered .protocol}
 | Pattern | Action |
@@ -38,7 +34,7 @@ Workflow skills are explicit opt-ins. A file path or task description stays in d
 | File path or task description | Execute directly; do not invoke `implement` |
 | No argument | Ask which explicit workflow to run |
 
-A checkpoint or active scope is context, not permission to resume or implement. Require an explicit route.
+A checkpoint or active scope is context, not permission to resume or implement; require an explicit route.
 :::
 
 ## Menu
@@ -52,6 +48,6 @@ When no route is named, use AskUserQuestion:
 - Verify: Verify completion from current evidence
 :::
 
-With “Other” covering debug or direct execution.
+“Other” covers debug and direct execution.
 
 ::::

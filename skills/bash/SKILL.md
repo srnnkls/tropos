@@ -13,70 +13,23 @@ henia:
           default_prompt: Use $bash for the requested task.
 ---
 
-<!-- Generated from skills/bash/SKILL.md by henia build; edit the canonical source. -->
-
 # Bash Use Skill
-
-Patterns for interactive bash commands, one-liners, and CLI usage.
-
----
 
 ## Quick Reference
 
-Quote paths with spaces:
-```bash
-cd "/path with spaces/dir"
-```
-
-`rm` requires relative paths — absolute paths through `$HOME`, `/`, etc. are blocked:
-```bash
-rm -rf ./build       # relative: allowed
-rm -rf $HOME/build   # absolute: blocked
-```
-
-Chain commands:
-```bash
-cmd1 && cmd2 && cmd3  # Stop on failure
-cmd1; cmd2; cmd3      # Continue regardless
-```
-
-Command substitution:
-```bash
-result=$(command)  # Not `command`
-```
-
-Check command exists:
-```bash
-command -v jq &>/dev/null || echo "not found"
-```
-
-Output redirection:
-```bash
-command 2>&1        # Stderr to stdout
-command &>/dev/null # Suppress all
-```
-
-Process substitution:
-```bash
-diff <(cmd1) <(cmd2)
-```
-
----
+- Quote paths with spaces: `cd "/path with spaces/dir"`.
+- Delete with `trash ./build`, never `rm`.
+- Chain with `&&` to stop on failure; use `;` only to continue regardless.
+- Substitute with `result=$(command)`, never backticks.
+- Check a command exists: `command -v jq &>/dev/null || echo "not found"`.
+- `2>&1` sends stderr to stdout; `&>/dev/null` suppresses all output.
+- Process substitution: `diff <(cmd1) <(cmd2)`.
 
 ## Full Guidelines
 
 `henia show loqui/languages/bash/reference/commands.md`
 
----
-
-## Anti-Patterns Checklist
-
-- ✘ Unquoted paths with spaces
-- ✘ Absolute paths with `rm`
-- ✘ Using `;` when `&&` is needed
-- ✘ Backticks instead of `$()`
-
 :::related
-- `implement` — language-specific patterns, bash included
+- `code` — language style through `code.style` providers, bash included
 - `test` — TDD workflow
 :::

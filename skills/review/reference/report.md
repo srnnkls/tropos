@@ -1,12 +1,6 @@
 # Review Report Format
 
-YAML schema for structured review handoff and synthesis.
-
----
-
 ## Reviewer Report
-
-Each reviewer outputs this structure:
 
 ```yaml
 reviewer_report:
@@ -33,11 +27,15 @@ reviewer_report:
       status: pass | fail
       issues:
         - "Tight coupling between X and Y"
+    abstractions:
+      status: pass | fail
+      issues:
+        - "parse_window duplicates dateutil.rrule"
 
   issues:
     - severity: critical | high | medium
-      gate: correctness | style | performance | security | architecture
-      area: logic | error_handling | type_safety | naming | formatting | efficiency | validation | secrets | coupling | testing
+      gate: correctness | style | performance | security | architecture | abstractions
+      area: logic | error_handling | type_safety | naming | formatting | efficiency | validation | secrets | coupling | testing | duplication | reimplementation | misfit
       location: "file:line"
       trigger: "Reachable input or state"
       wrong_outcome: "Concrete incorrect result"
@@ -50,11 +48,9 @@ reviewer_report:
 
 Every issue uses this base shape. Role extensions add analysis fields; they never redefine gates or issue fields. Missing `trigger` or `wrong_outcome` makes an execution finding schema-invalid.
 
----
-
 ## Synthesized Report
 
-Main agent produces this after merging reviewer reports:
+The main agent produces this after merging reviewer reports.
 
 ```yaml
 synthesized_report:
@@ -111,14 +107,6 @@ synthesized_report:
   next_action: "Commit/merge" | "Fix critical/high issues"
 ```
 
----
-
-## Gate Status Values
-
-`pass` | `fail`
-
----
-
 ## Issue Severity
 
 | Severity | Definition |
@@ -127,26 +115,15 @@ synthesized_report:
 | `high` | Significant issues, unclear behavior — should fix before merge |
 | `medium` | Style issues, minor improvements — can merge, follow-up |
 
-Severity is assigned after triage. Issues in `residual` carry no severity and never fail a
-gate; see [synthesis.md](synthesis.md) for the validity bar and
-[finding-bar.md](finding-bar.md) for what reviewers may report at all.
+Assign severity after triage. `residual` issues carry no severity and never fail a gate.
 
-A `suggestion` prefixed `needs decision:` names a fix that would add public API surface, a new
-type, or a signature change. It is surfaced to the user, never handed to a fix agent.
-
----
-
-## Issue Areas
-
-`logic` | `error_handling` | `type_safety` | `naming` | `formatting` | `efficiency` | `validation` | `secrets` | `coupling` | `testing`
-
----
+A `suggestion` prefixed `needs decision:` names a fix that would add public API surface, a new type, or a signature change; surface it to the user, never to a fix agent.
 
 ## Role-Specific Report Extensions
 
-### Architecture Role: `structural_analysis`
+Each role's reviewers add its section alongside the standard gates and issues.
 
-Architecture reviewers include this section alongside standard gates/issues:
+### Architecture Role: `structural_analysis`
 
 ```yaml
 reviewer_report:
@@ -168,8 +145,6 @@ reviewer_report:
 ```
 
 ### Compliance Role: `compliance_analysis`
-
-Compliance reviewers include this section alongside standard gates/issues:
 
 ```yaml
 reviewer_report:
@@ -196,4 +171,24 @@ reviewer_report:
   issues: [...]  # Exact base issue schema above
   strengths:
     - "Good compliance observation"
+```
+
+### Abstractions Role: `abstraction_analysis`
+
+```yaml
+reviewer_report:
+  reviewer: abstractions-{reviewer-id}  # reviewer-ids come from `peer list`
+  role: abstractions
+  gates:
+    abstractions:
+      status: pass | fail
+      issues: [...]
+  abstraction_analysis:
+    definitions_checked:
+      - definition: "path:symbol"
+        searched: [repository, dependencies, change]
+        owner: "path:symbol | package@version api | none"
+  issues: [...]  # Exact base issue schema above
+  strengths:
+    - "Good placement observation"
 ```

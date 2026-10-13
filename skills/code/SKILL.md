@@ -25,14 +25,12 @@ henia:
           default_prompt: Use $code to select an explicit code workflow.
 ---
 
-<!-- Generated from skills/code/SKILL.md by henia build; edit the canonical source. -->
-
-:::::head{.context slots="code.style code.validation test.conventions review.criteria"}
+:::::head{.context slots="code.style code.validation test.conventions review.criteria review.general review.architecture review.tests review.abstractions review.detectors"}
 
 
 # Code Domain
 
-Compose generic workflows with code-specific Gestalt navigation, language guidance, and review lenses.
+Code-specific Gestalt navigation, language guidance, and review roles for explicit workflows.
 
 ::::instruction{priority=high}
 :::routes
@@ -54,19 +52,18 @@ No operation is inferred from an ordinary task outside explicit skill invocation
 
 | Slot | Covers |
 |---|---|
-| `code.style` | Style guidance for Implementation Context and the Compliance role; providers scope it per language as `code.style.<language>` |
-| `code.validation` | Native lint, typecheck, and build commands that make up directly affected native validation; each provider supplies one command per language as `code.validation.<language>`, run as is |
+| `code.style` | Style guidance for Implementation Context and the Compliance role, per language as `code.style.<language>` |
+| `code.validation` | Native lint, typecheck, and build commands for directly affected native validation, one per language as `code.validation.<language>`, run as is |
 
 ## Implementation Context
 
-- Apply the repository-orientation contract in [AGENTS.md](../../instructions/AGENTS.md#tools-and-context).
-- Use named `gestalt callers`, `callees`, or `refs` only when a changed symbol's immediate relationship is unresolved.
-- Apply the listed `code.style` providers when language behavior, APIs, or unfamiliar style choices are material. Read each provider once and only the topic files needed by the change.
-- Follow direct execution unless explicit `$implement` activated the strict delegated pipeline.
+- Orient per [AGENTS.md](../../instructions/AGENTS.md#tools-and-context). Run `gestalt callers`, `callees`, or `refs` only for a changed symbol whose immediate relationship is unresolved.
+- When language behavior, APIs, or unfamiliar style is material, read each listed `code.style` provider once and only the topic files the change needs.
+- Execute directly unless explicit `$implement` activated the strict delegated pipeline.
 
 ## Test Context
 
-A `test.conventions` provider ([test slots](../test/SKILL.md#slots)) settles conventions first; otherwise use existing nearby tests. Load a language test guide only when those tests do not settle the pattern. The [test skill](../test/SKILL.md) owns count, time, attempt, tooling, and exploration ceilings.
+Conventions: a `test.conventions` provider ([test slots](../test/SKILL.md#slots)), else nearby tests; load a language test guide only when neither settles the pattern. The [test skill](../test/SKILL.md) owns count, time, attempt, tooling, and exploration ceilings.
 
 ## Review Roles
 
@@ -75,30 +72,9 @@ A `test.conventions` provider ([test slots](../test/SKILL.md#slots)) settles con
 | General | Correctness, Security, Performance | [general.md](reference/roles/general.md) |
 | Architecture | Architecture | [architecture.md](reference/roles/architecture.md) |
 | Compliance | Style | [compliance.md](reference/roles/compliance.md) |
+| Abstractions | Abstractions | [abstractions.md](reference/roles/abstractions.md) |
 
-Prepare once:
-
-- materialized target/diff;
-- applicable requirements, including listed `review.criteria` providers ([review slots](../review/SKILL.md#slots));
-- exact report schema;
-- verbatim [finding bar](../review/reference/finding-bar.md);
-- fresh materialized repository orientation;
-- bounded Gestalt context;
-- only material `code.style` provider excerpts.
-
-For implementation-owned initial review, launch every role and configured reviewer in one assistant message. Standalone review launches selected roles the same way. Post-fix verification never uses this fan-out; [review synthesis](../review/reference/synthesis.md#46-fix-and-re-review-protocol) owns its single targeted reviewer. Resolve mechanisms through [peer routing](../peer/reference/routing.md); review-specific materialization and coverage live in [review harnesses](../review/reference/harnesses.md).
-
-## Role Prompt Contract
-
-Use the runtime materialization contract in [subagent-workflow.md](../implement/reference/subagent-workflow.md). Role files supply behavior; prompts supply shared evidence, assigned gates, the canonical report schema, and the verbatim finding bar.
-
-Architecture uses materialized structural context first. Run `gestalt diff` for a code range or a named-symbol query for one unresolved blast-radius question. Do not run a fixed checklist of analyze, verbose propagation, rank, and caller enumeration.
-
-Compliance loads only language guidance material to changed patterns. It does not audit every guideline file.
-
-## Synthesis
-
-Apply [review synthesis](../review/reference/synthesis.md); it owns disposition, grouping, user decisions, re-review, and stopping.
+Materialize each role prompt per [review materialization](../review/reference/harnesses.md#materialization) and dispatch per [concurrent dispatch](../review/reference/harnesses.md#concurrent-dispatch); role files supply behavior. [Review synthesis](../review/reference/synthesis.md) owns disposition, grouping, user decisions, targeted re-review, and stopping.
 
 :::references
 - [reference/playbook.md](reference/playbook.md) — bounded edge-case handling

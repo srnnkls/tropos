@@ -1,88 +1,54 @@
 # Scope Update
 
-Synchronize scope documents with actual project state by analyzing git commits.
+Sync `tasks.yaml`, the sole task-state input and output ([Step 5](../SKILL.md#step-5-validate-execution-metadata)), with git history.
 
----
+1. Locate the scope per [Scope Location](../SKILL.md#scope-location) and extract tasks with status from `tasks.yaml`. Baseline: the scope's file creation time or the first commit mentioning the scope.
+2. Collect state:
 
-## Workflow
+   ```bash
+   git log --oneline --since="<scope-creation-time>" --all
+   git log --stat --since="<scope-creation-time>" --all
+   git status --short
+   git diff <baseline>..HEAD --name-status
+   ```
 
-### Step 1: Locate and Parse Scope
+3. Per task, gather evidence (commit messages, file modifications, test existence, test results) and set status `done`, `in_progress`, `pending`, or `blocked`:
 
-1. **Find scope:** If name provided, search `scopes/{draft,active,done}/<name>/`. Else, find most recent `scope.md` under `scopes/*/*/`.
-2. **Parse structure:** Extract tasks with current status from tasks.yaml
-3. **Determine baseline:** Use file creation time or first commit mentioning scope
+   | Evidence | Status |
+   |---|---|
+   | Commit message references the task, commit modifies the exact files named, and all acceptance criteria are met | `done` |
+   | Commit touches related files, or the working directory has related changes | `in_progress` |
+   | Ambiguous | `in_progress`, never `done` |
 
-### Step 2: Analyze Current State
+4. Write statuses and evidence:
 
-```bash
-git log --oneline --since="<scope-creation-time>" --all
-git log --stat --since="<scope-creation-time>" --all
-git status --short
-git diff <baseline>..HEAD --name-status
-```
+   ```yaml
+   tasks:
+     - id: PROJ-001
+       content: Set up project structure
+       status: done
+       active_form: Setting up project structure
+       evidence:
+         commits: [c228fea, 2f069d7]
+         files: [src/feature.py, tests/test_feature.py]
+   ```
 
-### Step 2.5: Preserve Task Authority
+   If any task is `in_progress` or `done` and scope.md has `status: draft`, promote the scope ([promotion](../SKILL.md#scope-location)).
 
-Use `tasks.yaml` as the input and output task state. TodoWrite may mirror it for display, but never updates it.
+5. Present:
 
-### Step 3: Map Evidence to Tasks
+   ```
+   ## Scope Update Summary
 
-For each task:
-1. Search for evidence (commit messages, file modifications, test existence)
-2. Determine status: `done`, `in_progress`, `pending`, `blocked`
-3. Collect evidence notes (commits, files, test results)
+   Scope: ./scopes/active/refactor/
+   Tasks: tasks.yaml (progress: 5/10)
 
-### Step 4: Update tasks.yaml and Promote Status
+   Status:
+     Completed: 5 tasks
+     In Progress: 2 tasks
+     Pending: 3 tasks
 
-Update task statuses and add evidence.
-
-```yaml
-tasks:
-  - id: PROJ-001
-    content: Set up project structure
-    status: done
-    active_form: Setting up project structure
-    evidence:
-      commits: [c228fea, 2f069d7]
-      files: [src/feature.py, tests/test_feature.py]
-```
-
-**Status promotion:** After updating tasks, if any task is `in_progress` or `done` and the scope.md frontmatter has `status: draft`:
-
-1. Set `status: active` in scope.md frontmatter
-2. Move directory: `git mv scopes/draft/<name> scopes/active/<name>` (or `mv` if untracked)
-
-The frontmatter update and directory move must happen together — the parent dir must always match the frontmatter status.
-
-### Step 5: Present Summary
-
-```
-## Scope Update Summary
-
-Scope: ./scopes/active/refactor/
-Tasks: tasks.yaml (progress: 5/10)
-
-Status:
-  Completed: 5 tasks
-  In Progress: 2 tasks
-  Pending: 3 tasks
-
-Next actions:
-  1. REFAC-006: Implement validation (ready)
-  2. REFAC-007: Add error handling (ready)
-```
-
----
-
-## Matching Heuristics
-
-**Strong evidence (auto-mark complete):**
-- Commit message explicitly references task
-- Commit modifies exact files mentioned
-- All acceptance criteria met
-
-**Weak evidence (mark in-progress):**
-- Commit touches related files
-- Working directory has related changes
-
-**Conservative approach:** When uncertain, prefer in-progress over done
+   Next actions:
+     1. REFAC-006: Implement validation (ready)
+     2. REFAC-007: Add error handling (ready)
+   ```

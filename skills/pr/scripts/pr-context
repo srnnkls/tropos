@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Pre-loaded context for the pr skill's `comments` route: PR metadata, inline
-# review comments, the unresolved-thread map, non-anchored bodies, and the HEAD
-# diff. Exits silently on the `tfcprr` route. Prints
-# `no-pr` when none resolves.
+# Pre-loaded context for the pr skill's `comments` and `review` routes: PR
+# metadata, inline review comments, the unresolved-thread map, non-anchored
+# bodies, and the HEAD diff; `review` adds the PR body, files, commits, and
+# pending drafts. Exits silently on the `tfcprr` route. Prints `no-pr` when none
+# resolves.
 set -uo pipefail
 
 A="${*:-}"
@@ -11,9 +12,12 @@ case "$A" in
   tfcprr*) exit 0 ;;
 esac
 
+MODE=comments
 case "$A" in
   comments) A="" ;;
   "comments "*) A="${A#comments }" ;;
+  review) MODE=review; A="" ;;
+  "review "*) MODE=review; A="${A#review }" ;;
 esac
 
 PR="${A%% *}"
@@ -28,6 +32,13 @@ REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null)
 
 echo "== pr =="
 gh pr view "$PR" --json number,title,state,headRefName,headRefOid,baseRefName,url 2>/dev/null || echo no-pr
+
+if [ "$MODE" = review ]; then
+  echo "== review context =="
+  gh pr view "$PR" --json body,additions,deletions,files,commits 2>/dev/null
+  echo "== pending drafts =="
+  gh review comments "$PR" --mine --states=pending 2>/dev/null
+fi
 
 echo "== inline comments =="
 gh api "repos/$REPO/pulls/$PR/comments" --paginate \

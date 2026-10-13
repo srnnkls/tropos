@@ -13,13 +13,7 @@ henia:
           default_prompt: Use $doc for the requested task.
 ---
 
-<!-- Generated from skills/doc/SKILL.md by henia build; edit the canonical source. -->
-
 # Docs Implement Skill
-
-Domain-specific reference documents for non-code artifacts.
-
----
 
 ## Domains
 
@@ -31,6 +25,6 @@ Domain-specific reference documents for non-code artifacts.
 | guides | How-to documentation, playbooks |
 
 :::related
-- `implement` — language-specific coding guidelines
+- `code` — language style through `code.style` providers
 - `scope` — scope documents with validation
 :::

@@ -31,18 +31,12 @@ henia:
         command: peer defaults reviewers 2>/dev/null || true
 ---
 
-<!-- Generated from skills/scope/SKILL.md by henia build; edit the canonical source. -->
-
 ::::head{.context slots="scope.templates"}
 
 
 # Scope Dispatcher
 
-Routes to the appropriate operation based on argument or context.
-
-> **Reference:** See [reference/review.md](reference/review.md) for review workflow, [reference/update.md](reference/update.md) for update workflow, [reference/operations.md](reference/operations.md) for done/list, [reference/issue.md](reference/issue.md) for publishing a scope as a GitHub issue tree.
-
----
+Operations: [review](reference/review.md), [update](reference/update.md), [done/list](reference/operations.md), [issue tree](reference/issue.md).
 
 ## Slots
 
@@ -50,24 +44,24 @@ Routes to the appropriate operation based on argument or context.
 |---|---|
 | `scope.templates` | Scope document templates; replaces the files under [Templates](#templates) it covers |
 
-## Scope Location (All Operations)
+## Scope Location
 
-Scopes live in the main worktree at `<repo-root>/scopes/`. A linked worktree never holds its own copy — of `scopes/` or of the skill files themselves.
-
-Resolve the root before creating, locating, or writing any scope file:
+Scopes live only in the main worktree at `<repo-root>/scopes/<state>/<name>/`, `<state>` ∈ {draft, active, done}, each name in one state. Linked worktrees never hold a copy of `scopes/` or the skill files. Resolve the root before touching any scope file:
 
 ```bash
 root=$(git worktree list --porcelain | awk 'NR==1{print $2}')
 ```
 
-To make a scope reachable as `./scopes/` from inside a worktree, add `scopes/  symlink` to `.worktreeinclude` at the repo root and run `git worktreeinclude apply` in the worktree (see [../git/reference/worktree.md](../git/reference/worktree.md)). Copying is never the answer — two copies diverge and the branch commits the wrong one.
+To reach `./scopes/` from a worktree, add `scopes/  symlink` to `.worktreeinclude` at the repo root and run `git worktreeinclude apply` in the worktree ([worktree](../git/reference/worktree.md)). Never copy.
 
----
+Locate `<name>` by searching `scopes/{draft,active,done}/<name>/`; without a name, take the most recent `scopes/*/*/scope.md`.
+
+Promote `draft` → `active` by setting `status: active` in `scope.md` frontmatter and running `git mv scopes/draft/<name> scopes/active/<name>` (`mv` if untracked), always together.
 
 :::routes{.ordered .protocol}
 | Pattern | Route | Action |
 |---|---|---|
-| `review [name]` | Review | Multi-agent review, produce review.yaml |
+| `review [name]` | Review | Multi-agent review; record the result in `validation.yaml.review_gate` |
 | `issue [name]` | Issue | Publish the scope as a GitHub issue tree via the `issue` skill — see [reference/issue.md](reference/issue.md) |
 | `update [name]` | Update | Sync tasks.yaml status from git history |
 | `done [name]` | Complete | Set status to `done` |
@@ -78,11 +72,9 @@ To make a scope reachable as `./scopes/` from inside a worktree, add `scopes/  s
 | No argument, no scope | Create | Ask what to scope |
 :::
 
----
-
 ## Menu Fallback
 
-When no argument or unrecognized keyword, use **AskUserQuestion**:
+With no argument or an unrecognized keyword, ask via AskUserQuestion and run the selected route:
 
 :::menu{header="Scope" question="What would you like to do?"}
 - Create: Define a new scope with requirements and tasks
@@ -92,83 +84,42 @@ When no argument or unrecognized keyword, use **AskUserQuestion**:
 - List: Show all scopes with status
 :::
 
-| Selection | Action |
-|---|---|
-| Create | Run creation workflow below |
-| Review | See [reference/review.md](reference/review.md) |
-| Issue | See [reference/issue.md](reference/issue.md) |
-| Update | See [reference/update.md](reference/update.md) |
-| List | See [reference/operations.md](reference/operations.md) |
-
----
-
 # Resume Workflow
 
-When resuming a scope:
-
-1. **Locate scope:** Search across lifecycle dirs — `scopes/{draft,active,done}/<name>/`. A scope name is unique across states.
-2. Read `scope.md` frontmatter and `tasks.yaml`
-3. **Promote `draft` → `active`** if any of the following are true:
-   - Any task has `status: in_progress` or `status: done`
-   - Git log shows commits referencing this scope since creation
-   - User selects "implement" or "continue" from the operations menu
-
-   Promotion has two steps — both must run together:
-   - Update `status: active` in `scope.md` frontmatter
-   - `git mv scopes/draft/<name> scopes/active/<name>` (or `mv` if the scope is untracked)
-4. Show scope summary and offer operations
+1. Locate the scope; read `scope.md` frontmatter and `tasks.yaml`.
+2. Promote it if any task is `in_progress` or `done`, git log shows commits referencing the scope since creation, or the user selects "implement" or "continue".
+3. Show a scope summary and offer operations.
 
 ::::
 
----
-
 # Creation Workflow
 
-Creates structured tracking documents for complex development tasks.
-
-**DO use for:** Complex multi-step tasks (3+ phases), non-trivial features, after ExitPlanMode.
-**DON'T use for:** Single-file changes, trivial refactorings, tasks completable in < 30 minutes.
-
-> **Reference:**
-> - [reference/issue-types.md](reference/issue-types.md) — Initiative/Feature/Task/Exploratory definitions, taxonomy allocation, SDD integration
-> - [reference/question-taxonomy.md](reference/question-taxonomy.md) — Question templates per taxonomy area with options
-> - [reference/sdd-gates.md](reference/sdd-gates.md) — Pre-implementation gates for Initiatives (Simplicity, Anti-Abstraction, Integration-First)
-
----
+Use for tasks with 3+ phases, non-trivial features, or after ExitPlanMode; not for single-file changes, trivial refactorings, or work under 30 minutes.
 
 ## Validation Depth (Dispatch Gate)
 
-Ask this once, up front — before the numbered steps. It gates the guided decision questions:
+Ask once, before Step 0:
 
 :::menu{header="Depth" question="How thorough should requirement validation be?"}
 - Guided: Add decision questions — approach selection, strategy & story prioritization, design-alternatives probing (Recommended for Features/Initiatives)
 - Standard: Taxonomy clarification loop only — skip the guided decision questions
 :::
 
-Set `guided = true` when **Guided** is selected. Steps marked **[guided]** below run only when `guided = true`; otherwise skip them silently. Guided steps carry additional gates (issue type / opt-in) as noted on each.
-
----
+Run [guided] steps only under Guided and when their heading's condition holds; otherwise skip silently.
 
 ## Steps
 
 ### Step 0: Native Plan Context
 
-Before research, check for existing context from Claude's native `/plan`:
-
-1. **Check for context:** If `/plan` was used earlier in the session, or the user references a plan, pull those findings in.
-2. **If present:** Extract and seed taxonomy areas:
-   - Goal/objective → **Scope**
-   - Approach/strategy → **Integration** / **Architecture**
-   - Open questions → priority clarification targets in Step 3
-3. **If absent:** Proceed to Step 1.
+If `/plan` ran earlier in the session or the user references a plan, seed from it: goal → Scope; approach → Integration / Architecture; open questions → priority targets in Step 3.
 
 ### Step 1: Research
 
-Apply the repository-orientation contract in [AGENTS.md](../../instructions/AGENTS.md#tools-and-context), read key files, and understand current state. Research comes before questions.
+Apply the repository-orientation contract in [AGENTS.md](../../instructions/AGENTS.md#tools-and-context) and read key files before asking questions.
 
 ### Step 2: Issue Type Selection
 
-**FIRST QUESTION (Always)** — Use AskUserQuestion:
+Ask first, always:
 
 :::menu{header="Work type" question="What type of work is this?"}
 - Initiative: Strategic coordination (months) - Multiple features toward business goal
@@ -177,66 +128,37 @@ Apply the repository-orientation contract in [AGENTS.md](../../instructions/AGEN
 - Exploratory: Not sure yet - Gather context first, then classify
 :::
 
-This determines:
-- **Question limit:** Tasks get 3, Features/Initiatives get 5
-- **Taxonomy areas:** Tasks get minimal (3), Features/Initiatives get full (7)
-
-**If Exploratory:** Gather context, ask 3 questions, present classification recommendation, restart with correct type.
+Question limits, taxonomy areas, and the Exploratory path: [issue types](reference/issue-types.md).
 
 ### Step 3: Validation (Human-in-the-Loop)
 
-Present findings and ask focused questions. Every question must provide context (what was found, what is uncertain), make tradeoffs explicit, and never ask without a recommendation: "Based on [findings], I recommend [X] over [Y] because [Z]. Does this match your intent?"
+Every question states what was found and what is uncertain, names the tradeoffs, and recommends: "Based on [findings], I recommend [X] over [Y] because [Z]. Does this match your intent?"
 
-**Ambiguity scan:** For each taxonomy area (based on issue type), evaluate status and record in `validation.yaml` under `ambiguity_scan`:
+Ambiguity scan: rate each of the type's taxonomy areas and record it in `validation.yaml` under `ambiguity_scan`: `clear` (criteria below fully specified), `partial` (some present, gaps remain), or `missing` (not addressed).
 
-- **clear** — Fully specified, no questions needed
-- **partial** — Some information present, gaps remain
-- **missing** — Not addressed at all
+| Area | Clear when |
+|------|------------|
+| Scope | Goals, boundaries, success criteria defined |
+| Behavior | User flows, system responses specified |
+| Data Model | Entities, relationships, formats clear |
+| Constraints | Performance, security, compatibility stated |
+| Edge Cases | Error handling, limits documented |
+| Integration | Dependencies, APIs, interfaces identified |
+| Terminology | Domain terms defined consistently |
 
-Per-area evaluation criteria:
+All clear: skip to Step 3.5. Otherwise run the validation loop in [question taxonomy](reference/question-taxonomy.md) over the `partial`/`missing` areas, in batches of this form:
 
-| Area | Clear | Partial | Missing |
-|------|-------|---------|---------|
-| Scope | Goals, boundaries, success criteria defined | Some elements unclear | No scope information |
-| Behavior | User flows, system responses specified | Some paths undefined | No behavior described |
-| Data Model | Entities, relationships, formats clear | Schema gaps exist | No data model |
-| Constraints | Performance, security, compatibility stated | Some constraints unclear | No constraints |
-| Edge Cases | Error handling, limits documented | Some cases unaddressed | No edge cases |
-| Integration | Dependencies, APIs, interfaces identified | Some touchpoints unclear | No integration info |
-| Terminology | Domain terms defined consistently | Some ambiguous terms | No definitions |
-
-Routing:
-- **All clear:** Skip the validation loop, proceed to Step 3.5.
-- **Gaps found:** Areas with `partial` or `missing` status become priority candidates, ordered by (Impact × Uncertainty).
-
-**Constitution check (Initiatives only):** Read `.claude/constitution.md`; flag conflicts and ask user to resolve or document exception. Skip for Features/Tasks.
-
-**Validation loop:** Ask clarifying questions in taxonomy-based batches (see [reference/question-taxonomy.md](reference/question-taxonomy.md) for templates per area):
-1. Identify uncovered areas
-2. Prioritize by (Impact x Uncertainty)
-3. Group questions by taxonomy area
-4. Use AskUserQuestion with options
-5. Re-evaluate remaining questions for relevance
-6. Repeat until limit reached or primary areas covered
-
-**Batch format:**
 :::menu{header="[Area, max 12 chars]" question="[Clear question ending with ?]"}
 - Option A: [choice] - [implication]
 - Option B: [choice] - [implication]
 - None: [default/skip]
 :::
 
-**Taxonomy areas:**
-
-| Type | Areas to Cover |
-|------|----------------|
-| Initiative | Scope, Behavior, Data Model, Constraints, Edge Cases, Integration, Terminology |
-| Feature | Scope, Behavior, Data Model, Constraints, Edge Cases, Integration, Terminology |
-| Task | Scope, Behavior, Integration |
+Initiatives only: read `.claude/constitution.md`, flag conflicts, and ask the user to resolve or document an exception; [SDD gates](reference/sdd-gates.md) apply.
 
 ### Step 3.4: Propose Approaches [guided]
 
-After the validation loop, present concrete options — never proceed on an unstated default:
+Never proceed on an unstated default:
 
 :::menu{header="Approach" question="Which approach should we take?"}
 - Approach A: [brief] - Trade-off: [X]
@@ -244,11 +166,9 @@ After the validation loop, present concrete options — never proceed on an unst
 - Approach C: [brief] - Trade-off: [Z]
 :::
 
-Lead with your recommendation (mark it). Drop options that add cost without clear value. Record the selected approach in `validation.yaml`; seeds the Implementation Strategy / Approach in scope.md.
+Mark your recommendation first. Drop options that add cost without clear value. Record the choice in `validation.yaml`; it seeds Implementation Strategy / Approach in scope.md.
 
 ### Step 3.45: Initiative Strategy & Story Prioritization [guided, Initiatives only]
-
-For Initiatives, probe prioritization and rollout:
 
 :::menu{header="User Stories" question="How should user stories be prioritized?"}
 - MVP First: P1 delivers standalone value, P2/P3 incremental (Recommended)
@@ -262,7 +182,7 @@ For Initiatives, probe prioritization and rollout:
 - Parallel Team: Multiple workstreams, integration points defined
 :::
 
-Record selections in `validation.yaml`; they populate the User Stories and Implementation Strategy sections of scope.md.
+Record both in `validation.yaml`; they populate User Stories and Implementation Strategy in scope.md.
 
 ### Step 3.5: SDD Section Opt-ins (Features/Initiatives)
 
@@ -276,8 +196,6 @@ Record selections in `validation.yaml`; they populate the User Stories and Imple
 
 ### Step 3.55: Design Probing [guided, when Design opt-in selected]
 
-If **Design** was selected in Step 3.5, probe for alternatives context:
-
 :::menu{header="Alternatives" question="Were other approaches considered before this one?"}
 - Yes, describe: I can list rejected alternatives and why
 - Partially: Some were considered informally
@@ -285,66 +203,34 @@ If **Design** was selected in Step 3.5, probe for alternatives context:
 - Skip: I'll fill in design.md directly
 :::
 
-Record the response in `validation.yaml`; seeds the Alternatives section of `design.md`.
+Record the answer in `validation.yaml`; it seeds Alternatives in `design.md`.
 
 ### Step 3.6: Detect and Extract Code Artifacts
 
-**If input contains code blocks:** Extract, stage, ask user which resources to create via multiSelect (implementation, schemas, config, patterns, assets, none). Create selected in `scopes/draft/<name>/resources/`.
+If the input contains code blocks: extract and stage them, ask via multiSelect which resources to create (implementation, schemas, config, patterns, assets, none), and create them in `scopes/draft/<name>/resources/`.
 
 ### Step 3.7: Configure Scope Reviewers
 
-Configure scope reviewers from live peer metadata. Resolution order:
-
-1. `--reviewers` aliases passed to `$scope`;
-2. the live `peer defaults reviewers` selection.
-
-Validate aliases, host compatibility, execution mechanisms, and one shared effort through the canonical [peer routing contract](../peer/reference/routing.md). Persist only the resolved selection and effort in `validation.yaml.review_config`; do not copy routing metadata.
-
-**All issue types** (Initiative, Feature, Task) require reviewer config.
+Required for every issue type. Select reviewers per [reviewer selection](../review/SKILL.md#reviewer-selection), with `--reviewers` passed to `$scope`. Persist only the resolved selection and effort in `validation.yaml.review_config`, never routing metadata.
 
 ### Step 4: Create Directory and Documents
 
-New scopes are created under the `draft` lifecycle directory. They are moved to `active` on first work (see Resume Workflow / `update`) and to `done` via `$scope` with `done`.
+Create under `draft` (later moves: Resume / `update` → `active`; `done` → `done`).
 
 ```bash
-root=$(git worktree list --porcelain | awk 'NR==1{print $2}')
 mkdir -p "$root/scopes/draft/[scope-name]/"
 ```
 
-**Lifecycle layout:**
+| Document | Content | Initiative | Feature | Task |
+|----------|---------|-----------|---------|------|
+| scope.md | Goal, context, requirements, key files, decisions, verification | Full | Standard | Lightweight |
+| design.md | Alternatives, invariants, complexity, per [quality model](reference/quality-model.md) | Opt-in (complex) | Opt-in | Skip |
+| tasks.yaml | Authoritative task status, dependencies, mutation paths | Feature breakdown + phases | Task breakdown | Single task |
+| dependencies.yaml | Task dependency DAG for parallel dispatch | Full DAG | Phase-based | Skip |
+| validation.yaml | Audit trail, gate checks, reviewer config, code style validation | Full (6 areas + gates) | Full (7 areas) | Skip |
+| resources/ | Implementation details (Step 3.6) | When provided | When provided | When provided |
 
-```
-scopes/
-├── draft/<name>/   # newly created, no work started
-├── active/<name>/  # promoted on first task progress or commit
-└── done/<name>/    # marked complete via /scope done
-```
-
-A scope name is unique across lifecycle states — it lives in exactly one of `draft/`, `active/`, or `done/` at a time.
-
-Generate these files:
-
-1. **`scope.md`** — Goal, context, requirements, verification
-2. **`design.md`** — Design reasoning (optional, when Design opt-in selected)
-3. **`tasks.yaml`** — Authoritative task status, dependencies, and mutation paths
-4. **`dependencies.yaml`** — Task dependency graph (parallel dispatch)
-5. **`validation.yaml`** — Audit trail and gate checks
-
-**Document scaling by issue type:**
-
-| Document | Initiative | Feature | Task |
-|----------|-----------|---------|------|
-| scope.md | Full | Standard | Lightweight |
-| design.md | Opt-in (complex) | Opt-in | Skip |
-| tasks.yaml | Feature breakdown + phases | Task breakdown | Single task |
-| dependencies.yaml | Full DAG | Phase-based | Skip |
-| validation.yaml | Full (7 areas + gates) | Full (7 areas) | Skip |
-
-**Task output = 2 files:** scope.md (lightweight) + tasks.yaml
-
-**Batch signal lives in `tasks.yaml`.** Each task's `depends_on` + `files` fields drive parallel dispatch. Every task must name its expected mutation paths before the scope is implementable. When research cannot resolve them, record a scope gap instead of forcing one serial pipeline per task. `dependencies.yaml` is the Feature/Initiative precomputed DAG; executors use its `batches[*]` after validating current task state.
-
-**scope.md frontmatter:**
+scope.md frontmatter:
 
 ```yaml
 ---
@@ -354,7 +240,7 @@ issue_type: [Initiative|Feature|Task]
 ---
 ```
 
-**Conditional sections in scope.md:**
+Conditional sections in scope.md:
 
 | Section | Initiative | Feature | Task |
 |---------|------------|---------|------|
@@ -365,67 +251,26 @@ issue_type: [Initiative|Feature|Task]
 | Tech Decisions | Include | Opt-in | Skip |
 | Data Model | Include | Opt-in | Skip |
 
-**design.md trigger:** Created when Design opt-in selected.
-
-> **Reference:** See [reference/quality-model.md](reference/quality-model.md) for design document quality patterns.
-
 ### Step 5: Validate Execution Metadata
 
-Confirm every task has explicit `depends_on` and `files` fields. Resolve missing paths with one bounded Gestalt-first discovery wave or record a scope gap. TodoWrite may mirror tasks for display, but `tasks.yaml` remains authoritative and no reverse sync is allowed.
+Before the scope is implementable, every task names explicit `depends_on` and `files` (expected mutation paths); these drive parallel dispatch. Set optional `domain` where the work belongs to one; it keys the approach providers its subagents receive ([implement slots](../implement/SKILL.md#slots)). Resolve missing paths with one bounded Gestalt-first discovery wave, else record a scope gap; never force one serial pipeline per task. Executors use `dependencies.yaml` `batches[*]` after validating current task state. TodoWrite may mirror tasks for display; `tasks.yaml` stays authoritative, with no reverse sync.
 
 ### Step 6: Present Summary
 
-Show: directory created, scope.md overview, design.md (if created), tooling artifacts, validation coverage, next action.
+Show the directory, scope.md overview, design.md (if created), tooling artifacts, validation coverage, and next action.
 
 ### Step 7: Gate
 
-Present scope, ask "ready to implement or revise?"
+Ask "ready to implement or revise?"
 
 ### Step 8: Review Gate (Mandatory)
 
-No scope reaches implementation until it clears a multi-agent review gate — the scope-level analog of the `issue` skill's pre-publish gate. Here the gate blocks before implementation.
+Run [review](reference/review.md) on the scope until `review_gate.status: passed`. Dispatch the reviewers from `validation.yaml.review_config` using the unified host matrix and prompt-file contract. Before each run, revalidate host compatibility and peer effort against the live registry; on incompatibility, stop for explicit config editing. Dispatch and auth contracts: `$review`, `$peer`. Apply the [canonical review result gate](../review/reference/harnesses.md#results).
 
-Run the review sub-operation against the just-created scope (see [reference/review.md](reference/review.md)). The gate is **blocking**:
-
-1. Dispatch the configured host-native and/or external reviewers on the scope documents using the
-   unified host matrix and prompt-file contract.
-2. Fold every `critical`/`high` finding back into `scope.md` / `tasks.yaml` / `design.md`.
-3. Re-run until no reviewer reports a `critical` or `high` issue.
-4. Record the result in `validation.yaml` under `review_gate` (see template) — `status: passed`, the reviewers, and the timestamp. `medium` nits may be deferred and noted.
-
-Apply the [canonical review result gate](../review/reference/harnesses.md#results).
-
-The gate must be `passed` before `implement`/`loop` will execute the scope (enforced at the implementation entry — `implement/operations/execute.md` Step 2). A scope whose `review_gate.status` is absent or `failed` is not implementable.
-
-Reviewers come from `validation.yaml.review_config` (set in Step 3.7). Before each run, revalidate
-host compatibility and peer effort against the live registry; stop for explicit config editing on
-incompatibility. Consult `$review` and `$peer` for dispatch/auth contracts.
-
----
-
-## Output Artifacts
-
-**For humans (review these):**
-```
-scopes/<state>/<name>/   # <state> ∈ {draft, active, done}
-├── scope.md     # WHY & WHAT & CONTEXT - Goal, requirements, key files, decisions
-├── design.md    # WHY THIS WAY - Alternatives, invariants, complexity (opt-in)
-└── resources/   # HOW TO BUILD - Implementation details (when provided)
-```
-
-**For tooling (infrastructure):**
-```
-scopes/<state>/<name>/
-├── tasks.yaml        # Authoritative task status, dependencies, and mutation paths
-├── dependencies.yaml # Parallel dispatch DAG
-└── validation.yaml   # Audit trail, gate checks, reviewer config, code style validation
-```
-
----
+`implement`/`loop` refuse a scope whose `review_gate.status` is absent or `failed` (`implement/operations/execute.md` Step 2).
 
 ## Templates
 
-Located in `templates/` directory:
 - [scope.md](templates/scope.md)
 - [design.md](templates/design.md)
 - [tasks.yaml](templates/tasks.yaml)

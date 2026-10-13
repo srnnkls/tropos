@@ -17,124 +17,85 @@ henia:
           default_prompt: Use $tfcprr for the requested task.
 ---
 
-<!-- Generated from skills/tfcprr/SKILL.md by henia build; edit the canonical source. -->
-
 :::head{.context slots="git.commits review.criteria"}
 
 
 # tfcprr — tfcp + reply + resolve
 
-Close the loop on the PR review threads you've addressed: land the fixes through [`tfcp`](../tfcp/SKILL.md), then reply to each thread referencing the commit and resolve it.
+Run in order; a failure at any step stops the rest:
 
-`tfcprr` is `tfcp` plus the two PR steps, strictly ordered — each gates the next:
+1. tfcp — triage, fix, commit (hook gate), push, owned by [`tfcp`](../tfcp/SKILL.md); returns the short SHA.
+2. reply — `gh review reply`, naming the SHA. Never reply "Done in `<sha>`" unless the fix, commit, and push landed.
+3. resolve — `gh review resolve`.
 
-1. *tfcp* — triage, fix, commit (hook gate), push. Owned by the [`tfcp` skill](../tfcp/SKILL.md); it returns the short SHA.
-2. *reply* — `gh review reply` posts to the thread, naming the SHA, which is why the push must land first.
-3. *resolve* — `gh review resolve` marks the thread resolved.
-
-A failure at any step stops the rest. Never reply "Done in `<sha>`" when the fix, commit, or push didn't land.
-
-`reply` and `resolve` both take the comment node id (`PRRC_…`) from `gh review comments <pr> --ids` and map it to the thread internally — no manual id juggling.
-
----
+Both take the comment node id (`PRRC_…`) from `gh review comments <pr> --ids`.
 
 ## Flags
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--comment <id>` | — (≥1 required) | Review comment node id to reply to and whose thread to resolve; repeat once per addressed thread. From `gh review comments <pr> --ids`. |
-| `--reply <text>` | — | Reply note; the short SHA is prepended automatically (`Done in <sha> — <text>`). If omitted, compose one from the fix. |
-| `--pr <n>` | branch's PR | Override the PR (otherwise resolved from the current branch). |
-| `--resolve-only` | off | Close a *dismissed* thread — skip `tfcp` entirely. Post `--reply` verbatim (no `Done in <sha>` prefix) and resolve. Ignores `-m` and `paths…`. |
-| `-m, --message <text>` | derived | Forwarded to `tfcp` — commit message. |
-| `[paths…]` | already-staged | Forwarded to `tfcp` — files to stage. |
-
----
+| `--comment <id>` | — (≥1 required) | Comment node id to reply to and resolve; repeat per thread. |
+| `--reply <text>` | composed from the fix | Reply note, posted as `Done in <sha> — <text>`. |
+| `--pr <n>` | branch's PR | Override the PR. |
+| `--resolve-only` | off | Dismissed thread: skip `tfcp`, post `--reply` verbatim, resolve. Ignores `-m` and `paths…`. |
+| `-m, --message <text>` | derived | Commit message, forwarded to `tfcp`. |
+| `[paths…]` | already-staged | Files to stage, forwarded to `tfcp`. |
 
 ## Workflow
 
-### 1. Parse arguments and resolve the PR
+1. Collect `--comment` ids into `COMMENT_IDS`; none → stop and ask. Resolve `PR`:
 
-- At least one `--comment <id>` is required (→ `COMMENT_IDS`). Without one there's no thread to reply to or resolve — stop and ask.
-- Resolve the PR into `PR`: use `--pr <n>` if given, else the branch's PR. Stop if neither yields one.
+   ```bash
+   PR="${pr_flag:-$(gh pr view --json number -q .number 2>/dev/null)}"
+   [ -z "$PR" ] && { echo "no PR for this branch — pass --pr <n>"; exit 1; }
+   ```
 
-```bash
-PR="${pr_flag:-$(gh pr view --json number -q .number 2>/dev/null)}"
-[ -z "$PR" ] && { echo "no PR for this branch — pass --pr <n>"; exit 1; }
-```
+2. Invoke Skill `tfcp` with `-m` and `paths…` over the threads in `COMMENT_IDS` (the `comments` route's accepted set). It returns `$SHA` and a disposition per thread; only `fix` lands in the commit:
 
-### 2. tfcp — triage, fix, commit, push
+   | Disposition | Thread |
+   |---|---|
+   | `fix` | reply with the SHA, resolve |
+   | `residual` | leave open; optionally reply the reason; never resolve |
+   | `needs decision` | leave open; surface to the user with the constraint |
 
-Invoke Skill `tfcp`, forwarding `-m` and `paths…`. Its triage input is the threads behind `COMMENT_IDS` — the ones the `comments` route accepted as valid. The invalid ones (misreads, already-addressed, convention-contradicting) never reach here; they take the `--resolve-only` path below.
+   Report an accepted thread that lands `residual` as a disagreement between the passes.
 
-`tfcp` dispositions each one and returns the buckets along with the short SHA (`$SHA`). Only the `fix` bucket lands in the commit, and only those threads earn a `Done in <sha>` reply:
+3. Per `fix` thread, reusing `$SHA`: show the body, confirm, then
 
-| tfcp disposition | Thread |
-|------------------|--------|
-| `fix` | replied with the SHA, resolved (steps 3–4) |
-| `residual` | left open — reply the reason it wasn't fixed if it helps the reviewer, but never resolve a thread whose finding wasn't addressed |
-| `needs decision` | left open and surfaced to the user with the constraint; it's a design call, not a close-out |
+   ```bash
+   gh review reply "$PR" --comment "$COMMENT_ID" --body "Done in $SHA — <reply text>"
+   gh review resolve "$PR" --comment "$COMMENT_ID"
+   ```
 
-A thread accepted by `comments` but landed `residual` by `tfcp` is a disagreement between the two passes, not a bug — say so in the report rather than resolving it quietly.
+   Resolve prints `✓ Resolved thread …`.
 
-`tfcp` owns the hook gate and the push. Any failure there stops this run — do not continue to the reply. See [`tfcp`](../tfcp/SKILL.md).
-
-### 3. Reply
-
-Lead with the SHA so the reviewer can trace the fix. Show the body and confirm before posting — this is outward-facing.
-
-```bash
-gh review reply "$PR" --comment "$COMMENT_ID" --body "Done in $SHA — <reply text>"
-```
-
-`gh review reply` errors if the comment id isn't a thread on this PR — re-check with `gh review comments "$PR" --ids`.
-
-### 4. Resolve
-
-```bash
-gh review resolve "$PR" --comment "$COMMENT_ID"
-```
-
-Prints `✓ Resolved thread …` on success.
-
-Repeat steps 3–4 per `--comment` id whose finding landed in the `fix` bucket, reusing the same `$SHA`.
-
-### 5. Report
-
-State the outcome in one line: commit SHA + hook result, push target, the threads replied to and resolved, and any left open with why. e.g. `1f8e3a2 pushed (hooks green) → replied + resolved 3 threads; 1 left open (needs decision: new trait on the store)`.
-
----
+4. Report one line: SHA + hook result, push target, threads replied and resolved, threads left open and why. Format: `1f8e3a2 pushed (hooks green) → replied + resolved 3 threads; 1 left open (needs decision: new trait on the store)`.
 
 ## Resolve-only — dismissed threads
 
-`--resolve-only` closes a thread you're *dismissing*, not fixing (a misread, an already-addressed point, a convention-contradicting suggestion). It skips `tfcp` — there's no fix to commit — and runs only reply + resolve, the `rr` of `(tfcp)rr`:
+For a misread, already-addressed, or convention-contradicting thread. One invocation per thread with its own `--comment` and `--reply`; the rationale is posted verbatim:
 
 ```bash
 gh review reply "$PR" --comment "$COMMENT_ID" --body "<rationale>"
 gh review resolve "$PR" --comment "$COMMENT_ID"
 ```
 
-The reply is the dismissal rationale, posted verbatim — no `Done in <sha>` prefix, since nothing was committed. Rationales differ per thread, so invoke once per dismissed thread with its own `--comment` and `--reply`.
-
----
-
 ## Error Handling
 
-Triage, fix, commit, and push failures are `tfcp`'s — see its table. They stop this run before the reply.
+Triage, fix, commit, hook, and push failures follow `tfcp`'s table and stop the run before any reply.
 
 | Condition | Action |
 |-----------|--------|
-| `--comment` missing | Stop — nothing to reply to or resolve |
-| Every `--comment` lands outside `tfcp`'s `fix` bucket | No commit, no SHA — leave the threads open and report the dispositions |
-| `--resolve-only` with `-m`/`paths…` | Ignore them — resolve-only never commits |
-| No PR for branch and no `--pr` | Stop — report `none` |
-| `tfcp` stops (hooks red, push rejected) | Stop — do not reply; the SHA must exist on the remote |
-| `reply`/`resolve` reports no thread for the comment | Wrong or already-resolved id — re-check with `gh review comments "$PR" --ids` |
+| `--comment` missing | Stop |
+| No thread lands in `fix` | No commit; leave threads open; report dispositions |
+| `--resolve-only` with `-m`/`paths…` | Ignore them |
+| No PR for branch and no `--pr` | Stop per workflow step 1 |
+| `reply`/`resolve` finds no thread for the id | Wrong or already-resolved id — re-check with `gh review comments "$PR" --ids` |
 | `gh` not authenticated | Report: run `gh auth login` |
 
 :::
 
 :::related
-- `tfcp` — the local-review half: triage, fix, commit, push, without the PR thread steps
-- `pr` — `comments` assesses the threads and produces the accepted and dismissed split this consumes
+- `tfcp` — triage, fix, commit, push without the PR thread steps
+- `pr` — `comments` produces the accepted and dismissed split this consumes
 :::

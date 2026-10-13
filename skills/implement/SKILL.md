@@ -4,6 +4,8 @@ description: Strict delegated RED → GREEN → review workflow. Use only when e
 metadata:
   type: generic
 henia:
+  slots:
+    implement.approach:
   variables:
     context_commands:
       - label: Active scopes
@@ -31,21 +33,19 @@ henia:
           default_prompt: Use $implement to implement the requested task with delegated gates.
 ---
 
-<!-- Generated from skills/implement/SKILL.md by henia build; edit the canonical source. -->
-
 ::::head{.context slots="workflow"}
 
 
 # Strict Implementation
 
 :::instruction{priority=high}
-Explicit `$implement` is the high-assurance path. Ordinary requests do not enter it automatically.
+Enter only on the user's explicit `$implement` or a route the user selected; ordinary requests never enter. Never downgrade an explicit task to current-agent authoring.
 
-The orchestrator coordinates and verifies. Fresh subagents write tests and production code. Every task follows RED → GREEN → review; no independent pre-implementation test-review phase exists.
+The orchestrator coordinates and verifies. Fresh subagents write tests and production code. Every task runs RED → GREEN → review, with no pre-implementation test-review phase.
 :::
 
 :::routes
-Pre-parse `--config`, `--worktree`, `--base`, `--state`, and GitHub issue references as documented in [configuration.md](reference/configuration.md) and [execute.md](operations/execute.md).
+Pre-parse `--config`, `--worktree`, `--base`, `--state`, and GitHub issue references per [configuration.md](reference/configuration.md) and [execute.md](operations/execute.md).
 
 | Target | Action |
 |---|---|
@@ -55,71 +55,42 @@ Pre-parse `--config`, `--worktree`, `--base`, `--state`, and GitHub issue refere
 | Scope path or unique active scope | Follow [execute.md](operations/execute.md) |
 | File path or task description | Run the single-task pipeline below |
 | Missing or ambiguous | Ask for the target |
-
-The opt-in is the user's explicit `$implement` or a route the user selected. Do not downgrade an explicit task to direct current-agent authoring.
 :::
 
 ## Branch Gate
 
 Never dispatch mutating agents on `main`, `master`, or an unrelated branch.
 
-- Scope or GitHub issue: use the branch the `git.branching` providers ([git slots](../git/SKILL.md#slots)) name for it.
-- Direct task: use the current non-trunk branch; if on trunk, ask for or create a task branch.
-- Use a worktree only when explicitly requested.
-- Run the base-drift gate once before the first mutating batch and again before PR creation. A later recheck requires new upstream evidence or an observed overlap.
+- Scope or GitHub issue: the branch the `git.branching` providers ([git slots](../git/SKILL.md#slots)) name.
+- Direct task: the current non-trunk branch; on trunk, ask for or create a task branch.
+- Worktree only when explicitly requested.
+- Base drift: [base-drift-preflight.md](reference/base-drift-preflight.md).
+
+## Slots
+
+| Slot | Covers |
+|---|---|
+| `implement.approach` | How implementers and fixers shape a change. Keyed by task domain as `implement.approach.<domain>`; providers of the slot itself reach every domain, and all providers apply together. |
+
+Every task carries a `domain`: the scope task's field, or for a direct task one the orchestrator names from its files and requirements before dispatch. It keys `implement.approach` and the [test skill's](../test/SKILL.md#slots) `test.approach` for that task's subagents.
 
 ::::
 
-## Configuration
-
-Resolve routing once before a direct task or once at each scope batch boundary. The immutable snapshot governs that batch's tester, implementer, reviewers, effort, execution classes, and report run ID. Mid-batch edits apply to the next batch.
-
-Configuration resolution and immutable snapshots live in [configuration.md](reference/configuration.md). Host compatibility, generated variants, peer fan-out, effort, and report paths live in the canonical [peer routing contract](../peer/reference/routing.md).
-
 ## Single-Task Pipeline
 
-Use the same gates as one scope batch without a persisted checkpoint.
-
-### Phase A: RED
-
-1. Dispatch one fresh configured tester with the task requirements; the [test skill](../test/SKILL.md) owns its hard ceilings.
-2. Require `tester_report` with the exact focused command and bounded RED evidence.
-3. Run that command once and inspect one representative falsifier: name a plausible wrong implementation and confirm the test rejects it.
-
-Apply the [canonical RED gate](../test/SKILL.md#red). Return invalid evidence to the tester only when the remaining canonical attempt/time budget permits; otherwise surface a gap.
-
-### Phase B: GREEN
-
-Dispatch one fresh configured implementer with the task requirements and tester report. After it returns, verify the focused command and directly affected native validation (the `code.validation` slot rows carry its commands, run as is; see [code slots](../code/SKILL.md#slots)) in one batched tool round, combining compatible selectors. Refactor only the changed mechanism.
-
-### Phase C: Initial Review
-
-Materialize the diff, requirements, report schema, finding bar, bounded Gestalt context, and applicable `code.style` provider excerpts once. In one message, dispatch all configured reviewers for General, Architecture, and Compliance. Wait once and synthesize once.
-
-Apply [review synthesis](../review/reference/synthesis.md) for admission, grouping, fixes, `needs decision`, re-review, and round limits. A post-fix re-review follows its targeted protocol and never re-enters Phase C.
-
-Once review clears, Phase C plus final native validation completes a single-task run. Do not launch a duplicate final review.
+Run [execute.md](operations/execute.md) phases A–C and synthesis (sections 4–7) for the one task, without a persisted checkpoint or batch commit. Snapshot routing once in memory per [configuration.md](reference/configuration.md); the [peer routing contract](../peer/reference/routing.md) owns host compatibility, variants, fan-out, effort, and report paths. Verify GREEN with the `code.validation` rows from [code slots](../code/SKILL.md#slots), run as is, and refactor only the changed mechanism. Cleared review plus final native validation completes the run; no integration review.
 
 ## Scope Pipeline
 
-[execute.md](operations/execute.md) owns batching, checkpoints, continuation, commits, and cross-batch integration. Its fixed dependency boundaries are:
-
-1. all ready testers concurrently;
-2. one RED gate;
-3. all cleared implementers concurrently;
-4. one initial review wave with all review roles and reviewer routes concurrently.
-
-No serial dispatch is allowed inside a boundary unless one result changes another prompt.
+Follow [execute.md](operations/execute.md). Within a phase, dispatch serially only when one result changes another prompt.
 
 ## Failure and Recovery
 
-For a failed or interrupted mutating subagent, preserve partial edits and record the relevant status, diff, report directory, and failure. Do not auto-retry, roll back, or advance. A user-issued `$continue` is deliberate redispatch authorization for the exact recorded wave.
-
-Reviewer failures apply the [canonical result-eligibility gate](../review/reference/harnesses.md#results).
+Follow [execute.md](operations/execute.md#recovery-rules); a user-issued `$continue` authorizes redispatch of the exact recorded wave. Reviewer failures: [result-eligibility gate](../review/reference/harnesses.md#results).
 
 ## Stop Condition
 
-Stop when the requested requirements are implemented, focused and directly affected native validation passes, the review gate clears, and no known blocker remains. Do not add adjacent cleanup, another review wave, or another confidence run.
+Stop when requirements are implemented, focused and directly affected native validation passes, review clears, and no known blocker remains. No adjacent cleanup, extra review wave, or extra confidence run.
 
 :::references
 - [operations/execute.md](operations/execute.md) — scope execution

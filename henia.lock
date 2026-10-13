@@ -9,6 +9,14 @@ digest = "blake3:79969c2182b2279ce42d377c11e7de41ed17115543fa58772b3df862cb01e56
 config_digest = "blake3:8532047ea4ebb82f678a2001e29adc3c9140b1956906cb46afcd16fc6c317c18"
 
 [[sources]]
+name = "ponytail"
+git = "https://github.com/DietrichGebert/ponytail.git"
+resolved = "v5.2.0"
+commit = "2961b52fc1fe6a5a87c7a959a79512e5c2f3ffe5"
+digest = "blake3:9ce865cd47f25fa07f349203833fb45a2d030c8f9a7b7e88ba16cbe1f614af95"
+config_digest = "blake3:5fe5e9f38897e5a4a6dfb0dc9f4f3438dc49727c1572cffbc54396fc08010a66"
+
+[[sources]]
 name = "limen"
 git = "https://github.com/srnnkls/limen.git"
 resolved = "main"
