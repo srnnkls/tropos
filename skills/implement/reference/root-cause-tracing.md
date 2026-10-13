@@ -1,33 +1,27 @@
 # Root-Cause Tracing
 
-Trace only far enough to identify the source that explains one reachable trigger and wrong outcome.
+Trace only to the source that explains one reachable trigger and wrong outcome.
 
 ## Use When
 
-- the error appears below the boundary that supplied the bad value or state;
-- a stack trace leaves the responsible caller unclear; or
-- the proposed fix site may be a symptom rather than the shared source.
+The error surfaces below the boundary that supplied the bad value, the responsible caller is unclear, or the fix site may be a symptom.
 
 ## Process
 
 1. State the observed trigger and wrong outcome.
-2. Identify the immediate operation that produced it.
-3. Ask what concrete input or state made that operation wrong.
-4. Follow one caller/data edge backward when the current frame cannot explain that input.
-5. Stop at the first source that fully explains the failure and owns the invariant.
-
-Use `gestalt callers`, `callees`, or `refs` for the named symbol when the edge is unclear. Confirm exact text with bounded `rg`. Do not enumerate the repository or continue upward after the responsible invariant is known.
+2. Identify the operation that produced it.
+3. Name the concrete input or state that made it wrong.
+4. When the current frame cannot explain that input, follow one caller/data edge backward (`gestalt callers`, `callees`, or `refs` for the named symbol; bounded `rg` for exact text).
+5. Stop at the first source that fully explains the failure and owns the invariant. Do not enumerate the repository.
 
 ## Instrumentation
 
-When static evidence cannot distinguish two adjacent boundaries, add one temporary probe immediately before the suspected transition. Capture only the value/state needed to choose between them, run the reproducer once, then remove the probe.
-
-Do not add stack dumps, broad logging, telemetry, or probes at every component by default.
+Only when static evidence cannot distinguish two adjacent boundaries: add one temporary probe before the suspected transition capturing only the deciding value/state, run the reproducer once, remove the probe. No stack dumps, broad logging, telemetry, or per-component probes.
 
 ## Fix Placement
 
-Fix the narrowest shared source that explains the failure. Check another caller only when the shared fix gives it a concrete affected behavior. Add validation at the earliest shared trust boundary; a second guard requires a distinct reachable failure at another boundary.
+Fix the narrowest shared source. Check another caller only when the shared fix gives it a concrete affected behavior. Validate at the earliest shared trust boundary; a second guard requires a distinct reachable failure at another boundary.
 
 ## Cutoff
 
-One revised hypothesis may follow a falsified first hypothesis. After two hypotheses for the same subject, report the unresolved evidence or decision. Review fix-round limits belong to [review synthesis](../../review/reference/synthesis.md).
+One revised hypothesis may follow a falsified first. After two hypotheses for the same subject, report the unresolved evidence or decision. Fix-round limits: [review synthesis](../../review/reference/synthesis.md).

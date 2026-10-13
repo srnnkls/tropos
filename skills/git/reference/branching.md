@@ -2,15 +2,9 @@
 
 ## Branching from Main vs. Cascading
 
-*Independent work:* Branch from `main`. No rebase coordination needed.
-
-*Dependent work:* Cascade from the branch you depend on. Accept the rebase tax.
-
-*The rebase tax:* Every time an upstream branch's ref changes (force-push during review, squash merge into main), all downstream branches need `rebase --onto`.
+Branch independent work from `main`. Cascade dependent work from the branch it depends on; every change to an upstream ref (force-push during review, squash merge into main) then requires `rebase --onto` for each downstream branch. Rebase downstream branches before the upstream ref changes identity, and delete an upstream branch only after its downstream branches are rebased.
 
 ## Cascading Workflow
-
-### Setup
 
 ```
 main ── M1 ── M2
@@ -24,44 +18,25 @@ main ── M1 ── M2
 
 ### Merging the Chain
 
-Merge bottom-up, rebase after each merge:
+Bottom-up, rebasing after each merge:
 
 ```bash
-# 1. Squash merge A into main
 git switch main && git merge --squash A && git commit
-
-# 2. Rebase B onto main (skip A's commits)
-git switch B
-git rebase --onto main A
-
-# 3. Squash merge B into main
+git switch B && git rebase --onto main A      # skip A's commits
 git switch main && git merge --squash B && git commit
-
-# 4. Rebase C onto main (skip B's commits)
-git switch C
-git rebase --onto main B
-
-# 5. Squash merge C into main
+git switch C && git rebase --onto main B
 git switch main && git merge --squash C && git commit
 ```
 
 ### Handling Force-Pushes During Review
 
-When A gets force-pushed after review feedback:
-
 ```bash
-# Save A's old tip before pull
-old_a=$(git rev-parse A)
-
-# Update A
+old_a=$(git rev-parse A)          # save A's old tip before pulling
 git switch A && git pull --rebase
-
-# Rebase B onto updated A
-git switch B
-git rebase --onto A $old_a
+git switch B && git rebase --onto A $old_a
 ```
 
-Or if you didn't save the old tip: `git reflog show A` to find it.
+Without a saved tip, find it with `git reflog show A`.
 
 ### rebase --onto Explained
 
@@ -69,28 +44,17 @@ Or if you didn't save the old tip: `git reflog show A` to find it.
 git rebase --onto <new-base> <old-base> [<branch>]
 ```
 
-- `<new-base>`: Where to place the commits (target)
-- `<old-base>`: Where to cut from (exclusive — commits after this get replayed)
-- `<branch>`: Branch to rebase (defaults to current)
-
-The command means: take commits between `<old-base>` and `<branch>`, replay them onto `<new-base>`.
+- `<new-base>`: where the commits land
+- `<old-base>`: exclusive cut point; commits after it are replayed
+- `<branch>`: branch to move (default: current)
 
 #### Direction trap
 
-`<branch>` becomes a descendant of `<new-base>`. The branch you check out is the one that *moves*. Read every rebase as: "I am moving X to sit on top of Y." If the user wants work to live *on* branch B (PR target, feature head), the corrective action is usually one of:
-
-- Commit directly on B (no rebase needed).
-- `git switch <downstream> && git rebase --onto B <old-tip>` — moves the downstream onto B, leaves B in place.
-
-After any `--onto` rebase, run `git log --oneline --graph <expected-base>..HEAD` and confirm the parent chain matches intent before doing anything else.
+`<branch>` moves and becomes a descendant of `<new-base>`. When work belongs on branch B, commit directly on B, or move a downstream onto B with `git switch <downstream> && git rebase --onto B <old-tip>`. After any `--onto` rebase, confirm the parent chain with `git log --oneline --graph <expected-base>..HEAD` before anything else.
 
 ### Magit
 
-1. Checkout the branch to rebase
-2. `r` (rebase menu)
-3. `o` (rebase onto)
-4. **"onto"** prompt → enter target (e.g., `main`)
-5. **"start"** prompt → enter the old base branch name (e.g., `A`)
+Check out the branch to rebase, then `r` `o`; at "onto" enter the target (e.g. `main`), at "start" the old base branch (e.g. `A`).
 
 ## Branch Naming
 
@@ -102,10 +66,4 @@ refactor/<name> # Restructuring without behavior change
 docs/<name>     # Documentation only
 ```
 
-## Rules
-
-1. Rebase downstream before upstream ref changes identity
-2. Merge the chain in order, bottom-up
-3. Delete upstream branch only after downstream is rebased
-4. Keep branches short-lived — merge often
-5. One concern per branch
+One concern per branch.

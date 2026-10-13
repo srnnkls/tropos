@@ -6,6 +6,11 @@ metadata:
 henia:
   slots:
     review.criteria:
+    review.general:
+    review.architecture:
+    review.tests:
+    review.abstractions:
+    review.detectors: keyed(list(command))
   variables:
     context_commands:
       - label: Git status
@@ -37,35 +42,17 @@ henia:
           default_prompt: Use $review to review the requested target.
 ---
 
-<!-- Generated from skills/review/SKILL.md by henia build; edit the canonical source. -->
+::::head{.context slots="review.criteria review.general review.architecture review.tests review.abstractions review.detectors"}
 
-:::static
 
-## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
-
-{{.context_instruction}}
-
-Slot providers:
-
-:slot[review.criteria]
-
-{{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else -}}
-```bash
-{{.command}}
-```
-{{- end}}
-
-{{end}}
 # Review Dispatcher
 
-## Routes
-
+:::routes
 Pre-parse `--reviewers <aliases>` and pass it to downstream review operations.
 
 | Target | Action |
 |---|---|
-| PR number, `#N`, or GitHub PR URL | [operations/pr.md](operations/pr.md) |
+| PR number, `#N`, or GitHub PR URL | Invoke `$pr` with `review <target>` |
 | Commit SHA | Invoke `$code` with `review --rev <sha>` |
 | `--final <scope>` | Standalone holistic scope review |
 | Scope path/name | Invoke `$scope` with `review <name>` |
@@ -73,54 +60,44 @@ Pre-parse `--reviewers <aliases>` and pass it to downstream review operations.
 | `--test-audit [path]` or test path | [operations/test-audit.md](operations/test-audit.md), explicit or changed tests only |
 | Existing file path | Invoke `$code` with `review --path <path>` |
 | Missing | Ask for PR, commit, diff, path, scope, structural, or test target |
-
 :::
+
+::::
 
 ## Slots
 
 | Slot | Covers |
 |---|---|
 | `review.criteria` | Repository review requirements with their canonical citations; reviewers check them as applicable requirements, and triage and PR comment assessment cite them |
+| `review.general` | Correctness, security, and performance criteria for the General role |
+| `review.architecture` | Layering, dependency direction, and seam rules for the Architecture role |
+| `review.tests` | Test-review criteria for the General role on changed tests and for [test audits](operations/test-audit.md); the [test failure modes](../test/reference/failure-modes.md) stay |
+| `review.abstractions` | Owned modules, sanctioned dependencies, and abstraction boundaries for the Abstractions role |
+| `review.detectors` | Commands run on the change whose output the Abstractions role takes as candidates, never as gate results; keyed by language as `review.detectors.<language>` |
+
+Every slot except `review.criteria` and `review.detectors` is keyed `review.<slot>.<domain>`; all providers apply together. The [code review roles](../code/SKILL.md#review-roles) stay the gates; providers add criteria. Style criteria come from `code.style`.
 
 ## Canonical Contracts
 
-- [models.md](reference/models.md) — live registry pointer
-- [peer routing](../peer/reference/routing.md) — host compatibility and dispatch mechanics
-- [harnesses.md](reference/harnesses.md) — review materialization and result coverage
-- [finding-bar.md](reference/finding-bar.md) — finding admission and sufficiency
-- [report.md](reference/report.md) — YAML schemas
-- [synthesis.md](reference/synthesis.md) — merge, disposition, and fix-round limits
-- [peer skill](../peer/SKILL.md) — external fan-out and report layout
+[models.md](reference/models.md) (live registry), [peer routing](../peer/reference/routing.md) (host compatibility, dispatch), [harnesses.md](reference/harnesses.md) (materialization, result coverage), [finding-bar.md](reference/finding-bar.md) (admission, sufficiency), [report.md](reference/report.md) (YAML schemas), [synthesis.md](reference/synthesis.md) (merge, disposition, fix-round limits), [peer skill](../peer/SKILL.md) (external fan-out, report layout).
 
 ## Reviewer Selection
 
-Resolve in order:
+Take the first present: `--reviewers` aliases; `validation.yaml.review_config` for standalone scope review; live `peer defaults reviewers`. Validate under [peer routing](../peer/reference/routing.md). Standalone scope selection persists to `validation.yaml.review_config`; implementation-owned review ignores that file and uses its immutable batch routing snapshot.
 
-1. `--reviewers` aliases;
-2. `validation.yaml.review_config` for standalone scope review;
-3. the live `peer defaults reviewers` selection.
-
-Resolve and validate the selection under the canonical [peer routing contract](../peer/reference/routing.md).
-
-Standalone scope selection persists to `validation.yaml.review_config`. Implementation-owned review ignores that file and uses its immutable batch routing snapshot.
-
-::::static
+::::head
 
 :::instruction{priority=high}
 ## Dispatch
 
-Materialize reviewed content, requirements including listed `review.criteria` providers, exact schema, and the verbatim finding bar before dispatch. Commands and workdirs supplement the prompt; they do not replace content.
-
-For multi-role review, launch every selected role and reviewer in one assistant message using the mechanisms resolved by peer routing.
-
-Apply the [canonical review result gate](reference/harnesses.md#results).
+Build each prompt per [materialization](reference/harnesses.md#materialization), dispatch per [concurrent dispatch](reference/harnesses.md#concurrent-dispatch), and apply the [result gate](reference/harnesses.md#results).
 :::
 
 ::::
 
 ## Report Paths
 
-Create directories through the canonical [`peer path` interface](../peer/SKILL.md#report-layout--peer).
+Create directories through [`peer path`](../peer/SKILL.md#report-layout--peer).
 
 | Route | Subject | Stage |
 |---|---|---|
@@ -133,8 +110,6 @@ Create directories through the canonical [`peer path` interface](../peer/SKILL.m
 | Implementation batch | scope name | `b<batch>-review-<role>` |
 | Integration | scope name | `integration-review` |
 
-Save every materialized prompt as `prompt.md`. The peer manifest/filename is authoritative provenance.
-
 ## Synthesis and Landing
 
-Apply [review synthesis](reference/synthesis.md) without restating its admission or stopping rules. Land admitted findings through `$tfcp`; PR thread closure composes through `$tfcprr`.
+Synthesize per [review synthesis](reference/synthesis.md). Land admitted findings through `$tfcp`; close PR threads through `$tfcprr`.

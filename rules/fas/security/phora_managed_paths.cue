@@ -75,37 +75,31 @@ _phoraTargets: [
 	"Library/LaunchAgents/io.code17.colorterm.plist",
 ]
 
-_phoraPathRe: #"(~|\$HOME|/Users/[^/]+|/home/[^/]+)/("# +
+_phoraPathRe: _homeRe + "/(" +
 	strings.Join([for t in _phoraTargets {regexp.QuoteMeta(t)}], "|") +
-	")(/|$)"
+	#")(/|"?$)"#
 
 _phoraRe: "^" + _phoraPathRe
 
-_phoraReason: "This path is deployed by phora — edit its source in ~/dotfiles (phora.toml maps each target; Tropos skills come from the tropos repo), then run `phora sync`; do not edit the deployed target."
+_denyPhora: {
+	rule_id:  "phora-managed-path"
+	reason:   "Deployed by phora: edit its source (mapped in ~/dotfiles/phora.local.toml), then `phora sync`."
+	severity: "HIGH"
+}
 
 phora_managed_edit: {
 	when: hook.#PreToolUse & (tool.#Edit | tool.#Write | tool.#NotebookEdit) & {
 		tool_input: file_path: =~_phoraRe
 	}
-	then: deny: {
-		rule_id:  "phora-managed-path-edit"
-		reason:   _phoraReason
-		severity: "HIGH"
-	}
+	then: deny: _denyPhora
 }
 
 phora_managed_multiedit: {
 	when: hook.#PreToolUse & tool.#MultiEdit & {
 		tool_input: edits: list.MatchN(>0, {file_path: =~_phoraRe, ...})
 	}
-	then: deny: {
-		rule_id:  "phora-managed-path-multiedit"
-		reason:   _phoraReason
-		severity: "HIGH"
-	}
+	then: deny: _denyPhora
 }
-
-_phoraRedirectRe: "^[0-9]*>>?" + _phoraPathRe
 
 phora_managed_bash_write: {
 	when: hook.#PreToolUse & tool.#Bash & (bash.#call & {
@@ -114,24 +108,16 @@ phora_managed_bash_write: {
 			targets: list.MatchN(>0, =~_phoraRe)
 		} | (flag.#option & {
 			command: "sed" | "perl"
-			#spellings: ["-i"]
+			#spellings: ["-i", "--in-place"]
 			targets: list.MatchN(>0, =~_phoraRe)
-		})
+		}) | (_destWriter & {#path: =~_phoraRe})
 	})
-	then: deny: {
-		rule_id:  "phora-managed-path-bash"
-		reason:   _phoraReason
-		severity: "HIGH"
-	}
+	then: deny: _denyPhora
 }
 
 phora_managed_bash_redirect: {
 	when: hook.#PreToolUse & tool.#Bash & {
-		tool_input: parsed: attributes: redirections: list.MatchN(>0, =~_phoraRedirectRe)
+		tool_input: parsed: attributes: redirections: list.MatchN(>0, =~(_redirectOutRe + _phoraPathRe))
 	}
-	then: deny: {
-		rule_id:  "phora-managed-path-redirect"
-		reason:   _phoraReason
-		severity: "HIGH"
-	}
+	then: deny: _denyPhora
 }

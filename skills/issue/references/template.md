@@ -1,77 +1,54 @@
 # Issue template
 
-Section names, ordering, heading levels, and what each section is for.
-
-Issue body sections use first-level (`#`) headings, with `##` / `###` for nested subsections.
+Body sections use `#` headings; nested subsections step down to `##`, `###`.
 
 ## Title
 
-`<Module> — <short summary>`
-
-- Em-dash (`—`) separator, not a hyphen.
-- Module is the top-level concern.
-- Summary is a noun phrase, no trailing period.
+Per [Template](../SKILL.md#template); module is the top-level concern, summary a noun phrase without trailing period.
 
 ## Body sections (in order)
 
 ### `# Goal` (required)
 
-One paragraph stating what the issue produces and why.
-
-Parent, depends-on, and blocks relationships live on GitHub's native metadata — set them via the skill's GraphQL mutations (`updateIssueIssueType`, `addSubIssue`, `addBlockedBy`). The body stays focused on Goal / Implementation plan / Definition of done.
+One paragraph: what the issue produces and why. Relationships: [Issue metadata](../SKILL.md#issue-metadata-type-parent-dependencies).
 
 ### `# Context` (optional)
 
-Use only when the issue lands on top of prior work that the reader must understand. Document what's already landed and what's still missing — phrased as a delta. Skip for greenfield issues.
+Only when the issue builds on prior work the reader must know: what has landed and what is missing, as a delta.
 
 ### `# Layout` (architecture / service-level work only)
 
-Fenced ASCII tree of the files that change, one-line comment per file describing the change. Group by directory. Mark untouched files in the same module with `# unchanged`.
+Fenced ASCII tree of the changed files, grouped by directory, one-line comment per file; mark untouched files in the same module `# unchanged`.
 
-**Only include Layout when the issue plans or reshapes architecture at the module / service / package level** — new module, new service, directory restructure, cross-cutting refactor. The point of Layout is to pin down *where* structural pieces land before implementation starts.
-
-**Skip Layout for any Feature or Task that is not architecture/service-level**, including:
-
-- Changes confined to an existing file or a small group of files within one module.
-- Behavior changes that don't introduce or relocate modules or public APIs.
-- Bug fixes, small enhancements, doc/tooling tweaks, test additions, dependency bumps.
-- Follow-ups that extend an already-laid-out module (`# Implementation plan` alone is enough).
-
-If file footprint is incidental to the work — don't pad the issue with a Layout tree. Use `# Implementation plan` instead.
+Only for planning or reshaping architecture at module / service / package level (new module or service, directory restructure, cross-cutting refactor); never for changes confined to one module that add or move no modules or public APIs, bug fixes, small enhancements, doc/tooling tweaks, test additions, dependency bumps, or follow-ups to an already-laid-out module.
 
 ### `# Implementation plan` (required for non-trivial issues)
 
-Use `##` subsections for each major construct. Order so a reader can start at the top: public shape first, then internals, then types, then errors, then dependencies.
+`##` subsection per applicable construct, named for the repo's constructs, in this order:
 
-Common subsections (use only the ones that apply, named for the repo's own constructs):
-
-- `## Interface` — the public shape: function/method/endpoint signatures
-- `## Core logic` — the main flow or algorithm
-- `## Data types` — the domain types, identifiers, and shapes introduced
+- `## Interface` — function/method/endpoint signatures
+- `## Core logic` — main flow or algorithm
+- `## Data types` — domain types, identifiers, shapes
 - `## Errors` — failure modes and how they surface
 - `## Dependencies` — injected collaborators and inputs
 
-Multi-phase work: name the action (`## Fixpoint BFS for X`), not "Step 1 / Step 2".
-
-Code blocks are illustrative — signatures and shapes in the repo's own idioms, not full bodies.
-
-For trivial issues, replace with a `# Plan` paragraph or omit.
+Name phases by action (`## Fixpoint BFS for X`), not "Step 1 / Step 2". Code per [sketches.md](sketches.md). Trivial issues: a `# Plan` paragraph or nothing.
 
 ### `# Constraints` (when design rules bind the implementer)
 
-Bullet list of design rules that bind the implementer. Reference the project's relevant conventions or prior decisions where they apply.
+Bullet list of binding design rules, citing the convention or prior decision each comes from.
 
 ### `# What landed where` (optional)
 
-Use only when filing to track work that has already partially merged. Reference commits by short SHA + subject.
+Only for partially merged work; commits by short SHA + subject.
 
 ### `# Follow-up` (optional)
 
-Forward references to issues that pick up split-out scope. Include only when those issues already exist.
+Only for already-existing issues that pick up split-out scope.
 
 ### `# Definition of done` (required)
 
-GitHub-task-list checkboxes (`- [ ]`). Each item testable and binary. End with the toolchain gates that apply (the project's typecheck / lint / unit / integration commands).
+`- [ ]` items, each testable and binary, ending with the applicable toolchain gates (typecheck / lint / unit / integration).
 
 ## Section selection by issue type
 
@@ -85,19 +62,17 @@ GitHub-task-list checkboxes (`- [ ]`). Each item testable and binary. End with t
 
 ## Header conventions
 
-- Markdown atx headers (`#`, `##`, `###`); no setext.
-- Body top-level sections at `#` (h1). Nested subsections step down to `##`, `###`.
-- One blank line above and below every header.
+- Atx headers only; one blank line above and below each.
 - Inline code in headers only when the symbol is the subject.
-- Tables use github-flavored markdown, no alignment colons unless aligning numbers.
-- Code blocks are fenced with the language tag.
+- GFM tables, alignment colons only for numbers.
+- Fenced code blocks with a language tag.
 
 ## Cross-referencing
 
-- Issue references: `#<number>`, never the full URL.
-- File paths in prose: backticks, with `:line` or `:start-end` for ranges.
-- Repo paths: full path from repo root, no leading `./`.
+- Issues: `#<number>`, never the URL.
+- File paths in prose: backticks, with `:line` or `:start-end`.
+- Repo paths: full from repo root, no leading `./`.
 
 ## Reference issues
 
-For tone and section content, fetch live exemplars with `gh issue view <n>`. Issues authored before the convention shift to `#` use `##` — read them for shape, not heading level.
+Exemplars: `gh issue view <n>`; copy shape, not the `##` top level of older issues.

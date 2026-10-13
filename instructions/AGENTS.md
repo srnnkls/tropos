@@ -35,7 +35,7 @@ Never use `rm` for interactive file removal. Use `trash`.
 
 ## Workflow boundary
 
-Ordinary work executes directly. Strict delegated RED → GREEN → review and TDD activate only through explicit `$implement`, `$test`, `$continue`, `$loop`, or a direct request for tests. Project instructions may tighten this boundary, for example by mandating TDD.
+Ordinary work executes directly. Strict delegated RED → GREEN → review and TDD activate only through explicit `$implement`, `$test`, `$continue`, `$loop`, `$dispatch`, or a direct request for tests. Project instructions may tighten this boundary, for example by mandating TDD.
 
 For configuration, documentation, maintenance, and platform-validated artifacts, use the native parser, linter, command, or runtime instead of inventing test machinery.
 

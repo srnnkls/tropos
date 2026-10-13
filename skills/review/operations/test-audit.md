@@ -1,24 +1,24 @@
 # Test Quality Audit
 
-Audit named or changed tests for reachable failure modes that can make a broken implementation appear correct.
+Audit named or changed tests for reachable failure modes that let a broken implementation pass.
 
 ## Target
 
-Use the explicit `$TARGET` when supplied. Otherwise inspect only test files changed in the current diff. If neither exists, report that no bounded target was supplied; do not enumerate the whole test tree.
+Use `$TARGET` when supplied; otherwise only test files changed in the current diff. With neither, report that no bounded target was supplied. Never enumerate the whole test tree.
 
 ## Finding Bar
 
-Apply the canonical [finding bar](../reference/finding-bar.md). This operation supplies only audit targeting and reporting.
+Apply the canonical [finding bar](../reference/finding-bar.md).
 
 ## Failure Modes
 
-Read and apply [the canonical test failure modes](../../test/reference/failure-modes.md). Do not copy or paraphrase them here; this operation only supplies audit targeting and reporting.
+Apply [the canonical test failure modes](../../test/reference/failure-modes.md) and the listed `review.tests` providers ([review slots](../SKILL.md#slots)).
 
 ## Workflow
 
 1. Read the requirements and named test files.
-2. For each candidate, state a plausible wrong implementation and determine whether the test rejects it.
-3. Report only candidates that clear the shared finding bar.
+2. For each candidate, state a plausible wrong implementation and whether the test rejects it.
+3. Report only candidates that clear the finding bar.
 4. Stop after one pass over the named tests.
 
 ## Output

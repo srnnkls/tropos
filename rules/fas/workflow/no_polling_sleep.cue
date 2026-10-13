@@ -19,7 +19,7 @@ sleep_long: {
 	})
 	then: deny: {
 		rule_id:  "sleep-long"
-		reason:   "Sleeping ≥30s is waiting by polling. Subagent, background-Bash, and workflow completion arrive as a notification that re-invokes you — the sleep only delays when you see it. Do other work now and answer the notification when it lands; use ScheduleWakeup if you genuinely need a timed return, or TaskOutput to read a running agent."
+		reason:   "Sleep ≥30s denied. Completion of subagents, background commands and workflows re-invokes you; do other work. Use ScheduleWakeup for a timed return."
 		severity: "MEDIUM"
 	}
 }
@@ -30,17 +30,7 @@ sleep_poll_chain: {
 	}
 	then: deny: {
 		rule_id:  "sleep-poll-chain"
-		reason:   "sleep chained to a status check is a poll loop. Completion of subagents, background Bash, and workflows is pushed to you as a notification — checking on a timer adds wall time and finds nothing the notification wouldn't deliver. Drop the sleep; inspect state once, now, or wait for the notification."
+		reason:   "Denied: sleep chained to a status check. Inspect state once now, or wait for the completion notification."
 		severity: "MEDIUM"
-	}
-}
-
-sleep_hint: {
-	when: hook.#PreToolUse & tool.#Bash & (bash.#command & {#name: "sleep"})
-	then: inject: {
-		rule_id:  "sleep-hint"
-		channel:  "agent"
-		priority: 50
-		text:     "You are about to sleep. Nothing in this harness needs polling: subagents, background Bash, and workflows all notify you on completion. Sleep only to pace something external (a rate limit, a service that needs a moment to bind) — never to wait on your own agents."
 	}
 }

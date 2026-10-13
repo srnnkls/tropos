@@ -13,22 +13,7 @@ henia:
           default_prompt: Use $doc for the requested task.
 ---
 
-<!-- Generated from skills/doc/SKILL.md by henia build; edit the canonical source. -->
-
 # Docs Implement Skill
-
-Domain-specific reference documents for non-code artifacts.
-
----
-
-## When to Use
-
-- Creating architecture documentation
-- Writing strategy or decision documents
-- Drafting specifications
-- Authoring guides or playbooks
-
----
 
 ## Domains
 
@@ -39,9 +24,7 @@ Domain-specific reference documents for non-code artifacts.
 | specs | API contracts, interface definitions |
 | guides | How-to documentation, playbooks |
 
----
-
-## Related Skills
-
-- **implement**: Language-specific coding guidelines
-- **scope**: Scope documents with validation
+:::related
+- `code` — language style through `code.style` providers
+- `scope` — scope documents with validation
+:::

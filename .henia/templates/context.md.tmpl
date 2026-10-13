@@ -1,0 +1,12 @@
+## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
+
+{{with .context_instruction}}{{.}}
+
+{{end}}{{with .args.slots}}{{template "providers" $}}{{end}}{{range .context_commands}}{{.label}}:
+{{if eq $.preload_context "true"}}!`{{.command}}`{{else -}}
+```bash
+{{.command}}
+```
+{{- end}}
+
+{{end}}

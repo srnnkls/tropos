@@ -124,12 +124,19 @@ def check(root, build):
             if mode[name] == "hybrid":
                 if harness == "claude":
                     require(
-                        re.fullmatch(rf"\s*!`henia preload --skill {name} -- 'henia show {name} --head'`\s*", body),
+                        re.fullmatch(rf"\s*!`henia show {name} --head`\s*", body),
                         f"{path}: hybrid head must be one head preload",
+                    )
+                    tools = fm.get("allowed-tools")
+                    require(
+                        "Bash(henia show *)" in (tools or []),
+                        f"{path}: hybrid head must allow henia show",
                     )
                 else:
                     require(
-                        f"'henia show {name} --toc'" in body and f"'henia context {name}'" in body and "!`" not in body,
+                        f"run first: `henia show {name} --toc`" in body
+                        and f"run first: `henia context {name}`" in body
+                        and "!`" not in body,
                         f"{path}: hybrid head must run its contents and context first",
                     )
             elif canonical.get("henia", {}).get("variables", {}).get("context_commands"):
@@ -223,7 +230,7 @@ def check(root, build):
         )
         for path in (target / "instructions/AGENTS.md", target / ("CLAUDE.md" if harness == "claude" else "AGENTS.md")):
             require(path.read_text() == instructions, f"{path}: instructions differ")
-        if "loqui" in projected(config, harness, skills):
+        if modes(config, harness, skills).get("loqui") == "static":
             guides = target / "skills/loqui/languages"
             for language in ("bash", "elisp", "go", "python", "rust", "zig"):
                 require((guides / language / "README.md").is_file(), f"{guides}: missing {language} guidance")

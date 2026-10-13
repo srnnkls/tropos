@@ -1,200 +1,37 @@
 # Code Review Playbook
 
----
+Timeouts, parse failures, partial results, execution classes: [review harnesses](../../review/reference/harnesses.md). Reviewer selection and availability: [peer routing](../../peer/reference/routing.md).
 
-## Harness and Selection Failures
+## Target Detection
 
-Use [review harnesses](../../review/reference/harnesses.md) for timeout, parse, partial-result, and execution-class behavior. Use [peer routing](../../peer/reference/routing.md) for reviewer selection and availability. This playbook does not maintain another failure or host matrix.
+Flags override detection: `--scope` scope mode (batch review), `--rev` git rev/range, `--path` path, `--diff` staged/unstaged diff. Without a flag, take the first match:
 
----
+1. Scope: `find ./scopes -maxdepth 2 -type d -name {arg}` matches one of `./scopes/{draft,active,done}/{arg}/`
+2. Git rev: `git rev-parse --verify {arg}`
+3. Git range: contains `..` or valid range syntax
+4. Path: `test -e {arg}`
+5. Diff: no argument; staged/unstaged changes
 
-## Input Type Detection
+| Mode | Load |
+|---|---|
+| Scope | `scope.md`, `tasks.yaml`, `review.yaml`, `validation.yaml` |
+| Git | `git show` or `git diff`, commit messages |
+| Path | the files |
+| Diff | `git diff --cached` or `git diff` |
 
-### Disambiguation Flags
+| Case | Action |
+|---|---|
+| No argument, empty `git diff` | Check `git diff --cached`; if empty, list recently modified files, ask for a target |
+| Path does not exist | Suggest the closest match, list the parent directory, ask the user to correct it |
+| Binary files | Skip them, report "Skipped N binary files", review text files only |
+| Diff over 2000 lines | Warn "Large diff detected (N lines)", suggest chunks or specific files, proceed only on user confirmation |
 
-Flags override auto-detection:
+## Synthesis
 
-| Flag | Forces |
-|------|--------|
-| `--scope` | Scope mode (batch review) |
-| `--rev` | Git rev/range mode |
-| `--path` | Path mode |
-| `--diff` | Diff mode (staged/unstaged) |
+[Review synthesis](../../review/reference/synthesis.md) owns merging (by failure mechanism; agreement is not validity) and gate aggregation.
 
-### Auto-Detection Priority (no flag)
+## Output
 
-1. **Scope** - `find ./scopes -maxdepth 2 -type d -name {arg}` matches one of `./scopes/{draft,active,done}/{arg}/`
-2. **Git rev** - `git rev-parse --verify {arg}`
-3. **Git range** - contains `..` or valid range syntax
-4. **Path** - `test -e {arg}`
-5. **Diff** - no argument, use staged/unstaged
+Scope mode writes `./scopes/<state>/<scope>/review.yaml` (`<state>` ∈ `{draft, active, done}`), committed with the scope. Other modes write to the [review report paths](../../review/SKILL.md#report-paths).
 
-### Ambiguous Input
-
-**Symptom:** Input could match multiple types (e.g., "main" is both a branch and could be a scope)
-
-**Response:**
-1. If flag provided → use flag, skip detection
-2. Otherwise, follow priority order (scope → git → path)
-
----
-
-## Review Storage
-
-### Scope Mode
-
-**Location:** `./scopes/<state>/<scope>/review.yaml` (`<state>` ∈ `{draft, active, done}`)
-**Persistence:** Committed with scope, part of audit trail
-
-### Other Modes (Ephemeral)
-
-**Location:** `.peer/reviews/<generated-name>.md`
-**Persistence:** Ephemeral, like Claude's internal plans
-
-**Naming:**
-```
-review-<sha>-<timestamp>.md           # Git rev
-review-<from>..<to>-<timestamp>.md    # Git range
-review-<path-slug>-<timestamp>.md     # Path
-review-staged-<timestamp>.md          # Staged changes
-```
-
-**Cleanup:** User manages `.peer/reviews/` manually
-
----
-
-## Code Target Edge Cases
-
-### No Argument, No Changes
-
-**Symptom:** No path provided, `git diff` returns empty
-
-**Response:**
-1. Check `git diff --cached` for staged changes
-2. If still empty: list recently modified files
-3. Ask user to specify target
-
-### Invalid Path
-
-**Symptom:** Provided path doesn't exist
-
-**Response:**
-1. Check for typos (suggest closest match)
-2. List files in parent directory
-3. Ask user to correct
-
-### Binary Files
-
-**Symptom:** Target includes binary files
-
-**Response:**
-1. Skip binary files
-2. Note: "Skipped N binary files"
-3. Review text files only
-
-### Large Diff
-
-**Symptom:** Diff exceeds reasonable size (> 2000 lines)
-
-**Response:**
-1. Warn: "Large diff detected (N lines)"
-2. Suggest reviewing in chunks or specific files
-3. Proceed if user confirms
-
----
-
-## Conflicting Reviews
-
-### Reviewers Disagree on Gate
-
-**Symptom:** Claude passes, an external reviewer (codex/gemini) fails (or vice versa)
-
-**Response:**
-1. Gate status = FAIL (conservative)
-2. In summary table, show which failed
-3. Include both perspectives in issues
-
-### Reviewers Find Same Issue Differently
-
-**Symptom:** Similar description, different wording
-
-**Response:**
-1. Deduplicate by location + semantic similarity
-2. Combine into single issue
-3. Mark `found_by: [both]` for higher confidence
-
----
-
-## Empty Results
-
-### Reviewer Returns No Issues
-
-**Symptom:** `issues: []` in report
-
-**Response:**
-1. Valid result (code may be solid)
-2. Check if gates still passed
-3. Report as clean review
-
-### Reviewer Returns Only Strengths
-
-**Symptom:** No issues, only strengths listed
-
-**Response:**
-1. Treat as passing review
-2. Include strengths in synthesis
-3. Proceed to recommendation
-
----
-
-## Decision Tree
-
-```
-Start
-  │
-  ├─ Detect input type
-  │   ├─ Scope exists? → Scope mode (batch review)
-  │   ├─ Valid git rev? → Git rev mode
-  │   ├─ Contains '..'? → Git range mode
-  │   ├─ Path exists? → Path mode
-  │   └─ No argument? → Diff mode (staged/unstaged)
-  │
-  ├─ Load review context
-  │   ├─ Scope → Read scope.md, tasks.yaml, review.yaml, validation.yaml
-  │   ├─ Git → git show/diff, commit messages
-  │   ├─ Path → Read files
-  │   └─ Diff → git diff --cached or git diff
-  │
-  ├─ Select reviewers
-  │   ├─ Scope → Use validation.yaml config (no prompt)
-  │   └─ Other → Prompt user with AskUserQuestion
-  │
-  ├─ Dispatch reviewers (parallel)
-  │   ├─ All succeed → Synthesize
-  │   ├─ Some fail → Use available, note partial
-  │   └─ All fail → Report failure, suggest retry
-  │
-  ├─ Parse results
-  │   ├─ YAML valid → Continue
-  │   └─ YAML invalid → Attempt recovery, note issues
-  │
-  ├─ Synthesize
-  │   ├─ Deduplicate issues
-  │   ├─ Aggregate gates
-  │   └─ Prioritize by severity
-  │
-  ├─ Write review output
-  │   ├─ Scope → ./scopes/<state>/<scope>/review.yaml
-  │   └─ Other → .peer/reviews/<name>.md (ephemeral)
-  │
-  ├─ Present results
-  │   ├─ Gate summary table
-  │   ├─ Issues by severity
-  │   └─ Scope: scope compliance + deferred issues
-  │
-  ├─ Recommend action
-  │   ├─ All pass → Ready to merge/commit
-  │   └─ Issues → Address before proceeding
-  │
-  └─ End
-```
+Present the gate summary table, issues by severity, and for scopes, compliance and deferred issues. Recommend merge/commit when all gates pass; otherwise, fixing the issues first.

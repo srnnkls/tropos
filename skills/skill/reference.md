@@ -1,179 +1,35 @@
-> Author portable metadata at the top level and native fields under
-> `henia.targets.<profile>`. The native-field examples below describe Claude's
-> target block; they are not portable top-level authoring fields. Build into
-> `.henia/build/` and deploy with Phora; edit only `skills/`.
-
 # Canonical Skill Reference
 
-Project-specific patterns and frontmatter specifications.
+Edit only `skills/`; build into `.henia/build/`, deploy with Phora.
 
 ## Frontmatter Specification
 
-### Required Fields
+- `name`: max 64 characters; lowercase letters, numbers, hyphens; no XML tags; no `anthropic` or `claude`.
+- `description`: 1–1024 characters; no XML tags; third person ("Processes files").
+
+Claude-native fields go in Claude's `henia.targets` block:
 
 ```yaml
----
-name: skill-name
-description: What it does. Use when [context].
----
-```
-
-**name:**
-- Max 64 characters
-- Lowercase letters, numbers, hyphens only
-- No XML tags
-- No reserved words: "anthropic", "claude"
-
-**description:**
-- Max 1024 characters
-- Non-empty
-- No XML tags
-- Third person ("Processes files", not "I process files")
-
-### Optional Fields
-
-```yaml
----
-name: skill-name
-description: What it does. Use when [context].
-context: fork
-agent: haiku
-user-invocable: false
-allowed-tools:
+context: fork              # run in a forked subagent context
+agent: haiku               # haiku | sonnet | opus
+user-invocable: false      # slash command menu; default true
+allowed-tools:             # restrict tools, YAML list
   - Read
   - Bash
-  - Edit
 hooks:
-  PreToolUse:
-    - command: echo "Before tool"
-  PostToolUse:
-    - command: echo "After tool"
-  Stop:
-    - command: echo "Skill completed"
----
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `context` | `fork` | Run skill in forked subagent context |
-| `agent` | `haiku` \| `sonnet` \| `opus` | Specify agent type for execution |
-| `user-invocable` | `boolean` | Show in slash command menu (default: true) |
-| `allowed-tools` | `list` | Restrict tools available during skill execution |
-| `hooks` | `object` | Lifecycle hooks scoped to skill |
-
-### Hooks
-
-Hooks execute shell commands at skill lifecycle events:
-
-```yaml
-hooks:
-  PreToolUse:
+  PreToolUse:              # before each tool
     - command: ./scripts/before-tool.sh
       timeout: 5000
-  PostToolUse:
+  PostToolUse:             # after each tool
     - command: ./scripts/after-tool.sh
-  Stop:
+  Stop:                    # at completion
     - command: ./scripts/cleanup.sh
 ```
 
-**Hook types:**
-- `PreToolUse` - Before each tool invocation
-- `PostToolUse` - After each tool invocation
-- `Stop` - When skill execution completes
-
-### Allowed Tools
-
-Restrict which tools the skill can use:
-
-```yaml
-allowed-tools:
-  - Read
-  - Glob
-  - Grep
-  - Bash
-```
-
-Use YAML list syntax.
-
----
-
-## Skill Categories
-
-### Operational Skills
-
-**Examples:** `scope`
-
-**Characteristics:**
-- Multi-step workflow modifying files/state
-- Creates or moves files on disk
-- Updates tracking documents
-- Clear success criteria
-
-**Pattern:**
-```
-1. Validate input
-2. Gather context
-3. Perform operations
-4. Update indices
-5. Report completion
-```
-
-### Generation Skills
-
-**Examples:** `docs-implement`
-
-**Characteristics:**
-- Transform one format to another
-- Generate structured output
-- Often include helper scripts
-- Reference authoritative framework docs
-
-**Pattern:**
-```
-1. Validate source
-2. Detect/parse input type
-3. Apply templates
-4. Generate output
-5. Provide usage instructions
-```
-
-### Guidance Skills
-
-**Examples:** `implement`, `loqui`
-
-**Characteristics:**
-- Provide patterns and best practices
-- Imperative style ("DO this", "DON'T do that")
-- Code examples and snippets
-
-**Pattern:**
-```
-- Core principles
-- Do/Don't examples
-- Code patterns
-- Integration notes
-```
-
----
-
-## Progressive Disclosure
-
-**Level 1 (Metadata):** Name + description loaded at startup
-**Level 2 (SKILL.md):** Loaded when skill invoked
-**Level 3 (Resources):** Loaded on-demand during execution
-
-**Token budgets:**
-- SKILL.md body: <500 lines (soft limit)
-- Description: <1024 characters
-- Name: <64 characters
-
----
-
 ## Command Delegation Pattern
 
-Commands can delegate to skills for reusability:
+A command delegates to a skill in about 20 lines:
 
-**Command (~20 lines):**
 ```markdown
 ---
 description: Create planning documents for task
@@ -189,87 +45,13 @@ $ARGUMENTS
 
 Use the `scope` skill to create planning documents.
 
-**Input:** `$ARGUMENTS` (optional - scope name)
+Input: `$ARGUMENTS` (optional scope name)
 
 Follow the scope skill workflow.
-
-> **See**: `skills/scope/SKILL.md`
 ```
-
----
-
-## Directory Conventions
-
-**Project standard:**
-```
-skills/{skill-name}/
-├── SKILL.md              # Main instructions (<500 lines)
-├── templates/            # Document templates (.md)
-├── scripts/              # Executable code (.sh, .py)
-└── reference/           # Extended documentation
-```
-
-**Official standard (also valid):**
-```
-skill-name/
-├── SKILL.md
-├── scripts/              # Executable code
-├── reference/           # Documentation for context
-└── assets/               # Files used in output
-```
-
----
 
 ## Anti-Patterns
 
-Apply the [single-source-of-truth contract](../../instructions/AGENTS.md#single-source-of-truth).
+- Information the model already knows
 
-**Don't:**
-- Put trigger strings in description (use skill-rules.json)
-- Exceed 500 lines in SKILL.md
-- Use emojis (use text markers)
-- Use Windows-style paths (`\` instead of `/`)
-- Create deeply nested references
-- Include information Claude already knows
-- Use reserved words in name
-
-**Do:**
-- Keep SKILL.md focused and concise
-- Extract templates to separate files
-- Use progressive disclosure
-- Provide concrete examples
-- Define clear success criteria
-- Test with real usage
-
----
-
-## Integration
-
-### With Other Skills
-
-Reference related skills in documentation:
-```markdown
-## Related
-- `scope` - Define and track work
-- `clarify` - Resolve ambiguities
-```
-
-### With Project Docs
-
-Point to authoritative sources:
-```markdown
-> **See**: CLAUDE.md for project conventions
-> **See**: .plan/issues/README.md for issue tracking
-```
-
----
-
-## Testing Checklist
-
-After creating a skill:
-
-1. **Discovery:** Does the description trigger correctly?
-2. **Resources:** Can Claude find bundled files?
-3. **Workflow:** Do steps complete successfully?
-4. **Paths:** Do all links work?
-5. **Models:** Does it work with Haiku/Sonnet/Opus?
+List related skills in a `:::related` block and resource links in a `:::references` block.

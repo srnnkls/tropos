@@ -1,10 +1,6 @@
 # Implementation Review State
 
-`review.yaml` is the sole authority for implementation findings, resolutions, deferred issues, batch review outcomes, and optional multi-batch integration review.
-
-## Location
-
-`scopes/<state>/<scope>/review.yaml`
+`scopes/<state>/<scope>/review.yaml` is the sole authority for implementation findings, resolutions, deferred issues, batch review outcomes, and multi-batch integration review.
 
 ## Schema
 
@@ -21,6 +17,7 @@ gates:
   performance: pass | fail | pending
   security: pass | fail | pending
   architecture: pass | fail | pending
+  abstractions: pass | fail | pending
 
 batch_reviews:
   - batch: 1
@@ -33,7 +30,7 @@ batch_reviews:
         effort: high
         status: success | timeout | failed
     synthesized:
-      gates: {correctness: pass, style: pass, performance: pass, security: pass, architecture: pass}
+      gates: {correctness: pass, style: pass, performance: pass, security: pass, architecture: pass, abstractions: pass}
       critical_issues: 0
       high_issues: 0
       medium_issues: 1
@@ -58,26 +55,21 @@ integration_review:
   recommendation: ready_to_merge | changes_requested | null
 ```
 
-Each `finding` is the exact admitted issue object from the canonical [review report](../../review/reference/report.md). Batch/task attribution and resolution state are implementation-owned extensions. Derive deferred lists and readiness from issue statuses, task state, batch reviews, validation evidence, and the integration result; do not persist duplicate rollups.
-
-Record the actual agent, effort, and execution class from the batch snapshot. Do not copy live routing into a second configuration block.
+Each `finding` is the exact admitted issue object from the [review report](../../review/reference/report.md); batch/task attribution and resolution state are implementation extensions. Derive deferred lists and readiness from issue statuses, task state, batch reviews, validation evidence, and the integration result; persist no rollups. Record the actual agent, effort, and execution class from the batch snapshot; do not copy live routing.
 
 ## Writes
 
-After one concurrent Phase C wave:
+After each Phase C wave, in one write with the batch commit:
 
 1. append one batch entry;
 2. update aggregate gates;
 3. add only findings admitted by synthesis;
-4. record resolutions, residuals, `needs_decision`, and medium deferrals;
-5. write once with the batch commit.
+4. record resolutions, residuals, `needs_decision`, and medium deferrals.
 
-A one-batch scope sets `integration_review.required: false` and treats its Phase C plus native validation as final. A multi-batch scope writes one holistic integration result after all batches; it does not repeat General/Architecture/Compliance.
+A one-batch scope sets `integration_review.required: false`. A multi-batch scope writes one holistic integration result after all batches.
 
 ## Readers
 
-- [continue](../../continue/SKILL.md) reads the latest batch/integration outcome and existing report directories from the checkpoint.
-- [implement](../SKILL.md) derives blocking findings and readiness from authoritative task, issue, validation, and integration state.
-- [scope](../../scope/SKILL.md) with `done` checks task state, acceptance evidence, native validation, and the required integration outcome.
-
-`tasks.yaml` owns task status. `checkpoint.yaml` owns the current recovery wave. `validation.yaml` owns pre-implementation scope review and its reviewer configuration.
+- [continue](../../continue/SKILL.md): latest batch/integration outcome.
+- [implement](../SKILL.md): blocking findings and readiness.
+- [scope](../../scope/SKILL.md) `done`: required integration outcome.

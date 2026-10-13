@@ -42,29 +42,39 @@ cat >"$tmp/bin/gestalt" <<'STUB'
 printf 'FAKE REPOSITORY ORIENTATION\n'
 STUB
 
-# Stands in for the herdr CLI: records every call, hands back the JSON shapes peer parses,
-# and emulates the one behaviour that matters — a pane agent writing its own report file.
+# Stands in for the herdr CLI: records every call with the socket it targets, hands back the
+# JSON shapes peer parses, and emulates the one behaviour that matters — a pane agent writing
+# its own report file. The peer-review session runs once its server has been started, or
+# from the outset under HERDR_STUB_SESSION=running.
 cat >"$tmp/bin/herdr" <<'STUB'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >>"$HERDR_CALLS"
+printf '%s\t%s\n' "${HERDR_SOCKET_PATH:-caller}" "$*" >>"$HERDR_CALLS.sockets"
 case "$1 ${2:-}" in
+  "--session peer-review")
+    [[ "$3" == server ]] && : >"$HERDR_CALLS.server" ;;
+  "session list")
+    running=false
+    [[ "${HERDR_STUB_SESSION:-}" == running || -e "$HERDR_CALLS.server" ]] && running=true
+    printf '{"sessions":[{"name":"default","running":true,"socket_path":"caller"},{"name":"peer-review","running":%s,"socket_path":"/stub/peer-review.sock"}]}\n' "$running" ;;
   "pane current")
     [[ "${HERDR_STUB_MODE:-ok}" == stale ]] && exit 1
     printf '{"result":{"pane":{"pane_id":"w1:p1","workspace_id":"w1"}}}\n' ;;
+  "workspace create")
+    printf '{"result":{"workspace":{"workspace_id":"w9"},"tab":{"tab_id":"w9:t1"},"root_pane":{"pane_id":"w9:p1"}}}\n' ;;
+  "workspace list")
+    printf '%s\n' '{"result":{"workspaces":[
+      {"workspace_id":"w1","label":"scratch","agent_status":"idle"},
+      {"workspace_id":"w4","label":"peer-subject-done","agent_status":"done"},
+      {"workspace_id":"w5","label":"peer-subject-live","agent_status":"working"},
+      {"workspace_id":"w6","label":"peer-subject-stuck","agent_status":"blocked"},
+      {"workspace_id":"w7","label":"peer-subject-quiet","agent_status":"idle"}]}}' ;;
+  "workspace close") ;;
   "tab create")
-    printf '{"result":{"tab":{"tab_id":"w1:t9"},"root_pane":{"pane_id":"w1:p9"}}}\n' ;;
-  "tab list")
-    printf '%s\n' '{"result":{"tabs":[
-      {"tab_id":"w1:t1","label":"1","agent_status":"idle"},
-      {"tab_id":"w1:t4","label":"peer-subject-done","agent_status":"done"},
-      {"tab_id":"w1:t5","label":"peer-subject-live","agent_status":"working"},
-      {"tab_id":"w1:t6","label":"peer-subject-stuck","agent_status":"blocked"},
-      {"tab_id":"w1:t7","label":"peer-subject-quiet","agent_status":"idle"}]}}' ;;
-  "tab close") ;;
+    printf '{"result":{"tab":{"tab_id":"w9:t%s"},"root_pane":{"pane_id":"w9:p%s"}}}\n' 2 2 ;;
+  "tab rename") ;;
   "pane read")
     printf 'PANE TRANSCRIPT for %s\n' "$3" ;;
-  "pane split")
-    printf '{"result":{"pane":{"pane_id":"w1:p%s"}}}\n' "$(( RANDOM % 90 + 10 ))" ;;
   "pane run")
     if [[ -n "${HERDR_LAUNCHER_DUMP:-}" ]]; then
       launcher=$(printf '%s' "$4" | tr -d "'")
@@ -99,7 +109,7 @@ cp "$tmp/bin/claude" "$tmp/bin/codex"
 chmod +x "$tmp/bin"/*
 
 run_id=$("$PEER" run-id)
-herdr_env=( HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_PANE_ID=w1:p1 )  # inherited; the live pane decides
+herdr_env=( HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_PANE_ID=w1:p1 HERDR_SOCKET_PATH=caller )  # inherited; the live pane decides
 
 fanout() {  # STAGE EXTRA-ENV...
   local stage=$1; shift
@@ -115,37 +125,62 @@ surface() {  # EXTRA-ENV...
     env "${herdr_env[@]}" "$@" PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
     "$PEER" herdr 2>/dev/null
 }
-[[ "$(surface)" == "$(printf 'panes\tw1')" ]]
-check 'peer herdr names the live workspace panes would open in' $?
+[[ "$(surface)" == "$(printf 'panes\tpeer-review')" ]]
+check 'peer herdr names the session panes would open in' $?
+
+! grep -qE '^(--session|workspace create)' "$tmp/calls.surface"
+check 'peer herdr starts no session and opens no workspace' $?
 
 [[ "$(surface HERDR_STUB_MODE=stale)" == "$(printf 'headless\t-')" ]] \
   && [[ "$(surface PEER_DISPATCH=cli)" == "$(printf 'headless\t-')" ]]
 check 'peer herdr reports headless for a stale pane and for the opt-out' $?
 
 # --- peer herdr clean reaps finished rounds, and only those ------------------------------
-cleaned=$(HERDR_CALLS="$tmp/calls.clean" \
+cleaned=$(HERDR_CALLS="$tmp/calls.clean" HERDR_STUB_SESSION=running \
   env "${herdr_env[@]}" PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
   "$PEER" herdr clean 2>"$tmp/err.clean")
-[[ "$cleaned" == "$(printf 'closed\tw1:t4\tpeer-subject-done\nclosed\tw1:t7\tpeer-subject-quiet')" ]]
-check 'peer herdr clean closes the settled peer tabs' $?
+[[ "$cleaned" == "$(printf 'closed\tw4\tpeer-subject-done\nclosed\tw7\tpeer-subject-quiet')" ]]
+check 'peer herdr clean closes the settled peer workspaces' $?
 
-! grep -qE '^tab close w1:(t1|t5|t6)$' "$tmp/calls.clean"
-check 'peer herdr clean spares live peers and tabs that are not peer rounds' $?
+! grep -qE '^workspace close w(1|5|6)$' "$tmp/calls.clean"
+check 'peer herdr clean spares live peers and workspaces that are not peer rounds' $?
 
-# --- a fan-out from inside a herdr pane runs in panes, not headless children -------------
+grep -qx "$(printf '/stub/peer-review.sock\tworkspace list')" "$tmp/calls.clean.sockets"
+check 'peer herdr clean reads the peer-review session, not the caller session' $?
+
+cleaned=$(HERDR_CALLS="$tmp/calls.clean-idle" \
+  env "${herdr_env[@]}" PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
+  "$PEER" herdr clean 2>/dev/null)
+[[ -z "$cleaned" && ! -e "$tmp/calls.clean-idle.server" ]]
+check 'peer herdr clean without a running session starts none and closes nothing' $?
+
+# --- a fan-out from inside a herdr pane runs in the peer-review session ------------------
 manifest=$(fanout panes HEADLESS_MARKER="$marks/headless.panes")
 calls="$tmp/calls.panes"
 
-grep -qF -- 'tab create --workspace w1 --cwd '"$tmp"' --label peer-subject-panes --no-focus' "$calls"
-check 'the round opens one tab named peer-<subject>-<stage>' $?
+grep -qx -- '--session peer-review server' "$calls"
+check 'a stopped peer-review session is started headless' $?
 
-(( $(grep -c '^tab create' "$calls") == 1 ))
-check 'two peers share one tab' $?
+fanout running HERDR_STUB_SESSION=running >/dev/null
+! grep -q -- '^--session' "$tmp/calls.running"
+check 'a running peer-review session is reused' $?
 
-(( $(grep -c '^pane split' "$calls") == 1 ))
-check 'the second peer splits a sibling pane and the first reuses the root' $?
+grep -qx "$(printf 'caller\tpane current --current')" "$calls.sockets" \
+  && ! grep -E $'\t''(workspace|tab|pane run|agent)' "$calls.sockets" | grep -qv '^/stub/peer-review.sock'
+check 'everything after the live-pane check targets the peer-review socket' $?
 
-grep -q '^pane report-metadata w1:p9 --source peer --title peer paneable ' "$calls" \
+grep -qF -- 'workspace create --cwd '"$tmp"' --label peer-subject-panes --no-focus' "$calls"
+check 'the round opens one workspace named peer-<subject>-<stage>' $?
+
+(( $(grep -c '^workspace create' "$calls") == 1 ))
+check 'two peers share one workspace' $?
+
+grep -qx 'tab rename w9:t1 paneable' "$calls" \
+  && grep -qF -- 'tab create --workspace w9 --cwd '"$tmp"' --label paneable-two --no-focus' "$calls" \
+  && ! grep -q '^pane split' "$calls"
+check 'each peer gets its own tab named after it, the first taking the root tab' $?
+
+grep -q '^pane report-metadata w9:p1 --source peer --title peer paneable ' "$calls" \
   && grep -q -- '--display-agent paneable (peer reviewer)' "$calls" \
   && grep -q -- '--token peer=paneable ' "$calls"
 check 'each pane carries peer identity as herdr metadata' $?
@@ -173,19 +208,19 @@ grep '^agent prompt ' "$tmp/calls.prompt-file" | grep -qF "Read $prompt_dir/prom
   && [[ ! -e "$prompt_dir/paneable.prompt.md" ]]
 check "a caller's prompt file is used where it lies" $?
 
-grep -q "^pane run w1:p9 .*launch.sh" "$calls"
+grep -q "^pane run w9:p1 .*launch.sh" "$calls"
 check 'each pane is started through a generated launcher script' $?
 
 grep '^agent prompt ' "$calls" \
   | grep -qF 'complete report to '"$tmp"'/.peer/subject/'"$run_id"'/panes/paneable.yaml'
 check 'the pane agent is told where to write its report' $?
 
-grep -qx 'tab close w1:t9' "$calls"
-check 'a clean round closes its own tab' $?
+grep -qx 'workspace close w9' "$calls"
+check 'a clean round closes its own workspace' $?
 
 fanout keep PEER_HERDR_KEEP=1 >/dev/null
-! grep -q '^tab close' "$tmp/calls.keep"
-check 'PEER_HERDR_KEEP=1 keeps the tab of a clean round' $?
+! grep -q '^workspace close' "$tmp/calls.keep"
+check 'PEER_HERDR_KEEP=1 keeps the workspace of a clean round' $?
 
 # --- the reviewer sandbox survives the move into a pane ---------------------------------
 fanout reviewer-sandbox HERDR_LAUNCHER_DUMP="$tmp/launchers.reviewer" >/dev/null
@@ -218,12 +253,12 @@ check 'the missing report names the pane it was expected from' $?
 (( elapsed < 25 ))  # cap is 30; a settled agent must not hold the pane for the rest of it
 check 'a settled agent that wrote nothing gives up long before the cap' $?
 
-grep -qx 'tab close w1:t9' "$tmp/calls.noreport"
-check 'a round with a failed peer still closes its tab' $?
+grep -qx 'workspace close w9' "$tmp/calls.noreport"
+check 'a round with a failed peer still closes its workspace' $?
 
 grep -qF 'PANE TRANSCRIPT' "$tmp/.peer/subject/$run_id/noreport/paneable.pane.log" \
   && grep -qF 'pane transcript is at' "$tmp/err.noreport"
-check "a failed peer's pane transcript outlives the tab as a file" $?
+check "a failed peer's pane transcript outlives the workspace as a file" $?
 
 [[ ! -e "$tmp/.peer/subject/$run_id/panes/paneable.pane.log" ]]
 check 'a peer that reported leaves no pane log behind' $?
@@ -237,7 +272,7 @@ yq '.defaults.dispatch = "cli"' "$tmp/registry.yaml" > "$tmp/registry.cli.yaml"
 [[ "$(HERDR_CALLS="$tmp/calls.surface" env "${herdr_env[@]}" PEER_REGISTRY="$tmp/registry.cli.yaml" \
       PATH="$tmp/bin:$PATH" "$PEER" herdr 2>/dev/null)" == "$(printf 'headless\t-')" ]] \
   && [[ "$(HERDR_CALLS="$tmp/calls.surface" env "${herdr_env[@]}" PEER_DISPATCH=herdr \
-      PEER_REGISTRY="$tmp/registry.cli.yaml" PATH="$tmp/bin:$PATH" "$PEER" herdr 2>/dev/null)" == "$(printf 'panes\tw1')" ]]
+      PEER_REGISTRY="$tmp/registry.cli.yaml" PATH="$tmp/bin:$PATH" "$PEER" herdr 2>/dev/null)" == "$(printf 'panes\tpeer-review')" ]]
 check 'registry defaults.dispatch selects the surface, and PEER_DISPATCH overrides it' $?
 
 dir=$("$PEER" path subject flag --run "$run_id" -C "$tmp")
@@ -261,7 +296,7 @@ check 'an unknown dispatch value is a usage error' $?
 
 manifest=$(fanout stale HERDR_STUB_MODE=stale HEADLESS_MARKER="$marks/headless.stale")
 grep -q '^pane current' "$tmp/calls.stale" \
-  && ! grep -q '^tab create' "$tmp/calls.stale" \
+  && ! grep -qE '^(--session|workspace create)' "$tmp/calls.stale" \
   && [[ -s "$marks/headless.stale" ]]
 check 'an inherited HERDR_ENV with no live pane falls back to headless' $?
 

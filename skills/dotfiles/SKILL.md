@@ -13,19 +13,15 @@ henia:
           default_prompt: Use $dotfiles for the requested task.
 ---
 
-<!-- Generated from skills/dotfiles/SKILL.md by henia build; edit the canonical source. -->
-
-`~/dotfiles` deploys with [phora](https://github.com/srnnkls/phora). The deployment model and the Scrut checks live in `~/dotfiles/README.md`, `phora.toml` and `tests/scrut/`. Read them before changing mappings; this skill covers the day-to-day workflow only.
+`~/dotfiles` deploys with [phora](https://github.com/srnnkls/phora). Before changing mappings, read `~/dotfiles/README.md`, `phora.toml` and `tests/scrut/`. Run every command from `~/dotfiles` or with `-C ~/dotfiles`.
 
 ## Configuration split
 
 | File | Holds | Tracked |
 |---|---|---|
-| `phora.toml` | Sources: what the repository offers (`path`, `root`, `include`/`exclude`, `deploy = "link"`), the `henia` build source, hooks | yes |
-| `phora.local.toml` | Targets: home destinations and which sources bind to them (`take`, `collapse`) | no |
+| `phora.toml` | Sources (`path`, `root`, `include`/`exclude`, `deploy = "link"`), the `henia` tool, hooks | yes |
+| `phora.local.toml` | Targets: home destinations and their sources (`take`, `collapse`); local source overrides | no |
 | `phora.local.example.toml` | Template for `phora.local.toml` | yes |
-
-Run every command from `~/dotfiles` or pass `-C ~/dotfiles`.
 
 ## Preview
 
@@ -39,30 +35,29 @@ Preview before every sync that changes mappings.
 ## Add a dotfile
 
 1. Place the file in the repository, e.g. `~/dotfiles/.config/app/config.toml`.
-2. If an existing source already offers that directory, skip to step 4.
+2. Skip to step 4 if a source already offers that directory.
 3. Add a source to `phora.toml`:
 
    ```toml
    app = { path = ".", root = ".config/app", deploy = "link" }
    ```
 
-4. Bind it in `phora.local.toml` (and the example file, for new programs):
+4. Bind it in `phora.local.toml` (and, for new programs, the example file):
 
    ```toml
    app = { path = "~/.config/app", sources = ["app"] }
    ```
 
-   Use `sources.app = { collapse = false }` when the program writes its own files into the directory.
+   Use `sources.app = { collapse = false }` when the program writes into the directory.
 5. `phora preview`, then `phora sync --prune`.
 
 ## Remove a dotfile
 
-1. Delete the file, or its source and target entries.
-2. `phora sync --prune` removes the deployed links phora no longer manages.
+Delete the file, or its source and target entries, then `phora sync --prune`.
 
 ## Advance Tropos
 
-Syncs build the locked Tropos commit. Move the pin explicitly:
+Syncs build the locked Tropos commit. Move the pin with:
 
 ```sh
 phora update tropos --fast-forward --prune
@@ -70,15 +65,19 @@ phora update tropos --fast-forward --prune
 
 ## Live Tropos edits
 
-Point the source at a working tree in `phora.local.toml`:
+Point both Tropos sources at a working tree in `phora.local.toml`:
 
 ```toml
 [sources.tropos]
 path = "~/projects/tropos"
 deploy = "link"
+
+[sources.tropos-fas]
+path = "~/projects/tropos"
+deploy = "link"
 ```
 
-Remove the override and run `phora sync --prune` to return to the pin. A dotfiles override cannot replace a Tropos dependency such as Gestalt.
+FAS rules link into the working tree; skills and harnesses stay copied Henia build output, so `phora sync` after editing them. Remove the overrides and `phora sync --prune` to return to the pin. The override cannot replace a Tropos dependency such as Gestalt.
 
 ## Troubleshooting
 

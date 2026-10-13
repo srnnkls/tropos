@@ -1,38 +1,24 @@
 # Scope Operations
 
-Simple sub-operations for done and list.
-
-Scope directories live under one of three lifecycle dirs: `scopes/draft/<name>/`, `scopes/active/<name>/`, or `scopes/done/<name>/`. A scope name is unique across states.
-
----
+Locate scopes per [Scope Location](../SKILL.md#scope-location).
 
 ## Done
 
-When [scope](../SKILL.md) with `done <name>` is invoked:
+For [scope](../SKILL.md) with `done <name>`:
 
-1. Locate scope across `scopes/{draft,active,done}/<name>/`
-2. Read `tasks.yaml` and check all tasks are done
-3. If tasks remain: warn and ask to proceed or update first
-4. Set `status: done` in scope.md frontmatter
-5. Move directory: `git mv scopes/<state>/<name> scopes/done/<name>` (or `mv` if untracked). Skip if already in `done/`.
-6. Present completion summary
-7. Offer: "Delete scope directory? Git history preserves everything."
-
----
+1. Read `tasks.yaml`. If any task is not done, warn and ask whether to proceed or update first.
+2. Set `status: done` in scope.md frontmatter.
+3. Unless already in `done/`, run `git mv scopes/<state>/<name> scopes/done/<name>` (`mv` if untracked).
+4. Present a completion summary.
+5. Offer: "Delete scope directory? Git history preserves everything."
 
 ## List
 
-When [scope](../SKILL.md) with `list` is invoked:
-
-1. Find all `scopes/*/*/scope.md` files (state dir + scope name)
-2. Read frontmatter from each (status, created, issue_type)
-3. Present table — group by lifecycle state for readability:
+For [scope](../SKILL.md) with `list`: read `status`, `created`, `issue_type` from every `scopes/*/*/scope.md` and present a table grouped by state:
 
 ```
 | Scope | Status | Type | Created |
 |-------|--------|------|---------|
-| auth-system | active | Feature | 2026-03-01 |
-| api-refactor | draft | Initiative | 2026-03-10 |
 ```
 
-The `Status` column should match the parent directory (`draft`/`active`/`done`); flag any drift between frontmatter and parent dir.
+Flag any scope whose frontmatter `status` differs from its parent directory.

@@ -1,41 +1,14 @@
 # SDD Pre-Implementation Gates
 
-Reference for gates applied to Initiative-type scopes before implementation.
+Apply all gates to Initiatives only.
 
-## Applicability
+| Gate | Checklist |
+|---|---|
+| Simplicity | Minimal projects/components; no future-proofing or speculative features; complexity justified by requirements |
+| Anti-Abstraction | Framework/tools used directly (no wrapper layers); single representation of core concepts; no "just in case" abstractions |
+| Integration-First | API contracts defined (if applicable); integration points identified in scope.md; contract tests planned (if applicable) |
 
-| Issue Type | Gates Applied |
-|------------|---------------|
-| Initiative | All gates |
-| Feature | None (opt-in) |
-| Task | None |
-
-## Gates
-
-### Simplicity Gate
-
-Checklist:
-- [ ] Solution uses minimal projects/components
-- [ ] No future-proofing or speculative features
-- [ ] Complexity is justified by requirements
-
-### Anti-Abstraction Gate
-
-Checklist:
-- [ ] Using framework/tools directly (no wrapper layers)
-- [ ] Single representation of core concepts
-- [ ] No "just in case" abstractions
-
-### Integration-First Gate
-
-Checklist:
-- [ ] API contracts defined (if applicable)
-- [ ] Integration points identified in scope.md
-- [ ] Contract tests planned (if applicable)
-
-## Gate Status
-
-Gates are tracked in `validation.yaml` under the `gates` section:
+Track results in `validation.yaml`:
 
 ```yaml
 gates:
@@ -50,19 +23,4 @@ gates:
     reason: "[explanation]"
 ```
 
-## Blocking Behavior
-
-When gates are checked by task-dispatch:
-1. Read validation.yaml from scope directory
-2. If issue_type is Initiative and any gate status is "fail":
-   - Block dispatch
-   - Report which gates failed
-   - Prompt user to resolve via `$clarify` or manual edit
-3. If all gates pass or issue_type is not Initiative: proceed
-
-## Resolution
-
-Failed gates can be resolved by:
-1. [clarify](../../clarify/SKILL.md) - Interactive resolution
-2. Manual edit of validation.yaml with justification
-3. Changing issue_type (if scope was misclassified)
+Task-dispatch reads `validation.yaml`. If `issue_type` is Initiative and any gate is `fail`, block dispatch, report the failed gates, and have the user resolve them via [clarify](../../clarify/SKILL.md), a manual `validation.yaml` edit with justification, or reclassifying `issue_type` if the scope was misclassified. Otherwise proceed.

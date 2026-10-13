@@ -1,11 +1,14 @@
 ---
 name: clarify
-description: Resolve ambiguities interactively with tracked changes. Works with scope, code review, and other skills.
+description: Resolve ambiguities interactively with tracked changes. Use when resolving scope markers, ambiguous requirements, ambiguity-scan gaps or code review questions with an audit trail; not for initial scope validation or changing a scope fundamentally.
 metadata:
   type: domain
 henia:
   auto_invoke: false
   targets:
+    claude:
+      frontmatter:
+        argument-hint: '[context]'
     codex:
       openai:
         interface:
@@ -14,100 +17,54 @@ henia:
           default_prompt: Use $clarify for the requested task.
 ---
 
-<!-- Generated from skills/clarify/SKILL.md by henia build; edit the canonical source. -->
-
 # Clarify Skill
 
-Resolve ambiguities by updating documents directly with tracked changes. Context-aware: adapts to scopes, code reviews, or standalone use.
+Resolve ambiguities by editing the source documents and recording each change.
 
----
-
-## When to Use
-
-Use for:
-- Resolving markers before implementation (especially for Initiatives)
-- Clarifying ambiguous requirements discovered post-validation
-- Addressing gaps identified in ambiguity_scan
-- Resolving questions from code review findings
-- Any interactive clarification with audit trail
-
-Don't use for:
-- Initial validation (handled during `$scope` creation)
-- Changing fundamental scope (re-run `$scope`)
-
----
-
-:::static
+::::head
 
 ## Context Detection
 
-The skill auto-detects context based on what's available:
-
 | Context | Detection | Source |
 |---------|-----------|--------|
-| Scope | `./scopes/*/*/validation.yaml` exists | ambiguity_scan + markers |
-| Code Review | Recent `~/.claude/reviews/*.md` | Review issues/questions |
+| Scope | a scope's `validation.yaml` exists ([scope location](../scope/SKILL.md#scope-location)) | ambiguity_scan + markers |
+| Code Review | a recent review report under `.peer/` | Review issues/questions |
 | Standalone | Neither above | User-provided questions |
-
----
 
 ## Workflow
 
 ### Step 1: Load and Scan
 
-Scope context:
-1. Find scope in `./scopes/*/*/` (lifecycle dirs: `draft`, `active`, `done`)
-2. Read `validation.yaml` from scope directory
-3. Run ambiguity scan:
-   - Check `ambiguity_scan` section for areas with `status: partial` or `status: missing`
-   - These become clarification candidates alongside open markers
-4. Collect open markers where `status: open`
-5. Merge candidates: ambiguity gaps + open markers (deduplicate by area)
-6. If no candidates: report "No unresolved items" and exit
-
-Code review context:
-1. Find most recent review in `~/.claude/reviews/`
-2. Extract issues marked as needing clarification
-3. Present as candidates
-
-Standalone:
-1. Ask user what needs clarification
-2. Proceed with interactive Q&A
+- Scope: resolve the scope per [scope location](../scope/SKILL.md#scope-location) and read its `validation.yaml`. Candidates are `ambiguity_scan` areas with `status: partial` or `status: missing` plus markers with `status: open`, deduplicated by area. None → report "No unresolved items" and exit.
+- Code review: candidates are the issues marked as needing clarification in the most recent review report under `.peer/` ([`peer path`](../peer/SKILL.md#report-layout--peer)).
+- Standalone: ask the user what needs clarification, then run interactive Q&A.
 
 ### Step 2: Present Candidates
 
-For each candidate (prioritized by impact), use AskUserQuestion:
+Per candidate, in the row order of the scope [ambiguity scan](../scope/SKILL.md#step-3-validation-human-in-the-loop) table, use AskUserQuestion:
 
-```
-Header: ${AREA}
-Question: ${DESCRIPTION}
-multiSelect: false
-Options:
+:::menu{header="${AREA}" question="${DESCRIPTION}"}
 - [Generated options based on context]
 - Defer: Skip for now
-```
-
-Prioritization: Scope > Behavior > Data Model > Constraints > Edge Cases > Integration > Terminology
+:::
 
 ### Step 3: Update Documents Directly
 
-When a clarification is resolved, update the relevant section in the source document:
+Integrate each resolved clarification into its section of `scope.md` ([template](../scope/templates/scope.md)); never add a "## Clarifications" section.
 
 | Clarification Area | Target Document | Target Section |
 |--------------------|-----------------|----------------|
-| Scope | scope.md | Requirements, Scope |
-| Behavior | scope.md | Requirements, Behavior |
+| Scope | scope.md | Goal or Non-Goals |
+| Behavior | scope.md | Functional Requirements |
 | Data Model | scope.md | Data Model |
 | Constraints | scope.md | Constraints |
-| Edge Cases | scope.md | Edge Cases |
-| Integration | scope.md | Integration Points |
-| Terminology | scope.md | Terminology |
-
-Integrate each clarification directly into the relevant section of the target document. The document must not gain a separate "## Clarifications" section.
+| Edge Cases | scope.md | Acceptance Criteria |
+| Integration | scope.md | Technical Requirements |
+| Terminology | scope.md | Context |
 
 ### Step 4: Record Clarification Session
 
-Create a new session entry in `clarification_sessions`:
+Append a session to `clarification_sessions`; `doc_updates` lists every changed file and section:
 
 ```yaml
 clarification_sessions:
@@ -125,111 +82,22 @@ clarification_sessions:
             action: modified
 ```
 
-`doc_updates` tracks exactly which files/sections changed.
-
 ### Step 5: Update Ambiguity Scan Status
 
-For each resolved clarification from ambiguity gaps:
-
-1. Update `ambiguity_scan.${area}.status` to `clear`
-2. Remove the resolved gap from `ambiguity_scan.${area}.gaps`
+Per resolved gap: set `ambiguity_scan.${area}.status` to `clear` and remove the gap from `ambiguity_scan.${area}.gaps`.
 
 ### Step 6: Update Markers
 
-For each resolved marker:
-
-1. Change `status: open` to `status: resolved`
-2. Add `resolution: "${USER_ANSWER}"`
+Per resolved marker: set `status: resolved` and add `resolution: "${USER_ANSWER}"`.
 
 ### Step 7: Re-check Gates (Initiatives Only)
 
-For Initiative scopes:
+Re-evaluate the gates in `validation.yaml`, update any whose assessment changed, and report gate status.
 
-1. Re-evaluate gates in validation.yaml
-2. Update gate status if resolution changes assessment
-3. Report gate status
+::::
 
+:::related
+- `scope` — creates scopes with ambiguity scans and markers, and clarifies during creation or review
+- `implement` — checks for blocking markers before execution
+- `code` — clarifies code review findings
 :::
-
----
-
-## Doc Update Mapping
-
-| Source | Target File | Target Section |
-|--------|-------------|----------------|
-| Scope gap | scope.md | ## Requirements or ## Scope |
-| Behavior gap | scope.md | ## Requirements / Behavior subsection |
-| Data Model gap | scope.md | ## Data Model |
-| Constraints gap | scope.md | ## Constraints |
-| Edge Cases gap | scope.md | ## Edge Cases |
-| Integration gap | scope.md | ## Integration Points |
-| Terminology gap | scope.md | ## Terminology |
-
----
-
-## Example Session
-
-Ambiguity scan results:
-```
-- scope: partial (1 gap)
-- data_model: missing (2 gaps)
-- M001 (Constraints): open
-```
-
-Candidates presented:
-```
-1. Scope: "User role boundaries unclear"
-2. Data Model: "Schema for notifications not defined"
-3. Data Model: "Retention policy not specified"
-4. Constraints: "Authentication method not specified"
-```
-
-AskUserQuestion prompt:
-```
-Header: Scope
-Question: What user roles exist and what are their boundaries?
-
-Options:
-- Admin/User: Two-tier with admin full access
-- Role-based: Granular permissions per feature
-- Defer: Skip for now
-```
-
-After user selects "Admin/User" — session record written to `validation.yaml`:
-```yaml
-clarification_sessions:
-  - id: S001
-    timestamp: 2025-01-15T10:30:00Z
-    source: clarify
-    questions:
-      - id: Q001
-        question: "What user roles exist and what are their boundaries?"
-        answer: "Two-tier: Admin (full access), User (standard permissions)"
-        area: scope
-        doc_updates:
-          - file: scope.md
-            section: Requirements
-            action: modified
-```
-
-`scope.md#Requirements` updated inline; `ambiguity_scan` updated:
-```yaml
-scope:
-  status: clear
-  gaps: []
-```
-
----
-
-## Integration
-
-**Command:** `$clarify` with `[context]`
-
-**Invoked from:**
-- `scope` - Clarify during scope creation or review
-- `code review` - Clarify code review findings
-- `implement` - Resolve blocking markers before execution
-
-**Related skills:**
-- `scope` - Creates scopes with ambiguity_scan and markers
-- `implement` - Checks for blocking markers before execution

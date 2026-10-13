@@ -30,87 +30,48 @@ henia:
         command: peer route show -C . 2>/dev/null || true
 ---
 
-<!-- Generated from skills/continue/SKILL.md by henia build; edit the canonical source. -->
+:::head{.context slots="workflow"}
 
-:::static
 
-## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
-
-{{.context_instruction}}
-
-Slot providers:
-
-:slot[git.branching test.conventions code.style code.validation review.criteria]
-
-{{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else -}}
-```bash
-{{.command}}
-```
-{{- end}}
-
-{{end}}
 # Continue Implementation
 
-Resume the exact RED, GREEN, review, fix, or integration wave recorded by an explicit `$implement` run. Do not restart the pipeline from task status alone.
+Resume the exact wave recorded by an explicit `$implement` run, never restart from task status alone. Recovery order: [checkpoint-format.md](../implement/reference/checkpoint-format.md#recovery-priority); otherwise the next dependency-ready batch.
 
 ## 1. Resolve State
 
-1. Resolve the named scope or the unique most-recent checkpoint.
-2. Read checkpoint, config, scope, tasks, optional dependencies, validation, review, and existing report directories in one batched read boundary.
-3. Treat `tasks.yaml` as task-status authority and `review.yaml` as finding authority. TodoWrite is irrelevant.
-4. Activate the recorded branch/worktree and verify the recorded commit against the live tree.
-5. Run base-drift analysis before new mutation only when resume has not yet cleared the initial gate, upstream movement is known, or overlap evidence exists.
-
-If no checkpoint exists, report that `$implement` with `<target>` must start the run.
+1. Resolve the named scope or the unique most-recent checkpoint. If none exists, report that `$implement <target>` must start the run.
+2. In one batched read, load checkpoint, config, scope, tasks, optional dependencies, validation, review, and existing report directories.
+3. Activate the recorded branch/worktree and verify the recorded commit against the live tree.
+4. Apply the resume rule of [base-drift-preflight.md](../implement/reference/base-drift-preflight.md) before new mutation.
 
 ## 2. Validate Recovery
 
-Use the checkpoint's immutable routing snapshot for the recorded batch. A current `config.yaml` change applies after that batch completes; do not rewrite in-flight routes.
+Keep the recorded routing snapshot and validate it through [configuration.md](../implement/reference/configuration.md). A recorded route that no longer exists is a blocker: report it and ask; never substitute.
 
-Validate aliases and mechanisms through `implement/reference/configuration.md`. If a recorded route no longer exists, report the exact blocker and ask for a decision; never silently substitute.
-
-Report:
-
-- branch and last commit;
-- current batch, tasks, phase, and status;
-- in-flight mutations;
-- existing report directories;
-- the one wave that will resume.
+Report the branch and last commit; current batch, tasks, phase, and status; in-flight mutations; existing report directories; and the one wave that will resume.
 
 ## 3. Resume
 
-Priority:
-
-1. in-flight mutation entries;
-2. recorded RED, GREEN, review, fix, or integration wave;
-3. next dependency-ready batch derived from authoritative files.
-
 ### Mutating wave
 
-Compare the entry's baseline/current diff with any saved report. Accept it only if its RED/GREEN/fix gate now passes. Otherwise a user-issued `$continue` authorizes deliberate redispatch of that exact task and phase with the partial edits and evidence supplied.
-
-Dispatch every independent missing task in one message. Write one checkpoint before the wave and one after all results land.
+Accept an entry only if, comparing its baseline/current diff with any saved report, its RED/GREEN/fix gate now passes. Otherwise redispatch that exact task and phase with its partial edits and evidence; the user-issued `$continue` authorizes this. Dispatch all missing tasks in one message, with one checkpoint write before and one after.
 
 ### Read-only review wave
 
-Read reports already present in the recorded role directories. Dispatch all missing configured reports across every pending role in one message. Do not rerun testers or implementers.
-
-For a multi-batch integration review, dispatch only the missing holistic reports; do not recreate the per-role cascade.
+Keep existing reports; dispatch only missing configured reports (holistic ones for integration review) in one message. Never rerun testers or implementers.
 
 ### Next batch
 
-After the recovered batch completes, derive the next batch, snapshot current `config.yaml` once, and follow `implement/operations/execute.md`.
+Follow [execute.md](../implement/operations/execute.md) from a fresh snapshot.
 
 ## Failure Rules
 
-- Preserve partial mutations and update their evidence; pause after a failed redispatch.
-- Retain successful reviewer reports and redispatch only missing configured reports.
-- Apply the [canonical RED gate](../test/SKILL.md#red) to recovered evidence; do not restart a cleared phase or re-open cleared findings.
-- Apply the [review result gate](../review/reference/harnesses.md#results) to the recorded batch snapshot.
+- A failed redispatch: preserve partial mutations, update their evidence, and pause.
+- Recovered RED evidence: [canonical RED gate](../test/SKILL.md#red). Never restart a cleared phase or reopen cleared findings.
+- Review results: [review result gate](../review/reference/harnesses.md#results) against the recorded snapshot.
 
 ## Completion
 
-When the checkpoint phase is `complete`, verify authoritative task/review state and report completion without dispatch. A one-batch run has no duplicate final review; a multi-batch run completes after its holistic integration gate.
+Phase `complete`: verify task and review state and report completion without dispatch; a multi-batch run needs its integration gate.
 
 :::

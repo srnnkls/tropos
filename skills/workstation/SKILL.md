@@ -13,11 +13,7 @@ henia:
           default_prompt: Use $workstation for the requested task.
 ---
 
-<!-- Generated from skills/workstation/SKILL.md by henia build; edit the canonical source. -->
-
-Operate `nixos`, the Threadripper 3970X workstation. It suspends after 20 idle minutes and wakes from `ssh nix`.
-
-> Reference: [idle-suspend.md](reference/idle-suspend.md) for the sleep config and its tuning, [wake-chain.md](reference/wake-chain.md) for the wake path.
+Operate `nixos`, the Threadripper 3970X workstation. It suspends after 20 idle minutes and wakes on `ssh nix`. Sleep config: [idle-suspend.md](reference/idle-suspend.md). Wake path: [wake-chain.md](reference/wake-chain.md).
 
 ## Topology
 
@@ -27,106 +23,33 @@ Operate `nixos`, the Threadripper 3970X workstation. It suspends after 20 idle m
 | `alpine` | always-on LAN host. Relays the magic packet via `/usr/local/bin/wake-nix` |
 | this Mac | client. `~/.ssh/bin/wake-nix` runs from an `ssh_config` `Match host nix exec` |
 
-Two addresses: Tailscale MagicDNS (`nixos`, preferred) and LAN (`192.168.137.23`). The `ssh_config` selects the LAN one only when the tailnet is unreachable.
+`ssh nix` uses Tailscale MagicDNS (`nixos`), falling back to LAN (`192.168.137.23`) only when the tailnet is unreachable. Over the tailnet it is Tailscale SSH (`PubkeyAuthentication no`, `IdentityAgent none`): no key or 1Password prompt, equivalent to `tailscale ssh srnnkls@nixos`. `nix-lan` uses a key and may prompt; run bench campaigns (two-box protocol) over `ssh nix`.
 
-Over the tailnet, authentication is Tailscale SSH: tailscaled answers port 22 and authenticates the node itself. `Host nix` therefore sets `PubkeyAuthentication no` and `IdentityAgent none` — no key is offered and the 1Password agent is never consulted, so scripted and agent-driven sessions get no biometric prompt. `ssh nix` and `tailscale ssh srnnkls@nixos` are equivalent. The LAN path has no Tailscale SSH; `nix-lan` authenticates with a key and may prompt. Bench campaigns (two-box protocol) run over `ssh nix` for that reason.
+Config: `/etc/nixos/idle-suspend.nix`, imported from `configuration.nix`.
 
-Config lives at `/etc/nixos/idle-suspend.nix`, imported from `configuration.nix`.
+## Commands
 
-## Remote commands need a bash wrapper
+The login shell is nushell: wrap every remote command in `bash -c`; an unwrapped `&&` or `||` fails to parse.
 
-The login shell is nushell:
+| Task | Command |
+|---|---|
+| Wake and connect (cold wake blocks up to 150 s; wrapper timeouts must be ≥150 s) | `ssh nix` |
+| Suspend | `ssh nix bash -c 'systemctl suspend'` |
+| Hold awake through a job | `ssh nix bash -c 'keepawake cargo build --release'` |
+| Why awake or asleep (matched check per minute) | `ssh nix bash -c 'journalctl -u autosuspend -n 40 --no-pager'` |
+| Find a forgotten hold | `ssh nix bash -c 'pgrep -x systemd-inhibit -u srnnkls -a'` |
+| Clear it | `ssh nix bash -c 'pkill -x systemd-inhibit -u srnnkls'` |
+| Resume vs reboot (unchanged `boot_id` = suspend-to-RAM) | `ssh nix bash -c 'cat /proc/sys/kernel/random/boot_id; uptime'` |
+| Check bench profile (default `performance` governor, THP `never`; non-zero on drift) | `ssh nix bash -c '/etc/bench-profile'` |
+| Apply config change (reboot reverts) | `ssh nix bash -c 'sudo nixos-rebuild test'` |
+| Evaluate without applying | `ssh nix bash -c 'cd ~/build-test && nixos-rebuild build -I nixos-config=/etc/nixos/configuration.nix'` |
 
-```bash
-ssh nix bash -c 'systemctl is-active autosuspend'
-```
-
-An unwrapped `&&` or `||` fails with a Nushell parser error.
-
-## Everyday use
-
-Wake and connect. The `ssh_config` hook handles it:
-
-```bash
-ssh nix
-```
-
-A cold wake blocks up to 150 seconds. A wrapper timeout below that kills the wake mid-flight, leaving its stderr diagnostics and no command output.
-
-Suspend on demand:
-
-```bash
-ssh nix bash -c 'systemctl suspend'
-```
-
-Hold it awake through a long job:
-
-```bash
-ssh nix bash -c 'keepawake cargo build --release'
-```
-
-`keepawake` with no arguments holds until killed.
-
-## Diagnosing
-
-Why it is awake, or why it slept. One line per minute naming the check that matched:
-
-```bash
-ssh nix bash -c 'journalctl -u autosuspend -n 40 --no-pager'
-```
-
-Find and clear a forgotten hold:
-
-```bash
-ssh nix bash -c 'pgrep -x systemd-inhibit -u srnnkls -a'
-ssh nix bash -c 'pkill -x systemd-inhibit -u srnnkls'
-```
-
-Tell a resume from a reboot — an unchanged `boot_id` across the gap means suspend-to-RAM:
-
-```bash
-ssh nix bash -c 'cat /proc/sys/kernel/random/boot_id; uptime'
-```
+Promote `test` to `switch` after a day without mid-job suspends. Power-saving profile: `powerManagement.cpuFreqGovernor = schedutil` in `configuration.nix`, remove the `bench-thp` service, rebuild.
 
 ## Traps
 
-Clearing inhibitors with `pkill -f who=keepawake` kills the ssh session running it, because the pattern matches its own command line. Use `pkill -x systemd-inhibit -u srnnkls`.
-
-A bare `keepawake` holds `sleep` indefinitely. Nothing expires it, and the box will not suspend while it lives.
-
-`systemd-inhibit` with no COMMAND is a synonym for `--list`. It prints the inhibitor table and exits 0 while holding nothing.
-
-Multi-bit inhibitor masks resolve to a different polkit action than single-bit ones. `--what=sleep:idle` is not authorized by a grant for `inhibit-block-sleep`. Use `--what=sleep`.
-
-Tailscale SSH sessions do not appear in `who` or `ss -t 'sport = :22'`. Only logind sees them, as `Remote=yes`.
-
-A remote seatless session cannot suspend or take a block inhibitor without an explicit polkit grant.
-
-## Benchmark profile
-
-The `performance` governor and THP `never` are the default, so a benchmark run needs no
-preparation. `/etc/bench-profile` verifies the machine matches that and exits non-zero if it has
-drifted:
-
-```bash
-ssh nix bash -c '/etc/bench-profile'
-```
-
-To go back to a power-saving profile, set `powerManagement.cpuFreqGovernor` to `schedutil` in
-`configuration.nix` and remove the `bench-thp` service, then rebuild.
-
-## Changing the config
-
-Edit `/etc/nixos/idle-suspend.nix`, then:
-
-```bash
-ssh nix bash -c 'sudo nixos-rebuild test'
-```
-
-`test` activates without becoming the boot default, so a reboot reverts it. Promote to `switch` once it has run a day without suspending mid-job.
-
-Evaluate without applying, from any writable directory on the box:
-
-```bash
-ssh nix bash -c 'cd ~/build-test && nixos-rebuild build -I nixos-config=/etc/nixos/configuration.nix'
-```
+- `pkill -f who=keepawake` matches its own command line and kills the ssh session; use `pkill -x systemd-inhibit -u srnnkls`.
+- A bare `keepawake` holds `sleep` until killed; nothing expires it. It supplies its own blocker, since `systemd-inhibit` with no COMMAND means `--list`: it exits 0 and holds nothing.
+- Multi-bit masks map to another polkit action: `--what=sleep:idle` is not covered by the `inhibit-block-sleep` grant; use `--what=sleep`.
+- Tailscale SSH sessions are absent from `who` and `ss -t 'sport = :22'`; only logind sees them, as `Remote=yes`.
+- A remote seatless session needs an explicit polkit grant to suspend or take a block inhibitor ([polkit](reference/idle-suspend.md#polkit)).

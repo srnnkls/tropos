@@ -2,14 +2,7 @@
 
 ## Commit Hygiene
 
-One logical change per commit. The commit message explains why, the diff explains what.
-
-```bash
-git add src/auth.ts               # Stage specific paths
-git commit -m "feat: add auth"    # Conventional commit format
-```
-
-When the changes are already mixed together in a dirty tree, splitting them into separate commits means staging a subset of hunks — see [commands.md](commands.md#hunk-level-staging).
+The commit message explains why; the diff explains what. To split a dirty tree into separate commits, see [commands.md](commands.md#hunk-level-staging).
 
 ### Commit Format
 
@@ -17,126 +10,67 @@ The `git.commits` providers set the message format; the default is [Commits](../
 
 ## Fixup Workflow
 
-Fix past commits without manual interactive rebase.
-
 ```bash
-# 1. Make the fix
-vim src/auth.rs
-
-# 2. Stage and mark as fixup for a specific commit
 git add src/auth.rs
-git commit --fixup <sha>          # Creates "fixup! <original message>"
+git commit --fixup <sha>          # "fixup! <original message>": fold silently
+git commit --squash <sha>         # fold and combine messages in the editor
+git commit --fixup=amend:<sha>    # replace the target's message
+git rebase -i --autosquash main   # fold fixups into their targets
+git config --global rebase.autosquash true   # then plain `git rebase -i main` folds them
+```
 
-# 3. Autosquash folds fixups into their targets
+`git absorb` (third-party; `cargo install git-absorb` or `brew install git-absorb`) creates the fixup commits for staged changes:
+
+```bash
+git add -p
+git absorb
 git rebase -i --autosquash main
-```
-
-Auto-enable autosquash globally:
-
-```bash
-git config --global rebase.autosquash true
-```
-
-Then `git rebase -i main` automatically reorders fixup commits.
-
-### --fixup variants
-
-```bash
-git commit --fixup <sha>          # Silently fold into target
-git commit --squash <sha>         # Fold and open editor to combine messages
-git commit --fixup=amend:<sha>    # Replace target's message entirely
-```
-
-## git absorb (third-party)
-
-Automatically distributes staged changes to the correct past commits.
-
-```bash
-cargo install git-absorb          # Install
-# or: brew install git-absorb
-
-git add -p                        # Stage changes
-git absorb                        # Auto-create fixup commits
-git rebase -i --autosquash main   # Fold them in
 ```
 
 ## Inspecting History
 
 ```bash
-# Compact log
 git log --oneline --graph -20
-
-# What changed between branches
 git log --oneline main..HEAD
-git diff main...HEAD              # Three dots = merge base diff
-
-# Compare branch versions (before/after rebase)
-git range-diff main..@{1} main..@
-
-# Search commit messages
-git log --grep="auth" --oneline
-
-# Search code changes
-git log -S "function_name"        # Commits that add/remove this string
-git log -G "regex_pattern"        # Commits matching regex in diff
-
-# Who last touched each line
-git blame -w file.txt             # Ignore whitespace changes
-git blame --ignore-rev abc123f    # Skip formatting commits
+git diff main...HEAD              # three dots: diff from merge base
+git log --grep="auth" --oneline   # search messages
+git log -S "function_name"        # commits adding/removing this string
+git log -G "regex_pattern"        # commits whose diff matches
+git blame -w file.txt             # ignore whitespace
 ```
 
-## Squash Merge
+Branch-version comparison: [commands.md](commands.md#command-reference).
 
-Collapse a feature branch into a single commit on main.
+## Squash Merge
 
 ```bash
 git switch main
 git merge --squash feat/auth
-git commit                        # Single commit with all changes
+git commit
 ```
-
-### When to squash vs. regular merge
 
 | Strategy | Use when |
 |----------|----------|
-| Squash merge | Feature branches, PRs — clean main history |
+| Squash merge | Feature branches, PRs |
 | Regular merge | Long-running branches where individual commits matter |
-| Rebase + fast-forward | You want linear history with individual commits preserved |
+| Rebase + fast-forward | Linear history with individual commits preserved |
 
 ## Interactive Rebase
 
-Clean up before pushing.
-
-```bash
-git rebase -i main                # Rebase onto main
-git rebase -i HEAD~5              # Last 5 commits
-```
-
-Actions: `pick`, `reword`, `edit`, `squash`, `fixup`, `drop`, `reorder`
-
-Script the todo list with `GIT_SEQUENCE_EDITOR` — see [commands.md](commands.md#scripted-rebase).
+Clean up before pushing: `git rebase -i main` or `git rebase -i HEAD~5`. Actions: `pick`, `reword`, `edit`, `squash`, `fixup`, `drop`, reorder lines. Script the todo list with `GIT_SEQUENCE_EDITOR`: [commands.md](commands.md#scripted-rebase).
 
 ### Magit
 
 - `r i` — interactive rebase
-- `r o` — rebase onto (for cascading branches)
+- `r o` — rebase onto (cascading branches)
 - `r e` — rebase interactively from a specific commit
 
 ## Undo Patterns
 
 ```bash
-# Undo last commit (keep changes staged)
-git reset --soft HEAD~1
-
-# Undo last commit (keep changes unstaged)
-git reset HEAD~1
-
-# Undo a public commit (creates new reverse commit)
-git revert <sha>
-
-# Recover deleted branch or lost commit
-git reflog                        # Find the SHA
-git switch -c recovered <sha>     # Recreate
+git reset --soft HEAD~1           # undo last commit, keep changes staged
+git reset HEAD~1                  # undo last commit, keep changes unstaged
+git revert <sha>                  # undo a public commit with a reverse commit
+git reflog                        # find a lost commit or deleted branch (entries expire after 90 days)
+git switch -c recovered <sha>
 ```
-
-Reflog entries expire after 90 days (default).

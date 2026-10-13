@@ -36,53 +36,23 @@ metadata:
   type: generic
 ---
 
-<!-- Generated from skills/loop/SKILL.md by henia build; edit the canonical source. -->
+:::head{.context slots="workflow"}
 
-:::static
 
-## {{if eq .preload_context "true"}}Pre-loaded Context{{else}}Runtime Context{{end}}
-
-{{.context_instruction}}
-
-Slot providers:
-
-:slot[git.branching test.conventions code.style code.validation review.criteria]
-
-{{range .context_commands}}{{.label}}:
-{{if eq $.preload_context "true"}}!`{{.command}}`{{else -}}
-```bash
-{{.command}}
-```
-{{- end}}
-
-{{end}}
 # Autonomous Implementation Loop
 
 Focus: $ARGUMENTS
 
-`$loop` is explicit authorization to continue strict delegated implementation. The orchestrator does not author tests or production code.
+`$loop` authorizes strict delegated implementation; the orchestrator authors no tests or production code.
 
-## Protocol
-
-1. Read matching scopes and authoritative `tasks.yaml` state.
-2. Require `validation.yaml.review_gate.status: passed` for each selected scope.
-3. Prioritize any checkpoint with in-flight mutations or a non-complete phase.
-4. Otherwise derive the next dependency-ready batch through `implement/reference/parallel-detection.md`.
-5. Activate that scope's branch/worktree and clear the required initial drift gate.
-6. Snapshot and validate `config.yaml` once for a new batch. A recovered batch keeps its recorded snapshot.
-7. Run [operations/iterate.md](operations/iterate.md).
-8. Stop when all authoritative tasks are done, a blocker is reported, or ten batch iterations complete.
-
-TodoWrite is optional display state and never drives selection or completion.
-
-## Concurrency
-
-Within a batch, dispatch all ready testers together, all cleared implementers together, and all review roles/reviewer routes together. A serial wait is valid only at the RED→GREEN and GREEN→review data boundaries or when one result changes another prompt.
+1. Read matching scopes and their `tasks.yaml`; gate each selected scope per [execute.md](../implement/operations/execute.md#1-load-and-gate-the-scope).
+2. Run [operations/iterate.md](operations/iterate.md) once per dependency batch.
+3. Stop when all tasks are done, a blocker is reported, or ten batch iterations complete.
 
 :::
 
-## Related
-
+:::related
 - `implement` — canonical strict pipeline
 - `continue` — exact checkpoint recovery
 - `scope` — requirements and task state
+:::

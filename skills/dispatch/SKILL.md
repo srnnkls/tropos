@@ -16,48 +16,38 @@ henia:
           default_prompt: Use $dispatch for the requested task.
 ---
 
-<!-- Generated from skills/dispatch/SKILL.md by henia build; edit the canonical source. -->
-
-:::static
+::::head
 
 # Intent Router
 
-Workflow skills are explicit opt-ins. A file path or task description stays in direct current-agent execution.
-
-## Routes
-
-Apply these rules to `$ARGUMENTS` in order:
-
+:::routes{.ordered .protocol}
 | Pattern | Action |
 |---|---|
-| `continue` or `resume` | `Skill(continue, $ARGUMENTS)` |
-| `implement ...` | `Skill(implement, $REST)` |
-| `debug` or `trace` | `Skill(implement, debug $REST)` |
-| `test` or `tdd` | `Skill(test, $REST)` |
-| `verify` or `done` | `Skill(implement, verify $REST)` |
-| Explicit scope path | `Skill(implement, $ARGUMENTS)` |
+| `continue` or `resume` | Invoke `$continue` with `$ARGUMENTS` |
+| `implement ...` | Invoke `$implement` with `$REST` |
+| `debug` or `trace` | Invoke `$implement` with `debug $REST` |
+| `test` or `tdd` | Invoke `$test` with `$REST` |
+| `verify` or `done` | Invoke `$implement` with `verify $REST` |
+| `issue ...` | Invoke `$issue` with `$REST` |
+| `pr ...` | Invoke `$pr` with `$REST` |
+| Explicit scope path | Invoke `$implement` with `$ARGUMENTS` |
 | File path or task description | Execute directly; do not invoke `implement` |
 | No argument | Ask which explicit workflow to run |
 
-A checkpoint or active scope is context, not permission to resume or implement. Require an explicit route.
+A checkpoint or active scope is context, not permission to resume or implement; require an explicit route.
+:::
 
 ## Menu
 
 When no route is named, use AskUserQuestion:
 
-```text
-Header: Dispatch
-Question: Which workflow should run?
-multiSelect: false
-Options:
+:::menu{header="Dispatch" question="Which workflow should run?"}
 - Implement: Strict delegated RED → GREEN → review
 - Continue: Resume an interrupted implementation scope
 - Test: Run explicit RED-GREEN-REFACTOR
 - Verify: Verify completion from current evidence
-```
-
-With “Other” covering debug or direct execution.
-
-> Protocol: [protocol.md](protocol.md)
-
 :::
+
+“Other” covers debug and direct execution.
+
+::::
