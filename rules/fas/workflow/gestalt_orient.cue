@@ -10,6 +10,6 @@ orient: {
 	then: inject: {
 		rule_id: "orient"
 		channel: "agent"
-		text: [if #slots.orientation != "" {"First action: orient.\n\n\(#slots.orientation)"}, "First action: orient per CLAUDE.md (Tools and context); rg after."][0]
+		text:    "First action: orient (CLAUDE.md, Subagent orientation)."
 	}
 }
