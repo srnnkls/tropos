@@ -9,11 +9,11 @@ _aiAttribution: #"(?i)(co-authored-by:[^\n]*(claude|anthropic|codex|openai)|nore
 
 commit_attribution: {
 	when: hook.#PreToolUse & tool.#Bash & {
-		tool_input: command: =~_aiAttribution
+		tool_input: command: =~_aiAttribution & =~#"\b(git (commit|commit-tree|tag)|gh (pr|issue) (create|edit))\b"#
 	}
 	then: deny: {
 		rule_id:  "commit-attribution"
-		reason:   "Commits and PR bodies carry no AI attribution: no Co-Authored-By trailer naming an assistant, no \"Generated with\" line. The user is the sole author. Rerun the command with the attribution lines removed, and do not copy trailers seen in git history."
+		reason:   "Remove AI attribution (assistant Co-Authored-By trailer, 'Generated with' line) and rerun; do not copy trailers from history."
 		severity: "MEDIUM"
 	}
 }

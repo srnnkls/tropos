@@ -9,7 +9,7 @@ import (
 )
 
 _slashFile: =~#"\.(go|rs|ts|tsx|js|jsx|mjs|cjs|c|h|cc|cpp|hpp|java|cue|kdl|kt|kts|scala|swift|dart|php|cs|proto|zig)$"#
-_hashFile:  =~#"\.(py|sh|bash|zsh|fish|toml|yaml|yml|rb|pl|r|jl|nix|tf|ps1)$"#
+_hashFile:  =~#"\.(py|sh|bash|zsh|fish|rb|pl|r|jl|nix|tf|ps1)$"#
 _semiFile:  =~#"\.(el|lisp|lsp|cl|clj|cljs|cljc|edn|scm|ss|rkt|fnl)$"#
 _dashFile:  =~#"\.(lua|sql|hs|lhs|elm|applescript)$"#
 
@@ -23,8 +23,8 @@ _hashLintRe:  #"#[ \t]*(noqa|type:[ \t]*ignore|pylint:|pyright:|mypy:|ruff:|fmt:
 _dashLintRe:  #"--+[ \t]*(luacheck:|noqa|@diagnostic|stylua:|sqlfluff:)"#
 
 _slashLint: =~("(?i)" + _slashLintRe)
-_hashLint: =~("(?i)" + _hashLintRe)
-_dashLint: =~("(?i)" + _dashLintRe)
+_hashLint:  =~("(?i)" + _hashLintRe)
+_dashLint:  =~("(?i)" + _dashLintRe)
 
 _slashAddedBlock: =~#"(?m)(^\+[ \t]*//[^\n]*\n\+[ \t]*//|^\+[ \t]*/\*\*?[ \t]*$)"#
 _hashAddedBlock:  =~#"(?m)^\+[ \t]*#[^!\n][^\n]*\n\+[ \t]*#"#
@@ -32,8 +32,45 @@ _semiAddedBlock:  =~#"(?m)^\+[ \t]*;[^\n]*\n\+[ \t]*;"#
 _dashAddedBlock:  =~#"(?m)^\+[ \t]*--[^\n]*\n\+[ \t]*--"#
 
 _slashAddedLint: =~(#"(?im)^\+[^\n]*"# + _slashLintRe)
-_hashAddedLint: =~(#"(?im)^\+[^\n]*"# + _hashLintRe)
-_dashAddedLint: =~(#"(?im)^\+[^\n]*"# + _dashLintRe)
+_hashAddedLint:  =~(#"(?im)^\+[^\n]*"# + _hashLintRe)
+_dashAddedLint:  =~(#"(?im)^\+[^\n]*"# + _dashLintRe)
+
+_addedLines: {
+	#old:      string
+	#new:      string
+	_oldLines: strings.Split(#old, "\n")
+	out: strings.Join([for l in strings.Split(#new, "\n") if !list.Contains(_oldLines, l) {l}], "\n")
+}
+
+_editAdded: {
+	#file: _
+	#text: _
+	out: hook.#PreToolUse & tool.#Edit & {
+		tool_input: matchN(1, [{
+			file_path:  #file
+			old_string: string
+			new_string: string
+			_added: (_addedLines & {#old: old_string, #new: new_string}).out & #text
+			...
+		}])
+	}
+}
+
+_multiEditAdded: {
+	#file: _
+	#text: _
+	out: hook.#PreToolUse & tool.#MultiEdit & {
+		tool_input: {
+			file_path: #file
+			edits: list.MatchN(>0, {
+				old_string: string
+				new_string: string
+				_added: (_addedLines & {#old: old_string, #new: new_string}).out & #text
+				...
+			})
+		}
+	}
+}
 
 _bashAdded: {
 	#file: _
@@ -75,30 +112,17 @@ _denyLint: {
 _injectComment: {
 	rule_id: "comment-block"
 	channel: "agent"
-	text: """
-		STOP — delete this comment block. House style (AGENTS.md → Artifact purity, Economy and style) forbids comment blocks; the default answer is DELETE, not justify.
-		Before you keep ANY of it, the burden is on you to pass all three, out loud: (1) name the exact category — hidden constraint / non-obvious invariant / workaround tied to a NAMED bug+issue / external quirk with a NAMED source; nothing else exists. (2) Show why a better NAME cannot carry it. (3) Show why a TEST cannot pin it.
-		There is NO length exception — collapsing the block to a single line does not redeem it. The bar is the category test above, not brevity. Fail it → delete, whatever the length.
-		Fail any step, or find yourself reaching for words like "load-bearing", "subtle", "important to note", "for clarity", or any defense of your own choices → that IS the leakage; delete the whole block now and fix the name.
-		Restating WHAT the code does, walkthroughs, and process narration are auto-delete — do not even evaluate them.
-		"""
+	text:    "Comment block added. Delete it unless it records a hidden constraint, a non-obvious invariant, a workaround with an issue link, or an external quirk with a source, and neither a name nor a test can carry it."
 }
 
 _injectLint: {
 	rule_id: "lint-suppression"
 	channel: "agent"
-	text: """
-		STOP — delete this linter directive. House style (AGENTS.md → Artifact purity, Economy and style) bans non-technical comments, suppressions, and pragmas (# noqa, # type: ignore, // eslint-disable, // @ts-expect-error, # shellcheck disable, and the like).
-		A suppression silences the tool instead of fixing the code. Fix the underlying issue — the type, the unused import, the real violation — so the directive is unnecessary.
-		If the suppression is genuinely unavoidable, that is a NAMED external-quirk exception: state the tool, the exact rule, and why the code cannot satisfy it — out loud, before keeping it. Default is DELETE.
-		"""
+	text:    "Lint suppression added. Fix the cause instead. Keep it only for an external-tool defect, naming the tool, rule and issue in the directive."
 }
 
 slash_comment_block_edit: {
-	when: hook.#PreToolUse & tool.#Edit & {
-		tool_input: file_path:  _slashFile
-		tool_input: new_string: _slashBlock
-	}
+	when: (_editAdded & {#file: _slashFile, #text: _slashBlock}).out
 	then: inject: _injectComment
 }
 
@@ -111,18 +135,12 @@ slash_comment_block_write: {
 }
 
 slash_comment_block_multiedit: {
-	when: hook.#PreToolUse & tool.#MultiEdit & {
-		tool_input: file_path: _slashFile
-		tool_input: edits: list.MatchN(>0, {new_string: _slashBlock, ...})
-	}
+	when: (_multiEditAdded & {#file: _slashFile, #text: _slashBlock}).out
 	then: inject: _injectComment
 }
 
 hash_comment_block_edit: {
-	when: hook.#PreToolUse & tool.#Edit & {
-		tool_input: file_path:  _hashFile
-		tool_input: new_string: _hashBlock
-	}
+	when: (_editAdded & {#file: _hashFile, #text: _hashBlock}).out
 	then: inject: _injectComment
 }
 
@@ -135,18 +153,12 @@ hash_comment_block_write: {
 }
 
 hash_comment_block_multiedit: {
-	when: hook.#PreToolUse & tool.#MultiEdit & {
-		tool_input: file_path: _hashFile
-		tool_input: edits: list.MatchN(>0, {new_string: _hashBlock, ...})
-	}
+	when: (_multiEditAdded & {#file: _hashFile, #text: _hashBlock}).out
 	then: inject: _injectComment
 }
 
 semi_comment_block_edit: {
-	when: hook.#PreToolUse & tool.#Edit & {
-		tool_input: file_path:  _semiFile
-		tool_input: new_string: _semiBlock
-	}
+	when: (_editAdded & {#file: _semiFile, #text: _semiBlock}).out
 	then: inject: _injectComment
 }
 
@@ -159,18 +171,12 @@ semi_comment_block_write: {
 }
 
 semi_comment_block_multiedit: {
-	when: hook.#PreToolUse & tool.#MultiEdit & {
-		tool_input: file_path: _semiFile
-		tool_input: edits: list.MatchN(>0, {new_string: _semiBlock, ...})
-	}
+	when: (_multiEditAdded & {#file: _semiFile, #text: _semiBlock}).out
 	then: inject: _injectComment
 }
 
 dash_comment_block_edit: {
-	when: hook.#PreToolUse & tool.#Edit & {
-		tool_input: file_path:  _dashFile
-		tool_input: new_string: _dashBlock
-	}
+	when: (_editAdded & {#file: _dashFile, #text: _dashBlock}).out
 	then: inject: _injectComment
 }
 
@@ -183,18 +189,12 @@ dash_comment_block_write: {
 }
 
 dash_comment_block_multiedit: {
-	when: hook.#PreToolUse & tool.#MultiEdit & {
-		tool_input: file_path: _dashFile
-		tool_input: edits: list.MatchN(>0, {new_string: _dashBlock, ...})
-	}
+	when: (_multiEditAdded & {#file: _dashFile, #text: _dashBlock}).out
 	then: inject: _injectComment
 }
 
 slash_lint_suppression_edit: {
-	when: hook.#PreToolUse & tool.#Edit & {
-		tool_input: file_path:  _slashFile
-		tool_input: new_string: _slashLint
-	}
+	when: (_editAdded & {#file: _slashFile, #text: _slashLint}).out
 	then: inject: _injectLint
 }
 
@@ -207,18 +207,12 @@ slash_lint_suppression_write: {
 }
 
 slash_lint_suppression_multiedit: {
-	when: hook.#PreToolUse & tool.#MultiEdit & {
-		tool_input: file_path: _slashFile
-		tool_input: edits: list.MatchN(>0, {new_string: _slashLint, ...})
-	}
+	when: (_multiEditAdded & {#file: _slashFile, #text: _slashLint}).out
 	then: inject: _injectLint
 }
 
 hash_lint_suppression_edit: {
-	when: hook.#PreToolUse & tool.#Edit & {
-		tool_input: file_path:  _hashFile
-		tool_input: new_string: _hashLint
-	}
+	when: (_editAdded & {#file: _hashFile, #text: _hashLint}).out
 	then: inject: _injectLint
 }
 
@@ -231,18 +225,12 @@ hash_lint_suppression_write: {
 }
 
 hash_lint_suppression_multiedit: {
-	when: hook.#PreToolUse & tool.#MultiEdit & {
-		tool_input: file_path: _hashFile
-		tool_input: edits: list.MatchN(>0, {new_string: _hashLint, ...})
-	}
+	when: (_multiEditAdded & {#file: _hashFile, #text: _hashLint}).out
 	then: inject: _injectLint
 }
 
 dash_lint_suppression_edit: {
-	when: hook.#PreToolUse & tool.#Edit & {
-		tool_input: file_path:  _dashFile
-		tool_input: new_string: _dashLint
-	}
+	when: (_editAdded & {#file: _dashFile, #text: _dashLint}).out
 	then: inject: _injectLint
 }
 
@@ -255,10 +243,7 @@ dash_lint_suppression_write: {
 }
 
 dash_lint_suppression_multiedit: {
-	when: hook.#PreToolUse & tool.#MultiEdit & {
-		tool_input: file_path: _dashFile
-		tool_input: edits: list.MatchN(>0, {new_string: _dashLint, ...})
-	}
+	when: (_multiEditAdded & {#file: _dashFile, #text: _dashLint}).out
 	then: inject: _injectLint
 }
 

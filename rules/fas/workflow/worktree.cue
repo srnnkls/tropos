@@ -8,8 +8,6 @@ import (
 	"github.com/srnnkls/fas/cue/tool"
 )
 
-_worktreePolicy: "Read `henia show git/reference/worktree.md`. If unavailable, report the gap and stop."
-
 #WorktreeCreation: (tool.#Bash & (bash.#call & {
 	#match: {command: "git", subcommand: "worktree", subcommand_args: ["add", ...]}
 })) | tool.#EnterWorktree | ((tool.#Agent | tool.#Task) & {
@@ -20,15 +18,15 @@ _worktreePolicy: "Read `henia show git/reference/worktree.md`. If unavailable, r
 worktree_outside_repo: {
 	when: hook.#PreToolUse & tool.#Bash & (bash.#call & {
 		#match: {
-			command:         "git"
-			subcommand:      "worktree"
+			command:    "git"
+			subcommand: "worktree"
 			subcommand_args: ["add", ...]
-			targets:         list.MatchN(>0, =~"^(/|~|\\$HOME|\\.\\.)" & !~"/(\\.)?worktrees(/|$)")
+			targets: list.MatchN(>0, =~"^(/|~|\\$HOME|\\.\\.)" & !~"/(\\.)?worktrees(/|$)")
 		}
 	})
 	then: deny: {
 		rule_id:  "worktree-outside-repo"
-		reason:   "Worktree target escapes the repo (/tmp, ~, $HOME, ../). Create it project-local instead: `git worktree add .worktrees/<name> -b <branch> origin/<trunk>`, then link ignored state with `git worktreeinclude apply`. Paths outside the checkout get no .gitignore coverage and drift from the repo they were cut from."
+		reason:   "Worktree target escapes the repo (/tmp, ~, $HOME, ../). Create it project-local instead: `git worktree add .worktrees/<name> -b <branch> origin/<trunk>`, then link ignored state with `git worktreeinclude apply`."
 		severity: "MEDIUM"
 	}
 }
@@ -38,7 +36,7 @@ worktree_creation_followup: {
 	then: inject: {
 		rule_id: "worktree-creation-followup"
 		channel: "agent"
-		text:    _worktreePolicy + " Follow its applicable post-creation steps before reporting the worktree ready; ground completion in the tool result and verification evidence."
+		text:    "Run the post-creation steps in `henia show git/reference/worktree.md` before reporting the worktree ready."
 	}
 }
 
@@ -49,6 +47,6 @@ worktree_include_followup: {
 	then: inject: {
 		rule_id: "worktree-include-followup"
 		channel: "agent"
-		text:    _worktreePolicy + " Apply the result-verification requirements in its 'Link Ignored Repo-Root State' section before claiming state is linked."
+		text:    "Verify each linked path exists in the worktree (`henia show git/reference/worktree.md`, Creation step 3); exit 0 does not prove linking."
 	}
 }
