@@ -69,13 +69,13 @@ memex session 56bfe425-b2c4-48fa-ba04-864b17e37ae6 --machine local
 Truncated field (`content.truncated`, offsets from `content.continuations`):
 
 ```bash
-memex show --record-id rid1_1d29c217… --machine local --field tool-output --offset-chars 16000
+memex show --record-id rid1_1d29c217… --machine local --field tool-output --offset-chars 680
 ```
 
-Next page (`next_offset` from the trailing `type: "page"` line):
+Next page (`next_offset` from the trailing `type: "page"` line; a page ends early once the 16k-character budget fills):
 
 ```bash
-memex session 56bfe425-b2c4-48fa-ba04-864b17e37ae6 --machine local --offset 50
+memex session 56bfe425-b2c4-48fa-ba04-864b17e37ae6 --machine local --offset 3
 ```
 
 Finish a truncated field before paging on; page offsets skip it.
