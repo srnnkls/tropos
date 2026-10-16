@@ -8,10 +8,35 @@ SCRIPT_DIR=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
 # A copy installed on PATH runs from the deployed skill, where its support files live.
 [[ -r "$SCRIPT_DIR/reviewers.yaml" ]] ||
   SCRIPT_DIR="${PEER_HOME:-${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/peer/scripts}"
-REGISTRY="${PEER_REGISTRY:-$SCRIPT_DIR/reviewers.yaml}"
 DEFAULT_AGENTS_DIR="$SCRIPT_DIR/../../../agents"
 AGENTS_DIR="${PEER_AGENTS_DIR:-}"
 command -v yq >/dev/null 2>&1 || { printf '%s\n' "peer: yq not found" >&2; exit 3; }
+
+# User layer over the shipped registry: same-id routes replace, new routes append, defaults
+# keys override. Materialized once per content so every reader sees one file.
+PEER_MERGE='(select(fi == 0) // {}) as $t | ([select(fi == 1)] | .[0] // {}) as $u
+  | ($u.reviewers // []) as $ur | $t
+  | .reviewers = ([(.reviewers // [])[] | .id as $i | ([$ur[] | select(.id == $i)] | .[0]) // .]
+      + [$ur[] | .id as $i | select(([$t.reviewers[] | select(.id == $i)] | length) == 0)])
+  | .defaults = ((.defaults // {}) + ($u.defaults // {}))'
+_peer_registry() {
+  local base="$SCRIPT_DIR/reviewers.yaml" key out tmp
+  local user="${PEER_USER_REGISTRY:-${XDG_CONFIG_HOME:-$HOME/.config}/peer/reviewers.yaml}"
+  [[ -n "${PEER_REGISTRY:-}" ]] && { printf '%s\n' "$PEER_REGISTRY"; return 0; }
+  [[ -r "$user" && -r "$base" ]] || { printf '%s\n' "$base"; return 0; }
+  key=$({ printf '%s' "$PEER_MERGE"; cat "$base" "$user"; } | cksum | tr ' ' -)
+  out="${TMPDIR:-/tmp}/peer-registry.$(id -u).$key.yaml"
+  if [[ ! -r "$out" ]]; then
+    tmp=$(mktemp "$out.XXXXXX") || return 3
+    yq ea "$PEER_MERGE" "$base" "$user" >"$tmp" 2>/dev/null && mv -f "$tmp" "$out" || {
+      rm -f "$tmp"
+      printf '%s\n' "peer: user registry at $user does not merge" >&2
+      return 3
+    }
+  fi
+  printf '%s\n' "$out"
+}
+REGISTRY=$(_peer_registry) || exit 3
 [[ -r "$REGISTRY" ]] || { printf '%s\n' "peer: registry not readable at $REGISTRY" >&2; exit 3; }
 
 IDS=(); declare -A HARNESS MODEL ALIAS EFFORT NATIVE PROVIDER WAS PROXY PEERABLE FANOUT_WAS
@@ -98,7 +123,7 @@ _peer_harness_usage() {
 _peer_usage() {
   _peer_fanout_usage
   _peer_harness_usage
-  printf '%s\n' "       peer path --help | peer run-id | peer herdr [clean] | peer list | peer defaults reviewers [--peer-aliases]"
+  printf '%s\n' "       peer path --help | peer run-id | peer herdr [clean] | peer list | peer registry | peer defaults reviewers [--peer-aliases]"
   printf '%s\n' "       peer get <$PEER_GET_FIELDS> <id|alias> | peer route --help"
 }
 
@@ -527,6 +552,11 @@ _peer_preflight_pi() {
 cmd="${1:-}"
 if [[ "$cmd" == --help || "$cmd" == -h || "$cmd" == help ]]; then
   _peer_usage
+  exit 0
+fi
+
+if [[ "$cmd" == registry ]]; then
+  cat "$REGISTRY"
   exit 0
 fi
 

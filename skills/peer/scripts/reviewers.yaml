@@ -7,16 +7,6 @@ reviewers:
     effort: high
     native: true
     peer: false
-  - id: claude-gpt5.6-sol
-    harness: claude
-    provider: openai
-    model: gpt-5.6-sol
-    alias: gpt
-    effort: high
-    native: true
-    proxy: true
-    peer: false
-    override_was: [codex-gpt5.6-sol]
   - id: peer-gpt5.6-sol
     harness: codex
     provider: openai
@@ -25,7 +15,6 @@ reviewers:
     effort: high
     native: false
     peer: true
-    fanout_was: [gpt]
   - id: codex-gpt5.6-terra
     harness: codex
     provider: openai
@@ -34,16 +23,6 @@ reviewers:
     effort: high
     native: true
     peer: false
-  - id: claude-gpt5.6-terra
-    harness: claude
-    provider: openai
-    model: gpt-5.6-terra
-    alias: terra
-    effort: high
-    native: true
-    proxy: true
-    peer: false
-    override_was: [codex-gpt5.6-terra]
   - id: peer-gpt5.6-terra
     harness: codex
     provider: openai
@@ -52,7 +31,6 @@ reviewers:
     effort: high
     native: false
     peer: true
-    fanout_was: [terra]
   - id: codex-gpt5.6-luna
     harness: codex
     provider: openai
@@ -61,16 +39,6 @@ reviewers:
     effort: high
     native: true
     peer: false
-  - id: claude-gpt5.6-luna
-    harness: claude
-    provider: openai
-    model: gpt-5.6-luna
-    alias: luna
-    effort: high
-    native: true
-    proxy: true
-    peer: false
-    override_was: [codex-gpt5.6-luna]
   - id: peer-gpt5.6-luna
     harness: codex
     provider: openai
@@ -79,7 +47,6 @@ reviewers:
     effort: high
     native: false
     peer: true
-    fanout_was: [luna]
   - id: peer-gpt6.1-sol
     harness: codex
     provider: openai
@@ -138,31 +105,11 @@ reviewers:
     effort: high
     native: false
     peer: true
-  - id: claude-deepseek-flash
-    harness: claude
-    provider: deepseek
-    model: deepseek-flash
-    alias: deepseek
-    effort: high
-    native: true
-    proxy: true
-    peer: false
-  - id: peer-deepseek-flash
-    harness: claude
-    provider: deepseek
-    model: deepseek-flash
-    alias: peer-deepseek
-    effort: high
-    native: false
-    peer: true
-
 routing:
   tester: inherit
   implementer: inherit
   reviewer: inherit
-
 efforts: [medium, high, xhigh]
-
 defaults:
   dispatch: herdr
   reviewers: [peer-gpt6.1-sol, claude-opus, peer-gpt6-astra]

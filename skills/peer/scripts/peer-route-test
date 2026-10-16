@@ -95,12 +95,110 @@ payload() {  # SUBAGENT-TYPE
   printf '{"hook_event_name":"PreToolUse","tool_name":"Task","tool_input":{"subagent_type":"%s","prompt":"p","description":"d"}}' "$1"
 }
 
-roles=$(yq -r '.routing | keys | .[]' "$SCRIPT_DIR/reviewers.yaml" | wc -l | tr -d ' ')
-proxies=$(yq -r '[.reviewers[] | select(.proxy)] | length' "$SCRIPT_DIR/reviewers.yaml")
-efforts=$(yq -r '(.efforts // []) | length' "$SCRIPT_DIR/reviewers.yaml")
-expected_count=$(( roles * (proxies * (1 + efforts) + efforts) ))
-
 export PEER_AGENTS_DIR="$agents"
+unset PEER_REGISTRY PEER_USER_REGISTRY
+export XDG_CONFIG_HOME="$tmp/xdg"
+SHIPPED="$SCRIPT_DIR/reviewers.yaml"
+
+# --- registry layers -------------------------------------------------------------------
+ids_line() { yq -r '.reviewers[].id' "$@" | tr '\n' ' '; }
+view_ids() { "$PEER" registry | yq -r '.reviewers[].id' | tr '\n' ' '; }
+
+[[ "$(view_ids 2>&1)" == "$(ids_line "$SHIPPED")" ]] \
+  && ok 'with no user layer the registry is the shipped one' \
+  || bad 'with no user layer the registry is the shipped one' "got $(view_ids 2>&1)"
+
+layer="$XDG_CONFIG_HOME/peer/reviewers.yaml"; mkdir -p "${layer%/*}"
+cat > "$layer" <<'EOF'
+reviewers:
+  - id: user-only
+    harness: codex
+    model: user-model
+    alias: user-only
+    effort: high
+    native: false
+    peer: true
+  - id: peer-opus
+    harness: claude
+    provider: anthropic
+    model: user-opus
+    alias: peer-opus
+    effort: high
+    native: false
+    peer: true
+defaults:
+  reviewers: [user-only]
+EOF
+want_out 'the user layer adds its routes' '^user-model$' -- "$PEER" get model user-only
+want_out 'a same-id user route replaces the shipped one' '^user-opus$' -- "$PEER" get model peer-opus
+[[ "$(view_ids 2>&1)" == "$(ids_line "$SHIPPED")user-only " ]] \
+  && ok 'a replaced route keeps its shipped position' \
+  || bad 'a replaced route keeps its shipped position' "got $(view_ids 2>&1)"
+want_out 'user defaults override shipped defaults' '^user-only +peer +user-only$' -- \
+  bash -c '"$1" defaults reviewers | tail -n +2' _ "$PEER"
+want_out 'user defaults leave unset keys to the shipped registry' "^$(yq -r .defaults.dispatch "$SHIPPED")\$" -- \
+  bash -c '"$1" registry | yq -r .defaults.dispatch' _ "$PEER"
+want_ok 'PEER_REGISTRY bypasses the user layer' 2 -- env PEER_REGISTRY="$SHIPPED" "$PEER" get model user-only
+moved="$tmp/moved.yaml"; mv "$layer" "$moved"
+want_out 'PEER_USER_REGISTRY names the user layer' '^user-model$' -- \
+  env PEER_USER_REGISTRY="$moved" "$PEER" get model user-only
+printf 'reviewers: [\n' > "$tmp/bad-layer.yaml"
+want_ok 'an unparseable user layer fails closed' 3 -- \
+  env PEER_USER_REGISTRY="$tmp/bad-layer.yaml" "$PEER" list
+
+# Proxy routes need a local proxy, so they live only in a user layer.
+proxied=$(yq -r '[.reviewers[] | select(.proxy)] | length' "$SHIPPED")
+(( proxied == 0 )) && ok 'the shipped registry carries no proxy routes' \
+                   || bad 'the shipped registry carries no proxy routes' "$proxied proxy routes"
+
+proxy_layer="$tmp/proxy-layer.yaml"
+cat > "$proxy_layer" <<'EOF'
+reviewers:
+  - id: claude-gpt5.6-sol
+    harness: claude
+    provider: openai
+    model: gpt-5.6-sol
+    alias: gpt
+    effort: high
+    native: true
+    proxy: true
+    peer: false
+    override_was: [codex-gpt5.6-sol]
+  - id: claude-gpt5.6-luna
+    harness: claude
+    provider: openai
+    model: gpt-5.6-luna
+    alias: luna
+    effort: high
+    native: true
+    proxy: true
+    peer: false
+EOF
+
+layer_sync() {  # DIR [ENV=VAL...] -- sync the real role sources into DIR
+  local dir=$1 role; shift; mkdir -p "$dir"
+  for role in $(yq -r '.routing | keys | .[]' "$SHIPPED"); do
+    cp "$SCRIPT_DIR/../../../agents/$role.md" "$dir/"
+  done
+  env "$@" PEER_AGENTS_DIR="$dir" "$PEER" route sync >/dev/null 2>&1
+}
+layer_sync "$tmp/sync-shipped"
+if ls "$tmp/sync-shipped" | grep -Eq -- '-(gpt|luna|terra|deepseek)'; then
+  bad 'sync without a user layer generates no proxy variants' "$(ls "$tmp/sync-shipped" | tr '\n' ' ')"
+else ok 'sync without a user layer generates no proxy variants'; fi
+layer_sync "$tmp/sync-layered" PEER_USER_REGISTRY="$proxy_layer"
+[[ -f "$tmp/sync-layered/tester-gpt.md" && -f "$tmp/sync-layered/reviewer-luna.md" ]] \
+  && ok 'sync generates the user layer proxy variants' \
+  || bad 'sync generates the user layer proxy variants' "$(ls "$tmp/sync-layered" | tr '\n' ' ')"
+
+export PEER_USER_REGISTRY="$proxy_layer"
+REGISTRY_VIEW="$tmp/registry-view.yaml"
+"$PEER" registry > "$REGISTRY_VIEW"
+
+roles=$(yq -r '.routing | keys | .[]' "$REGISTRY_VIEW" | wc -l | tr -d ' ')
+proxies=$(yq -r '[.reviewers[] | select(.proxy)] | length' "$REGISTRY_VIEW")
+efforts=$(yq -r '(.efforts // []) | length' "$REGISTRY_VIEW")
+expected_count=$(( roles * (proxies * (1 + efforts) + efforts) ))
 
 # --- explicit route matrix ------------------------------------------------------------
 route_matrix=$("$PEER" list | awk 'NR > 1 { print $1 "|" $2 "|" $4 "|" $6 "|" $7 "|" $8 }')
@@ -109,7 +207,7 @@ expected_route_matrix=$(yq -r '
     ((.native // false) | tostring | sub("true"; "yes") | sub("false"; "no")),
     ((.proxy // false) | tostring | sub("true"; "yes") | sub("false"; "no")),
     ((.peer // false) | tostring | sub("true"; "yes") | sub("false"; "no"))] | join("|")
-' "$SCRIPT_DIR/reviewers.yaml")
+' "$REGISTRY_VIEW")
 [[ "$route_matrix" == "$expected_route_matrix" ]] \
   && ok 'list exposes every execution-specific route and capability' \
   || bad 'list exposes every execution-specific route and capability' "got ${route_matrix:-<empty>}"
@@ -215,7 +313,7 @@ mv "$tmp/tester-base.md" "$agents/tester.md"
 # --- sync: effort variants -------------------------------------------------------------
 # The Task tool has no effort argument, so an alternate level exists only as its own
 # definition. Both axes vary independently: model comes from the peer, effort from the name.
-mapfile -t levels < <(yq -r '(.efforts // [])[]' "$SCRIPT_DIR/reviewers.yaml")
+mapfile -t levels < <(yq -r '(.efforts // [])[]' "$REGISTRY_VIEW")
 (( ${#levels[@]} )) || { printf 'FAIL  registry declares no effort variants to test\n'; (( fails++ )); }
 
 for lvl in "${levels[@]}"; do
@@ -239,7 +337,7 @@ grep -q '^effort:' "$agents/reviewer-gpt.md" \
 
 # `reviewer-<lvl>` cannot mean both "the level variant" and "the peer aliased <lvl>".
 collide="$tmp/collide.yaml"
-sed "s/alias: gpt/alias: $lvl/" "$SCRIPT_DIR/reviewers.yaml" > "$collide"
+sed "s/alias: gpt/alias: $lvl/" "$REGISTRY_VIEW" > "$collide"
 out=$(PEER_REGISTRY="$collide" "$PEER" route sync 2>&1); rc=$?
 { (( rc != 0 )) && grep -q "$lvl" <<< "$out" && ! grep -q Traceback <<< "$out"; } \
   && ok 'sync refuses an effort level that collides with a peer alias' \

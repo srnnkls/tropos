@@ -31,7 +31,7 @@ henia:
 :::
 # peer
 
-Runner: `skills/peer/scripts/peer`, deployed by Phora to `~/.local/bin/peer`, reading the deployed skill's registry and helpers (`PEER_HOME` overrides). Commands: `peer --help`, `peer route --help`.
+Runner: `skills/peer/scripts/peer`, deployed by Phora to `~/.local/bin/peer`, reading the deployed skill's registry plus its [user layer](reference/routing.md#registry), and helpers (`PEER_HOME` overrides). Commands: `peer --help`, `peer route --help`.
 
 ## Dispatch
 
