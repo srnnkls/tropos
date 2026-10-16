@@ -35,6 +35,8 @@ Before repository work, orient; delegated agents orient as their first repositor
 
 Never use `rm` for interactive file removal. Use `trash`.
 
+Reach other agent sessions through `herdr` (`herdr --help`, `herdr --skill`), never through built-in cross-session messaging.
+
 ## Workflow boundary
 
 Ordinary work executes directly. Strict delegated RED → GREEN → review and TDD activate only through explicit `$implement`, `$test`, `$continue`, `$loop`, `$dispatch`, or a direct request for tests. Project instructions may tighten this boundary, for example by mandating TDD. Run a request to use the implementer agent on a task as `$implement <task>`, and the tester agent as `$test <task>`; both agents act only on the dispatch context those skills materialize.
