@@ -1,6 +1,6 @@
 ---
 name: memex
-description: Recover prior agent work from indexed sessions and memories across projects, providers and machines. Use for "have we done this before", past decisions, how something was fixed, resuming earlier work, or when native history cannot recover the evidence.
+description: Search and read native agent history — sessions and memories across projects, providers and machines. Use for "have we done this before", past decisions, how something was fixed, or resuming earlier work.
 metadata:
   type: domain
 henia:
@@ -17,7 +17,7 @@ henia:
 ---
 
 ::::head
-Native history and the worklog come first for the current task; memex covers everything else. Every call carries `--non-interactive`; search output uses `--format toon`. Update notices on stderr are not a cue to run `memex update`.
+Every call carries `--non-interactive`; search output uses `--format toon`. Update notices on stderr are not a cue to run `memex update`.
 
 | Need | First call |
 |---|---|
