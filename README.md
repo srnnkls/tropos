@@ -12,7 +12,7 @@
 
 A cross-harness configuration for agentic development. Ordinary work stays direct; explicit workflows add scoped delegation and evidence gates when requested. Git records the truth.
 
-## Philosophy
+## Approach
 
 - *Direct by default* — Use the shortest native path for ordinary work
 - *Explicit assurance* — Scope, delegated TDD, and review activate only when invoked
