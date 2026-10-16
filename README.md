@@ -25,6 +25,7 @@ A cross-harness configuration for agentic development. Ordinary work stays direc
 - *[instructions/AGENTS.md](instructions/AGENTS.md)* — Concise global contract shared across harnesses
 - *[skills](skills/)* — Progressively disclosed workflows and domain policy
 - *[agents](agents/)* — Implementer, reviewer, and tester boundaries
+- *[config](config/)* — Claude Code harness configuration: settings, hooks, status line, keybindings and file suggestions
 
 ## Composition
 
@@ -74,6 +75,11 @@ declaration, its providers and which provider shadows which.
 ## Development
 
 Henia serves the canonical skills to Claude Code, Codex, Pi and OMP and fetches
-the Gestalt, Limen and Loqui skill packages; Phora deploys the FAS rules. See
+the Gestalt, Limen and Loqui skill packages; Phora deploys the FAS rules.
+Henia also owns the Claude Code harness configuration: `henia.toml` declares
+`settings.json` under `[harness.claude.config]` and the support files under
+`[harness.claude.files]`, and `henia install --global` merges them into
+`~/.claude`. Change settings there rather than through `/config`; see
+[harness configuration](https://github.com/srnnkls/henia/blob/main/docs/vendor-profiles.md#harness-configuration). See
 [Henia and Phora](docs/henia-phora.md). Run `mise run test-artifacts` to prepare
 this tree, compile every harness and check the results.

@@ -20,7 +20,7 @@ output = ".henia/build"
 clean = true
 
 [harness.claude]
-artifacts = ["skills", "agents"]
+artifacts = ["skills", "agents", "config"]
 profile = "claude"
 directives = "xml"
 strict = true
@@ -75,6 +75,87 @@ layout = "flat"
 "agents/implementer.toml" = { source = "agents/implementer.toml" }
 "agents/reviewer.toml" = { source = "agents/reviewer.toml" }
 "agents/tester.toml" = { source = "agents/tester.toml" }
+"keybindings.json" = { source = "config/claude/keybindings.json" }
+"file-suggestion.sh" = { source = "config/claude/file-suggestion.sh" }
+"hooks/herdr-cwd.py" = { source = "config/claude/hooks/herdr-cwd.py" }
+
+[harness.claude.config.statusline]
+file = "config/claude/statusline.sh"
+
+[harness.claude.config.native]
+model = "opus"
+effortLevel = "medium"
+outputStyle = "Terse (ADHD)"
+alwaysThinkingEnabled = true
+autoCompactEnabled = true
+autoMemoryEnabled = false
+autoContinueAtUsageLimit = false
+switchModelsOnFlag = false
+crossSessionInbound = "refuse"
+skipAutoPermissionPrompt = true
+respectGitignore = false
+editorMode = "vim"
+theme = "auto"
+tui = "fullscreen"
+verbose = false
+attribution = { commit = "", pr = "" }
+fileSuggestion = { type = "command", command = "bash ~/.claude/file-suggestion.sh" }
+
+[harness.claude.config.native.env]
+DISABLE_TELEMETRY = "1"
+CLAUDE_FILE_SUGGESTION_HIDDEN = "1"
+CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1"
+CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK = "1"
+
+[harness.claude.config.native.permissions]
+defaultMode = "auto"
+deny = ["SendMessage", "ListAgents"]
+
+[harness.claude.config.native.modelSettings]
+claude-fable-5-1 = { effortLevel = "medium" }
+claude-opus-5-5 = { effortLevel = "medium" }
+gpt-6-astra = { effortLevel = "medium" }
+
+[harness.claude.config.native.hooks]
+SessionStart = [
+  { hooks = [{ type = "command", command = "fas eval --harness claude" }] },
+  { hooks = [{ type = "command", command = "/usr/bin/python3 \"$HOME/.claude/hooks/herdr-cwd.py\"", timeout = 2 }] },
+  { hooks = [{ type = "command", command = "$HOME/.local/bin/limen hook claude", timeout = 5 }] },
+  { matcher = "^(startup|resume|clear|compact|fork)$", hooks = [{ type = "command", command = "bash \"$HOME/.claude/hooks/herdr-agent-state.sh\" session", timeout = 10 }] },
+]
+UserPromptSubmit = [
+  { hooks = [{ type = "command", command = "fas eval --harness claude" }] },
+  { hooks = [{ type = "command", command = "$HOME/.local/bin/limen hook claude", timeout = 5 }] },
+]
+PreToolUse = [
+  { hooks = [{ type = "command", command = "fas eval --harness claude" }] },
+  { matcher = "Task|Agent", hooks = [{ type = "command", command = "peer route hook -C \"$CLAUDE_PROJECT_DIR\"" }] },
+  { matcher = "AskUserQuestion|request_user_input", hooks = [{ type = "command", command = "$HOME/.local/bin/limen hook claude", timeout = 5 }] },
+]
+PostToolUse = [
+  { hooks = [{ type = "command", command = "fas eval --harness claude" }] },
+  { matcher = "EnterWorktree|ExitWorktree", hooks = [{ type = "command", command = "/usr/bin/python3 \"$HOME/.claude/hooks/herdr-cwd.py\"", timeout = 2 }] },
+  { hooks = [{ type = "command", command = "$HOME/.local/bin/limen hook claude", timeout = 5 }] },
+  { matcher = "AskUserQuestion|request_user_input", hooks = [{ type = "command", command = "$HOME/.local/bin/limen hook claude", timeout = 5 }] },
+]
+PostModelSwitch = [
+  { hooks = [{ type = "command", command = "$HOME/.local/bin/limen hook claude", timeout = 5 }] },
+]
+CwdChanged = [
+  { hooks = [{ type = "command", command = "/usr/bin/python3 \"$HOME/.claude/hooks/herdr-cwd.py\"", timeout = 2 }] },
+]
+Notification = [{ hooks = [{ type = "command", command = "fas eval --harness claude" }] }]
+PreCompact = [{ hooks = [{ type = "command", command = "fas eval --harness claude" }] }]
+SubagentStart = [{ hooks = [{ type = "command", command = "fas eval --harness claude" }] }]
+SubagentStop = [{ hooks = [{ type = "command", command = "fas eval --harness claude" }] }]
+Stop = [
+  { hooks = [{ type = "command", command = "fas eval --harness claude" }] },
+  { hooks = [{ type = "command", command = "$HOME/.local/bin/limen hook claude", timeout = 5 }] },
+]
+SessionEnd = [
+  { hooks = [{ type = "command", command = "fas eval --harness claude" }] },
+  { hooks = [{ type = "command", command = "$HOME/.local/bin/limen hook claude", timeout = 1 }] },
+]
 
 [harness.codex.agents]
 profile = "portable-agent"
