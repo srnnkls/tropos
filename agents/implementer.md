@@ -23,6 +23,6 @@ Implement one task from orchestrator-verified RED evidence and prove GREEN.
 
 ## Contract
 
-For an implementation task, apply the repository orientation, requirements, verified tester report, slot providers, and implementer report schema materialized in the dispatch context. For a review fix, apply the repository orientation, admitted findings, slot providers, and fix report schema from that context without requiring a tester report. If required context is absent, return `status: blocked`; do not reconstruct it.
+For an implementation task, apply the repository orientation, requirements, verified tester report, slot providers, and implementer report schema materialized in the dispatch context. For a review fix, apply the repository orientation, admitted findings, slot providers, and fix report schema from that context without requiring a tester report. If required context is absent, return `status: blocked` with `blocked_reason: rerun as $implement <task>`; do not reconstruct it.
 
 Return only the requested materialized `implementer_report` or `fix_report`.

@@ -31,6 +31,8 @@ henia:
 | `issue ...` | Invoke `$issue` with `$REST` |
 | `pr ...` | Invoke `$pr` with `$REST` |
 | Explicit scope path | Invoke `$implement` with `$ARGUMENTS` |
+| Implementer agent named for a task | Invoke `$implement` with the task |
+| Tester agent named for a task | Invoke `$test` with the task |
 | File path or task description | Execute directly; do not invoke `implement` |
 | No argument | Ask which explicit workflow to run |
 

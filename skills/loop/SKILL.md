@@ -6,7 +6,7 @@ henia:
     claude:
       frontmatter:
         argument-hint: <focus topic>
-        allowed-tools: Bash(find *), Bash(git *), Bash(peer *)
+        allowed-tools: Bash(find *), Bash(git *), Bash(peer *), Bash(henia slots *)
         context: fork
         hooks:
           Stop:
