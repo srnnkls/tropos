@@ -1,12 +1,12 @@
 # Canonical Tropos with Henia and Phora
 
 Tropos contains 23 canonical skills, three agent contracts, shared instructions
-and declarative harness profiles. The Gestalt, Limen and Loqui skills live in
+and declarative harness profiles. The Gestalt and Loqui skills live in
 their own repositories beside the commands and guides they document. Henia
 serves them to Claude, Codex, Pi and OMP.
 
 [phora.toml](../phora.toml) declares the package. Its `moira` target installs
-the Moira FAS rules under `rules/fas/moira`; Henia fetches the Gestalt, Limen
+the Moira FAS rules under `rules/fas/moira`; Henia fetches the Gestalt
 and Loqui skill packages declared in [henia.toml](../henia.toml).
 
 Consumers import Tropos as a transitive source and select slices through

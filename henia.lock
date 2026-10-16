@@ -9,14 +9,6 @@ digest = "blake3:9ce865cd47f25fa07f349203833fb45a2d030c8f9a7b7e88ba16cbe1f614af9
 config_digest = "blake3:5fe5e9f38897e5a4a6dfb0dc9f4f3438dc49727c1572cffbc54396fc08010a66"
 
 [[sources]]
-name = "limen"
-git = "https://github.com/srnnkls/limen.git"
-resolved = "main"
-commit = "fa917d657b44101a9376f0a05e816b55a2221150"
-digest = "blake3:def76e99f1696ae5dbc5fb1281ea1bc553860a7431192c712dfd4d539b2b9fde"
-config_digest = "blake3:f0169ccff2f4033bb94d13d09900d73bd0628d808be2b4fafeba788e42bca8be"
-
-[[sources]]
 name = "loqui"
 git = "https://github.com/srnnkls/loqui.git"
 resolved = "main"

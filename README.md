@@ -88,6 +88,6 @@ declaration, its providers and which provider shadows which.
 ## Development
 
 Henia serves the canonical skills to Claude Code, Codex, Pi and OMP and fetches
-the Gestalt, Limen and Loqui skill packages; Phora deploys the FAS rules. See
+the Gestalt and Loqui skill packages; Phora deploys the FAS rules. See
 [Henia and Phora](docs/henia-phora.md). Run `mise run test-artifacts` to prepare
 this tree, compile every harness and check the results.
