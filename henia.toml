@@ -27,7 +27,7 @@ strict = true
 
 [harness.claude.skills]
 default = "dynamic"
-hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "issue", "loop", "loqui", "pr", "review", "scope", "tfcp", "tfcprr", "validate"]
+hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "issue", "loop", "loqui", "memex", "pr", "review", "scope", "tfcp", "tfcprr", "validate"]
 
 [harness.codex]
 artifacts = ["skills", "agents"]
@@ -37,7 +37,7 @@ strict = true
 
 [harness.codex.skills]
 default = "dynamic"
-hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "issue", "loop", "loqui", "pr", "review", "scope", "tfcp", "tfcprr", "validate"]
+hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "issue", "loop", "loqui", "memex", "pr", "review", "scope", "tfcp", "tfcprr", "validate"]
 
 [harness.pi]
 artifacts = ["skills", "agents"]
@@ -47,7 +47,7 @@ strict = true
 
 [harness.pi.skills]
 default = "dynamic"
-hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "issue", "loop", "loqui", "pr", "review", "scope", "tfcp", "tfcprr", "validate"]
+hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "issue", "loop", "loqui", "memex", "pr", "review", "scope", "tfcp", "tfcprr", "validate"]
 
 [harness.pi.references]
 skill = "/skill:{{.Name}}"
@@ -60,7 +60,7 @@ strict = true
 
 [harness.omp.skills]
 default = "dynamic"
-hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "issue", "loop", "loqui", "pr", "review", "scope", "tfcp", "tfcprr", "validate"]
+hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "issue", "loop", "loqui", "memex", "pr", "review", "scope", "tfcp", "tfcprr", "validate"]
 
 [harness.omp.references]
 skill = "/skill:{{.Name}}"
