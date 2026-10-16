@@ -12,7 +12,7 @@ priorities and shadowing; each owner's Slots section states what a slot covers.
 | `code.orientation` | `keyed(list)` | [code](skills/code/SKILL.md#slots) | [code](skills/code/SKILL.md) | [tropos-orientation](.henia/skills/tropos-orientation/SKILL.md) (`code.orientation`) |
 | `code.style` | `keyed(list)` | [code](skills/code/SKILL.md#slots) | — | [loqui](https://github.com/srnnkls/loqui/blob/HEAD/skills/loqui/SKILL.md) (`code.style.bash`, `code.style.elisp`, `code.style.go`, `code.style.python`, `code.style.rust`, `code.style.zig`) |
 | `code.validation` | `keyed(list(command))` | [code](skills/code/SKILL.md#slots) | — | [loqui](https://github.com/srnnkls/loqui/blob/HEAD/skills/loqui/SKILL.md) (`code.validation.go`) |
-| `git.branching` | `keyed(list)` | [git](skills/git/SKILL.md#slots) | — | [git](skills/git/SKILL.md) (`git.branching`) |
+| `git.branching` | `keyed(list)` | [git](skills/git/SKILL.md#slots) | — | [git](skills/git/SKILL.md) (`git.branching`); [tropos-git](.henia/skills/tropos-git/SKILL.md) (`git.branching`) |
 | `git.commits` | `keyed(list)` | [git](skills/git/SKILL.md#slots) | — | [git](skills/git/SKILL.md) (`git.commits`) |
 | `implement.approach` | `keyed(list)` | [implement](skills/implement/SKILL.md#slots) | — | [ponytail](https://github.com/DietrichGebert/ponytail/blob/HEAD/skills/ponytail/SKILL.md) (`implement.approach`) |
 | `issue.template` | `keyed(list)` | [issue](skills/issue/SKILL.md#slots) | — | [issue](skills/issue/SKILL.md) (`issue.template`) |
