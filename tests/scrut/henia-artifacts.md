@@ -19,8 +19,8 @@ $ set -eu; \
 >   '[targets.out]' 'path = "out"' 'sources.henia = { collapse = false }' > phora.toml; \
 > phora sync --no-progress > sync.log 2>&1 || { cat sync.log; exit 1; }; \
 > python3 "$TESTDIR/check-artifacts.py" input out
-claude: 18 skills; metadata, body, resources and support OK
-codex: 18 skills; metadata, body, resources and support OK
-pi: 18 skills; metadata, body, resources and support OK
-omp: 18 skills; metadata, body, resources and support OK
+claude: 19 skills; metadata, body, resources and support OK
+codex: 19 skills; metadata, body, resources and support OK
+pi: 19 skills; metadata, body, resources and support OK
+omp: 19 skills; metadata, body, resources and support OK
 ```

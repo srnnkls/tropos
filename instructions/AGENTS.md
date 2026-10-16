@@ -35,7 +35,7 @@ Before repository work, orient; delegated agents orient as their first repositor
 
 Never use `rm` for interactive file removal. Use `trash`.
 
-Reach other agent sessions through `herdr` (`herdr --help`, `herdr --skill`), never through built-in cross-session messaging.
+Reach other agent sessions through `$herdr`, never through built-in cross-session messaging.
 
 ## Workflow boundary
 
