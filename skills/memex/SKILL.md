@@ -17,7 +17,7 @@ henia:
 ---
 
 ::::head
-All history goes through memex; never read session transcripts or native history stores directly. Every call carries `--non-interactive`; search output uses `--format toon`. Update notices on stderr are not a cue to run `memex update`.
+All history goes through memex; never read session transcripts or native history stores directly. Search output uses `--format toon`. Update notices on stderr are not a cue to run `memex update`.
 
 | Need | First call |
 |---|---|
