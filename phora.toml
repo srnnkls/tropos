@@ -1,9 +1,4 @@
 # Canonical artifacts and their dependency layout, offered to consumers.
-[sources.moira]
-git = "https://github.com/srnnkls/moira.git"
-branch = "main"
-root = "rules/fas"
-
 [sources.prompting-opus]
 url = "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5.md"
 
@@ -18,10 +13,6 @@ url = "https://developers.openai.com/api/docs/guides/prompt-engineering.md"
 
 [sources.prompting-openai-latest-model]
 url = "https://developers.openai.com/api/docs/guides/latest-model.md"
-
-[targets.moira]
-path = "rules/fas/moira"
-sources.moira = { collapse = false }
 
 [targets.prompting]
 path = "resources/prompting"
