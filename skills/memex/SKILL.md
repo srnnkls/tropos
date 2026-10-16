@@ -19,6 +19,8 @@ henia:
 ::::head
 All history goes through memex; never read session transcripts or native history stores directly. Search output uses `--format toon`. Update notices on stderr are not a cue to run `memex update`.
 
+Queries use search syntax: double-quote any term holding `-`, `:` or other operators (`memex search 'cmw reset "--dry-run"'`, `'"E0502:"'`), and pass a query starting with `-` after `--`.
+
 | Need | First call |
 |---|---|
 | Known record or session | Read it, skip search: [Read](#read) |
