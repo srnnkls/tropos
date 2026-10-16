@@ -15,7 +15,7 @@ Build one self-contained prompt per role before dispatch, embedding:
 - verbatim bodies of the `review.criteria` slot providers, the role's [review slots](../SKILL.md#slots), and `code.style` for Compliance, listed in the review context, or `none`;
 - for Abstractions, the output of each listed `review.detectors` command run on the change and the implementer report's `ownership` entries, or `none`.
 
-Commands and workdirs supplement the embedded artifact, never replace it. Save the complete prompt as `prompt.md` in a directory created by `peer path`, built per the [canonical-inputs rule](../../implement/reference/subagent-workflow.md#canonical-inputs).
+Commands and workdirs supplement the embedded artifact, never replace it. Write it as `prompt.md` in a directory created by `peer path` with the [dispatch script](../../implement/reference/subagent-workflow.md#dispatch) and dispatch per that section.
 
 ## Concurrent Dispatch
 

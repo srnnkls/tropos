@@ -20,11 +20,13 @@ henia:
         command: peer defaults reviewers 2>/dev/null || true
       - label: Resolved routes
         command: peer route show -C . 2>/dev/null || true
+      - label: Dispatch context script
+        command: scripts/dispatch-context --locate
   targets:
     claude:
       frontmatter:
         argument-hint: '[target]'
-        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(gh *), Bash(peer *), Bash(henia slots *)
+        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(gh *), Bash(peer *), Bash(henia slots *), Bash(*/scripts/dispatch-context *)
     codex:
       openai:
         interface:
@@ -99,6 +101,7 @@ Stop when requirements are implemented, focused and directly affected native val
 - [operations/debug.md](operations/debug.md) — bounded root-cause work
 - [reference/configuration.md](reference/configuration.md) — canonical role routing
 - [reference/subagent-workflow.md](reference/subagent-workflow.md) — prompt materialization
+- [scripts/dispatch-context](scripts/dispatch-context) — writes dispatch prompts
 - [reference/report.md](reference/report.md) — implementer and fix reports
 - [../test/reference/report.md](../test/reference/report.md) — tester report
 - [../review/reference/report.md](../review/reference/report.md) — reviewer report

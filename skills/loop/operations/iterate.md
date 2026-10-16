@@ -16,7 +16,7 @@
 
 ## Check Failure
 
-Dispatch one focused fix agent for the reachable failure mechanism and re-run the failed check once. If it still fails, output `LOOP_BLOCKED: <summary>` and stop.
+Dispatch one focused `fixer` per [dispatch](../../implement/reference/subagent-workflow.md#dispatch) for the reachable failure mechanism and re-run the failed check once. If it still fails, output `LOOP_BLOCKED: <summary>` and stop.
 
 ## Exit
 

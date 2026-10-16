@@ -25,11 +25,11 @@ Absent explicit reviewer configuration, use every `peer defaults reviewers` entr
 ## Dispatch
 
 - Codex native: the selected `codex-*` route, or inherit session model and effort.
-- Claude native: `Task(subagent_type="<role>", model="<alias>", prompt=...)`.
-- Claude proxy: after a successful route check, `Task(subagent_type="<role>-<alias>[-<effort>]", prompt=...)` without a model argument.
+- Claude native: `Task(subagent_type="<role>", model="<alias>", prompt=<read pointer>)`.
+- Claude proxy: after a successful route check, `Task(subagent_type="<role>-<alias>[-<effort>]", prompt=<read pointer>)` without a model argument.
 - Peer: `peer -C <workdir> -d <outdir> --agent <role> --peers <peer-aliases> --effort <effort> --prompt-file <outdir>/prompt.md`.
 
-One external call per mutating task. Review may fan out compatible external aliases once per role, in one assistant message with all native role Tasks. Create output directories through the [report-layout contract](../SKILL.md#report-layout--peer) and save the full materialized prompt as `prompt.md`.
+One external call per mutating task. Review may fan out compatible external aliases once per role, in one assistant message with all native role Tasks. Create output directories through the [report-layout contract](../SKILL.md#report-layout--peer). Workflow dispatches write `prompt.md` and pass native routes a read pointer to it per [implement dispatch](../../implement/reference/subagent-workflow.md#dispatch).
 
 ## Effort
 

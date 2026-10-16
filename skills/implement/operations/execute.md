@@ -18,11 +18,11 @@ Batch per [parallel-detection.md](../reference/parallel-detection.md), in depend
 
 ## 3. Snapshot a Batch
 
-Snapshot routing per [configuration.md](../reference/configuration.md#batch-snapshot), create report directories through [`peer path`](../../peer/SKILL.md#report-layout--peer), and materialize requirements, acceptance criteria, and orientation per [subagent-workflow.md](../reference/subagent-workflow.md).
+Snapshot routing per [configuration.md](../reference/configuration.md#batch-snapshot), create report directories through [`peer path`](../../peer/SKILL.md#report-layout--peer), and stage requirements, acceptance criteria, and orientation as files for the [dispatch script](../reference/subagent-workflow.md#dispatch).
 
 ## 4. Phase A: RED
 
-Dispatch all testers from the [template](../reference/subagent-workflow.md); never copy [test skill](../../test/SKILL.md) ceilings into prompts. A tester gap blocks its task and dependents; independent tasks continue when their files do not overlap the blocked mutation.
+Write each tester prompt and dispatch it per [dispatch](../reference/subagent-workflow.md#dispatch). A tester gap blocks its task and dependents; independent tasks continue when their files do not overlap the blocked mutation.
 
 RED gate, per report:
 
@@ -35,17 +35,17 @@ Run no test-review agents. Return invalid evidence only to the affected tester w
 
 ## 5. Phase B: GREEN
 
-Dispatch all implementers, each with its requirements, tester report, partial state, and template. Then run the deduplicated focused commands and directly affected native validation once, in one batched round with compatible selectors combined. Any failed, incomplete, or non-GREEN implementer pauses the batch in phase `green`.
+Dispatch all implementers per [dispatch](../reference/subagent-workflow.md#dispatch), each with its requirements, verified tester report, and partial state. Then run the deduplicated focused commands and directly affected native validation once, in one batched round with compatible selectors combined. Any failed, incomplete, or non-GREEN implementer pauses the batch in phase `green`.
 
 ## 6. Phase C: Initial Concurrent Review
 
-Materialize role prompts once per [review harnesses](../../review/reference/harnesses.md#materialization), with the batch diff as the target and its tasks' acceptance criteria among the requirements.
+Write role prompts once per [dispatch](../reference/subagent-workflow.md#dispatch), with the batch diff as the target and its tasks' acceptance criteria among the requirements.
 
 Dispatch, per [code review role](../../code/SKILL.md#review-roles) and within its gates, every configured native reviewer and the external fan-out; the route snapshot decides the mechanism, not alias names. Architecture uses diff or named-symbol queries only when the changed structure needs them. Apply the [review result gate](../../review/reference/harnesses.md#results).
 
 ## 7. Synthesize and Fix
 
-Apply [review synthesis](../../review/reference/synthesis.md). Dispatch file-independent fix groups concurrently, then the targeted re-review. Never re-enter Phase C or fan out by role, harness, or execution class after a fix.
+Apply [review synthesis](../../review/reference/synthesis.md). Dispatch file-independent fix groups concurrently as `fixer` prompts per [dispatch](../reference/subagent-workflow.md#dispatch), then the targeted re-review. Never re-enter Phase C or fan out by role, harness, or execution class after a fix.
 
 ## 8. Complete a Batch
 

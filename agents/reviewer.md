@@ -26,6 +26,6 @@ Review a completed materialized change against requirements and only the assigne
 
 ## Contract
 
-Apply the repository orientation, reviewed artifact, requirements, slot providers, reviewer report schema, finding bar, and assigned gates materialized in the dispatch context. If required context or the artifact is absent, report the review blocked; do not reconstruct it.
+Before inspecting the change, read the full `prompt.md` whose path the dispatch gives, if any; it is the dispatch context. Apply the repository orientation, reviewed artifact, requirements, slot providers, reviewer report schema, finding bar, and assigned gates materialized in the dispatch context. If required context or the artifact is absent, report the review blocked; do not reconstruct it.
 
 Return only the materialized `reviewer_report`. When the dispatch names a report file, write it there.
