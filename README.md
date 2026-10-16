@@ -25,7 +25,6 @@ A cross-harness configuration for agentic development. Ordinary work stays direc
 - *[instructions/AGENTS.md](instructions/AGENTS.md)* — Concise global contract shared across harnesses
 - *[skills](skills/)* — Progressively disclosed workflows and domain policy
 - *[agents](agents/)* — Implementer, reviewer, and tester boundaries
-- *[config](config/)* — Claude Code harness configuration: settings, hooks, status line, keybindings and file suggestions
 
 ## Harnesses
 
@@ -35,10 +34,11 @@ One canonical tree builds for Claude Code, Codex, Pi and OMP. Each
 from [.henia/harnesses](.henia/harnesses/) that maps skills and agents to the
 vendor's format.
 
-Harness configuration is managed the same way. `[harness.claude.config]` and
-[config/claude](config/claude/) produce Claude Code's `settings.json`, hooks,
-status line and keybindings; `henia install --global` merges them into
-`~/.claude`. Edit them here, not through `/config`.
+Harness configuration is managed the same way. `[harness.claude.config]`
+carries what Tropos's skills and rules need in every project: the `fas` and
+`peer` hooks and the deny rule for built-in cross-session messaging. Personal
+settings layer over it from the user `henia.toml`; `henia install` merges both
+into `settings.json`.
 
 ## Composition
 
