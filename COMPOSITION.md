@@ -9,7 +9,7 @@ priorities and shadowing; each owner's Slots section states what a slot covers.
 
 | Slot | Type | Owner | Applied by | Providers |
 |---|---|---|---|---|
-| `code.orientation` | `keyed(list)` | [code](skills/code/SKILL.md#slots) | [code](skills/code/SKILL.md) | — |
+| `code.orientation` | `keyed(list)` | [code](skills/code/SKILL.md#slots) | [code](skills/code/SKILL.md) | [tropos-orientation](.henia/skills/tropos-orientation/SKILL.md) (`code.orientation`) |
 | `code.style` | `keyed(list)` | [code](skills/code/SKILL.md#slots) | — | [loqui](https://github.com/srnnkls/loqui/blob/HEAD/skills/loqui/SKILL.md) (`code.style.bash`, `code.style.elisp`, `code.style.go`, `code.style.python`, `code.style.rust`, `code.style.zig`) |
 | `code.validation` | `keyed(list(command))` | [code](skills/code/SKILL.md#slots) | — | [loqui](https://github.com/srnnkls/loqui/blob/HEAD/skills/loqui/SKILL.md) (`code.validation.go`) |
 | `git.branching` | `keyed(list)` | [git](skills/git/SKILL.md#slots) | — | [git](skills/git/SKILL.md) (`git.branching`) |
