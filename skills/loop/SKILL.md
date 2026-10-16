@@ -6,7 +6,7 @@ henia:
     claude:
       frontmatter:
         argument-hint: <focus topic>
-        allowed-tools: Bash(find *), Bash(git *), Bash(peer *), Bash(henia slots *)
+        allowed-tools: Bash(find *), Bash(git *), Bash(peer *), Bash(henia slots *), Bash(*/scripts/dispatch-context *)
         context: fork
         hooks:
           Stop:
@@ -32,6 +32,8 @@ henia:
         command: git branch --show-current 2>/dev/null || true
       - label: Current routes (recorded batch snapshots remain authoritative)
         command: peer route show -C . 2>/dev/null || true
+      - label: Dispatch context script
+        command: henia preload --skill implement -- 'scripts/dispatch-context --locate'
 metadata:
   type: generic
 ---

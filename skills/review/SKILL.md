@@ -29,11 +29,13 @@ henia:
         command: peer defaults reviewers 2>/dev/null || true
       - label: Resolved routes
         command: peer route show -C . 2>/dev/null || true
+      - label: Dispatch context script
+        command: henia preload --skill implement -- 'scripts/dispatch-context --locate'
   targets:
     claude:
       frontmatter:
         argument-hint: '[target]'
-        allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(find *), Bash(gh pr list *), Bash(peer *)
+        allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(find *), Bash(gh pr list *), Bash(peer *), Bash(*/scripts/dispatch-context *)
     codex:
       openai:
         interface:

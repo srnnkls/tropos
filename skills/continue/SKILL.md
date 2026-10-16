@@ -8,7 +8,7 @@ henia:
     claude:
       frontmatter:
         argument-hint: '[scope-name]'
-        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(peer *), Bash(henia slots *)
+        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(peer *), Bash(henia slots *), Bash(*/scripts/dispatch-context *)
     codex:
       openai:
         interface:
@@ -28,6 +28,8 @@ henia:
         command: git branch --show-current 2>/dev/null || true
       - label: Current routes (the recorded batch snapshot remains authoritative)
         command: peer route show -C . 2>/dev/null || true
+      - label: Dispatch context script
+        command: henia preload --skill implement -- 'scripts/dispatch-context --locate'
 ---
 
 :::head{context slots="git.branching test.conventions test.approach implement.approach code.orientation code.style code.validation review.criteria review.general review.architecture review.tests review.abstractions review.detectors"}
@@ -54,7 +56,7 @@ Report the branch and last commit; current batch, tasks, phase, and status; in-f
 
 ### Mutating wave
 
-Accept an entry only if, comparing its baseline/current diff with any saved report, its RED/GREEN/fix gate now passes. Otherwise redispatch that exact task and phase with its partial edits and evidence; the user-issued `$continue` authorizes this. Dispatch all missing tasks in one message, with one checkpoint write before and one after.
+Accept an entry only if, comparing its baseline/current diff with any saved report, its RED/GREEN/fix gate now passes. Otherwise rewrite its prompt per [dispatch](../implement/reference/subagent-workflow.md#dispatch) and redispatch that exact task and phase with its partial edits and evidence; the user-issued `$continue` authorizes this. Dispatch all missing tasks in one message, with one checkpoint write before and one after.
 
 ### Read-only review wave
 

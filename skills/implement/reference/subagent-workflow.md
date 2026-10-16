@@ -4,9 +4,9 @@ Prompt skeletons for [implement](../SKILL.md). Order and gates: [execute.md](../
 
 ## Canonical Inputs
 
-Load at dispatch time and materialize verbatim. Run each library input (`henia show`, `henia slots --inline`) fresh for every dispatch and pipe it straight into that dispatch's `prompt.md`. Task data (requirements, repository map) may be staged.
+[scripts/dispatch-context](../scripts/dispatch-context) writes every dispatch's `prompt.md` from the skeletons below; never write, copy, or paraphrase a prompt or library text yourself. It runs each library input (`henia show`, `henia slots --inline`) fresh and takes task data as files.
 
-- `{repository_map}` — fresh bounded output from the [repository-orientation contract](../../../instructions/AGENTS.md#tools-and-context) for `{workdir}`
+- `{repository_map}` — fresh bounded output from the [repository-orientation contract](../../../instructions/AGENTS.md#tools-and-context) for `{workdir}`, passed as `--repository-map`
 - `{role_contract}` — the selected base role from `agents/tester.md`, `agents/implementer.md`, or `agents/reviewer.md`
 - `{tester_contract}` — [test/SKILL.md](../../test/SKILL.md)
 - `{test_failure_modes}` — [test/reference/failure-modes.md](../../test/reference/failure-modes.md)
@@ -16,7 +16,23 @@ Load at dispatch time and materialize verbatim. Run each library input (`henia s
 - `{finding_bar}` — [review/reference/finding-bar.md](../../review/reference/finding-bar.md)
 - `{slot_providers}` — verbatim bodies of the listed skill slot providers and the commands of the `code.validation` rows the role consumes (`test.conventions`, `code.style` and `test.approach.<domain>` for testers; `test.conventions`, `code.style`, `code.validation`, `test.approach.<domain>` and `implement.approach.<domain>` for implementers and fixers; for reviewers, the providers [review harnesses](../../review/reference/harnesses.md#materialization) lists, plus for Abstractions the outputs of the [`review.detectors.<language>`](../../review/SKILL.md#slots) commands for the change's languages), or `none`. The approach slots resolve per task from its [domain](../SKILL.md#slots) and the review slots per batch from its tasks' domains, with `henia slots --inline`.
 
-Role behavior comes only from `agents/*.md`. Claude native definitions and `peer` load the role directly. A native Codex `codex-*` dispatch prepends `{role_contract}` to its task prompt; every other mechanism leaves it empty.
+Role behavior comes only from `agents/*.md`. Claude native definitions and `peer` load the role directly. A native Codex `codex-*` dispatch passes `--role-contract`, which prepends `{role_contract}` to its task prompt; every other mechanism leaves it empty.
+
+## Dispatch
+
+Take the script's absolute path from the `Dispatch context script` entry of the skill context; `--help` lists its arguments. Per dispatch, in the report directory from [`peer path`](../../peer/SKILL.md#report-layout--peer):
+
+```bash
+<dispatch-context> implementer -d <dir> -C <workdir> --domain <domain> \
+  --task-id T003 --task-name "<name>" --requirements <file> \
+  --repository-map <file> --tester-report <file>
+```
+
+It prints the absolute `prompt.md` path. Roles: `tester`, `implementer`, `fixer` (`--findings`), `reviewer` (`--review-role`, `--diff`, one `--domain` per batch domain, Abstractions `--language` and `--ownership`).
+
+- Native Claude `Task`/`Agent` and native Codex: the prompt is only `Read <path> in full before any other action; it is your dispatch context.` with the printed path.
+- Peer: `--prompt-file <path>` per [peer routing](../../peer/reference/routing.md#dispatch).
+- A script failure blocks that dispatch; resolve its error and rerun it.
 
 ## Tester
 
@@ -80,7 +96,7 @@ Return only this schema:
 
 ## Initial Review Wave
 
-Materialize once per batch; `{structural_context}` comes from bounded structural queries and `{guidelines}` holds only material `code.style` excerpts. Build one prompt per [code review role](../../code/SKILL.md#review-roles) and save it as `prompt.md` in its `peer path` directory.
+Write one prompt per batch and [code review role](../../code/SKILL.md#review-roles) with `reviewer --review-role <role>`; `--structural-context` holds bounded structural query output and `--guidelines` only material `code.style` excerpts.
 
 ```text
 Review this completed change against only the assigned {role} gates.

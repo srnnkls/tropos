@@ -48,7 +48,7 @@ Every phase and review role in the batch uses it; edits apply to the next batch.
 
 ## Implementation Dispatch
 
-Dispatch every snapshot entry under peer routing, preserving its class and mechanism. Create output directories through the [peer report layout](../../peer/SKILL.md#report-layout--peer); save materialized prompts as `prompt.md` and normalized native reports beside peer reports. Review results: [review result gate](../../review/reference/harnesses.md#results).
+Dispatch every snapshot entry under peer routing, preserving its class and mechanism. Create output directories through the [peer report layout](../../peer/SKILL.md#report-layout--peer); write `prompt.md` per [dispatch](subagent-workflow.md#dispatch) and save normalized native reports beside peer reports. Review results: [review result gate](../../review/reference/harnesses.md#results).
 
 ## Failures
 

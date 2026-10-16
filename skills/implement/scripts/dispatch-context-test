@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# Run: skills/implement/scripts/dispatch-context-test
+set -uo pipefail
+
+SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+DISPATCH="$SCRIPT_DIR/dispatch-context"
+ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd -P)"
+HENIA="${HENIA:-henia}"
+tmp=$(mktemp -d) && tmp=$(cd "$tmp" && pwd -P) || tmp=""
+[[ -n "$tmp" && -d "$tmp" && "$tmp" != / ]] || { printf 'FAIL  refusing to run: temp dir %s\n' "${tmp:-<empty>}"; exit 1; }
+trap 'rm -rf "$tmp"' EXIT
+fails=0
+
+ok()  { printf 'ok    %s\n' "$1"; }
+bad() { printf 'FAIL  %s\n      %s\n' "$1" "$2"; (( fails++ )); }
+has() { [[ "$2" == *"$3"* ]] && ok "$1" || bad "$1" "missing: ${3:0:120}"; }
+lacks() { [[ "$2" != *"$3"* ]] && ok "$1" || bad "$1" "unexpected: ${3:0:120}"; }
+section() {  # PROMPT SLOT -> body under "### SLOT" up to the next slot heading or skeleton label
+  awk -v want="### $2" '
+    $0 == want { inside = 1; next }
+    inside && /^### [a-z]+\.[a-z.]+$/ { exit }
+    inside && /^Work from: / { exit }
+    inside { print }
+  ' <<<"$1"
+}
+
+printf 'Add the export command.\n' >"$tmp/requirements.md"
+printf 'repository map fixture\n' >"$tmp/map.txt"
+printf 'tester_report:\n  status: red\n  marker: tester-report-fixture\n' >"$tmp/red.yaml"
+mkdir -p "$tmp/implementer" "$tmp/codex" "$tmp/missing"
+
+path=$(cd "$ROOT" && "$DISPATCH" implementer -d "$tmp/implementer" -C "$ROOT" --domain code \
+  --task-id T001 --task-name "Export command" --requirements "$tmp/requirements.md" \
+  --repository-map "$tmp/map.txt" --tester-report "$tmp/red.yaml" 2>&1)
+[[ "$path" == "$tmp/implementer/prompt.md" && -s "$path" ]] \
+  && ok "implementer: prints the written prompt.md path" \
+  || bad "implementer: prints the written prompt.md path" "$path"
+prompt=$(cat "$tmp/implementer/prompt.md" 2>/dev/null)
+
+has "implementer: task line" "$prompt" "Implement T001: Export command."
+has "implementer: requirements" "$prompt" "Add the export command."
+has "implementer: repository map" "$prompt" "repository map fixture"
+has "implementer: verified tester report" "$prompt" "marker: tester-report-fixture"
+has "implementer: workdir" "$prompt" "Work from: $ROOT"
+has "implementer: report schema" "$prompt" "implementer_report:"
+lacks "implementer: no role contract outside native Codex" "$prompt" "## Boundary"
+
+approach=$(cd "$ROOT" && "$HENIA" slots --inline implement.approach.code)
+has "implementer: ponytail heading" "$prompt" "# Ponytail"
+has "implementer: later ponytail body line" "$prompt" "## The smallest complete change"
+[[ -n "$approach" && "$(section "$prompt" implement.approach.code)" == *"$approach"* ]] \
+  && ok "implementer: implement.approach.code is the verbatim henia slots --inline body" \
+  || bad "implementer: implement.approach.code is the verbatim henia slots --inline body" "section differs from henia output"
+for slot in test.conventions code.style code.validation test.approach.code; do
+  expected=$(cd "$ROOT" && "$HENIA" slots --inline "$slot")
+  [[ "$prompt" == *"### $slot"* && "$(section "$prompt" "$slot")" == *"${expected:-none}"* ]] \
+    && ok "implementer: $slot providers verbatim" \
+    || bad "implementer: $slot providers verbatim" "section differs from henia output"
+done
+
+(cd "$ROOT" && "$DISPATCH" implementer -d "$tmp/codex" -C "$ROOT" --domain code --role-contract \
+  --task-id T001 --task-name x --requirements "$tmp/requirements.md" \
+  --repository-map "$tmp/map.txt" --tester-report "$tmp/red.yaml" >/dev/null 2>&1)
+has "native Codex: embeds the implementer role" "$(cat "$tmp/codex/prompt.md" 2>/dev/null)" "## Boundary"
+
+out=$(cd "$ROOT" && "$DISPATCH" implementer -d "$tmp/missing" -C "$ROOT" --domain code \
+  --task-id T001 --task-name x --repository-map "$tmp/map.txt" 2>&1); rc=$?
+(( rc == 2 )) && [[ ! -e "$tmp/missing/prompt.md" ]] \
+  && ok "missing task data: exit 2, no prompt.md" \
+  || bad "missing task data: exit 2, no prompt.md" "exit $rc: $out"
+
+if (( fails )); then printf '\n%d failing\n' "$fails"; exit 1; fi

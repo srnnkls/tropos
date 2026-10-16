@@ -1,0 +1,209 @@
+#!/usr/bin/env bash
+# Writes one dispatch's prompt.md from its role skeleton in
+# reference/subagent-workflow.md and its canonical inputs, running every library
+# command itself. Prints the absolute prompt.md path.
+set -uo pipefail
+
+SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="${SCRIPT_PATH%/*}"
+SKELETONS="$SCRIPT_DIR/../reference/subagent-workflow.md"
+DEFAULT_AGENTS_DIR="$SCRIPT_DIR/../../../agents"
+HENIA="${HENIA:-henia}"
+
+usage() {
+  cat <<'USAGE'
+usage: dispatch-context ROLE -d OUTDIR -C WORKDIR --repository-map FILE [options]
+       dispatch-context --locate
+
+ROLE                     tester | implementer | fixer | reviewer
+-d OUTDIR                report directory from `peer path`; receives prompt.md
+-C WORKDIR               working tree the dispatch works from (default: .)
+--repository-map FILE    fresh repository orientation output
+--domain D               task domain; tester, implementer, fixer: exactly one;
+                         reviewer: one per batch domain, or none
+--role-contract          embed agents/<role>.md (native Codex dispatch)
+--harness H              harness to render library inputs for
+
+tester, implementer:     --task-id ID --task-name NAME --requirements FILE
+implementer:             --tester-report FILE [--partial-state FILE]
+fixer:                   --findings FILE
+reviewer:                --review-role general|architecture|compliance|abstractions
+                         --requirements FILE --diff FILE
+                         [--structural-context FILE] [--guidelines FILE]
+abstractions reviewer:   [--language L]... [--ownership FILE]
+USAGE
+}
+
+die() { printf 'dispatch-context: %s\n' "$1" >&2; exit "${2:-2}"; }
+
+[[ "${1:-}" == --locate ]] && { printf '%s\n' "$SCRIPT_PATH"; exit 0; }
+[[ "${1:-}" == -h || "${1:-}" == --help ]] && { usage; exit 0; }
+
+role="${1:-}"; shift || true
+case "$role" in
+  tester|implementer|fixer|reviewer) ;;
+  *) usage >&2; die "unknown role '${role}'" ;;
+esac
+
+outdir=""; workdir="$PWD"; harness=""; role_contract=0
+task_id=""; task_name=""; review_role=""
+domains=(); languages=()
+declare -A file=()
+
+need() { [[ $# -ge 2 && -n "$2" ]] || die "$1 needs a value"; }
+while (($#)); do
+  case "$1" in
+    -d) need "$@"; outdir="$2"; shift 2 ;;
+    -C) need "$@"; workdir="$2"; shift 2 ;;
+    --domain) need "$@"; domains+=("$2"); shift 2 ;;
+    --language) need "$@"; languages+=("$2"); shift 2 ;;
+    --harness) need "$@"; harness="$2"; shift 2 ;;
+    --role-contract) role_contract=1; shift ;;
+    --task-id) need "$@"; task_id="$2"; shift 2 ;;
+    --task-name) need "$@"; task_name="$2"; shift 2 ;;
+    --review-role) need "$@"; review_role="$2"; shift 2 ;;
+    --repository-map|--requirements|--tester-report|--partial-state|--findings|--diff|--structural-context|--guidelines|--ownership)
+      need "$@"; file[${1#--}]="$2"; shift 2 ;;
+    *) usage >&2; die "unknown argument '$1'" ;;
+  esac
+done
+
+[[ -n "$outdir" && -d "$outdir" ]] || die "-d must name an existing report directory (create it with \`peer path\`)"
+[[ -d "$workdir" ]] || die "workdir not found: $workdir"
+outdir="$(cd "$outdir" && pwd -P)"
+workdir="$(cd "$workdir" && pwd -P)"
+
+require() { for key in "$@"; do [[ -n "${file[$key]:-}" ]] || die "$role needs --$key FILE"; done; }
+require repository-map
+case "$role" in
+  tester) require requirements; [[ -n "$task_id" && -n "$task_name" ]] || die "tester needs --task-id and --task-name" ;;
+  implementer) require requirements tester-report; [[ -n "$task_id" && -n "$task_name" ]] || die "implementer needs --task-id and --task-name" ;;
+  fixer) require findings ;;
+  reviewer)
+    require requirements diff
+    case "$review_role" in
+      general|architecture|compliance|abstractions) ;;
+      *) die "reviewer needs --review-role general|architecture|compliance|abstractions" ;;
+    esac ;;
+esac
+if [[ "$role" != reviewer && ${#domains[@]} -ne 1 ]]; then
+  die "$role needs exactly one --domain"
+fi
+for key in "${!file[@]}"; do
+  [[ -r "${file[$key]}" && ! -d "${file[$key]}" ]] || die "--$key is not readable: ${file[$key]}"
+done
+
+henia_args=(); [[ -n "$harness" ]] && henia_args=(--harness "$harness")
+
+library() {  # henia show ADDRESS; henia exits 0 on problems, so check the text
+  local out
+  out=$(cd "$workdir" && "$HENIA" show "${henia_args[@]}" "$1" 2>&1) || die "henia show $1 failed" 3
+  [[ -n "$out" && "$out" != henia:* ]] || die "henia show $1: ${out:-no output}" 3
+  printf '%s' "$out"
+}
+
+providers() {  # one heading and the verbatim `henia slots --inline` body per slot
+  local slot out
+  for slot in "$@"; do
+    out=$(cd "$workdir" && "$HENIA" slots --inline "${henia_args[@]}" "$slot" 2>&1) || die "henia slots --inline $slot failed" 3
+    printf '### %s\n\n%s\n\n' "$slot" "${out:-none}"
+  done
+}
+
+detectors() {  # run each review.detectors.<language> command on the working tree
+  local language cmd
+  for language in "${languages[@]}"; do
+    while IFS= read -r cmd; do
+      [[ -n "$cmd" ]] || continue
+      printf '### review.detectors.%s\n\n$ %s\n' "$language" "$cmd"
+      (cd "$workdir" && bash -c "$cmd" 2>&1)
+      printf '\n'
+    done < <(cd "$workdir" && "$HENIA" slots "${henia_args[@]}" "review.detectors.$language" 2>/dev/null \
+      | awk -F'\t' 'NF >= 4 && $2 !~ /^(none|invalid|unknown|undeclared|conflict)$/ { print $4 }')
+  done
+}
+
+keyed() {  # SLOT -> SLOT.<domain> per domain, or SLOT without domains
+  local d
+  if ((${#domains[@]})); then for d in "${domains[@]}"; do printf '%s\n' "$1.$d"; done
+  else printf '%s\n' "$1"; fi
+}
+
+case "$role" in
+  tester)
+    section="Tester"
+    slots=(test.conventions code.style "test.approach.${domains[0]}") ;;
+  implementer|fixer)
+    [[ "$role" == implementer ]] && section="Implementer" || section="Fix"
+    slots=(test.conventions code.style code.validation "test.approach.${domains[0]}" "implement.approach.${domains[0]}") ;;
+  reviewer)
+    section="Initial Review Wave"
+    slots=(review.criteria)
+    case "$review_role" in
+      general) mapfile -t -O 1 slots < <(keyed review.general; keyed review.tests) ;;
+      architecture) mapfile -t -O 1 slots < <(keyed review.architecture) ;;
+      compliance) slots+=(code.style) ;;
+      abstractions) mapfile -t -O 1 slots < <(keyed review.abstractions) ;;
+    esac ;;
+esac
+
+agent="$role"; [[ "$role" == fixer ]] && agent=implementer
+declare -A value=(
+  [task_id]="$task_id" [task_name]="$task_name" [workdir]="$workdir" [role]="$review_role"
+  [role_contract]="" [partial_state]="none" [structural_context]="none" [guidelines]="none"
+)
+if ((role_contract)); then
+  source_md="$workdir/agents/$agent.md"; [[ -r "$source_md" ]] || source_md="$DEFAULT_AGENTS_DIR/$agent.md"
+  [[ -r "$source_md" ]] || die "role definition not readable for $agent" 3
+  value[role_contract]=$(awk 'NR == 1 && $0 == "---" { fm = 1; next } fm && $0 == "---" { fm = 0; next } !fm' "$source_md")
+fi
+
+for key in "${!file[@]}"; do value[${key//-/_}]=$(<"${file[$key]}"); done
+value[task_requirements]="${value[requirements]:-}"
+value[tester_report]="${value[tester_report]:-}"
+value[materialized_diff]="${value[diff]:-}"
+
+value[slot_providers]=$(providers "${slots[@]}") || exit
+if [[ "$role" == reviewer && "$review_role" == abstractions ]]; then
+  value[slot_providers]+=$'\n\n'"$(detectors)"
+  value[slot_providers]+=$'\n\n### ownership\n\n'"${value[ownership]:-none}"
+fi
+case "$role" in
+  tester)
+    value[tester_contract]=$(library test) || exit
+    value[test_failure_modes]=$(library test.reference.failure-modes) || exit
+    value[tester_report_schema]=$(library test.reference.report) || exit ;;
+  implementer) value[implementer_report_schema]=$(library 'implement.reference.report#implementer') || exit ;;
+  fixer) value[fix_report_schema]=$(library 'implement.reference.report#fix') || exit ;;
+  reviewer)
+    value[finding_bar]=$(library review.reference.finding-bar) || exit
+    value[reviewer_report_schema]=$(library 'review.reference.report#reviewer-report') || exit ;;
+esac
+
+skeleton=$(awk -v want="## $section" '
+  $0 == want { inside = 1; next }
+  inside && /^## / { exit }
+  inside && !open && /^```text$/ { open = 1; next }
+  open && /^```$/ { exit }
+  open { print }
+' "$SKELETONS")
+[[ -n "$skeleton" ]] || die "no skeleton for '$section' in $SKELETONS" 3
+
+target="$outdir/prompt.md"
+tmp="$(mktemp "$outdir/.prompt.XXXXXX")" || die "cannot write in $outdir" 3
+trap 'rm -f "$tmp"' EXIT
+{
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^\{([a-z_]+)\}$ ]]; then
+      key="${BASH_REMATCH[1]}"
+      [[ -v "value[$key]" ]] || die "skeleton '$section' needs {$key}, which $role does not supply" 3
+      printf '%s\n' "${value[$key]}"
+      continue
+    fi
+    for key in task_id task_name workdir role; do line="${line//"{$key}"/${value[$key]}}"; done
+    [[ "$line" =~ \{[a-z_]+\} ]] && die "skeleton '$section' has an unresolved placeholder: $line" 3
+    printf '%s\n' "$line"
+  done <<<"$skeleton"
+} >"$tmp" || exit
+mv "$tmp" "$target" && trap - EXIT
+printf '%s\n' "$target"
