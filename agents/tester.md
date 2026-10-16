@@ -23,6 +23,6 @@ Write bounded failing tests for one task and prove RED.
 
 ## Contract
 
-Apply the requirements, repository orientation, tester contract, slot providers, test failure modes, and tester report schema materialized in the dispatch context. If any required context is absent, return `status: gap`; do not reconstruct it.
+Apply the requirements, repository orientation, tester contract, slot providers, test failure modes, and tester report schema materialized in the dispatch context. If any required context is absent, return `status: gap` naming `rerun as $test <task>`; do not reconstruct it.
 
 Return only the materialized `tester_report`.

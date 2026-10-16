@@ -8,7 +8,7 @@ henia:
     claude:
       frontmatter:
         argument-hint: '[scope-name]'
-        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(peer *)
+        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(peer *), Bash(henia slots *)
     codex:
       openai:
         interface:
