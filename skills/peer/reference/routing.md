@@ -2,7 +2,9 @@
 
 ## Registry
 
-`skills/peer/scripts/reviewers.yaml` is the sole source of routes (ID, harness, provider, model, alias, default effort, native/proxy/peer capability) and the default reviewer ensemble. Read it through `peer list`, `peer get`, and `peer defaults reviewers`; never infer behavior from an alias or hardcode model strings.
+`skills/peer/scripts/reviewers.yaml` holds the portable routes (ID, harness, provider, model, alias, default effort, native/proxy/peer capability) and the default reviewer ensemble. Read the effective registry through `peer registry`, `peer list`, `peer get`, and `peer defaults reviewers`; never infer behavior from an alias or hardcode model strings.
+
+Machine-specific routes, such as proxy-served models, belong in the user layer `${PEER_USER_REGISTRY:-${XDG_CONFIG_HOME:-$HOME/.config}/peer/reviewers.yaml}`, merged when readable: its `reviewers` append, a same-`id` entry replaces the shipped one in place, and its `defaults` keys override. No other key merges. An unparseable layer fails closed. `PEER_REGISTRY` names a complete registry and skips the merge.
 
 ## Default reviewers
 
