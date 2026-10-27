@@ -71,10 +71,10 @@ layout = "flat"
 "agents/reviewer.toml" = { source = "agents/reviewer.toml" }
 "agents/tester.toml" = { source = "agents/tester.toml" }
 
-[harness.claude.config.native.permissions]
+[harness.claude.config.permissions]
 deny = ["SendMessage", "ListAgents"]
 
-[harness.claude.config.native.hooks]
+[harness.claude.config.hooks]
 SessionStart = [{ hooks = [{ type = "command", command = "fas eval --harness claude" }] }]
 UserPromptSubmit = [{ hooks = [{ type = "command", command = "fas eval --harness claude" }] }]
 PreToolUse = [
