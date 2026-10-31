@@ -1,5 +1,7 @@
 [tools]
-"github:srnnkls/henia" = { version = "0.1.0-alpha.29", prerelease = "true" }
+"github:srnnkls/henia" = { version = "0.1.0-alpha.31", prerelease = "true" }
+hk = { version = "2.6.0", postinstall = "hk install --mise", depends = ["pkl"] }
+pkl = "0.31.0"
 
 [tasks.composition]
 description = "Generate COMPOSITION.md from the skills' slots"

@@ -1,0 +1,18 @@
+amends "package://github.com/jdx/hk/releases/download/v2.6.0/hk@2.6.0#/Config.pkl"
+
+local linters = new Mapping<String, Step> {
+  ["henia-lint"] {
+    glob = List("skills/**", "agents/**", "instructions/**", "henia.toml", "henia.lock")
+    check = "henia lint"
+  }
+}
+
+hooks {
+  ["pre-commit"] {
+    stash = "none"
+    steps = linters
+  }
+  ["check"] {
+    steps = linters
+  }
+}
