@@ -8,19 +8,33 @@ import (
 	"github.com/srnnkls/fas/cue/tool"
 )
 
-_slashFile: =~#"\.(go|rs|ts|tsx|js|jsx|mjs|cjs|c|h|cc|cpp|hpp|java|cue|kdl|kt|kts|scala|swift|dart|php|cs|proto|zig)$"#
-_hashFile:  =~#"\.(py|sh|bash|zsh|fish|rb|pl|r|jl|nix|tf|ps1)$"#
-_semiFile:  =~#"\.(el|lisp|lsp|cl|clj|cljs|cljc|edn|scm|ss|rkt|fnl)$"#
-_dashFile:  =~#"\.(lua|sql|hs|lhs|elm|applescript)$"#
+_slashExt: strings.Join([
+	"go", "rs", "zig", "c", "h", "cc", "cpp", "hpp", "java", "kt", "kts", "scala", "swift", "dart", "cs", "php",
+	"ts", "tsx", "js", "jsx", "mjs", "cjs", "cue", "kdl", "proto", "gleam", "odin",
+], "|")
+_hashExt: strings.Join(["py", "rb", "pl", "r", "jl", "sh", "bash", "zsh", "fish", "ps1", "nix", "tf", "ex", "exs", "nim"], "|")
+_semiExt: strings.Join(["el", "lisp", "lsp", "cl", "clj", "cljs", "cljc", "edn", "scm", "ss", "rkt", "fnl"], "|")
+_dashExt: strings.Join(["lua", "sql", "hs", "lhs", "elm", "applescript"], "|")
+
+_slashFile: =~(#"\.("# + _slashExt + ")$")
+_hashFile:  =~(#"\.("# + _hashExt + ")$")
+_semiFile:  =~(#"\.("# + _semiExt + ")$")
+_dashFile:  =~(#"\.("# + _dashExt + ")$")
 
 _slashBlock: =~#"(?m)(^[ \t]*//[^\n]*\n[ \t]*//|/\*\*?[ \t]*$)"#
 _hashBlock:  =~#"(?m)^[ \t]*#[^!\n][^\n]*\n[ \t]*#"#
 _semiBlock:  =~#"(?m)^[ \t]*;[^\n]*\n[ \t]*;"#
 _dashBlock:  =~#"(?m)^[ \t]*--[^\n]*\n[ \t]*--"#
 
-_slashLintRe: #"(//|/\*)[ \t]*(eslint-disable|@ts-ignore|@ts-expect-error|@ts-nocheck|prettier-ignore|biome-ignore|nolint|istanbul ignore|[cv]8 ignore|stylelint-disable)"#
-_hashLintRe:  #"#[ \t]*(noqa|type:[ \t]*ignore|pylint:|pyright:|mypy:|ruff:|fmt:[ \t]*(on|off)|nosec|flake8:|pragma:[ \t]*no|shellcheck[ \t]+disable|rubocop:|yamllint|tflint-ignore)"#
-_dashLintRe:  #"--+[ \t]*(luacheck:|noqa|@diagnostic|stylua:|sqlfluff:)"#
+_slashLintRe: #"(//|/\*)[ \t]*("# + strings.Join([
+	"eslint-disable", "@ts-ignore", "@ts-expect-error", "@ts-nocheck", "prettier-ignore", "biome-ignore",
+	"nolint", "istanbul ignore", "[cv]8 ignore", "stylelint-disable",
+], "|") + ")"
+_hashLintRe: "#" + #"[ \t]*("# + strings.Join([
+	"noqa", #"type:[ \t]*ignore"#, "pylint:", "pyright:", "mypy:", "ruff:", #"fmt:[ \t]*(on|off)"#, "nosec", "flake8:",
+	#"pragma:[ \t]*no"#, #"shellcheck[ \t]+disable"#, "rubocop:", "yamllint", "tflint-ignore",
+], "|") + ")"
+_dashLintRe: #"--+[ \t]*("# + strings.Join(["luacheck:", "noqa", "@diagnostic", "stylua:", "sqlfluff:"], "|") + ")"
 
 _slashLint: =~("(?i)" + _slashLintRe)
 _hashLint:  =~("(?i)" + _hashLintRe)

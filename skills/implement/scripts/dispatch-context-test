@@ -51,7 +51,7 @@ has "implementer: later ponytail body line" "$prompt" "## The smallest complete 
 [[ -n "$approach" && "$(section "$prompt" implement.approach.code)" == *"$approach"* ]] \
   && ok "implementer: implement.approach.code is the verbatim henia slots --inline body" \
   || bad "implementer: implement.approach.code is the verbatim henia slots --inline body" "section differs from henia output"
-for slot in test.conventions code.style code.validation test.approach.code; do
+for slot in test.conventions code.style code.conformance code.validation test.approach.code; do
   expected=$(cd "$ROOT" && "$HENIA" slots --inline "$slot")
   [[ "$prompt" == *"### $slot"* && "$(section "$prompt" "$slot")" == *"${expected:-none}"* ]] \
     && ok "implementer: $slot providers verbatim" \

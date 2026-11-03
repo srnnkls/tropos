@@ -132,17 +132,17 @@ keyed() {  # SLOT -> SLOT.<domain> per domain, or SLOT without domains
 case "$role" in
   tester)
     section="Tester"
-    slots=(test.conventions code.style "test.approach.${domains[0]}") ;;
+    slots=(test.conventions code.style code.conformance "test.approach.${domains[0]}") ;;
   implementer|fixer)
     [[ "$role" == implementer ]] && section="Implementer" || section="Fix"
-    slots=(test.conventions code.style code.validation "test.approach.${domains[0]}" "implement.approach.${domains[0]}") ;;
+    slots=(test.conventions code.style code.conformance code.validation "test.approach.${domains[0]}" "implement.approach.${domains[0]}") ;;
   reviewer)
     section="Initial Review Wave"
     slots=(review.criteria)
     case "$review_role" in
       general) mapfile -t -O 1 slots < <(keyed review.general; keyed review.tests) ;;
       architecture) mapfile -t -O 1 slots < <(keyed review.architecture) ;;
-      compliance) slots+=(code.style) ;;
+      compliance) slots+=(code.style code.conformance) ;;
       abstractions) mapfile -t -O 1 slots < <(keyed review.abstractions) ;;
     esac ;;
 esac

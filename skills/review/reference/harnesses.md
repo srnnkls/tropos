@@ -12,7 +12,7 @@ Build one self-contained prompt per role before dispatch, embedding:
 - the verbatim finding bar;
 - fresh bounded output from the [repository-orientation contract](../../../instructions/AGENTS.md#tools-and-context) for the reviewed working tree, plus bounded structural context for changed symbols;
 - only material language guidance;
-- verbatim bodies of the `review.criteria` slot providers, the role's [review slots](../SKILL.md#slots), and `code.style` for Compliance, listed in the review context, or `none`;
+- verbatim bodies of the `review.criteria` slot providers, the role's [review slots](../SKILL.md#slots), and `code.style` and `code.conformance` for Compliance, listed in the review context, or `none`;
 - for Abstractions, the output of each listed `review.detectors` command run on the change and the implementer report's `ownership` entries, or `none`.
 
 Commands and workdirs supplement the embedded artifact, never replace it. Write it as `prompt.md` in a directory created by `peer path` with the [dispatch script](../../implement/reference/subagent-workflow.md#dispatch) and dispatch per that section.

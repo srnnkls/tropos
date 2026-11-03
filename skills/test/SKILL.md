@@ -18,7 +18,7 @@ henia:
           default_prompt: Use $test to test the requested behavior.
 ---
 
-:::head{context slots="test.conventions"}
+:::head{context slots="test.conventions code.style code.conformance"}
 
 
 # Bounded Test-Driven Development
