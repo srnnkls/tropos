@@ -1,6 +1,6 @@
 ---
 name: dotfiles
-description: Manage dotfiles deployed with phora (git-based artifact deployer) and the Henia-compiled Tropos harnesses. Use when deploying, adding, removing, previewing, or organizing configuration files in ~/dotfiles.
+description: Manage dotfiles deployed with phora (git-based artifact deployer) and the Tropos skills and harnesses Henia installs. Use when deploying, adding, removing, previewing, or organizing configuration files in ~/dotfiles.
 metadata:
   type: domain
 henia:
@@ -22,6 +22,10 @@ henia:
 | `phora.toml` | Sources (`path`, `root`, `include`/`exclude`, `deploy = "link"`), the `henia` tool, hooks | yes |
 | `phora.local.toml` | Targets: home destinations and their sources (`take`, `collapse`); local source overrides | no |
 | `phora.local.example.toml` | Template for `phora.local.toml` | yes |
+| `.config/henia/henia.toml` | Skill packages, slots, harness files and config that `henia install --global` writes | yes |
+| `~/.config/henia/henia.local.toml` | Local package overrides | no |
+
+Phora deploys the Tropos scripts and FAS rules; Henia deploys skills, agents and harness config.
 
 ## Preview
 
@@ -57,15 +61,25 @@ Delete the file, or its source and target entries, then `phora sync --prune`.
 
 ## Advance Tropos
 
-Syncs build the locked Tropos commit. Move the pin with:
-
 ```sh
-phora update tropos --fast-forward --prune
+henia update --global                       # skills, agents, harness config
+phora update tropos --fast-forward --prune  # scripts
+phora update tropos-fas --fast-forward --prune  # FAS rules
 ```
 
 ## Live Tropos edits
 
-Point both Tropos sources at a working tree in `phora.local.toml`:
+Point Henia at a working tree in `~/.config/henia/henia.local.toml`:
+
+```toml
+[dependencies.tropos]
+path = "~/projects/tropos"
+link = true
+```
+
+Installed skills render the working tree through `henia show`, so edits apply at once; run `henia install --global` after adding or removing a skill, an agent or harness config.
+
+Point both phora Tropos sources at the same tree in `phora.local.toml`, then `phora sync`:
 
 ```toml
 [sources.tropos]
@@ -77,7 +91,7 @@ path = "~/projects/tropos"
 deploy = "link"
 ```
 
-FAS rules link into the working tree; skills and harnesses stay copied Henia build output, so `phora sync` after editing them. Remove the overrides and `phora sync --prune` to return to the pin.
+Remove the overrides, then `henia sync --global` and `phora sync --prune` to return to the pins.
 
 ## Troubleshooting
 
