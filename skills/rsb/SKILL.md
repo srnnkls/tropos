@@ -20,7 +20,7 @@ Notes go to `.tropos/rsb/<Topic>/`; nothing tracked changes before phase 7.
 
 ## 1 Frame
 
-Brief: the project's numbered goals (from its goals doc, else restated and confirmed with the user), the question, the obstruction that triggered it, the user's pain points verbatim, and the metric each goal is measured in.
+Brief: the project's numbered goals (from its goals doc, else restated and confirmed with the user), the question, the obstruction that triggered it, the user's pain points verbatim, and the metric each goal is measured in. Novelty is never a goal or metric; a wish for it is a pain point.
 
 ## 2 Research
 
@@ -37,9 +37,10 @@ Score candidates × goals against the current design as a baseline, in the brief
 - resolves a named tension instead of trading it off;
 - needs findings from ≥2 tracks;
 - reuses existing mechanism or obligations;
-- reduces the rule count (state before → after) or derives existing rules from one principle.
+- reduces the rule count (state before → after) or derives existing rules from one principle;
+- beats the plain baseline on a goal metric and adds no machinery a one-off check would replace.
 
-None qualifies: say so; "no change" is a valid result. Close edge cases or name them; never relocate them.
+None qualifies: say so; "no change" or plain bookkeeping is a valid result and beats added mechanism. Close edge cases or name them; never relocate them.
 
 ## 4 Novelty
 
@@ -47,7 +48,7 @@ List claims C1..Cn plus the combination. Within a bounded search, give each a ve
 
 ## 5 Review
 
-Separate reviewers, never the synthesis author: soundness and goals, each running $adversarial. Each finding: severity, counterexample, broken rule, minimal fix. Fix, then re-review once. Keep the files.
+Separate reviewers, never the synthesis author: soundness and goals, each running $adversarial. Each finding: severity, counterexample, broken rule, minimal fix. A fix adds no mechanism; a finding that needs one becomes an open question. Fix, then re-review once. Keep the files.
 
 ## 6 Decide
 
@@ -55,7 +56,7 @@ Study: summary, question, prior art, where the project stands, design, gains, co
 
 ## 7 Amend
 
-After the decisions: mark the study "Decided <date>", apply diffs to the affected docs, commit both together per $git.
+After the decisions: mark the study "Decided <date>", apply diffs to the affected docs, commit both together per $git. A decision that needs new mechanism becomes a $scope or an issue; rsb ships no code.
 
 ## Stop
 
