@@ -8,57 +8,56 @@ issue_type: ${ISSUE_TYPE}
 
 ## Goal
 
-${GOAL_DESCRIPTION}
+${OUTCOME_AND_WHY}
+
+## Non-Goals
+
+- ${ADJACENT_CHANGE_LEFT_UNTOUCHED}
+
+## Invariants
+
+Existing design this change MUST preserve. Changing one requires a scope update.
+
+| ID | Invariant | Check |
+|----|-----------|-------|
+| INV-1 | ${PINNED_ARCHITECTURE_LAYOUT_OR_OWNERSHIP} | ${RULE_TEST_OR_REVIEW_ITEM} |
+
+## Conventions
+
+Every axis the change touches resolves to a provider rule, a decision stated here, or `n/a`. The exemplar is the existing code new code mirrors.
+
+| Axis | Resolution | Exemplar |
+|------|------------|----------|
+| Abstraction | ${PROVIDER_OR_DECISION} | `${FILE}` |
+| Boundaries & ownership | ${PROVIDER_OR_DECISION} | `${FILE}` |
+| Idiom & types | ${PROVIDER_OR_DECISION} | `${FILE}` |
+| Errors | ${PROVIDER_OR_DECISION} | `${FILE}` |
+| Naming | ${PROVIDER_OR_DECISION} | `${FILE}` |
+| Config & tooling | ${PROVIDER_OR_DECISION} | `${FILE}` |
+| Testing | ${PROVIDER_OR_DECISION} | `${FILE}` |
+| Prose & output | ${PROVIDER_OR_DECISION} | `${FILE}` |
+
+## Decisions
+
+- AD-1: ${DECISION}; rejected ${ALTERNATIVE}: ${REASON}
 
 ## User Stories
 
 > Include when: Initiative issue type
 
-### P1 (Critical)
-
-- US001: ${USER_STORY_1}
-  - **Independent test:** ${HOW_TO_TEST_INDEPENDENTLY}
-
-### P2 (Important)
-
-- US002: ${USER_STORY_2}
-  - **Independent test:** ${HOW_TO_TEST_INDEPENDENTLY}
-
-### P3 (Nice to have)
-
-- US003: ${USER_STORY_3}
-  - **Independent test:** ${HOW_TO_TEST_INDEPENDENTLY}
+- US001 (P1): ${USER_STORY}; independent test: ${HOW_TO_TEST_INDEPENDENTLY}
 
 ## Context
 
 ### Key Files
 
-| File | Lines | Description |
-|------|-------|-------------|
-| `${FILE_PATH}` | ${LINE_RANGE} | ${DESCRIPTION} |
-
-### Architecture Decisions
-
-#### AD-1: ${DECISION_TITLE}
-
-**Context:** ${CONTEXT}
-
-**Decision:** ${DECISION}
-
-**Alternatives:**
-- ${ALTERNATIVE_A}: ${TRADE_OFFS}
-- ${ALTERNATIVE_B}: ${TRADE_OFFS}
+| File | Lines | Role |
+|------|-------|------|
+| `${FILE_PATH}` | ${LINE_RANGE} | ${ROLE} |
 
 ### Constraints
 
-- ${CONSTRAINT}: ${RATIONALE}
-
-<!-- Include when: User opted in to "Tech Decisions" -->
-### Tech Decisions
-
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| ${DECISION_AREA} | ${CHOICE} | ${WHY} |
+- ${CONSTRAINT}
 
 <!-- Include when: User opted in to "Data Model" -->
 ### Data Model
@@ -71,71 +70,24 @@ ${GOAL_DESCRIPTION}
 
 ### Functional Requirements
 
-- ${FUNCTIONAL_REQ_1}
-- ${FUNCTIONAL_REQ_2}
+- FR-1: ${SUBJECT} MUST ${BEHAVIOR}
 
 ### Technical Requirements
 
-- ${TECHNICAL_REQ_1}
-- ${TECHNICAL_REQ_2}
+- TR-1: ${SUBJECT} MUST ${PROPERTY}
 
 ## Acceptance Criteria
 
-- [ ] Given ${PRECONDITION_1}
-  When ${ACTION_1}
-  Then ${EXPECTED_RESULT_1}
-
-- [ ] Given ${PRECONDITION_2}
-  When ${ACTION_2}
-  Then ${EXPECTED_RESULT_2}
+- [ ] AC-1 (FR-1): Given ${PRECONDITION}, when ${ACTION}, then ${RESULT}
 
 ## API Contract
 
 > Include when: Feature/Initiative involves API changes
 
-### Endpoints
-
 | Method | Path | Purpose |
 |--------|------|---------|
 | ${METHOD} | ${PATH} | ${PURPOSE} |
 
-## Implementation Strategy
-
-> Include when: Initiative issue type
-
-### Approach
-
-${APPROACH}
-
-### Phases Overview
-
-- **Phase 1:** ${PHASE_1_GOAL}
-- **Phase 2:** ${PHASE_2_GOAL}
-
-## Dependency Graph
-
-> Machine-readable: [dependencies.yaml](dependencies.yaml)
-
-```
-Phase 1 (${PHASE_1_NAME})
-├── ${TASK_1}
-└── ${TASK_2}
-```
-
-## Non-Goals
-
-- ${EXPLICIT_NON_GOAL_1}
-- ${EXPLICIT_NON_GOAL_2}
-
 ## Verification
 
-- ${VERIFICATION_STEP_1}
-- ${VERIFICATION_STEP_2}
-
-## Gotchas & Learnings
-
-- ${GOTCHA}
-
-## Open Questions
-
-- [ ] ${QUESTION}
+- `${COMMAND}`: ${WHAT_IT_PROVES}

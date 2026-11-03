@@ -10,7 +10,7 @@ The `issue` skill authors, gates, and publishes each issue; this operation only 
 
 ### Step 1: Locate and load the scope
 
-Locate per [Scope Location](../SKILL.md#scope-location), preferring the branch-associated scope when no name is given. Read `scope.md`, `tasks.yaml`, and `dependencies.yaml`/`design.md` if present. If `issue_type` is missing, ask via AskUserQuestion (`Initiative | Feature | Task`).
+Locate per [Scope Location](../SKILL.md#scope-location), preferring the branch-associated scope when no name is given. Read `scope.md`, `tasks.yaml`, and `dependencies.yaml`/`design.md` if present. If `issue_type` is missing, ask the user (`Initiative | Feature | Task`).
 
 ### Step 2: Derive the issue tree
 
@@ -20,7 +20,7 @@ Edges come only from the scope: parent = hierarchy; depends-on = task `depends_o
 
 ### Step 3: Confirm tree and root parent
 
-Render the planned tree: each node's type, title `<Module> — <summary>`, parent and depends-on edges; for large trees, the issue count `1 + n + Σmᵢ`. Then ask via AskUserQuestion:
+Render the planned tree: each node's type, title `<Module> — <summary>`, parent and depends-on edges; for large trees, the issue count `1 + n + Σmᵢ`. Then ask the user:
 
 - Root parent: pre-seed from `gh issue list --state open --search "type:<ParentType>" --json number,title --limit 20` (Initiative/Feature root under an Initiative; Task under a Feature) plus `No parent`. Never infer.
 - Proceed gate, before any subagent publishes: `Proceed`, `Edit tree`, `Cancel`.

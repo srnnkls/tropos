@@ -9,6 +9,6 @@ Every design choice states what was decided, its motivation (a constraint, insig
 | Design | Each decision: decision → motivation → alternatives → tradeoffs |
 | Alternatives | Only seriously considered ones, each with an explicit rejection rationale |
 | Implementation | Phased; dependencies and verification per phase; each phase yields an observable result |
-| Invariants | Linked to test cases |
+| Verification | Test cases reference the scope.md invariant IDs they protect |
 
 Avoid assertion mode ("we chose X" without why X and why not Y) and laundry lists of independent decisions.

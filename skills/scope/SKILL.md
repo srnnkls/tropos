@@ -74,7 +74,7 @@ Promote `draft` → `active` by setting `status: active` in `scope.md` frontmatt
 
 ## Menu Fallback
 
-With no argument or an unrecognized keyword, ask via AskUserQuestion and run the selected route:
+With no argument or an unrecognized keyword, ask the user and run the selected route:
 
 :::user-question{header="Scope" question="What would you like to do?"}
 - Create: Define a new scope with requirements and tasks
@@ -94,7 +94,7 @@ With no argument or an unrecognized keyword, ask via AskUserQuestion and run the
 
 # Creation Workflow
 
-Use for tasks with 3+ phases, non-trivial features, or after ExitPlanMode; not for single-file changes, trivial refactorings, or work under 30 minutes.
+Use for tasks with 3+ phases, non-trivial features, or after an approved plan; not for single-file changes, trivial refactorings, or work under 30 minutes.
 
 ## Validation Depth (Dispatch Gate)
 
@@ -138,13 +138,14 @@ Ambiguity scan: rate each of the type's taxonomy areas and record it in `validat
 
 | Area | Clear when |
 |------|------------|
-| Scope | Goals, boundaries, success criteria defined |
+| Scope | Goal, non-goals, success criteria defined |
 | Behavior | User flows, system responses specified |
 | Data Model | Entities, relationships, formats clear |
 | Constraints | Performance, security, compatibility stated |
 | Edge Cases | Error handling, limits documented |
 | Integration | Dependencies, APIs, interfaces identified |
 | Terminology | Domain terms defined consistently |
+| Conventions | Every touched axis resolves to a provider or decision with an exemplar; existing design the change must keep is pinned as invariants with checks |
 
 All clear: skip to Step 3.5. Otherwise run the validation loop in [question taxonomy](reference/question-taxonomy.md) over the `partial`/`missing` areas, in batches of this form:
 
@@ -166,7 +167,7 @@ Never proceed on an unstated default:
 - Approach C: [brief] - Trade-off: [Z]
 :::
 
-Mark your recommendation first. Drop options that add cost without clear value. Record the choice in `validation.yaml`; it seeds Implementation Strategy / Approach in scope.md.
+Mark your recommendation first. Drop options that add cost without clear value. Record the choice in `validation.yaml`; it becomes a Decisions entry in scope.md.
 
 ### Step 3.45: Initiative Strategy & Story Prioritization [guided, Initiatives only]
 
@@ -182,15 +183,14 @@ Mark your recommendation first. Drop options that add cost without clear value. 
 - Parallel Team: Multiple workstreams, integration points defined
 :::
 
-Record both in `validation.yaml`; they populate User Stories and Implementation Strategy in scope.md.
+Record both in `validation.yaml`; they populate User Stories and Decisions in scope.md.
 
 ### Step 3.5: SDD Section Opt-ins (Features/Initiatives)
 
 :::user-question{header="Sections" question="Which detailed sections do you want?" multi}
-- Tech Decisions: Document technology choices and rationale
 - API Contract: Define API endpoints and schemas
 - Data Model: Document entities and relationships
-- Design: Design document with alternatives, invariants, complexity analysis
+- Design: Design document with alternatives and complexity analysis
 - None: Keep scope lightweight
 :::
 
@@ -223,8 +223,8 @@ mkdir -p "$root/scopes/draft/[scope-name]/"
 
 | Document | Content | Initiative | Feature | Task |
 |----------|---------|-----------|---------|------|
-| scope.md | Goal, context, requirements, key files, decisions, verification | Full | Standard | Lightweight |
-| design.md | Alternatives, invariants, complexity, per [quality model](reference/quality-model.md) | Opt-in (complex) | Opt-in | Skip |
+| scope.md | Goal, non-goals, invariants, conventions, decisions, requirements, verification | Full | Standard | Lightweight |
+| design.md | Alternatives, complexity, per [quality model](reference/quality-model.md) | Opt-in (complex) | Opt-in | Skip |
 | tasks.yaml | Authoritative task status, dependencies, mutation paths | Feature breakdown + phases | Task breakdown | Single task |
 | dependencies.yaml | Task dependency DAG for parallel dispatch | Full DAG | Phase-based | Skip |
 | validation.yaml | Audit trail, gate checks, reviewer config, code style validation | Full (6 areas + gates) | Full (7 areas) | Skip |
@@ -247,19 +247,25 @@ Conditional sections in scope.md:
 | User Stories (P1/P2/P3) | Include | Skip | Skip |
 | Given/When/Then Acceptance | Full | Standard | Simple |
 | API Contract | If API work | Opt-in | Skip |
-| Implementation Strategy | Include | Skip | Skip |
-| Tech Decisions | Include | Opt-in | Skip |
 | Data Model | Include | Opt-in | Skip |
+
+Non-Goals, Invariants, and Conventions are required for every issue type. scope.md states each fact once:
+
+- Goal in at most 3 lines; one line per non-goal, decision, requirement, and criterion.
+- Rationale beyond one clause lives in design.md; a decision links to its Alternatives entry there.
+- Task dependencies live only in `tasks.yaml` and `dependencies.yaml`; open questions only as `validation.yaml` markers or assumptions.
 
 ### Step 5: Validate Execution Metadata
 
-Before the scope is implementable, every task names explicit `depends_on` and `files` (expected mutation paths); these drive parallel dispatch. Set optional `domain` where the work belongs to one; it keys the approach providers its subagents receive ([implement slots](../implement/SKILL.md#slots)). Resolve missing paths with one bounded discovery wave, else record a scope gap; never force one serial pipeline per task. Executors use `dependencies.yaml` `batches[*]` after validating current task state. TodoWrite may mirror tasks for display; `tasks.yaml` stays authoritative, with no reverse sync.
+Before the scope is implementable, every task names explicit `depends_on` and `files` (expected mutation paths); these drive parallel dispatch. Set optional `domain` where the work belongs to one; it keys the approach providers its subagents receive ([implement slots](../implement/SKILL.md#slots)). Resolve missing paths with one bounded discovery wave, else record a scope gap; never force one serial pipeline per task. Executors use `dependencies.yaml` `batches[*]` after validating current task state. A harness todo list may mirror tasks for display; `tasks.yaml` stays authoritative, with no reverse sync.
 
 ### Step 6: Present Summary
 
-Show the directory, scope.md overview, design.md (if created), tooling artifacts, validation coverage, and next action.
+Show the directory, scope.md overview, design.md (if created), tooling artifacts, validation coverage, load-bearing assumptions, and next action.
 
 ### Step 7: Gate
+
+Ask the user to confirm or revise each `load_bearing` assumption with `status: assumed`; integrate revisions into scope.md and set `status` to `confirmed` or `revised`.
 
 Ask "ready to implement or revise?"
 

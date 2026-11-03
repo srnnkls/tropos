@@ -32,20 +32,6 @@ ${WHY_THIS_WINS}
 
 ---
 
-## Invariants
-
-<!--
-Correctness properties the design must maintain.
-ID each invariant for test linkage in Verification section.
--->
-
-| ID | Invariant | Enforcement |
-|----|-----------|-------------|
-| INV-1 | ${PROPERTY} | ${HOW_ENFORCED} |
-| INV-2 | ${PROPERTY} | ${HOW_ENFORCED} |
-
----
-
 ## Complexity
 
 | Dimension | Before | After | Delta |

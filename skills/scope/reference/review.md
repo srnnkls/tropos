@@ -25,14 +25,16 @@ You are reviewing a scope for completeness and feasibility.
 [Include scope.md content]
 [Include tasks.yaml content]
 [Include design.md content if present]
+[Include validation.yaml assumptions]
 
 ## Review Focus
 Evaluate against these gates:
-1. **Completeness** - Are all requirements specified? Missing behaviors?
+1. **Completeness** - Are all requirements specified? Missing behaviors? Does every touched Conventions axis resolve, and every invariant name a check?
 2. **Consistency** - Do documents contradict each other? Ambiguous terms?
 3. **Feasibility** - Can tasks be implemented as described? Missing dependencies?
 4. **Clarity** - Would a fresh developer understand what to build?
-5. **Design Depth** - Are alternatives substantiated, invariants testable? (n/a if no design.md)
+5. **Design Depth** - Are alternatives substantiated, complexity justified? (n/a if no design.md)
+6. **Assumptions** - What does the scope take for granted without recording it? Which statements would two developers implement differently? Are recorded load-bearing assumptions sound?
 
 ## Output Format
 Return the exact YAML reviewer_report schema embedded below.
@@ -51,8 +53,9 @@ In one assistant message, dispatch every selected reviewer using [peer routing](
 ### Step 5: Present Review
 
 1. Show the gate summary and issues per the [synthesis presentation formats](../../review/reference/synthesis.md#issue-presentation-format).
-2. Ask clarifying questions via AskUserQuestion, grouped by taxonomy area.
+2. Ask the user clarifying questions, grouped by taxonomy area.
 3. Add the clarification session with its answers to `validation.yaml`; close resolved markers and add markers for deferred items.
+4. Add each unrecorded assumption the reviewers surfaced to `assumptions` with `source: scope-review`; ask the user to confirm or revise every `load_bearing` one still `assumed`.
 
 ### Step 6: Record Gate Result and Recommend Action
 
@@ -60,7 +63,7 @@ Triage per [review synthesis](../../review/reference/synthesis.md): a `critical`
 
 Write `review_gate` in `validation.yaml`:
 
-- No triaged `critical`/`high` → `status: passed` with reviewers, timestamp, `blocking_resolved`, and deferred `medium` nits. Report "Ready for implementation."
+- No triaged `critical`/`high` and no `load_bearing` assumption with `status: assumed` → `status: passed` with reviewers, timestamp, `blocking_resolved`, and deferred `medium` nits. Report "Ready for implementation."
 - Otherwise → `status: failed`. Fold the findings into `scope.md` / `tasks.yaml` / `design.md` and re-run within the [synthesis round limits](../../review/reference/synthesis.md).
 
 ## Report Schema
@@ -88,10 +91,13 @@ reviewer_report:
     design_depth:
       status: pass | fail | n/a
       issues: []
+    assumptions:
+      status: pass | fail
+      issues: []
   issues:
     - severity: critical | high | medium
-      gate: completeness | consistency | feasibility | clarity | design_depth
-      area: scope | behavior | data_model | constraints | edge_cases | integration | terminology | design
+      gate: completeness | consistency | feasibility | clarity | design_depth | assumptions
+      area: scope | behavior | data_model | constraints | edge_cases | integration | terminology | conventions | design
       description: "Clear description"
       suggestion: "Actionable fix"
   clarifying_questions:
@@ -129,4 +135,4 @@ synthesized_report:
 | `high` | Significant gap | Must fix before proceeding |
 | `medium` | Minor improvement | Can proceed, address later |
 
-Taxonomy areas: [ambiguity scan](../SKILL.md#step-3-validation-human-in-the-loop); `design` covers alternatives, invariants, complexity analysis.
+Taxonomy areas: [ambiguity scan](../SKILL.md#step-3-validation-human-in-the-loop); `design` covers alternatives and complexity analysis.

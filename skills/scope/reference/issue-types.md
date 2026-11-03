@@ -20,6 +20,7 @@ Exploratory: gather context from files, ask 3 clarifying questions about scope, 
 | Edge Cases | N/A | Primary | N/A |
 | Integration | Primary | Primary | Primary |
 | Terminology | Secondary | Secondary | N/A |
+| Conventions | Primary | Primary | Primary |
 
 Primary: ask if uncovered. Secondary: ask after primary areas, within the question limit. N/A: skip.
 

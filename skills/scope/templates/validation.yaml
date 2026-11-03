@@ -2,7 +2,7 @@ metadata:
   issue_type: ${ISSUE_TYPE}  # Initiative | Feature | Task
   created: ${DATE}
   questions_used: ${N}
-  questions_limit: ${LIMIT}  # Initiative/Feature: 5 | Task: 3
+  questions_limit: ${LIMIT}  # question limit per issue type (reference/issue-types.md)
   approach: "${SELECTED_APPROACH}"
   source: ${SOURCE}  # scope | standalone
 
@@ -29,37 +29,9 @@ ambiguity_scan:
   terminology:
     status: ${STATUS}
     gaps: []
-
-taxonomy_coverage:
-  scope:
-    status: ${STATUS}  # covered | gap | n/a
-    source: ${SOURCE}
-  behavior:
+  conventions:
     status: ${STATUS}
-    source: ${SOURCE}
-  data_model:
-    status: ${STATUS}
-    source: ${SOURCE}
-  constraints:
-    status: ${STATUS}
-    source: ${SOURCE}
-  edge_cases:
-    status: ${STATUS}
-    source: ${SOURCE}
-  integration:
-    status: ${STATUS}
-    source: ${SOURCE}
-  terminology:
-    status: ${STATUS}
-    source: ${SOURCE}
-
-clarification_log:
-  - id: C001
-    area: ${TAXONOMY_AREA}
-    question: "${QUESTION}"
-    answer: "${ANSWER}"
-    impact_uncertainty: ${SCORE}
-    integration: ${TARGET_DOC_OR_SECTION}
+    gaps: []
 
 clarification_sessions:
   - id: S001
@@ -99,29 +71,14 @@ gates:
     status: ${STATUS}
     reason: "${EXPLANATION}"
 
-deferred:
-  - area: ${TAXONOMY_AREA}
+assumptions:
+  - id: A001
+    area: ${TAXONOMY_AREA}
     question: "${QUESTION_NOT_ASKED}"
-
-design_context:
-  design_opted_in: ${BOOL}
-  alternatives_described: ${BOOL}
-  alternative_descriptions: []
-
-readiness:
-  high_priority_areas_covered: ${BOOL}
-  success_criteria_measurable: ${BOOL}
-  scope_boundaries_clear: ${BOOL}
-  integration_points_identified: ${BOOL}
-  edge_cases_addressed: ${BOOL}
-
-code_style_check:
-  present: ${BOOL}
-  language: ${LANG}
-  status: ${STATUS}
-  violations: []
-  adherence_notes: |
-    ${NOTES_ON_CODE_QUALITY}
+    assumed: "${DEFAULT_TAKEN}"
+    load_bearing: ${BOOL}  # a different answer changes tasks, interfaces, or data model
+    status: assumed  # assumed | confirmed | revised
+    source: ${SOURCE}  # scope | scope-review | clarify
 
 review_config:
   reasoning_effort: ${REASONING_EFFORT}

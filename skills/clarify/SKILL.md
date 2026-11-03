@@ -35,13 +35,13 @@ Resolve ambiguities by editing the source documents and recording each change.
 
 ### Step 1: Load and Scan
 
-- Scope: resolve the scope per [scope location](../scope/SKILL.md#scope-location) and read its `validation.yaml`. Candidates are `ambiguity_scan` areas with `status: partial` or `status: missing` plus markers with `status: open`, deduplicated by area. None → report "No unresolved items" and exit.
+- Scope: resolve the scope per [scope location](../scope/SKILL.md#scope-location) and read its `validation.yaml`. Candidates are `ambiguity_scan` areas with `status: partial` or `status: missing` plus markers with `status: open` and `assumptions` with `status: assumed`, deduplicated by area. None → report "No unresolved items" and exit.
 - Code review: candidates are the issues marked as needing clarification in the most recent review report under `.tropos/peer/` ([`peer path`](../peer/SKILL.md#report-layout)).
 - Standalone: ask the user what needs clarification, then run interactive Q&A.
 
 ### Step 2: Present Candidates
 
-Per candidate, in the row order of the scope [ambiguity scan](../scope/SKILL.md#step-3-validation-human-in-the-loop) table, use AskUserQuestion:
+Per candidate, in the row order of the scope [ambiguity scan](../scope/SKILL.md#step-3-validation-human-in-the-loop) table, ask the user:
 
 :::user-question{header="${AREA}" question="${DESCRIPTION}"}
 - [Generated options based on context]
@@ -61,6 +61,7 @@ Integrate each resolved clarification into its section of `scope.md` ([template]
 | Edge Cases | scope.md | Acceptance Criteria |
 | Integration | scope.md | Technical Requirements |
 | Terminology | scope.md | Context |
+| Conventions | scope.md | Conventions or Invariants |
 
 ### Step 4: Record Clarification Session
 
@@ -88,7 +89,7 @@ Per resolved gap: set `ambiguity_scan.${area}.status` to `clear` and remove the 
 
 ### Step 6: Update Markers
 
-Per resolved marker: set `status: resolved` and add `resolution: "${USER_ANSWER}"`.
+Per resolved marker: set `status: resolved` and add `resolution: "${USER_ANSWER}"`. Per answered assumption: set `status: confirmed`, or `status: revised` with `assumed` replaced by the answer.
 
 ### Step 7: Re-check Gates (Initiatives Only)
 
