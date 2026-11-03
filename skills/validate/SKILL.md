@@ -29,15 +29,15 @@ Uncommitted:
 :::routes{ordered protocol}
 | Pattern | Route | Action |
 |---|---|---|
-| Contains "hook" or path to hooks file | Hooks | `Skill(hooks-test, $ARGUMENTS)` on Claude Code with `hooks-test` installed; otherwise the menu fallback |
-| Contains "completion", "done", or "verify" | Completion | `Skill(implement, verify)` |
-| Contains "test" or "tdd" | TDD | `Skill(test)` |
+| Contains "hook" or path to hooks file | Hooks | Invoke the `hooks-test` skill with `$ARGUMENTS` on Claude Code with `hooks-test` installed; otherwise the menu fallback |
+| Contains "completion", "done", or "verify" | Completion | Invoke `$implement` with `verify` |
+| Contains "test" or "tdd" | TDD | Invoke `$test` |
 | No argument | Menu fallback | See below |
 :::
 
 ## Menu Fallback
 
-When the argument is missing or ambiguous, ask with `AskUserQuestion`, then run the matching route's action (Hooks: `Skill(hooks-test)`):
+When the argument is missing or ambiguous, ask the user, then run the selected route's action:
 
 :::user-question{header="Validate" question="What would you like to validate?"}
 - TDD: RED-GREEN-REFACTOR test-driven development

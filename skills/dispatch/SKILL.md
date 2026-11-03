@@ -41,7 +41,7 @@ A checkpoint or active scope is context, not permission to resume or implement; 
 
 ## Menu
 
-When no route is named, use AskUserQuestion:
+When no route is named, ask the user:
 
 :::user-question{header="Dispatch" question="Which workflow should run?"}
 - Implement: Strict delegated RED → GREEN → review

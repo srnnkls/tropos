@@ -30,7 +30,7 @@ Slug the topic and a context of at most 3 words ("API Design" → `api-design`),
 
 ### Step 2: Configure Teams
 
-Ask with `AskUserQuestion`:
+Ask the user:
 
 :::user-question{header="Teams" question="Which additional teams should participate beyond Red and Blue?" multi}
 - None: Just Red and Blue
@@ -43,7 +43,7 @@ Then ask the stance of Red (challenger/skeptic), Blue (defender/advocate), and e
 
 ### Step 3: Spawn Opening Arguments (Parallel)
 
-Fill [templates/team-prompt.md](templates/team-prompt.md) once per team and launch all team subagents in one message with the Task tool.
+Fill [templates/team-prompt.md](templates/team-prompt.md) once per team and launch all team subagents in one message using the harness's delegation mechanism.
 
 ### Step 4: Monitor and Moderate
 

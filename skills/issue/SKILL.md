@@ -112,7 +112,7 @@ Set type, parent, and depends-on / blocks (`A depends on B` = `B blocks A`) only
 - Task — implementation unit under a parent Feature (or Initiative).
 - Bug / Initiative — only on explicit request.
 
-Unstated type: `AskUserQuestion` with header `"Issue type"`, options `Feature` and `Task`; never infer it from the body.
+Unstated type: ask the user with header `"Issue type"`, options `Feature` and `Task`; never infer it from the body.
 
 ### Choosing the parent
 
@@ -120,7 +120,7 @@ Features sit under an Initiative or at top level; Tasks under a Feature. The par
 
 Unstated parent (never set one the user has not confirmed):
 
-- Task: `AskUserQuestion` pre-seeded from `gh issue list --state open --search "type:Feature" --json number,title --limit 20`; offer `No parent` only when context suggests a standalone Task.
+- Task: ask the user, pre-seeded from `gh issue list --state open --search "type:Feature" --json number,title --limit 20`; offer `No parent` only when context suggests a standalone Task.
 - Feature: ask for a parent Initiative; default `No parent` when the repo has no open Initiative.
 
 ### Choosing depends-on / blocks
@@ -128,7 +128,7 @@ Unstated parent (never set one the user has not confirmed):
 Depends on: this issue cannot start/merge until the referenced one lands. Blocks: the reverse. Set each edge once, in the user's direction.
 
 - User said "depends on #N" / "blocks #N": set it without asking.
-- Sketch references prior or future work: `AskUserQuestion` with questions `"Depends on"` and `"Blocks"`, option `None`, free text allowed. Never derive edges from the body alone.
+- Sketch references prior or future work: ask the user with questions `"Depends on"` and `"Blocks"`, option `None`, free text allowed. Never derive edges from the body alone.
 - Trivial standalone issues: do not ask.
 
 ### Raw mutations

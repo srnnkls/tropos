@@ -48,7 +48,7 @@ checkpoint:
       failure: null
 ```
 
-Omit empty report sections and `in_flight_mutations` entries. Do not mirror task lists, next-batch calculations, TodoWrite, or deferred findings.
+Omit empty report sections and `in_flight_mutations` entries. Do not mirror task lists, next-batch calculations, harness todo lists, or deferred findings.
 
 ## Writes
 

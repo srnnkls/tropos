@@ -8,7 +8,7 @@ Interactive review of a PR: draft line comments, then submit a verdict through `
 
 ## Workflow
 
-1. Gather configuration with AskUserQuestion: focus areas (correctness, style, performance, security), severity threshold (blocking, high, all), scope (full, quick).
+1. Ask the user for configuration: focus areas (correctness, style, performance, security), severity threshold (blocking, high, all), scope (full, quick).
 2. If the pre-loaded context is empty (cross-repo or no PR), fetch it:
    ```bash
    gh pr view {pr} --repo {owner}/{repo} --json title,body,files,commits,additions,deletions
@@ -24,7 +24,7 @@ Interactive review of a PR: draft line comments, then submit a verdict through `
      sed 's/.*\.//' | sort | uniq -c | sort -rn
    ```
 6. Compare against project style guides (STYLE.md, CLAUDE.md) and patterns from related issues.
-7. For each candidate, present its code context and concern, then ask via AskUserQuestion with `multiSelect`; allow flagging or dismissing several findings at once:
+7. For each candidate, present its code context and concern, then ask the user with multiple selection; allow flagging or dismissing several findings at once:
    - type changes → "Is type widening intentional?"
    - error handling removed → "Was this error path obsolete?"
    - performance-sensitive code → "Acceptable trade-off?"
@@ -36,7 +36,7 @@ Interactive review of a PR: draft line comments, then submit a verdict through `
    gh review edit {pr} -R {owner}/{repo} -c {comment_id} -b "{updated_body}"
    gh review delete {pr} -R {owner}/{repo} -c {comment_id}
    ```
-9. Ask via AskUserQuestion: submit now with a verdict (approve, request_changes, comment), or keep as draft.
+9. Ask the user: submit now with a verdict (approve, request_changes, comment), or keep as draft.
    ```bash
    gh review submit {pr} -R {owner}/{repo} -v {approve|request_changes|comment} -b "{summary}"
    gh review discard {pr} -R {owner}/{repo}   # discard and start fresh
