@@ -27,6 +27,10 @@ proactive_workaround_on_failure: {
 		rule_id:  "proactive-workaround-on-failure"
 		channel:  "agent"
 		priority: 40
-		text:     "Read the error. If it is a permission or sandbox denial, report it. Otherwise change the command or approach; do not rerun it unchanged."
+		text: """
+			Read the error.
+			If it is a permission or sandbox denial, report it.
+			Otherwise change the command or approach; do not rerun it unchanged.
+			"""
 	}
 }

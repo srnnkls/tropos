@@ -25,8 +25,12 @@ worktree_outside_repo: {
 		}
 	})
 	then: deny: {
-		rule_id:  "worktree-outside-repo"
-		reason:   "Worktree target escapes the repo (/tmp, ~, $HOME, ../). Create it project-local instead: `git worktree add .worktrees/<name> -b <branch> origin/<trunk>`, then link ignored state with `git worktreeinclude apply`."
+		rule_id: "worktree-outside-repo"
+		reason: """
+			Worktree target escapes the repo (/tmp, ~, $HOME, ../).
+			Create it project-local instead:
+			`git worktree add .worktrees/<name> -b <branch> origin/<trunk>`, then link ignored state with `git worktreeinclude apply`.
+			"""
 		severity: "MEDIUM"
 	}
 }

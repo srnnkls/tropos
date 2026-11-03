@@ -18,8 +18,12 @@ sleep_long: {
 		}
 	})
 	then: deny: {
-		rule_id:  "sleep-long"
-		reason:   "Sleep ≥30s denied. Completion of subagents, background commands and workflows re-invokes you; do other work. Use ScheduleWakeup for a timed return."
+		rule_id: "sleep-long"
+		reason: """
+			Sleep ≥30s denied.
+			Completion of subagents, background commands and workflows re-invokes you; do other work.
+			Use ScheduleWakeup for a timed return.
+			"""
 		severity: "MEDIUM"
 	}
 }
@@ -29,8 +33,11 @@ sleep_poll_chain: {
 		tool_input: command: =~"(?i)(\\bsleep\\b[^\\n]*[;&|]\\s*\\b\(_pollInspect)\\b|\\b\(_pollInspect)\\b[^\\n]*[;&|]\\s*sleep\\b)"
 	}
 	then: deny: {
-		rule_id:  "sleep-poll-chain"
-		reason:   "Denied: sleep chained to a status check. Inspect state once now, or wait for the completion notification."
+		rule_id: "sleep-poll-chain"
+		reason: """
+			Denied: sleep chained to a status check.
+			Inspect state once now, or wait for the completion notification.
+			"""
 		severity: "MEDIUM"
 	}
 }

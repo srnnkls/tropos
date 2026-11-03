@@ -162,8 +162,12 @@ git_discard_uncommitted: {
 			}
 	})
 	then: deny: {
-		rule_id:  "git-discard-uncommitted"
-		reason:   "Discards uncommitted changes. To split commits, stage hunks (`henia show git/reference/commands.md#hunk-level-staging`); submodule gitlink: `git update-index --skip-worktree <path>`."
+		rule_id: "git-discard-uncommitted"
+		reason: """
+			Discards uncommitted changes.
+			To split commits, stage hunks (`henia show git/reference/commands.md#hunk-level-staging`).
+			Submodule gitlink: `git update-index --skip-worktree <path>`.
+			"""
 		severity: "HIGH"
 	}
 }

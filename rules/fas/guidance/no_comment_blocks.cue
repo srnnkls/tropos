@@ -126,13 +126,20 @@ _denyLint: {
 _injectComment: {
 	rule_id: "comment-block"
 	channel: "agent"
-	text:    "Comment block added. Delete it unless it records a hidden constraint, a non-obvious invariant, a workaround with an issue link, or an external quirk with a source, and neither a name nor a test can carry it."
+	text: """
+		Comment block added.
+		Delete it unless it records a hidden constraint, a non-obvious invariant, a workaround with an issue link, or an external quirk with a source, and neither a name nor a test can carry it.
+		"""
 }
 
 _injectLint: {
 	rule_id: "lint-suppression"
 	channel: "agent"
-	text:    "Lint suppression added. Fix the cause instead. Keep it only for an external-tool defect, naming the tool, rule and issue in the directive."
+	text: """
+		Lint suppression added.
+		Fix the cause instead.
+		Keep it only for an external-tool defect, naming the tool, rule and issue in the directive.
+		"""
 }
 
 slash_comment_block_edit: {
