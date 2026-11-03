@@ -72,6 +72,17 @@ rm_catastrophic: {
 	}
 }
 
+rm_use_trash: {
+	when: hook.#PreToolUse & tool.#Bash & (bash.#call & {
+		#match: command: "rm"
+	})
+	then: deny: {
+		rule_id:  "rm-use-trash"
+		reason:   "Remove files with `trash <path>…`, not rm."
+		severity: "MEDIUM"
+	}
+}
+
 _denyRawDevice: {
 	rule_id:  "raw-device-write"
 	reason:   "Writes to a raw disk device: ask the user."
