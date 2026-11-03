@@ -7,7 +7,7 @@ Per batch: Phase A testers → RED gate → Phase B implementers → GREEN gate 
 ## 1. Load and Gate the Scope
 
 1. Read `scope.md`, `tasks.yaml`, `validation.yaml`, `config.yaml`, and any checkpoint. `tasks.yaml` is the sole task-status authority, `review.yaml` the sole finding/deferred-issue authority; never read state from a harness todo list.
-2. Require `validation.yaml.review_gate.status: passed` and a resolution on every Conventions axis the tasks touch; otherwise stop and run [scope](../../scope/SKILL.md) with `review <name>`, or [clarify](../../clarify/SKILL.md) for an unresolved axis.
+2. Require `validation.yaml.review_gate.status: passed` and a clean `henia lint <scope>/scope.md`; otherwise stop and run [scope](../../scope/SKILL.md) with `review <name>`, or [clarify](../../clarify/SKILL.md) for an unresolved axis.
 3. Activate the scope branch/worktree; clear the [branch gate](../SKILL.md) and [base-drift preflight](../reference/base-drift-preflight.md) before mutation.
 4. Promote `draft` to `active` when work begins.
 5. Resolve routing through [configuration.md](../reference/configuration.md); mint a new run/epoch for a top-level execution.

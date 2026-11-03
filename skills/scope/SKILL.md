@@ -252,7 +252,9 @@ Non-Goals, Invariants, and Conventions are required for every issue type. scope.
 - Rationale beyond one clause lives in design.md; a decision links to its Alternatives entry there.
 - Task dependencies live only in `tasks.yaml`; open questions only as `validation.yaml` assumptions.
 
-### Step 5: Validate Execution Metadata
+### Step 5: Validate Structure and Execution Metadata
+
+Run `henia lint <scope>/scope.md` and fix every error; the `tropos/scope` lint module defines the required structure.
 
 Before the scope is implementable, every task names explicit `depends_on` and `files` (expected mutation paths); these drive parallel dispatch. Set optional `domain` where the work belongs to one; it keys the approach providers its subagents receive ([implement slots](../implement/SKILL.md#slots)). Resolve missing paths with one bounded discovery wave, else record a scope gap; never force one serial pipeline per task. Executors derive batches from `depends_on` and `files` per [parallel detection](../implement/reference/parallel-detection.md). A harness todo list may mirror tasks for display; `tasks.yaml` stays authoritative, with no reverse sync.
 
@@ -270,7 +272,7 @@ Ask "ready to implement or revise?"
 
 Run [review](reference/review.md) on the scope until `review_gate.status: passed`. Dispatch the reviewers from `validation.yaml.review_config` using the unified host matrix and prompt-file contract. Before each run, revalidate host compatibility and peer effort against the live registry; on incompatibility, stop for explicit config editing. Dispatch and auth contracts: `$review`, `$peer`. Apply the [canonical review result gate](../review/reference/harnesses.md#results).
 
-`implement`/`loop` refuse a scope whose `review_gate.status` is absent or `failed` (`implement/operations/execute.md` Step 2).
+`implement`/`loop` refuse a scope that fails `henia lint` or whose `review_gate.status` is absent or `failed` (`implement/operations/execute.md` Step 2).
 
 ## Templates
 

@@ -29,7 +29,7 @@ You are reviewing a scope for completeness and feasibility.
 
 ## Review Focus
 Evaluate against these gates:
-1. **Completeness** - Are all requirements specified? Missing behaviors? Does every touched Conventions axis resolve, and every invariant name a check?
+1. **Completeness** - Are all requirements specified? Missing behaviors? (Structure is `henia lint`'s; run it before dispatch.)
 2. **Consistency** - Do documents contradict each other? Ambiguous terms?
 3. **Feasibility** - Can tasks be implemented as described? Missing dependencies?
 4. **Clarity** - Would a fresh developer understand what to build?

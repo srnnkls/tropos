@@ -1,6 +1,6 @@
 # Scope Update
 
-Sync `tasks.yaml`, the sole task-state input and output ([Step 5](../SKILL.md#step-5-validate-execution-metadata)), with git history.
+Sync `tasks.yaml`, the sole task-state input and output ([Step 5](../SKILL.md#step-5-validate-structure-and-execution-metadata)), with git history.
 
 1. Locate the scope per [Scope Location](../SKILL.md#scope-location) and extract tasks with status from `tasks.yaml`. Baseline: the scope's file creation time or the first commit mentioning the scope.
 2. Collect state:

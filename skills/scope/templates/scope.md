@@ -24,7 +24,7 @@ Existing design this change MUST preserve. Changing one requires a scope update.
 
 ## Conventions
 
-Every axis the change touches resolves to a provider rule, a decision stated here, or `n/a`. The exemplar is the existing code new code mirrors.
+Every axis resolves to a provider rule, a decision stated here, or `n/a`. The exemplar is the existing code new code mirrors.
 
 | Axis | Resolution | Exemplar |
 |------|------------|----------|
