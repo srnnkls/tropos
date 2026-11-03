@@ -389,8 +389,8 @@ out=$(PEER_AGENTS_DIR="$empty" "$PEER" route sync 2>&1); rc=$?
 want_out 'show reports the registry default for a role' \
   'tester.*inherit.*registry' -- "$PEER" route show -C "$repo"
 
-mkdir -p "$repo/.peer"
-printf '%s\n' 'tester=codex-gpt5.6-sol' > "$repo/.peer/routing"
+mkdir -p "$repo/.tropos/peer"
+printf '%s\n' 'tester=codex-gpt5.6-sol' > "$repo/.tropos/peer/routing"
 want_out 'show migrates a persisted pre-split GPT proxy route' \
   'tester.*claude-gpt5\.6-sol.*override.*active' -- \
   env ANTHROPIC_BASE_URL="$UP" "$PEER" route show -C "$repo"
@@ -400,8 +400,8 @@ want_out 'show migrates a persisted pre-split GPT proxy route' \
 want_out 'set overrides a role for this working root' \
   'tester.*claude-gpt5\.6-luna.*override' -- "$PEER" route show -C "$repo"
 
-[[ -f "$repo/.peer/routing" ]] && ok 'set writes the override beside the dispatch artifacts' \
-                               || bad 'set writes the override beside the dispatch artifacts' 'no .peer/routing'
+[[ -f "$repo/.tropos/peer/routing" ]] && ok 'set writes the override beside the dispatch artifacts' \
+                               || bad 'set writes the override beside the dispatch artifacts' 'no .tropos/peer/routing'
 
 # `show` is what /implement reads for "what actually runs", so a route that cannot fire
 # must not read as one that will.
@@ -459,9 +459,9 @@ want_ok 'check rejects an effort level the registry does not declare' 2 -- \
 
 # A clear that cannot remove the override must not report the route as gone.
 "$PEER" route set tester=gpt -C "$repo" >/dev/null 2>&1
-chmod a-w "$repo/.peer"
+chmod a-w "$repo/.tropos/peer"
 out=$("$PEER" route clear -C "$repo" 2>&1); rc=$?
-chmod u+w "$repo/.peer"
+chmod u+w "$repo/.tropos/peer"
 { (( rc != 0 )) && [[ -n "$out" ]]; } \
   && ok 'clear reports a removal it could not perform' \
   || bad 'clear reports a removal it could not perform' "exit $rc, output ${out:-<empty>}"

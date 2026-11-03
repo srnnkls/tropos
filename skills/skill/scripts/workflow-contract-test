@@ -22,7 +22,7 @@ OWNERS = {
     "test failure modes": ("skills/test/reference/failure-modes.md", "reject"),
     "routing": ("skills/peer/reference/routing.md", "registry"),
     "default reviewers": ("skills/peer/reference/routing.md", "default-reviewers"),
-    "report layout": ("skills/peer/SKILL.md", "report-layout--peer"),
+    "report layout": ("skills/peer/SKILL.md", "report-layout"),
 }
 
 LEGACY_CLAUSES = (
@@ -32,7 +32,7 @@ LEGACY_CLAUSES = (
     ("RED accept list", re.compile(r"Accept an assertion failure", re.I), None),
     ("RED reject list", re.compile(r"Reject setup, import, syntax", re.I), None),
     ("passing RED", re.compile(r"passes immediately does not establish RED", re.I), "skills/test/SKILL.md"),
-    ("report layout literal", re.compile(r"\.peer/<subject>/<run>/<stage>"), None),
+    ("report layout literal", re.compile(r"\.tropos/peer/<subject>/<run>/<stage>"), None),
     ("fixed reviewer count", re.compile(r"2×2|four reports|all four successful|two host-native reviewers", re.I), None),
     ("finding volume", re.compile(r"Report volume tracks", re.I), "skills/review/reference/finding-bar.md"),
     ("finding grouping", re.compile(r"Batch by mechanism", re.I), None),

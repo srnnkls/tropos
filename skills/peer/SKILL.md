@@ -43,7 +43,7 @@ Runner: `skills/peer/scripts/peer`, deployed by Phora to `~/.local/bin/peer`, re
 - An idle watchdog and hard cap (prompt-sized; `--idle`, `--cap` override) bound every harness; exit kills its process group.
 - Positional harness forms are compatibility only; registry-driven callers use fan-out.
 
-## Report layout — `.peer/`
+## Report layout
 
 `peer path` constructs and validates report directories (`peer path --help`):
 
@@ -52,7 +52,7 @@ run=$(peer run-id)
 dir=$(peer path auth-system b3-tester-T003 --run "$run")
 ```
 
-Reuse one run ID across a gate round's stages. A directory holds `prompt.md`, external `{peer-id}.yaml` reports, and normalized native reports. `peer path` creates only that directory, never Git state; dispatch rejects nonconforming `.peer/` paths before creating files.
+Reuse one run ID across a gate round's stages. A directory holds `prompt.md`, external `{peer-id}.yaml` reports, and normalized native reports. `peer path` creates only that directory, never Git state; dispatch rejects nonconforming `.tropos/peer/` paths before creating files.
 
 ## Fan-out
 

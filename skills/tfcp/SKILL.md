@@ -1,6 +1,6 @@
 ---
 name: tfcp
-description: Land the fixes for a local review — triage, fix, commit, push. Dispositions every finding of a code review (in-context or from a `.peer/` report directory) as fix, residual, or needs-decision, applies the fix bucket, commits once behind the hook gate, and pushes. Use for "tfcp", "triage the review findings", "apply the review findings", "fix and push the review issues"; `tfcprr` composes on it for PR threads.
+description: Land the fixes for a local review — triage, fix, commit, push. Dispositions every finding of a code review (in-context or from a `.tropos/peer/` report directory) as fix, residual, or needs-decision, applies the fix bucket, commits once behind the hook gate, and pushes. Use for "tfcp", "triage the review findings", "apply the review findings", "fix and push the review issues"; `tfcprr` composes on it for PR threads.
 metadata:
   type: domain
 henia:
@@ -29,7 +29,7 @@ Run the steps in order; a failure at any step stops the rest. Never report a fix
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--issue <id>` | every finding | Triage only this synthesized-report finding id (`C1`, `H2`, …); repeat per finding. |
-| `--report <path>` | findings in context | Read findings from this synthesized report or [`peer path` report directory](../peer/SKILL.md#report-layout--peer). |
+| `--report <path>` | findings in context | Read findings from this synthesized report or [`peer path` report directory](../peer/SKILL.md#report-layout). |
 | `-m, --message <text>` | derived | Commit message, in the format of step 3. |
 | `[paths…]` | already-staged | Files to stage before committing. |
 

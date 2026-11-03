@@ -192,10 +192,10 @@ grep -qF "$(printf 'paneable\tok')" <<< "$manifest" \
   && grep -qF "$(printf 'paneable-two\tok')" <<< "$manifest"
 check 'a pane peer that writes its report reports ok' $?
 
-[[ -s "$tmp/.peer/subject/$run_id/panes/paneable.yaml" ]]
+[[ -s "$tmp/.tropos/peer/subject/$run_id/panes/paneable.yaml" ]]
 check 'the report the pane agent wrote is the published report' $?
 
-[[ -s "$tmp/.peer/subject/$run_id/panes/paneable.prompt.md" ]]
+[[ -s "$tmp/.tropos/peer/subject/$run_id/panes/paneable.prompt.md" ]]
 check 'a positional prompt is materialized beside the report' $?
 
 prompt_dir=$("$PEER" path subject prompt-file --run "$run_id" -C "$tmp")
@@ -212,7 +212,7 @@ grep -q "^pane run w9:p1 .*launch.sh" "$calls"
 check 'each pane is started through a generated launcher script' $?
 
 grep '^agent prompt ' "$calls" \
-  | grep -qF 'complete report to '"$tmp"'/.peer/subject/'"$run_id"'/panes/paneable.yaml'
+  | grep -qF 'complete report to '"$tmp"'/.tropos/peer/subject/'"$run_id"'/panes/paneable.yaml'
 check 'the pane agent is told where to write its report' $?
 
 grep -qx 'workspace close w9' "$calls"
@@ -225,7 +225,7 @@ check 'PEER_HERDR_KEEP=1 keeps the workspace of a clean round' $?
 # --- the reviewer sandbox survives the move into a pane ---------------------------------
 fanout reviewer-sandbox HERDR_LAUNCHER_DUMP="$tmp/launchers.reviewer" >/dev/null
 grep -qF 'sandbox-exec -f' "$tmp/launchers.reviewer" \
-  && grep -qF "$tmp/.peer/subject/$run_id/reviewer-sandbox" "$tmp/launchers.reviewer"
+  && grep -qF "$tmp/.tropos/peer/subject/$run_id/reviewer-sandbox" "$tmp/launchers.reviewer"
 check 'a pane reviewer launches behind a profile that opens only its stage directory' $?
 
 fanout_one() {  # STAGE ROLE EXTRA-ENV...
@@ -256,11 +256,11 @@ check 'a settled agent that wrote nothing gives up long before the cap' $?
 grep -qx 'workspace close w9' "$tmp/calls.noreport"
 check 'a round with a failed peer still closes its workspace' $?
 
-grep -qF 'PANE TRANSCRIPT' "$tmp/.peer/subject/$run_id/noreport/paneable.pane.log" \
+grep -qF 'PANE TRANSCRIPT' "$tmp/.tropos/peer/subject/$run_id/noreport/paneable.pane.log" \
   && grep -qF 'pane transcript is at' "$tmp/err.noreport"
 check "a failed peer's pane transcript outlives the workspace as a file" $?
 
-[[ ! -e "$tmp/.peer/subject/$run_id/panes/paneable.pane.log" ]]
+[[ ! -e "$tmp/.tropos/peer/subject/$run_id/panes/paneable.pane.log" ]]
 check 'a peer that reported leaves no pane log behind' $?
 
 # --- opt-out and absence both fall back to headless dispatch ----------------------------

@@ -20,7 +20,7 @@ Role behavior comes only from `agents/*.md`. Claude native definitions and `peer
 
 ## Dispatch
 
-Take the script's absolute path from the `Dispatch context script` entry of the skill context; `--help` lists its arguments. Per dispatch, in the report directory from [`peer path`](../../peer/SKILL.md#report-layout--peer):
+Take the script's absolute path from the `Dispatch context script` entry of the skill context; `--help` lists its arguments. Per dispatch, in the report directory from [`peer path`](../../peer/SKILL.md#report-layout):
 
 ```bash
 <dispatch-context> implementer -d <dir> -C <workdir> --domain <domain> \

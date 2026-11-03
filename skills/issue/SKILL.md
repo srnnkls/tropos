@@ -1,6 +1,6 @@
 ---
 name: issue
-description: GitHub issue operations — author or update issues against a canonical template, and create PRs from a branch/issue. Authoring drafts to a git-ignored `.issues/` folder, clears the default reviewer gate resolved through canonical routing, then publishes with issue type and parent/depends-on/blocks edges. Use for "create an issue", "open an issue", "update issue
+description: GitHub issue operations — author or update issues against a canonical template, and create PRs from a branch/issue. Authoring drafts to a git-ignored `.tropos/issue/` folder, clears the default reviewer gate resolved through canonical routing, then publishes with issue type and parent/depends-on/blocks edges. Use for "create an issue", "open an issue", "update issue
 metadata:
   type: domain
 henia:
@@ -25,7 +25,7 @@ henia:
         command: git branch --show-current 2>/dev/null || true
       - label: Default reviewers
         command: peer defaults reviewers 2>/dev/null || true
-      - label: Next issue number (predicted; for the `.issues/` draft filename on **create**)
+      - label: Next issue number (predicted; for the `.tropos/issue/` draft filename on **create**)
         command: gh api 'repos/{owner}/{repo}/issues?state=all&per_page=1' --jq '(.[0].number // 0) + 1' 2>/dev/null || echo "?"
 ---
 
@@ -59,13 +59,13 @@ Resolve the repo with `gh repo view --json nameWithOwner -q .nameWithOwner`, not
 | Endpoint | Does |
 |---|---|
 | `issue next` | predicted next number |
-| `issue draft <n> <type> "<title>"` | create `.issues/`, print the draft path |
+| `issue draft <n> <type> "<title>"` | create `.tropos/issue/`, print the draft path |
 | `issue review <n>\|<draft> [--reviewers aliases] [--effort level]` | peer half of the [Review gate](#review-gate-before-publish); mints the report directory via `peer path`, embeds the prompt, fans out |
 | `issue create --type T --title … --body-file F [--parent N] [--depends-on L] [--blocks L]` | publish (workflow step 6); prints `<number>\t<url>` |
 | `issue verify <n>` | read back type, parent, blockedBy, blocking |
 | `issue parent <parent#> <child#>`, `issue depends-on <n> <dep#,…>`, `issue blocks <n> <target#,…>` | set one edge (`addSubIssue` / `addBlockedBy`) |
 | `issue set-type <n> "<Type>"`, `issue type-id "<Type>"`, `issue node <n>` | set type; look up type / node IDs |
-| `issue purge [<n>]` | `trash` drafts in `.issues/` and reports in `.peer/issue-*` (all, or one issue's) |
+| `issue purge [<n>]` | `trash` drafts in `.tropos/issue/` and reports in `.tropos/peer/issue-*` (all, or one issue's) |
 
 Requires `issue`, `peer`, authenticated `gh`; the review gate also needs `peer route sync` routes and authenticated peer harnesses.
 
@@ -80,15 +80,15 @@ Requires `issue`, `peer`, authenticated `gh`; the review gate also needs `peer r
 1. Read the `issue.template` providers. Orient per [AGENTS.md](../../instructions/AGENTS.md#tools-and-context) and [match the repo](references/sketches.md#the-one-rule-match-the-repo), including its layering.
 2. Draft the body and title per the template; sketches per [`references/sketches.md`](references/sketches.md).
 3. Settle type, parent, and depends-on / blocks per [Issue metadata](#issue-metadata-type-parent-dependencies) before submitting. On update, read existing metadata with `issue verify <n>`; change only what the user asked.
-4. Draft into `.issues/<n>-<type>-<slug>.md` via `issue draft <n> <type> "<title>"`; never `$TMPDIR`. `.issues/` holds drafts only; if `issue draft` warns it is not git-ignored, add `.issues/` to the repository's `.gitignore`.
+4. Draft into `.tropos/issue/<n>-<type>-<slug>.md` via `issue draft <n> <type> "<title>"`; never `$TMPDIR`. `.tropos/issue/` holds drafts only; if `issue draft` warns it is not git-ignored, add `.tropos/` to the repository's `.gitignore`.
    - Create: `<n>` from `issue next`.
-   - Update: save the live body first, `gh issue view <n> --json body -q .body > ".issues/<n>-<type>-<slug>.orig.md"`; when rewriting, show `diff ".issues/<n>-<type>-<slug>.orig.md" ".issues/<n>-<type>-<slug>.md"` before the gate.
+   - Update: save the live body first, `gh issue view <n> --json body -q .body > ".tropos/issue/<n>-<type>-<slug>.orig.md"`; when rewriting, show `diff ".tropos/issue/<n>-<type>-<slug>.orig.md" ".tropos/issue/<n>-<type>-<slug>.md"` before the gate.
 5. Clear the [Review gate](#review-gate-before-publish).
 6. Publish, then `issue verify <number>`:
-   - Create: `issue create --type "<Feature|Task>" --title "..." --body-file ".issues/<next>-<type>-<slug>.md" [--parent <n>] [--depends-on <a,b>] [--blocks <c,d>]`. It renames the draft and `.peer/issue-<predicted>/` to the real number before applying edges.
-   - Update: `issue edit <n> [--type "<Feature|Task>"] --body-file ".issues/<n>-<type>-<slug>.md" [--parent …] [--depends-on …] [--blocks …]`.
+   - Create: `issue create --type "<Feature|Task>" --title "..." --body-file ".tropos/issue/<next>-<type>-<slug>.md" [--parent <n>] [--depends-on <a,b>] [--blocks <c,d>]`. It renames the draft and `.tropos/peer/issue-<predicted>/` to the real number before applying edges.
+   - Update: `issue edit <n> [--type "<Feature|Task>"] --body-file ".tropos/issue/<n>-<type>-<slug>.md" [--parent …] [--depends-on …] [--blocks …]`.
 7. Apply edges not passed at publish with `issue parent` / `issue depends-on` / `issue blocks`.
-8. When done, `issue purge [<n>]`. Report-directory and Git-state behavior: [`peer path` interface](../peer/SKILL.md#report-layout--peer).
+8. When done, `issue purge [<n>]`. Report-directory and Git-state behavior: [`peer path` interface](../peer/SKILL.md#report-layout).
 
 ## Review gate (before publish)
 

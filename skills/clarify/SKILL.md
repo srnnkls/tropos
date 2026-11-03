@@ -28,7 +28,7 @@ Resolve ambiguities by editing the source documents and recording each change.
 | Context | Detection | Source |
 |---------|-----------|--------|
 | Scope | a scope's `validation.yaml` exists ([scope location](../scope/SKILL.md#scope-location)) | ambiguity_scan + markers |
-| Code Review | a recent review report under `.peer/` | Review issues/questions |
+| Code Review | a recent review report under `.tropos/peer/` | Review issues/questions |
 | Standalone | Neither above | User-provided questions |
 
 ## Workflow
@@ -36,7 +36,7 @@ Resolve ambiguities by editing the source documents and recording each change.
 ### Step 1: Load and Scan
 
 - Scope: resolve the scope per [scope location](../scope/SKILL.md#scope-location) and read its `validation.yaml`. Candidates are `ambiguity_scan` areas with `status: partial` or `status: missing` plus markers with `status: open`, deduplicated by area. None → report "No unresolved items" and exit.
-- Code review: candidates are the issues marked as needing clarification in the most recent review report under `.peer/` ([`peer path`](../peer/SKILL.md#report-layout--peer)).
+- Code review: candidates are the issues marked as needing clarification in the most recent review report under `.tropos/peer/` ([`peer path`](../peer/SKILL.md#report-layout)).
 - Standalone: ask the user what needs clarification, then run interactive Q&A.
 
 ### Step 2: Present Candidates

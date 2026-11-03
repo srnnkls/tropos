@@ -3,8 +3,7 @@ __pycache__/
 *.local
 *.local.*
 .worktrees/
-.peer/
-.issues/
+.tropos/
 /rules/fas/moira/
 /.henia/*
 !/.henia/harnesses/

@@ -8,7 +8,7 @@ import (
 
 _mutatingRole: "^(tester|implementer)(-|$)"
 
-_scopeRun: #"(^|[^\w.-])scopes/[^/\s]+/[^/\s]+|\.peer/[^/\s]+/[^/\s]+/b[0-9]+-"#
+_scopeRun: #"(^|[^\w.-])scopes/[^/\s]+/[^/\s]+|\.tropos/peer/[^/\s]+/[^/\s]+/b[0-9]+-"#
 
 _stageEntry: "Before dispatch: arm `in_flight_mutations` in checkpoint.yaml (task, phase, agent, report_dir, status, evidence.before) in one write per wave."
 
@@ -82,7 +82,7 @@ checkpoint_peer_launch_handle: {
 
 checkpoint_clear_after_peer_report: {
 	when: hook.#PostToolUse & hook.#MainThread & tool.#Read & {
-		tool_input: file_path: =~#"\.peer/[^/]+/[^/]+/b[0-9]+-[^/]+/.*\.ya?ml$"#
+		tool_input: file_path: =~#"\.tropos/peer/[^/]+/[^/]+/b[0-9]+-[^/]+/.*\.ya?ml$"#
 	}
 	then: inject: {
 		rule_id:  "checkpoint-clear-after-peer-report"

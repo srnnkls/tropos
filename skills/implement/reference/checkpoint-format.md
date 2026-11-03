@@ -28,19 +28,19 @@ checkpoint:
         - {agent: peer-gpt6-astra, effort: high, class: peer}
 
   reports:
-    tester: {T003: .peer/auth-system/<run>/b3-tester-T003}
-    implementer: {T003: .peer/auth-system/<run>/b3-implementer-T003}
+    tester: {T003: .tropos/peer/auth-system/<run>/b3-tester-T003}
+    implementer: {T003: .tropos/peer/auth-system/<run>/b3-implementer-T003}
     review:
-      general: .peer/auth-system/<run>/b3-review-general
-      architecture: .peer/auth-system/<run>/b3-review-architecture
-      compliance: .peer/auth-system/<run>/b3-review-compliance
-      abstractions: .peer/auth-system/<run>/b3-review-abstractions
+      general: .tropos/peer/auth-system/<run>/b3-review-general
+      architecture: .tropos/peer/auth-system/<run>/b3-review-architecture
+      compliance: .tropos/peer/auth-system/<run>/b3-review-compliance
+      abstractions: .tropos/peer/auth-system/<run>/b3-review-abstractions
 
   in_flight_mutations:
     - task: T003
       phase: green
       agent: claude-gpt5.6-sol
-      report_dir: .peer/auth-system/<run>/b3-implementer-T003
+      report_dir: .tropos/peer/auth-system/<run>/b3-implementer-T003
       status: in_progress | failed
       evidence:
         before: {git_status: "...", git_diff: "..."}

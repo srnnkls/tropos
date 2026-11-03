@@ -50,6 +50,10 @@ Input: `$ARGUMENTS` (optional scope name)
 Follow the scope skill workflow.
 ```
 
+## Side Effects
+
+A skill writes working files that are not deliverables to `.tropos/<skill>/` at the repository root; repositories git-ignore `.tropos/`. Tracked deliverables keep their own paths.
+
 ## Anti-Patterns
 
 - Information the model already knows

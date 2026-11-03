@@ -67,7 +67,7 @@ def override_entry(registry: dict, index: dict[str, dict], value: str) -> dict |
 
 
 def override_path(workdir: str) -> str:
-    return os.path.join(workdir, ".peer", OVERRIDE_NAME)
+    return os.path.join(workdir, ".tropos", "peer", OVERRIDE_NAME)
 
 
 def read_override(workdir: str) -> dict[str, str]:

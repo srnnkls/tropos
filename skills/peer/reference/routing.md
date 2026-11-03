@@ -18,7 +18,7 @@ Absent explicit reviewer configuration, use every `peer defaults reviewers` entr
 | Codex | session inheritance or a `codex-*` route marked native | — | a `peer-*` route |
 
 - Read route availability and status (including staleness) from `peer route show` and `peer route check`, never from model family. Run `peer route check` immediately before naming a generated role directly.
-- `.peer/routing` under the working root overrides registry `routing:`; `inherit` keeps the session model.
+- `.tropos/peer/routing` under the working root overrides registry `routing:`; `inherit` keeps the session model.
 - Reject same-family loopback, unknown aliases, inactive generated definitions, and unsupported efforts. Never convert a mechanism or substitute a sibling route.
 - Validate a caller-required execution class against `peer list` columns `NATIVE`, `PROXY`, `PEER`.
 - Persist route IDs, never aliases; prefixes name the owner: `codex-*` Codex, `claude-*` Claude Code, `peer-*` external.
@@ -31,7 +31,7 @@ Absent explicit reviewer configuration, use every `peer defaults reviewers` entr
 - Claude proxy: after a successful route check, `Task(subagent_type="<role>-<alias>[-<effort>]", prompt=<read pointer>)` without a model argument.
 - Peer: `peer -C <workdir> -d <outdir> --agent <role> --peers <peer-aliases> --effort <effort> --prompt-file <outdir>/prompt.md`.
 
-One external call per mutating task. Review may fan out compatible external aliases once per role, in one assistant message with all native role Tasks. Create output directories through the [report-layout contract](../SKILL.md#report-layout--peer). Workflow dispatches write `prompt.md` and pass native routes a read pointer to it per [implement dispatch](../../implement/reference/subagent-workflow.md#dispatch).
+One external call per mutating task. Review may fan out compatible external aliases once per role, in one assistant message with all native role Tasks. Create output directories through the [report-layout contract](../SKILL.md#report-layout). Workflow dispatches write `prompt.md` and pass native routes a read pointer to it per [implement dispatch](../../implement/reference/subagent-workflow.md#dispatch).
 
 ## Effort
 

@@ -1,6 +1,6 @@
 # Scope → Issue
 
-The `issue` skill authors, gates, and publishes each issue; this operation only derives nodes, publishes parents first, and wires edges. Prerequisites: `issue` on PATH (Phora), `gh` authenticated, `peer` installed, `.issues/` git-ignored.
+The `issue` skill authors, gates, and publishes each issue; this operation only derives nodes, publishes parents first, and wires edges. Prerequisites: `issue` on PATH (Phora), `gh` authenticated, `peer` installed, `.tropos/` git-ignored.
 
 | Scope `issue_type` | Issue tree |
 |---|---|
@@ -65,4 +65,4 @@ Wire edges only here, never at publish.
 
 Verify the root and a couple of leaves per [Verifying after submit](../../issue/SKILL.md#verifying-after-submit). Report the root URL, child URLs grouped by parent, and the edges.
 
-`.issues/` drafts persist (git-ignored), one `<number>-<type>-<slug>.md` per issue, with review reports created through the canonical [`peer path` interface](../../peer/SKILL.md#report-layout--peer). `issue purge` clears both.
+`.tropos/issue/` drafts persist (git-ignored), one `<number>-<type>-<slug>.md` per issue, with review reports created through the canonical [`peer path` interface](../../peer/SKILL.md#report-layout). `issue purge` clears both.

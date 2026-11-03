@@ -15,7 +15,7 @@ Gather evidence with read-only tools before writing:
 - Deep questions: Task(subagent_type="general", prompt="Research {specific question}...")
 
 ## Writing Phase
-1. Read ./debates/{topic}_{context}.md
+1. Read .tropos/debate/{topic}_{context}.md
 2. Edit your section for the current round: ### [{COLOR}] Opening, Rebuttal, or Synthesis
 3. Structure: Position → Evidence → Implications
 4. Cite sources (files, URLs) for every claim

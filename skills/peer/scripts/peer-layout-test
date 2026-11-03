@@ -85,13 +85,13 @@ a=$("$PEER" run-id); b=$("$PEER" run-id)
 
 # --- path: minting and shape --------------------------------------------------------
 want_out 'path prints the canonical three-segment report dir' \
-  "^$tmp/repo/\.peer/issue-745/[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}/issue-review$" \
+  "^$tmp/repo/\.tropos/peer/issue-745/[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}/issue-review$" \
   -- "$PEER" path issue-745 issue-review -C "$tmp/repo"
 
 fixed_run=20260820T101112Z-a1b2c3
 ln -s "$tmp/repo" "$tmp/repo-link"
 d=$(cd "$tmp" && "$PEER" path canonical-root path-output --run "$fixed_run" -C repo-link)
-[[ "$d" == "$tmp/repo/.peer/canonical-root/$fixed_run/path-output" ]] \
+[[ "$d" == "$tmp/repo/.tropos/peer/canonical-root/$fixed_run/path-output" ]] \
   && ok 'path -C prints a canonical absolute path' \
   || bad 'path -C prints a canonical absolute path' "got $d"
 
@@ -101,7 +101,7 @@ d=$("$PEER" path auth-system "$run" --stage b3-tester-T003 -C "$tmp/repo" 2>/dev
 [[ -z "$d" ]] && ok 'path rejects a stray --stage flag'
 
 d=$("$PEER" path auth-system b3-tester-T003 --run "$run" -C "$tmp/repo")
-[[ "$d" == "$tmp/repo/.peer/auth-system/$run/b3-tester-T003" ]] \
+[[ "$d" == "$tmp/repo/.tropos/peer/auth-system/$run/b3-tester-T003" ]] \
   && ok 'path honours an explicit --run' || bad 'path honours an explicit --run' "got $d"
 [[ -d "$d" ]] && ok 'path creates the report dir' || bad 'path creates the report dir' "missing $d"
 
@@ -128,48 +128,48 @@ want_ok 'path rejects a malformed --run'         2 -- "$PEER" path subj stage --
 want_ok 'path requires both subject and stage'   2 -- "$PEER" path subj -C "$tmp/repo"
 want_ok 'path accepts a dotted review slug'      0 -- "$PEER" path 'diff-main..feat' review -C "$tmp/repo"
 
-# --- dispatch: -d conformance under .peer/ -------------------------------------------
+# --- dispatch: -d conformance under .tropos/peer/ -------------------------------------------
 # Layout is validated before any dispatch work, so these need no harness stubs.
-deep="$tmp/repo/.peer/subj/$run/stage/extra"
-want_ok 'fan-out rejects a four-segment .peer outdir' 2 \
+deep="$tmp/repo/.tropos/peer/subj/$run/stage/extra"
+want_ok 'fan-out rejects a four-segment .tropos/peer outdir' 2 \
   -- "$PEER" -d "$deep" --peers model-known 'ping'
 [[ -d "$deep" ]] && bad 'a rejected outdir is not created' "created $deep" \
                  || ok 'a rejected outdir is not created'
 
-want_ok 'fan-out rejects a two-segment .peer outdir' 2 \
-  -- "$PEER" -d "$tmp/repo/.peer/subj/$run" --peers model-known 'ping'
+want_ok 'fan-out rejects a two-segment .tropos/peer outdir' 2 \
+  -- "$PEER" -d "$tmp/repo/.tropos/peer/subj/$run" --peers model-known 'ping'
 
-want_ok 'fan-out rejects a .peer outdir with a malformed run segment' 2 \
-  -- "$PEER" -d "$tmp/repo/.peer/subj/whenever/stage" --peers model-known 'ping'
+want_ok 'fan-out rejects a .tropos/peer outdir with a malformed run segment' 2 \
+  -- "$PEER" -d "$tmp/repo/.tropos/peer/subj/whenever/stage" --peers model-known 'ping'
 
-want_ok 'single-harness rejects a non-conforming .peer outfile' 2 \
-  -- "$PEER" pi -o "$tmp/repo/.peer/subj/$run/stage/extra/x.yaml" 'ping'
+want_ok 'single-harness rejects a non-conforming .tropos/peer outfile' 2 \
+  -- "$PEER" pi -o "$tmp/repo/.tropos/peer/subj/$run/stage/extra/x.yaml" 'ping'
 
-# A path with no .peer component stays out of the convention's jurisdiction.
-want_ok 'a non-.peer outdir is not layout-checked' 2 \
+# A path with no .tropos/peer component stays out of the convention's jurisdiction.
+want_ok 'a non-.tropos/peer outdir is not layout-checked' 2 \
   -- "$PEER" -d "$tmp/repo/scratch/anything/at/all" --peers nope 'ping'
 grep -q 'unknown peer' <(  # reached peer resolution, i.e. passed layout validation
   "$PEER" -d "$tmp/repo/scratch/anything/at/all" --peers nope 'ping' 2>&1
-) && ok 'a non-.peer outdir reaches peer resolution' \
-  || bad 'a non-.peer outdir reaches peer resolution' 'failed before resolution'
+) && ok 'a non-.tropos/peer outdir reaches peer resolution' \
+  || bad 'a non-.tropos/peer outdir reaches peer resolution' 'failed before resolution'
 
-# --- .peer-relative dirs resolve against the workdir ---------------------------------
-want_ok 'a conforming relative .peer outdir is accepted through to resolution' 2 \
-  -- "$PEER" -C "$tmp/repo" -d ".peer/subj/$run/stage" --peers nope 'ping'
+# --- .tropos/peer-relative dirs resolve against the workdir ---------------------------------
+want_ok 'a conforming relative .tropos/peer outdir is accepted through to resolution' 2 \
+  -- "$PEER" -C "$tmp/repo" -d ".tropos/peer/subj/$run/stage" --peers nope 'ping'
 grep -q 'unknown peer' <(
-  "$PEER" -C "$tmp/repo" -d ".peer/subj/$run/stage" --peers nope 'ping' 2>&1
-) && ok 'a conforming relative .peer outdir passes validation' \
-  || bad 'a conforming relative .peer outdir passes validation' 'rejected before resolution'
+  "$PEER" -C "$tmp/repo" -d ".tropos/peer/subj/$run/stage" --peers nope 'ping' 2>&1
+) && ok 'a conforming relative .tropos/peer outdir passes validation' \
+  || bad 'a conforming relative .tropos/peer outdir passes validation' 'rejected before resolution'
 
-grep -q 'outside .peer/' <(
+grep -q 'outside .tropos/peer/' <(
   "$PEER" -d "$tmp/repo/scratch/anything" --peers nope 'ping' 2>&1
-) && ok 'a non-.peer outdir is flagged on stderr' \
-  || bad 'a non-.peer outdir is flagged on stderr' 'no notice emitted'
+) && ok 'a non-.tropos/peer outdir is flagged on stderr' \
+  || bad 'a non-.tropos/peer outdir is flagged on stderr' 'no notice emitted'
 
-grep -q 'outside .peer/' <(
-  "$PEER" -C "$tmp/repo" -d ".peer/subj/$run/stage" --peers nope 'ping' 2>&1
-) && bad 'a conforming .peer outdir is not flagged' 'notice emitted anyway' \
-  || ok 'a conforming .peer outdir is not flagged'
+grep -q 'outside .tropos/peer/' <(
+  "$PEER" -C "$tmp/repo" -d ".tropos/peer/subj/$run/stage" --peers nope 'ping' 2>&1
+) && bad 'a conforming .tropos/peer outdir is not flagged' 'notice emitted anyway' \
+  || ok 'a conforming .tropos/peer outdir is not flagged'
 
 # --- path output and -C-relative dispatch paths --------------------------------------
 fanout_dir=$("$PEER" path path-consumer fan-out --run "$fixed_run" -C "$tmp/repo")
@@ -190,7 +190,7 @@ want_ok 'single-harness accepts an outfile beneath peer path output' 0 -- \
   && ok 'single-harness writes beneath the peer path output' \
   || bad 'single-harness writes beneath the peer path output' "missing $single_dir/report.yaml"
 
-relative_fanout=".peer/relative-paths/$fixed_run/fan-out"
+relative_fanout=".tropos/peer/relative-paths/$fixed_run/fan-out"
 want_ok 'fan-out resolves relative -d and --prompt-file beneath -C' 0 -- \
   "${dispatch_env[@]}" PI_DUMP="$tmp/fanout-relative.argv" \
   "$PEER" -C "$tmp/repo" -d "$relative_fanout" --peers model-known \

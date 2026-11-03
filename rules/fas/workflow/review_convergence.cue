@@ -22,7 +22,7 @@ peer_prompt_missing_finding_bar: {
 fix_round_convergence: {
 	when: hook.#PreToolUse & (tool.#Task | tool.#Agent) & {
 		tool_input: description: =~#"(?i)\b(fix|address|resolve|remediate)\b[^\n]*\b(finding|findings|issue|issues|review|feedback|comment|comments)\b"#
-		tool_input: prompt:      =~#"(?i)(\.peer/|review\.yaml|finding)"#
+		tool_input: prompt:      =~#"(?i)(\.tropos/peer/|review\.yaml|finding)"#
 	}
 	then: inject: {
 		rule_id:  "fix-round-convergence"

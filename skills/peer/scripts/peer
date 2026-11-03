@@ -92,8 +92,8 @@ _peer_resolve_fanout() {
   return 1
 }
 
-# --- canonical report layout: .peer/<subject>/<run>/<stage>/ -------------------------
-PEER_LAYOUT='.peer/<subject>/<run>/<stage>/'
+# --- canonical report layout: .tropos/peer/<subject>/<run>/<stage>/ -------------------------
+PEER_LAYOUT='.tropos/peer/<subject>/<run>/<stage>/'
 PEER_GET_FIELDS='id|model|harness|alias|effort|native|provider|proxy|peer'
 
 _peer_path_usage() {
@@ -139,18 +139,18 @@ _peer_valid_run() { [[ "$1" =~ ^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}$ ]]; }
 # leave a directory behind.
 _peer_check_layout() {
   local p=${1%/} rest; local -a seg=()
-  if [[ "$p" != */.peer/* && "$p" != */.peer ]]; then
-    printf '%s\n' "peer: '$p' is outside .peer/ - dispatch artifacts belong in $PEER_LAYOUT (peer path <subject> <stage>)" >&2
+  if [[ "$p" != */.tropos/peer/* && "$p" != */.tropos/peer ]]; then
+    printf '%s\n' "peer: '$p' is outside .tropos/peer/ - dispatch artifacts belong in $PEER_LAYOUT (peer path <subject> <stage>)" >&2
     return 0
   fi
-  rest=${p##*/.peer/}
+  rest=${p##*/.tropos/peer/}
   [[ "$rest" == "$p" ]] && rest=""
   IFS=/ read -ra seg <<< "$rest"
   (( ${#seg[@]} == 3 )) \
     && _peer_valid_seg "${seg[0]}" && _peer_valid_run "${seg[1]}" && _peer_valid_seg "${seg[2]}" \
     && return 0
   printf '%s\n' "peer: '$p' is not a canonical report dir - expected $PEER_LAYOUT" >&2
-  printf '%s\n' "peer: found ${#seg[@]} segment(s) below .peer/, need exactly 3 (run looks like 20260820T101112Z-a1b2c3)" >&2
+  printf '%s\n' "peer: found ${#seg[@]} segment(s) below .tropos/peer/, need exactly 3 (run looks like 20260820T101112Z-a1b2c3)" >&2
   printf '%s\n' "peer: mint one with: peer path <subject> <stage> [--run <run>]" >&2
   return 2
 }
@@ -294,7 +294,7 @@ if node is None:
 print(node)'
 }
 
-# .peer/<subject>/<run>/<stage> names the round, so the workspace carries subject and stage.
+# .tropos/peer/<subject>/<run>/<stage> names the round, so the workspace carries subject and stage.
 _peer_herdr_round_label() {  # OUTDIR
   local rest=${1%/} stage subject
   stage=${rest##*/}; rest=${rest%/*}; rest=${rest%/*}; subject=${rest##*/}
@@ -682,7 +682,7 @@ if [[ "$cmd" == path ]]; then
     printf '%s\n' "peer path: invalid --run '$run' (expected 20260820T101112Z-a1b2c3)" >&2; exit 2; }
   workdir=$(cd "$workdir" 2>/dev/null && pwd -P) || {
     printf '%s\n' "peer path: workdir is not accessible: $workdir" >&2; exit 2; }
-  dir="$workdir/.peer/$subject/$run/$stage"
+  dir="$workdir/.tropos/peer/$subject/$run/$stage"
   mkdir -p "$dir" || exit 2
   printf '%s\n' "$dir"
   exit 0

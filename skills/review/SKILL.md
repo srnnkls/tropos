@@ -99,7 +99,7 @@ Build each prompt per [materialization](reference/harnesses.md#materialization),
 
 ## Report Paths
 
-Create directories through [`peer path`](../peer/SKILL.md#report-layout--peer).
+Create directories through [`peer path`](../peer/SKILL.md#report-layout).
 
 | Route | Subject | Stage |
 |---|---|---|

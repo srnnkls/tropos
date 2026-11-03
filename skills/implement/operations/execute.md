@@ -18,7 +18,7 @@ Batch per [parallel-detection.md](../reference/parallel-detection.md), in depend
 
 ## 3. Snapshot a Batch
 
-Snapshot routing per [configuration.md](../reference/configuration.md#batch-snapshot), create report directories through [`peer path`](../../peer/SKILL.md#report-layout--peer), and stage requirements, acceptance criteria, and orientation as files for the [dispatch script](../reference/subagent-workflow.md#dispatch).
+Snapshot routing per [configuration.md](../reference/configuration.md#batch-snapshot), create report directories through [`peer path`](../../peer/SKILL.md#report-layout), and stage requirements, acceptance criteria, and orientation as files for the [dispatch script](../reference/subagent-workflow.md#dispatch).
 
 ## 4. Phase A: RED
 

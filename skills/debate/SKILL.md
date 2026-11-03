@@ -26,7 +26,7 @@ Moderate with [reference.md](reference.md).
 
 ### Step 1: Initialize Debate
 
-Slug the topic and a context of at most 3 words ("API Design" → `api-design`), create `./debates/` if missing, copy [templates/debate-scratchpad.md](templates/debate-scratchpad.md) to `./debates/{topic}_{context}.md`.
+Slug the topic and a context of at most 3 words ("API Design" → `api-design`), create `.tropos/debate/` if missing, copy [templates/debate-scratchpad.md](templates/debate-scratchpad.md) to `.tropos/debate/{topic}_{context}.md`.
 
 ### Step 2: Configure Teams
 
