@@ -155,8 +155,6 @@ All clear: skip to Step 3.5. Otherwise run the validation loop in [question taxo
 - None: [default/skip]
 :::
 
-Initiatives only: read `.claude/constitution.md`, flag conflicts, and ask the user to resolve or document an exception; [SDD gates](reference/sdd-gates.md) apply.
-
 ### Step 3.4: Propose Approaches [guided]
 
 Never proceed on an unstated default:
@@ -226,8 +224,7 @@ mkdir -p "$root/scopes/draft/[scope-name]/"
 | scope.md | Goal, non-goals, invariants, conventions, decisions, requirements, verification | Full | Standard | Lightweight |
 | design.md | Alternatives, complexity, per [quality model](reference/quality-model.md) | Opt-in (complex) | Opt-in | Skip |
 | tasks.yaml | Authoritative task status, dependencies, mutation paths | Feature breakdown + phases | Task breakdown | Single task |
-| dependencies.yaml | Task dependency DAG for parallel dispatch | Full DAG | Phase-based | Skip |
-| validation.yaml | Audit trail, gate checks, reviewer config, code style validation | Full (6 areas + gates) | Full (7 areas) | Skip |
+| validation.yaml | Ambiguity scan, assumptions, reviewer config, review gate | Full | Full | Skip |
 | resources/ | Implementation details (Step 3.6) | When provided | When provided | When provided |
 
 scope.md frontmatter:
@@ -253,11 +250,11 @@ Non-Goals, Invariants, and Conventions are required for every issue type. scope.
 
 - Goal in at most 3 lines; one line per non-goal, decision, requirement, and criterion.
 - Rationale beyond one clause lives in design.md; a decision links to its Alternatives entry there.
-- Task dependencies live only in `tasks.yaml` and `dependencies.yaml`; open questions only as `validation.yaml` markers or assumptions.
+- Task dependencies live only in `tasks.yaml`; open questions only as `validation.yaml` assumptions.
 
 ### Step 5: Validate Execution Metadata
 
-Before the scope is implementable, every task names explicit `depends_on` and `files` (expected mutation paths); these drive parallel dispatch. Set optional `domain` where the work belongs to one; it keys the approach providers its subagents receive ([implement slots](../implement/SKILL.md#slots)). Resolve missing paths with one bounded discovery wave, else record a scope gap; never force one serial pipeline per task. Executors use `dependencies.yaml` `batches[*]` after validating current task state. A harness todo list may mirror tasks for display; `tasks.yaml` stays authoritative, with no reverse sync.
+Before the scope is implementable, every task names explicit `depends_on` and `files` (expected mutation paths); these drive parallel dispatch. Set optional `domain` where the work belongs to one; it keys the approach providers its subagents receive ([implement slots](../implement/SKILL.md#slots)). Resolve missing paths with one bounded discovery wave, else record a scope gap; never force one serial pipeline per task. Executors derive batches from `depends_on` and `files` per [parallel detection](../implement/reference/parallel-detection.md). A harness todo list may mirror tasks for display; `tasks.yaml` stays authoritative, with no reverse sync.
 
 ### Step 6: Present Summary
 
@@ -280,7 +277,6 @@ Run [review](reference/review.md) on the scope until `review_gate.status: passed
 - [scope.md](templates/scope.md)
 - [design.md](templates/design.md)
 - [tasks.yaml](templates/tasks.yaml)
-- [dependencies.yaml](templates/dependencies.yaml)
 - [validation.yaml](templates/validation.yaml)
 
 :::related

@@ -46,31 +46,6 @@ clarification_sessions:
             section: ${SECTION}
             action: ${ACTION}
 
-markers:
-  - id: M001
-    area: ${TAXONOMY_AREA}
-    description: "${WHAT_NEEDS_CLARIFICATION}"
-    doc_ref: "${DOC}#${SECTION}"
-    status: open
-    resolution: null
-
-complexity_tracking:
-  - violation: "${WHAT_EXCEEDS_SIMPLICITY}"
-    justification: "${WHY_NEEDED}"
-    alternative_rejected: "${SIMPLER_APPROACH_AND_WHY_NOT}"
-
-gates:
-  # Initiative: All gates evaluated | Feature/Task: n/a
-  simplicity:
-    status: ${STATUS}  # passed | failed | n/a
-    reason: "${EXPLANATION}"
-  anti_abstraction:
-    status: ${STATUS}
-    reason: "${EXPLANATION}"
-  integration_first:
-    status: ${STATUS}
-    reason: "${EXPLANATION}"
-
 assumptions:
   - id: A001
     area: ${TAXONOMY_AREA}

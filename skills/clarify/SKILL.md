@@ -1,6 +1,6 @@
 ---
 name: clarify
-description: Resolve ambiguities interactively with tracked changes. Use when resolving scope markers, ambiguous requirements, ambiguity-scan gaps or code review questions with an audit trail; not for initial scope validation or changing a scope fundamentally.
+description: Resolve ambiguities interactively with tracked changes. Use when resolving scope assumptions, ambiguous requirements, ambiguity-scan gaps or code review questions with an audit trail; not for initial scope validation or changing a scope fundamentally.
 metadata:
   type: domain
 henia:
@@ -27,7 +27,7 @@ Resolve ambiguities by editing the source documents and recording each change.
 
 | Context | Detection | Source |
 |---------|-----------|--------|
-| Scope | a scope's `validation.yaml` exists ([scope location](../scope/SKILL.md#scope-location)) | ambiguity_scan + markers |
+| Scope | a scope's `validation.yaml` exists ([scope location](../scope/SKILL.md#scope-location)) | ambiguity_scan + assumptions |
 | Code Review | a recent review report under `.tropos/peer/` | Review issues/questions |
 | Standalone | Neither above | User-provided questions |
 
@@ -35,7 +35,7 @@ Resolve ambiguities by editing the source documents and recording each change.
 
 ### Step 1: Load and Scan
 
-- Scope: resolve the scope per [scope location](../scope/SKILL.md#scope-location) and read its `validation.yaml`. Candidates are `ambiguity_scan` areas with `status: partial` or `status: missing` plus markers with `status: open` and `assumptions` with `status: assumed`, deduplicated by area. None → report "No unresolved items" and exit.
+- Scope: resolve the scope per [scope location](../scope/SKILL.md#scope-location) and read its `validation.yaml`. Candidates are `ambiguity_scan` areas with `status: partial` or `status: missing` plus `assumptions` with `status: assumed`, deduplicated by area. None → report "No unresolved items" and exit.
 - Code review: candidates are the issues marked as needing clarification in the most recent review report under `.tropos/peer/` ([`peer path`](../peer/SKILL.md#report-layout)).
 - Standalone: ask the user what needs clarification, then run interactive Q&A.
 
@@ -87,18 +87,14 @@ clarification_sessions:
 
 Per resolved gap: set `ambiguity_scan.${area}.status` to `clear` and remove the gap from `ambiguity_scan.${area}.gaps`.
 
-### Step 6: Update Markers
+### Step 6: Update Assumptions
 
-Per resolved marker: set `status: resolved` and add `resolution: "${USER_ANSWER}"`. Per answered assumption: set `status: confirmed`, or `status: revised` with `assumed` replaced by the answer.
-
-### Step 7: Re-check Gates (Initiatives Only)
-
-Re-evaluate the gates in `validation.yaml`, update any whose assessment changed, and report gate status.
+Per answered assumption: set `status: confirmed`, or `status: revised` with `assumed` replaced by the answer.
 
 ::::
 
 :::related
-- `scope` — creates scopes with ambiguity scans and markers, and clarifies during creation or review
-- `implement` — checks for blocking markers before execution
+- `scope` — creates scopes with ambiguity scans and assumptions, and clarifies during creation or review
+- `implement` — refuses a scope whose review gate has not passed
 - `code` — clarifies code review findings
 :::

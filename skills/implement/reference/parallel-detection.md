@@ -4,7 +4,7 @@ Build the widest file-safe batch allowed by explicit dependencies and known muta
 
 ## Authority
 
-`tasks.yaml` carries `depends_on` (task IDs done first) and `files` (paths the task may create or modify). `dependencies.yaml` `batches[*].tasks`, when present, may be used directly after validating its pending task IDs.
+`tasks.yaml` carries `depends_on` (task IDs done first) and `files` (paths the task may create or modify).
 
 ## Missing Paths
 

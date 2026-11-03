@@ -33,6 +33,6 @@ Primary: ask if uncovered. Secondary: ask after primary areas, within the questi
 | Task | Single concrete deliverable; a day or two; well-defined; part of an existing Feature |
 | Exploratory | Unclear type; current state must be understood first; ambiguous or open-ended request |
 
-## SDD Integration Summary
+## Documents per Type
 
-Constitution check: Initiatives only. Gate applicability: [SDD gates](sdd-gates.md). Markers: Initiative tracked, resolved before task-dispatch; Feature tracked, non-blocking; Task minimal tracking. Documents and sections per type: [Step 4](../SKILL.md#step-4-create-directory-and-documents).
+Documents and sections per type: [Step 4](../SKILL.md#step-4-create-directory-and-documents).

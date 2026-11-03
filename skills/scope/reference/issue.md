@@ -10,13 +10,13 @@ The `issue` skill authors, gates, and publishes each issue; this operation only 
 
 ### Step 1: Locate and load the scope
 
-Locate per [Scope Location](../SKILL.md#scope-location), preferring the branch-associated scope when no name is given. Read `scope.md`, `tasks.yaml`, and `dependencies.yaml`/`design.md` if present. If `issue_type` is missing, ask the user (`Initiative | Feature | Task`).
+Locate per [Scope Location](../SKILL.md#scope-location), preferring the branch-associated scope when no name is given. Read `scope.md`, `tasks.yaml`, and `design.md` if present. If `issue_type` is missing, ask the user (`Initiative | Feature | Task`).
 
 ### Step 2: Derive the issue tree
 
-Each node carries its source slice and source task id. Roots come from `scope.md` (Goal, Requirements, Acceptance Criteria). Task nodes come from `tasks.yaml` `tasks[]` (`content` / `files` / `depends_on`). Initiative Feature nodes come from `phases[]` (`dependencies.yaml` if present, else `tasks.yaml`), each holding the tasks its phase references. A task no phase references is an error: ask whether to attach it to a phase or skip it; never drop it silently.
+Each node carries its source slice and source task id. Roots come from `scope.md` (Goal, Requirements, Acceptance Criteria). Task nodes come from `tasks.yaml` `tasks[]` (`content` / `files` / `depends_on`). Initiative Feature nodes come from `tasks.yaml` `phases[]`, each holding the tasks its phase references. A task no phase references is an error: ask whether to attach it to a phase or skip it; never drop it silently.
 
-Edges come only from the scope: parent = hierarchy; depends-on = task `depends_on` (Task→Task) and phase `depends_on` in `dependencies.yaml` (Feature→Feature).
+Edges come only from the scope: parent = hierarchy; depends-on = task `depends_on` (Task→Task) and phase `depends_on` in `tasks.yaml` (Feature→Feature).
 
 ### Step 3: Confirm tree and root parent
 

@@ -28,10 +28,11 @@ Every axis the change touches resolves to a provider rule, a decision stated her
 
 | Axis | Resolution | Exemplar |
 |------|------------|----------|
-| Abstraction | ${PROVIDER_OR_DECISION} | `${FILE}` |
-| Boundaries & ownership | ${PROVIDER_OR_DECISION} | `${FILE}` |
-| Idiom & types | ${PROVIDER_OR_DECISION} | `${FILE}` |
+| Data & types | ${PROVIDER_OR_DECISION} | `${FILE}` |
 | Errors | ${PROVIDER_OR_DECISION} | `${FILE}` |
+| Effects | ${PROVIDER_OR_DECISION} | `${FILE}` |
+| State | ${PROVIDER_OR_DECISION} | `${FILE}` |
+| Dependencies & boundaries | ${PROVIDER_OR_DECISION} | `${FILE}` |
 | Naming | ${PROVIDER_OR_DECISION} | `${FILE}` |
 | Config & tooling | ${PROVIDER_OR_DECISION} | `${FILE}` |
 | Testing | ${PROVIDER_OR_DECISION} | `${FILE}` |

@@ -54,7 +54,7 @@ In one assistant message, dispatch every selected reviewer using [peer routing](
 
 1. Show the gate summary and issues per the [synthesis presentation formats](../../review/reference/synthesis.md#issue-presentation-format).
 2. Ask the user clarifying questions, grouped by taxonomy area.
-3. Add the clarification session with its answers to `validation.yaml`; close resolved markers and add markers for deferred items.
+3. Add the clarification session with its answers to `validation.yaml`; record deferred items as `assumptions`.
 4. Add each unrecorded assumption the reviewers surfaced to `assumptions` with `source: scope-review`; ask the user to confirm or revise every `load_bearing` one still `assumed`.
 
 ### Step 6: Record Gate Result and Recommend Action
