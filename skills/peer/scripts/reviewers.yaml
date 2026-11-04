@@ -1,68 +1,4 @@
 reviewers:
-  - id: codex-gpt5.6-sol
-    harness: codex
-    provider: openai
-    model: gpt-5.6-sol
-    alias: codex-gpt
-    effort: high
-    native: true
-    peer: false
-  - id: peer-gpt5.6-sol
-    harness: codex
-    provider: openai
-    model: gpt-5.6-sol
-    alias: peer-gpt
-    effort: high
-    native: false
-    peer: true
-  - id: codex-gpt5.6-terra
-    harness: codex
-    provider: openai
-    model: gpt-5.6-terra
-    alias: codex-terra
-    effort: high
-    native: true
-    peer: false
-  - id: peer-gpt5.6-terra
-    harness: codex
-    provider: openai
-    model: gpt-5.6-terra
-    alias: peer-terra
-    effort: high
-    native: false
-    peer: true
-  - id: codex-gpt5.6-luna
-    harness: codex
-    provider: openai
-    model: gpt-5.6-luna
-    alias: codex-luna
-    effort: high
-    native: true
-    peer: false
-  - id: peer-gpt5.6-luna
-    harness: codex
-    provider: openai
-    model: gpt-5.6-luna
-    alias: peer-luna
-    effort: high
-    native: false
-    peer: true
-  - id: peer-gpt6.1-sol
-    harness: codex
-    provider: openai
-    model: gpt-6.1-sol
-    alias: sol
-    effort: xhigh
-    native: false
-    peer: true
-  - id: peer-gpt6-astra
-    harness: codex
-    provider: openai
-    model: gpt-6-astra
-    alias: astra
-    effort: high
-    native: false
-    peer: true
   - id: claude-opus
     harness: claude
     provider: anthropic
@@ -112,4 +48,4 @@ routing:
 efforts: [medium, high, xhigh]
 defaults:
   dispatch: herdr
-  reviewers: [peer-gpt6.1-sol, claude-opus, peer-gpt6-astra]
+  reviewers: [claude-opus, peer-fable]
