@@ -12,13 +12,12 @@ HENIA="${HENIA:-henia}"
 
 usage() {
   cat <<'USAGE'
-usage: dispatch-context ROLE -d OUTDIR -C WORKDIR --repository-map FILE [options]
+usage: dispatch-context ROLE -d OUTDIR -C WORKDIR [options]
        dispatch-context --locate
 
 ROLE                     tester | implementer | fixer | reviewer
 -d OUTDIR                report directory from `peer path`; receives prompt.md
 -C WORKDIR               working tree the dispatch works from (default: .)
---repository-map FILE    fresh repository orientation output
 --domain D               task domain; tester, implementer, fixer: exactly one;
                          reviewer: one per batch domain, or none
 --role-contract          embed agents/<role>.md (native Codex dispatch)
@@ -62,7 +61,7 @@ while (($#)); do
     --task-id) need "$@"; task_id="$2"; shift 2 ;;
     --task-name) need "$@"; task_name="$2"; shift 2 ;;
     --review-role) need "$@"; review_role="$2"; shift 2 ;;
-    --repository-map|--requirements|--tester-report|--partial-state|--findings|--diff|--structural-context|--guidelines|--ownership)
+    --requirements|--tester-report|--partial-state|--findings|--diff|--structural-context|--guidelines|--ownership)
       need "$@"; file[${1#--}]="$2"; shift 2 ;;
     *) usage >&2; die "unknown argument '$1'" ;;
   esac
@@ -74,7 +73,6 @@ outdir="$(cd "$outdir" && pwd -P)"
 workdir="$(cd "$workdir" && pwd -P)"
 
 require() { for key in "$@"; do [[ -n "${file[$key]:-}" ]] || die "$role needs --$key FILE"; done; }
-require repository-map
 case "$role" in
   tester) require requirements; [[ -n "$task_id" && -n "$task_name" ]] || die "tester needs --task-id and --task-name" ;;
   implementer) require requirements tester-report; [[ -n "$task_id" && -n "$task_name" ]] || die "implementer needs --task-id and --task-name" ;;
@@ -163,6 +161,7 @@ value[task_requirements]="${value[requirements]:-}"
 value[tester_report]="${value[tester_report]:-}"
 value[materialized_diff]="${value[diff]:-}"
 
+value[repository_orientation]=$(providers code.orientation) || exit
 value[slot_providers]=$(providers "${slots[@]}") || exit
 if [[ "$role" == reviewer && "$review_role" == abstractions ]]; then
   value[slot_providers]+=$'\n\n'"$(detectors)"

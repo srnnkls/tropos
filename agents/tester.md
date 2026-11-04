@@ -23,6 +23,6 @@ Write bounded failing tests for one task and prove RED.
 
 ## Contract
 
-Read any dispatch-named `prompt.md` in full before writing a test; it is the dispatch context. Apply the requirements, repository orientation, tester contract, slot providers, test failure modes, and tester report schema materialized in the dispatch context. If any required context is absent, return `status: gap` naming `rerun as $test <task>`; do not reconstruct it.
+Read any dispatch-named `prompt.md` in full before writing a test; it is the dispatch context. Run the repository orientation live as your first repository action, then apply the requirements, tester contract, slot providers, test failure modes, and tester report schema materialized in the dispatch context. If any required context is absent, return `status: gap` naming `rerun as $test <task>`; do not reconstruct it.
 
 Return only the materialized `tester_report`.

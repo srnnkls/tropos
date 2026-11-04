@@ -25,13 +25,11 @@ section() {  # PROMPT SLOT -> body under "### SLOT" up to the next slot heading 
 }
 
 printf 'Add the export command.\n' >"$tmp/requirements.md"
-printf 'repository map fixture\n' >"$tmp/map.txt"
 printf 'tester_report:\n  status: red\n  marker: tester-report-fixture\n' >"$tmp/red.yaml"
 mkdir -p "$tmp/implementer" "$tmp/codex" "$tmp/missing"
 
 path=$(cd "$ROOT" && "$DISPATCH" implementer -d "$tmp/implementer" -C "$ROOT" --domain code \
-  --task-id T001 --task-name "Export command" --requirements "$tmp/requirements.md" \
-  --repository-map "$tmp/map.txt" --tester-report "$tmp/red.yaml" 2>&1)
+  --task-id T001 --task-name "Export command" --requirements "$tmp/requirements.md" --tester-report "$tmp/red.yaml" 2>&1)
 [[ "$path" == "$tmp/implementer/prompt.md" && -s "$path" ]] \
   && ok "implementer: prints the written prompt.md path" \
   || bad "implementer: prints the written prompt.md path" "$path"
@@ -39,7 +37,11 @@ prompt=$(cat "$tmp/implementer/prompt.md" 2>/dev/null)
 
 has "implementer: task line" "$prompt" "Implement T001: Export command."
 has "implementer: requirements" "$prompt" "Add the export command."
-has "implementer: repository map" "$prompt" "repository map fixture"
+orientation=$(cd "$ROOT" && "$HENIA" slots --inline code.orientation)
+[[ -n "$orientation" && "$(section "$prompt" code.orientation)" == *"$orientation"* ]] \
+  && ok "implementer: code.orientation providers verbatim" \
+  || bad "implementer: code.orientation providers verbatim" "section differs from henia output"
+has "implementer: live orientation instruction" "$prompt" "gestalt analyze"
 has "implementer: verified tester report" "$prompt" "marker: tester-report-fixture"
 has "implementer: workdir" "$prompt" "Work from: $ROOT"
 has "implementer: report schema" "$prompt" "implementer_report:"
@@ -59,12 +61,11 @@ for slot in test.conventions code.style code.conformance code.validation test.ap
 done
 
 (cd "$ROOT" && "$DISPATCH" implementer -d "$tmp/codex" -C "$ROOT" --domain code --role-contract \
-  --task-id T001 --task-name x --requirements "$tmp/requirements.md" \
-  --repository-map "$tmp/map.txt" --tester-report "$tmp/red.yaml" >/dev/null 2>&1)
+  --task-id T001 --task-name x --requirements "$tmp/requirements.md" --tester-report "$tmp/red.yaml" >/dev/null 2>&1)
 has "native Codex: embeds the implementer role" "$(cat "$tmp/codex/prompt.md" 2>/dev/null)" "## Boundary"
 
 out=$(cd "$ROOT" && "$DISPATCH" implementer -d "$tmp/missing" -C "$ROOT" --domain code \
-  --task-id T001 --task-name x --repository-map "$tmp/map.txt" 2>&1); rc=$?
+  --task-id T001 --task-name x 2>&1); rc=$?
 (( rc == 2 )) && [[ ! -e "$tmp/missing/prompt.md" ]] \
   && ok "missing task data: exit 2, no prompt.md" \
   || bad "missing task data: exit 2, no prompt.md" "exit $rc: $out"

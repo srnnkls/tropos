@@ -6,7 +6,7 @@ Prompt skeletons for [implement](../SKILL.md). Order and gates: [execute.md](../
 
 [scripts/dispatch-context](../scripts/dispatch-context) writes every dispatch's `prompt.md` from the skeletons below; never write, copy, or paraphrase a prompt or library text yourself. It runs each library input (`henia show`, `henia slots --inline`) fresh and takes task data as files.
 
-- `{repository_map}` — fresh bounded output from the [repository-orientation contract](../../../instructions/AGENTS.md#tools-and-context) for `{workdir}`, passed as `--repository-map`
+- `{repository_orientation}` — verbatim bodies of the [`code.orientation`](../../code/SKILL.md#slots) slot providers, which every role runs live from `{workdir}` before inspecting repository files
 - `{role_contract}` — the selected base role from `agents/tester.md`, `agents/implementer.md`, or `agents/reviewer.md`
 - `{tester_contract}` — [test/SKILL.md](../../test/SKILL.md)
 - `{test_failure_modes}` — [test/reference/failure-modes.md](../../test/reference/failure-modes.md)
@@ -25,7 +25,7 @@ Take the script's absolute path from the `Dispatch context script` entry of the 
 ```bash
 <dispatch-context> implementer -d <dir> -C <workdir> --domain <domain> \
   --task-id T003 --task-name "<name>" --requirements <file> \
-  --repository-map <file> --tester-report <file>
+  --tester-report <file>
 ```
 
 It prints the absolute `prompt.md` path. Roles: `tester`, `implementer`, `fixer` (`--findings`), `reviewer` (`--review-role`, `--diff`, one `--domain` per batch domain, Abstractions `--language` and `--ownership`).
@@ -45,8 +45,8 @@ Role contract:
 Requirements:
 {task_requirements}
 
-Repository orientation:
-{repository_map}
+Repository orientation (run it live as your first repository action):
+{repository_orientation}
 
 Tester contract:
 {tester_contract}
@@ -76,8 +76,8 @@ Role contract:
 Requirements:
 {task_requirements}
 
-Repository orientation:
-{repository_map}
+Repository orientation (run it live as your first repository action):
+{repository_orientation}
 
 RED evidence:
 {tester_report}
@@ -110,8 +110,8 @@ Requirements:
 Change:
 {materialized_diff}
 
-Repository orientation:
-{repository_map}
+Repository orientation (run it live as your first repository action):
+{repository_orientation}
 
 Structural context:
 {structural_context}
@@ -138,8 +138,8 @@ Fix these admitted review findings, grouped by shared mechanism:
 Role contract:
 {role_contract}
 
-Repository orientation:
-{repository_map}
+Repository orientation (run it live as your first repository action):
+{repository_orientation}
 
 Slot providers:
 {slot_providers}
@@ -154,6 +154,6 @@ Then follow the [targeted re-review protocol](../../review/reference/synthesis.m
 
 ## Gaps and Failures
 
-- Missing repository orientation: return the role's canonical `gap` or `blocked` status before inspecting repository files.
+- Orientation command failure: return the role's canonical `gap` or `blocked` status before inspecting repository files.
 - Tester gap: consult existing scope evidence, then ask one blocking question if unresolved; never broaden the tester budget.
 - Other failures: [execute.md](../operations/execute.md#recovery-rules).
