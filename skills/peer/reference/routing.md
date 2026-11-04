@@ -42,7 +42,7 @@ Native non-inherited effort needs a generated definition (Task takes no effort):
 <role>-<alias>-<effort>
 ```
 
-The level must be in registry `efforts:`; peer routes take `--effort`; inherited native routes keep the session effort; one reviewer effort must suit all selected peer routes. Combine `<role>-<effort>` with `Task(model=...)`; proxy definitions carry their model and take no model argument.
+The level must be in registry `efforts:`; peer routes take `--effort`, where `inherit` keeps each route's registry effort; inherited native routes keep the session effort; one reviewer effort must suit all selected peer routes. Combine `<role>-<effort>` with `Task(model=...)`; proxy definitions carry their model and take no model argument.
 
 ## Generated Definitions
 

@@ -333,6 +333,20 @@ want_orientation_block() {  # CASE MODE PATH DIAGNOSTIC
   fi
 }
 want_orientation_block missing ignored "$no_gestalt_path" 'gestalt not found'
+want_effort() {  # NAME EFFORT-FLAG WANT: fan-out to the codex route (registry effort high)
+  local dir dump="$tmp/argv.effort.$2"
+  dir=$("$PEER" path fanout "effort-$2" --run "$fanout_run" -C "$tmp")
+  ARGV_DUMP="$dump" PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" \
+    "$PEER" -d "$dir" --peers renamed --effort "$2" --cap 30 'ping' >/dev/null 2>&1
+  if grep -qxF "model_reasoning_effort=$3" "$dump" 2>/dev/null; then
+    printf 'ok    %s\n' "$1"
+  else
+    printf 'FAIL  %s: no model_reasoning_effort=%s in codex argv\n' "$1" "$3"; (( fails++ ))
+  fi
+}
+want_effort '--effort inherit keeps the route registry effort' inherit high
+want_effort '--effort overrides the route registry effort' low low
+
 want_orientation_block fails fail "$tmp/bin:$PATH" 'repository orientation failed'
 want_orientation_block empty empty "$tmp/bin:$PATH" 'repository orientation returned no context'
 
