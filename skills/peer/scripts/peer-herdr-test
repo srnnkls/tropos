@@ -37,10 +37,6 @@ defaults:
 REG
 
 mkdir -p "$tmp/bin"
-cat >"$tmp/bin/gestalt" <<'STUB'
-#!/usr/bin/env bash
-printf 'FAKE REPOSITORY ORIENTATION\n'
-STUB
 
 # Stands in for the herdr CLI: records every call with the socket it targets, hands back the
 # JSON shapes peer parses, and emulates the one behaviour that matters — a pane agent writing

@@ -54,10 +54,6 @@ name: tester
 Return the requested fixture report.
 ROLE
 printf '%s\n' 'fixture prompt' >"$tmp/repo/prompts/request.txt"
-cat >"$tmp/bin/gestalt" <<'STUB'
-#!/usr/bin/env bash
-printf '%s\n' 'fixture repository map'
-STUB
 cat >"$tmp/bin/pi" <<'STUB'
 #!/usr/bin/env bash
 for arg in "$@"; do
@@ -72,7 +68,7 @@ if [[ -n "${PI_DUMP:-}" ]]; then
 fi
 printf '%s\n' '{"type":"message_end","message":{"role":"assistant","stopReason":"stop","content":[{"type":"text","text":"OK"}]}}'
 STUB
-chmod +x "$tmp/bin/gestalt" "$tmp/bin/pi"
+chmod +x "$tmp/bin/pi"
 
 dispatch_env=( env PEER_REGISTRY="$tmp/registry.yaml" PATH="$tmp/bin:$PATH" )
 

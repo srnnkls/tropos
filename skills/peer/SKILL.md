@@ -35,7 +35,7 @@ Runner: `skills/peer/scripts/peer`, deployed by Phora to `~/.local/bin/peer`, re
 
 ## Dispatch
 
-- All harnesses get one base-role body plus shim, from the target working tree, else the installed source. Orientation failure blocks dispatch.
+- All harnesses get one base-role body plus shim, from the target working tree, else the installed source.
 - Tester, implementer: exactly one external peer, workspace writable.
 - Reviewer: may fan out; read-only, platform-sandboxed when the harness cannot enforce it.
 - Failed, stalled, or partial output never becomes a successful report.

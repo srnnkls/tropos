@@ -208,24 +208,6 @@ _peer_markdown_role_body() {
   ' "$source"
 }
 
-_peer_repository_orientation() {
-  local output
-  command -v gestalt >/dev/null 2>&1 || {
-    printf '%s\n' "peer: gestalt not found — repository orientation is required" >&2
-    return 3
-  }
-  output=$(gestalt map "$1" --tokens "${PEER_GESTALT_TOKENS:-512}" 2>&1) || {
-    printf '%s\n' "peer: repository orientation failed for $1" >&2
-    printf '%s\n' "$output" >&2
-    return 3
-  }
-  [[ -n "$output" ]] || {
-    printf '%s\n' "peer: repository orientation returned no context for $1" >&2
-    return 3
-  }
-  printf 'Repository orientation generated at dispatch for %s:\n%s' "$1" "$output"
-}
-
 # Codex enforces its own read-only sandbox. Pi has no per-command tool gate, and Claude's
 # --allowedTools patterns do not gate Bash in print mode, so their reviewers only get a shell
 # behind an OS sandbox. The trailing workdir deny outranks the temp-dir allows above it, which
@@ -980,17 +962,6 @@ if [[ -n "$agent" ]]; then
     claude_role_body=$(_peer_markdown_role_body "$agent") || exit $?
     [[ -n "$claude_role_body" ]] || { printf '%s\n' "peer: Claude role definition has no body: $AGENTS_DIR/$agent.md" >&2; exit 3; }
   fi
-fi
-repository_orientation=$(_peer_repository_orientation "$workdir") || exit $?
-case "$harness" in
-  codex) _body=codex_role_config ;;
-  pi)    _body=pi_role_body ;;
-  *)     _body=claude_role_body ;;
-esac
-if [[ -n "${!_body}" ]]; then
-  printf -v "$_body" '%s\n\n%s' "${!_body}" "$repository_orientation"
-else
-  printf -v "$_body" '%s' "$repository_orientation"
 fi
 if [[ "$execution_role" == reviewer ]]; then
   read_only_boundary="This is a read-only review assignment. You have a shell, and the work tree is enforced read-only underneath it: every write, edit, move, or stage attempt fails with 'Operation not permitted'. Use the shell to reach the artifact - diffs, logs, blame, test runs that write nothing. Commands that refresh git's index, git status among them, can fail on a read-only work tree; pass --no-optional-locks or establish the same fact another way.

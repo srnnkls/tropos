@@ -43,17 +43,6 @@ defaults:
 REG
 
 mkdir -p "$tmp/bin"
-cat >"$tmp/bin/gestalt" <<'STUB'
-#!/usr/bin/env bash
-[[ -n "${GESTALT_CALLS:-}" ]] && printf '%s\n' "$*" >>"$GESTALT_CALLS"
-case "${GESTALT_MODE:-ok}" in
-  fail)  printf '%s\n' 'synthetic gestalt failure' >&2; exit 9 ;;
-  empty) exit 0 ;;
-  *)     printf 'FAKE REPOSITORY ORIENTATION\nworkdir=%s\ntokens=%s\n' "${2:-}" "${4:-}" ;;
-esac
-STUB
-chmod +x "$tmp/bin/gestalt"
-
 cat >"$tmp/bin/pi" <<'STUB'
 #!/usr/bin/env bash
 for a in "$@"; do [[ "$a" == --list-models ]] || continue
@@ -199,7 +188,7 @@ probe_run() {  # ROLE-ARGS...
   && printf 'ok    a tester keeps write access to its work tree\n' \
   || { printf 'FAIL  a tester keeps write access to its work tree: the harness was blocked\n'; (( fails++ )); }
 
-# --- every harness receives the worktree Markdown role plus repository orientation -----
+# --- every harness receives the worktree Markdown role ---------------------------------
 mkdir -p "$tmp/agents"
 cat >"$tmp/agents/tester.md" <<'ROLE'
 ---
@@ -241,18 +230,6 @@ if [[ -s "$tmp/role.codex" ]] \
   printf 'ok    codex, pi, and claude receive the same worktree Markdown role body\n'
 else
   printf 'FAIL  codex, pi, and claude receive the same worktree Markdown role body\n'
-  (( fails++ ))
-fi
-
-orientation_want="$(printf 'FAKE REPOSITORY ORIENTATION\nworkdir=%s\ntokens=512' "$tmp")"
-orientation_ok=1
-for harness in codex pi claude; do
-  grep -qF "$orientation_want" "$tmp/role.$harness" || orientation_ok=0
-done
-if (( orientation_ok )); then
-  printf 'ok    repository orientation is injected into every harness role\n'
-else
-  printf 'FAIL  repository orientation is injected into every harness role\n'
   (( fails++ ))
 fi
 
@@ -308,31 +285,26 @@ else
   (( fails++ ))
 fi
 
-# --- orientation is a dispatch precondition, not harness-time best effort ---------------
+# --- dispatch embeds no repository snapshot and needs no gestalt -----------------------
 mkdir -p "$tmp/no-gestalt-bin"
-for dependency in bash claude python3 yq; do
+for dependency in bash yq; do
   ln -s "$(command -v "$dependency")" "$tmp/no-gestalt-bin/$dependency"
 done
-no_gestalt_path="$tmp/no-gestalt-bin:/usr/bin:/bin:/usr/sbin:/sbin"
-
-want_orientation_block() {  # CASE MODE PATH DIAGNOSTIC
-  local case_name=$1 mode=$2 path=$3 want=$4 dir marker diag rc
-  dir=$("$PEER" path orientation "$case_name" --run "$fanout_run" -C "$tmp")
-  marker="$tmp/harness-started.$case_name"
-  diag="$tmp/orientation.$case_name.err"
-  GESTALT_MODE="$mode" HARNESS_STARTED="$marker" PEER_REGISTRY="$tmp/registry.yaml" PATH="$path" \
-    "$PEER" claude -o "$dir/result.yaml" -C "$tmp" --agent tester --cap 30 'ping' \
-      >/dev/null 2>"$diag"
-  rc=$?
-  if (( rc == 3 )) && [[ ! -e "$marker" ]] && grep -qF "$want" "$diag"; then
-    printf 'ok    dispatch blocks before harness start when gestalt %s\n' "$case_name"
-  else
-    printf 'FAIL  dispatch blocks before harness start when gestalt %s: exit %s, started=%s: %s\n' \
-      "$case_name" "$rc" "$([[ -e "$marker" ]] && printf yes || printf no)" "$(<"$diag")"
-    (( fails++ ))
-  fi
-}
-want_orientation_block missing ignored "$no_gestalt_path" 'gestalt not found'
+# A mise shim would put the real harness back on PATH.
+ln -s "$(python3 -c 'import sys; print(sys.executable)')" "$tmp/no-gestalt-bin/python3"
+ln -s "$tmp/bin/claude" "$tmp/no-gestalt-bin/claude"
+dir=$("$PEER" path snapshot none --run "$fanout_run" -C "$tmp")
+ROLE_DUMP="$tmp/role.no-gestalt" HARNESS_STARTED="$tmp/harness-started.no-gestalt" PEER_REGISTRY="$tmp/registry.yaml" \
+  PATH="$tmp/no-gestalt-bin:/usr/bin:/bin:/usr/sbin:/sbin" \
+  "$PEER" claude -o "$dir/result.yaml" -C "$tmp" --agent tester --cap 30 'ping' >/dev/null 2>"$tmp/no-gestalt.err"
+rc=$?
+if (( rc == 0 )) && [[ -e "$tmp/harness-started.no-gestalt" ]] && cmp -s "$tmp/role.no-gestalt" "$tmp/role.claude"; then
+  printf 'ok    dispatch runs without gestalt and the role carries only its body\n'
+else
+  printf 'FAIL  dispatch runs without gestalt and the role carries only its body: exit %s, started=%s: %s\n' \
+    "$rc" "$([[ -e "$tmp/harness-started.no-gestalt" ]] && printf yes || printf no)" "$(diff "$tmp/role.no-gestalt" "$tmp/role.claude" 2>&1 | head -5)"
+  (( fails++ ))
+fi
 want_effort() {  # NAME EFFORT-FLAG WANT: fan-out to the codex route (registry effort high)
   local dir dump="$tmp/argv.effort.$2"
   dir=$("$PEER" path fanout "effort-$2" --run "$fanout_run" -C "$tmp")
@@ -347,8 +319,6 @@ want_effort() {  # NAME EFFORT-FLAG WANT: fan-out to the codex route (registry e
 want_effort '--effort inherit keeps the route registry effort' inherit high
 want_effort '--effort overrides the route registry effort' low low
 
-want_orientation_block fails fail "$tmp/bin:$PATH" 'repository orientation failed'
-want_orientation_block empty empty "$tmp/bin:$PATH" 'repository orientation returned no context'
 
 printf '\n%s\n' "$( ((fails)) && echo "$fails failing" || echo 'all passing')"
 exit $(( fails > 0 ))
