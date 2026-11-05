@@ -2,20 +2,19 @@
 
 Registry and dispatch mechanics: [peer routing contract](../../peer/reference/routing.md). External harness flags and failures: [peer skill](../../peer/SKILL.md).
 
-## Materialization
+## Dispatch Prompt
 
-Build one self-contained prompt per role before dispatch, embedding:
+Write one `prompt.md` per role with the [reviewer fields](../../implement/reference/subagent-workflow.md#dispatch) in a directory created by `peer path`, and dispatch per that section. The prompt names the reviewed target and the files of its requirements and diff; it embeds no library text.
 
-- the actual reviewed target or diff;
-- applicable requirements;
-- the exact canonical reviewer schema;
-- the verbatim finding bar;
-- verbatim bodies of the [`code.orientation`](../../code/SKILL.md#slots) slot providers, which the reviewer runs live on the reviewed working tree, plus bounded structural context for changed symbols;
-- only material language guidance;
-- verbatim bodies of the `review.criteria` slot providers, the role's [review slots](../SKILL.md#slots), and `code.style` and `code.conformance` for Compliance, listed in the review context, or `none`;
-- for Abstractions, the output of each listed `review.detectors` command run on the change and the implementer report's `ownership` entries, or `none`.
+## Role Slots
 
-Commands and workdirs supplement the embedded artifact, never replace it. Write it as `prompt.md` in a directory created by `peer path` with the [dispatch script](../../implement/reference/subagent-workflow.md#dispatch) and dispatch per that section.
+Each reviewer reads, for the change's domains and languages, the providers its skills list:
+
+- every role: `review.criteria`;
+- General: `review.general` and `review.tests`;
+- Architecture: `review.architecture`;
+- Compliance: `code.style` and `code.conformance`;
+- Abstractions: `review.abstractions`, and it runs each `review.detectors` command on the change and weighs the dispatch's `ownership` entries.
 
 ## Concurrent Dispatch
 

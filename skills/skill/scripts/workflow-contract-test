@@ -44,10 +44,10 @@ LEGACY_CLAUSES = (
 
 REQUIRED_SNIPPETS = (
     (
-        "native Codex role materialization",
+        "native Codex role file",
         "skills/implement/reference/subagent-workflow.md",
-        "{role_contract}",
-        6,
+        "`agents/<role>.md` from the Codex build",
+        1,
     ),
 )
 

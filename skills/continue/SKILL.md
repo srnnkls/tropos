@@ -8,7 +8,7 @@ henia:
     claude:
       frontmatter:
         argument-hint: '[scope-name]'
-        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(peer *), Bash(henia slots *), Bash(*/scripts/dispatch-context *)
+        allowed-tools: Bash(find *), Bash(ls *), Bash(git *), Bash(peer *), Bash(henia slots *)
     codex:
       openai:
         interface:
@@ -28,8 +28,6 @@ henia:
         command: git branch --show-current 2>/dev/null || true
       - label: Current routes (the recorded batch snapshot remains authoritative)
         command: peer route show -C . 2>/dev/null || true
-      - label: Dispatch context script
-        command: henia preload --skill implement -- 'scripts/dispatch-context --locate'
 ---
 
 :::head{context slots="git.branching test.conventions test.approach implement.approach code.orientation code.style code.validation review.criteria review.general review.architecture review.tests review.abstractions review.detectors"}

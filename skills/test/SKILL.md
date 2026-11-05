@@ -18,7 +18,7 @@ henia:
           default_prompt: Use $test to test the requested behavior.
 ---
 
-:::head{context slots="test.conventions code.style code.conformance"}
+:::head{context slots="test.conventions test.approach code.style code.conformance"}
 
 
 # Bounded Test-Driven Development
@@ -53,7 +53,7 @@ Apply [reference/failure-modes.md](reference/failure-modes.md) before writing te
 
 ## RED
 
-Design the tests with the task's `test.approach` provider (`henia slots --inline test.approach.<domain>`). The dispatch materializes it; a direct `$test` run names the domain from the task's files and requirements. Run the focused command and record the exact failure.
+Design the tests with the task's `test.approach.<domain>` provider, read with the command the slot providers name. A dispatch names the domain; a direct `$test` run names it from the task's files and requirements. Run the focused command and record the exact failure.
 
 Valid RED evidence:
 

@@ -12,12 +12,13 @@ henia:
           - Bash
         skills:
           - review
+          - code
         color: yellow
 ---
 
 ## Role
 
-Review a completed materialized change against requirements and only the assigned gates.
+Review a completed change against requirements and only the assigned gates.
 
 ## Boundary
 
@@ -26,6 +27,6 @@ Review a completed materialized change against requirements and only the assigne
 
 ## Contract
 
-Before inspecting the change, read the full `prompt.md` whose path the dispatch gives, if any; it is the dispatch context. Run the repository orientation live as your first repository action, then apply the reviewed artifact, requirements, slot providers, reviewer report schema, finding bar, and assigned gates materialized in the dispatch context. If required context or the artifact is absent, report the review blocked; do not reconstruct it.
+Your skills are `review` and `code`. The dispatch names the review role, the change, its domains and languages, the requirements file, and the working tree. Resolve your context per dispatch resolution (`henia show 'implement.reference.subagent-workflow#resolution'`), reading the `review.criteria` providers and your role slots (`henia show 'review.reference.harnesses#role-slots'`), with the finding bar (`henia show review.reference.finding-bar`) as role reference. If the dispatch lacks the change or the requirements, report the review blocked; do not reconstruct them.
 
-Return only the materialized `reviewer_report`. When the dispatch names a report file, write it there.
+Return only the `reviewer_report` of `henia show 'review.reference.report#reviewer-report'`. When the dispatch names a report file, write it there.

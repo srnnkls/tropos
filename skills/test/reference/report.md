@@ -13,7 +13,10 @@ tester_report:
   rejected_wrong_implementation: "plausible wrong behavior the test rejects"
   failure_output: |
     [last 20 relevant lines]
+  providers_applied:
+    - slot: test.conventions
+      applied: "rule or section applied to these tests"
   gap_reason: null
 ```
 
-`success` requires the [canonical RED gate](../SKILL.md#red). `gap` names the missing requirement, tool, or decision and never authorizes broader test machinery.
+`success` requires the [canonical RED gate](../SKILL.md#red). `providers_applied` names, per slot provider read for the task, the rules the tests applied; `[]` when the skills list none for it. `gap` names the missing requirement, tool, or decision and never authorizes broader test machinery.

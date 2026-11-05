@@ -7,6 +7,7 @@ henia:
       frontmatter:
         skills:
           - test
+          - code
         color: green
 ---
 
@@ -23,6 +24,6 @@ Implement one task from orchestrator-verified RED evidence and prove GREEN.
 
 ## Contract
 
-When the dispatch names a `prompt.md`, first read it in full; it is the dispatch context. Run the repository orientation live as your first repository action. For an implementation task, apply the requirements, verified tester report, slot providers, and implementer report schema materialized in the dispatch context. For a review fix, apply the admitted findings, slot providers, and fix report schema from that context without requiring a tester report. If required context is absent, return `status: blocked` with `blocked_reason: rerun as $implement <task>`; do not reconstruct it.
+Your skills are `test` and `code`. The dispatch names the task, its domain and languages, and the working tree, plus the requirements and verified tester report for an implementation task, or the admitted findings for a review fix. Resolve your context per dispatch resolution (`henia show 'implement.reference.subagent-workflow#resolution'`). If the dispatch lacks that input, return `status: blocked` with `blocked_reason: rerun as $implement <task>`; do not reconstruct it.
 
-Return only the requested materialized `implementer_report` or `fix_report`.
+Return only the `implementer_report` of `henia show 'implement.reference.report#implementer'`, or for a review fix the `fix_report` of `henia show 'implement.reference.report#fix'`.

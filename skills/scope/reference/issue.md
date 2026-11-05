@@ -39,7 +39,7 @@ Level 3: Tasks           → Σmᵢ subagents (∥)   → capture {task id → T
 
 Feature scopes use Levels 1 and 3; Task scopes Level 1 only.
 
-Each subagent gets fresh materialized repository orientation under [AGENTS.md](../../../instructions/AGENTS.md#tools-and-context) and this prompt:
+Each subagent orients under [AGENTS.md](../../../instructions/AGENTS.md#tools-and-context) and gets this prompt:
 
 > Invoke the `issue` skill to author and publish one issue. Do not ask for issue type or parent — they are fixed:
 > - Type: `<Initiative|Feature|Task>`

@@ -5,7 +5,7 @@ metadata:
   type: domain
 henia:
   slots:
-    code.style:
+    code.style: keyed(list(path))
     code.conformance:
     code.validation: keyed(list(command))
     code.orientation:
@@ -29,7 +29,7 @@ henia:
           default_prompt: Use $code to select an explicit code workflow.
 ---
 
-:::::head{context slots="code.orientation code.style code.conformance code.validation test.conventions review.criteria review.general review.architecture review.tests review.abstractions review.detectors"}
+:::::head{context slots="code.orientation code.style code.conformance code.validation test.conventions test.approach implement.approach review.criteria review.general review.architecture review.tests review.abstractions review.detectors"}
 
 
 # Code Domain
@@ -91,7 +91,7 @@ Conventions: a `test.conventions` provider ([test slots](../test/SKILL.md#slots)
 | Compliance | Style | [compliance.md](reference/roles/compliance.md) |
 | Abstractions | Abstractions | [abstractions.md](reference/roles/abstractions.md) |
 
-Materialize each role prompt per [review materialization](../review/reference/harnesses.md#materialization) and dispatch per [concurrent dispatch](../review/reference/harnesses.md#concurrent-dispatch); role files supply behavior. [Review synthesis](../review/reference/synthesis.md) owns disposition, grouping, user decisions, targeted re-review, and stopping.
+Write each role prompt per [review dispatch prompt](../review/reference/harnesses.md#dispatch-prompt) and dispatch per [concurrent dispatch](../review/reference/harnesses.md#concurrent-dispatch); role files supply behavior. [Review synthesis](../review/reference/synthesis.md) owns disposition, grouping, user decisions, targeted re-review, and stopping.
 
 :::references
 - [reference/playbook.md](reference/playbook.md) — bounded edge-case handling

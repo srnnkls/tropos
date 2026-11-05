@@ -13,13 +13,16 @@ implementer_report:
       candidates: [src/util/time.py:parse_span, "dateutil.parser.parse"]
       decision: reuse | extend | new
       owner: src/feature.py:parse_window
+  providers_applied:
+    - slot: code.style.python
+      applied: "rule or section applied to this change"
   test_command: "focused command"
   test_output: |
     [last 20 relevant lines]
   blocked_reason: null
 ```
 
-`ownership` lists each definition the change adds that owns behavior, with candidates from structural queries and from installed dependencies' APIs as `path:symbol` or package API; `[]` when none. `success` requires verified GREEN evidence. `blocked` names the conflicting requirement, invalid RED evidence, unavailable dependency, or public-surface decision.
+`ownership` lists each definition the change adds that owns behavior, with candidates from structural queries and from installed dependencies' APIs as `path:symbol` or package API; `[]` when none. `providers_applied` names, per slot provider read for the task, the rules the change applied; `[]` when the skills list none for it. `success` requires verified GREEN evidence. `blocked` names the conflicting requirement, invalid RED evidence, unavailable dependency, or public-surface decision.
 
 ## Fix
 
@@ -29,9 +32,12 @@ fix_report:
   fixes_applied:
     - issue: "admitted finding"
       fix: "shared mechanism changed"
+  providers_applied:
+    - slot: code.style.python
+      applied: "rule or section applied to this change"
   test_output: |
     [last 20 relevant lines]
   blocked_reason: null
 ```
 
-Fix reports never include residual, deferred, or `needs decision:` work.
+`providers_applied` follows the implementer rule. Fix reports never include residual, deferred, or `needs decision:` work.

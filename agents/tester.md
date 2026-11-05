@@ -7,6 +7,7 @@ henia:
       frontmatter:
         skills:
           - test
+          - code
         color: red
 ---
 
@@ -23,6 +24,6 @@ Write bounded failing tests for one task and prove RED.
 
 ## Contract
 
-Read any dispatch-named `prompt.md` in full before writing a test; it is the dispatch context. Run the repository orientation live as your first repository action, then apply the requirements, tester contract, slot providers, test failure modes, and tester report schema materialized in the dispatch context. If any required context is absent, return `status: gap` naming `rerun as $test <task>`; do not reconstruct it.
+Your skills are `test` and `code`. The dispatch names the task, its domain and languages, the requirements file, and the working tree. Resolve your context per dispatch resolution (`henia show 'implement.reference.subagent-workflow#resolution'`), with the test failure modes (`henia show test.reference.failure-modes`) as role reference. If the dispatch lacks the task, domain, or requirements, return `status: gap` naming `rerun as $test <task>`; do not reconstruct them.
 
-Return only the materialized `tester_report`.
+Return only the `tester_report` of `henia show test.reference.report`.

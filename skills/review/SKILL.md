@@ -29,13 +29,11 @@ henia:
         command: peer defaults reviewers 2>/dev/null || true
       - label: Resolved routes
         command: peer route show -C . 2>/dev/null || true
-      - label: Dispatch context script
-        command: henia preload --skill implement -- 'scripts/dispatch-context --locate'
   targets:
     claude:
       frontmatter:
         argument-hint: '[target]'
-        allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(find *), Bash(gh pr list *), Bash(peer *), Bash(*/scripts/dispatch-context *)
+        allowed-tools: Bash(git status *), Bash(git log *), Bash(git branch *), Bash(find *), Bash(gh pr list *), Bash(peer *)
     codex:
       openai:
         interface:
@@ -81,7 +79,7 @@ Every slot except `review.criteria` and `review.detectors` is keyed `review.<slo
 
 ## Canonical Contracts
 
-[models.md](reference/models.md) (live registry), [peer routing](../peer/reference/routing.md) (host compatibility, dispatch), [harnesses.md](reference/harnesses.md) (materialization, result coverage), [finding-bar.md](reference/finding-bar.md) (admission, sufficiency), [report.md](reference/report.md) (YAML schemas), [synthesis.md](reference/synthesis.md) (merge, disposition, fix-round limits), [peer skill](../peer/SKILL.md) (external fan-out, report layout).
+[models.md](reference/models.md) (live registry), [peer routing](../peer/reference/routing.md) (host compatibility, dispatch), [harnesses.md](reference/harnesses.md) (dispatch prompt, role slots, result coverage), [finding-bar.md](reference/finding-bar.md) (admission, sufficiency), [report.md](reference/report.md) (YAML schemas), [synthesis.md](reference/synthesis.md) (merge, disposition, fix-round limits), [peer skill](../peer/SKILL.md) (external fan-out, report layout).
 
 ## Reviewer Selection
 
@@ -92,7 +90,7 @@ Take the first present: `--reviewers` aliases; `validation.yaml.review_config` f
 :::instruction{priority=high}
 ## Dispatch
 
-Build each prompt per [materialization](reference/harnesses.md#materialization), dispatch per [concurrent dispatch](reference/harnesses.md#concurrent-dispatch), and apply the [result gate](reference/harnesses.md#results).
+Build each prompt per [dispatch prompt](reference/harnesses.md#dispatch-prompt), dispatch per [concurrent dispatch](reference/harnesses.md#concurrent-dispatch), and apply the [result gate](reference/harnesses.md#results).
 :::
 
 ::::
