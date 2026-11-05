@@ -87,10 +87,10 @@ The skill sits beside native compaction. In-session `/compact <focus>` stays the
 | D6 | Emacs one-step chain | G1, G6 | None; three actions with existing commands | A chained herdr.el command: no reliable completion signal |
 | D7 | OMP and Pi native `/handoff` | G4, G6 | No deferral rule | A per-harness routing table |
 | D8 | In-place swap | G5, G6 | None | Claude Code mod on early-access, undocumented returns |
+| D9 | `sweep` and `handoff` | G4, G6 | `sweep` stays pointer-only: each item gains `Handoff: <path>` for the newest `.tropos/handoff/*.md` whose recorded branch matches, and its prose stops calling `.tropos/sweep.md` a handoff | `sweep` prompting each agent to write a handoff before closing it: a model turn per agent, no completion signal, and memex `resume_cmd` already keeps the transcript |
 
 ## Open questions
 
-- `sweep` writes a per-project pointer handoff with branch, scope, session `resume_cmd` and next step; the session handoff overlaps it. Either `sweep` cites the newest session handoff per item, or both share one section list.
 - Does the harness-neutral sentence trigger the skill reliably on each harness? One manual run per harness settles it.
 - Concurrent sessions in one repo race on "newest artifact". A herdr.el start-with-initial-prompt command would allow per-artifact paths; it belongs to herdr.el.
 - Cross-repo handoffs, such as those under `~/projects/.handoff/`, are not served by a repo-local path.
