@@ -24,5 +24,6 @@ priorities and shadowing; each owner's Slots section states what a slot covers.
 | `review.general` | `keyed(list)` | [review](skills/review/SKILL.md#slots) | — | — |
 | `review.tests` | `keyed(list)` | [review](skills/review/SKILL.md#slots) | — | — |
 | `scope.templates` | `keyed(list)` | [scope](skills/scope/SKILL.md#slots) | — | [scope](skills/scope/SKILL.md) (`scope.templates`) |
+| `sweep.state` | `keyed(list(command))` | [sweep](skills/sweep/SKILL.md#slots) | — | — |
 | `test.approach` | `keyed(unique)` | [test](skills/test/SKILL.md#slots) | — | [strict-tdd](skills/strict-tdd/SKILL.md) (`test.approach`) |
 | `test.conventions` | `keyed(list)` | [test](skills/test/SKILL.md#slots) | — | — |
