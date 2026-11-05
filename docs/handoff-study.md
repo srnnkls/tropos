@@ -36,15 +36,15 @@ Harness mechanics: Claude Code, Pi and OMP accept `/compact <focus>`; Codex `/co
 - No handoff skill. `continue` resumes only implement checkpoints (`scopes/<state>/<scope>/checkpoint.yaml`); `memex` returns full-transcript `resume_cmd`s.
 - `auto_invoke: false` already renders a skill manual-only on all four harnesses (`disable-model-invocation: true`, `allow_implicit_invocation: false`).
 - herdr.el's interactive `herdr-send`, `herdr-transient--prompt` and `herdr-transient--start` submit text and start agent panes; `herdr agent prompt --wait` "does not track turns" and returns a state, not output. limen has no send verb.
-- "handoff" already names the implement and test report YAML, herdr.el's live handoff, and OMP/Pi `/handoff`; `resume` routes to `continue`.
+- "handoff" appears only as prose: the implement and test report YAML, herdr.el's live handoff, and `sweep`'s per-project pointer file `.tropos/sweep.md`. OMP and Pi ship a native `/handoff` command.
 - The user writes handoffs by hand under `~/projects/.handoff/`.
 
 ## Design
 
-A dynamic Henia library skill, `relay`, read with `henia show` and never auto-invoked.
+A dynamic Henia library skill, `handoff`, read with `henia show` and never auto-invoked.
 
-1. The user sends, from Emacs, `henia show relay and follow it for: <purpose>`.
-2. Rendering runs its `context_commands` live, so the anchors arrive as command output in every harness: `git branch --show-current`, `git rev-parse --short HEAD`, any `scopes/*/*/checkpoint.yaml`, and the newest existing `.tropos/relay/*.md`. The model copies branch and HEAD into the artifact; status and diff are not stored.
+1. The user sends, from Emacs, `henia show handoff and follow it for: <purpose>`.
+2. Rendering runs its `context_commands` live, so the anchors arrive as command output in every harness: `git branch --show-current`, `git rev-parse --short HEAD`, any `scopes/*/*/checkpoint.yaml`, and the newest existing `.tropos/handoff/*.md`. The model copies branch and HEAD into the artifact; status and diff are not stored.
 3. The model writes five slots, imperative, 750–2,000 tokens:
    1. Goal and next concrete step, with its reason.
    2. Constraints and exclusions in the user's words, including every still-active constraint of the predecessor artifact.
@@ -52,8 +52,8 @@ A dynamic Henia library skill, `relay`, read with `henia show` and never auto-in
    4. Tried and failed, with the cause.
    5. Not verified: claims the successor re-checks, each with its command; first `git status --short` and `git diff --stat` against the recorded HEAD.
 4. With an implement checkpoint present, it points at the checkpoint and names `continue` instead of restating waves.
-5. It writes `.tropos/relay/<UTC timestamp>.md` with one provenance line naming the predecessor artifact, if any.
-6. The user starts a fresh pane in any harness with the constant line `Read the newest .tropos/relay/*.md in full before any other action.`
+5. It writes `.tropos/handoff/<UTC timestamp>.md` with one provenance line naming the predecessor artifact, if any.
+6. The user starts a fresh pane in any harness with the constant line `Read the newest .tropos/handoff/*.md in full before any other action.`
 
 Emacs cost: three actions, no path copying.
 
@@ -80,8 +80,8 @@ The skill sits beside native compaction. In-session `/compact <focus>` stays the
 | # | Decision | Goals | Recommendation | Rejected |
 |---|---|---|---|---|
 | D1 | Add the skill | G2, G3 | Add it as designed | No change: native compaction plus hand-written files |
-| D2 | Name | G4 | `relay` | `handoff`: implement and test reports, herdr.el live handoff, OMP and Pi `/handoff`; `resume`: routes to `continue` |
-| D3 | Invocation | G1, G3, G5 | Harness-neutral `henia show relay and follow it for: <purpose>`, with anchors as dynamic context | Per-harness slash commands (`/x`, `$x`, `/skill:x`) needing a spelling table |
+| D2 | Name | G4 | `handoff`: no Tropos skill, slot or command owns it; the trigger is `henia show`, so OMP and Pi `/handoff` do not collide | `relay`: a second word for the same thing |
+| D3 | Invocation | G1, G3, G5 | Harness-neutral `henia show handoff and follow it for: <purpose>`, with anchors as dynamic context | Per-harness slash commands (`/x`, `$x`, `/skill:x`) needing a spelling table |
 | D4 | Resume line | G1 | Constant "newest artifact" line | Printed per-artifact path copied by hand |
 | D5 | Summarizer | G3, G6 | The session's own model | A Haiku or other external summarizer |
 | D6 | Emacs one-step chain | G1, G6 | None; three actions with existing commands | A chained herdr.el command: no reliable completion signal |
@@ -90,6 +90,7 @@ The skill sits beside native compaction. In-session `/compact <focus>` stays the
 
 ## Open questions
 
+- `sweep` writes a per-project pointer handoff with branch, scope, session `resume_cmd` and next step; the session handoff overlaps it. Either `sweep` cites the newest session handoff per item, or both share one section list.
 - Does the harness-neutral sentence trigger the skill reliably on each harness? One manual run per harness settles it.
 - Concurrent sessions in one repo race on "newest artifact". A herdr.el start-with-initial-prompt command would allow per-artifact paths; it belongs to herdr.el.
 - Cross-repo handoffs, such as those under `~/projects/.handoff/`, are not served by a repo-local path.
