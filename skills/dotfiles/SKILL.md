@@ -63,8 +63,8 @@ Delete the file, or its source and target entries, then `phora sync --prune`.
 
 ```sh
 henia update --global                       # skills, agents, harness config
-phora update tropos --fast-forward --prune  # scripts
-phora update tropos-fas --fast-forward --prune  # FAS rules
+phora update tropos --prune                 # scripts
+phora update tropos-fas --prune             # FAS rules
 ```
 
 ## Live Tropos edits
