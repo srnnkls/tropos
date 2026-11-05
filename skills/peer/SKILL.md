@@ -95,7 +95,7 @@ Surface precedence: `--dispatch`, `PEER_DISPATCH`, registry `defaults.dispatch`,
 
 Use the [routing contract](reference/routing.md) to interpret `peer list`, `peer get`, `peer defaults reviewers` and to select, validate, and dispatch routes. The caller owns composition; peer never requires a paired native spawn.
 
-Provenance is the result filename and manifest row; do not void a substantive report for a wrong self-declared id. Pi reviewers have no shell (they can read, search, find, list): put command-only context in the prompt, especially a materialized diff, requirements, and the report schema.
+Provenance is the result filename and manifest row; do not void a substantive report for a wrong self-declared id.
 :::
 
 ::::
