@@ -1,5 +1,5 @@
 [tools]
-"github:srnnkls/henia" = { version = "0.1.0-alpha.33", prerelease = "true" }
+"github:srnnkls/henia" = { version = "0.1.0-alpha.34", prerelease = "true" }
 hk = { version = "2.6.0", postinstall = "hk install --mise", depends = ["pkl"] }
 pkl = "0.31.0"
 
