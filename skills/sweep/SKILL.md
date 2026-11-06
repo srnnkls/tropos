@@ -36,7 +36,7 @@ Run `memex index --non-interactive` once, then per project root `R`:
 | Source | Command |
 |---|---|
 | Agents | `herdr agent list --project R` |
-| Last turn and resume | `memex sessions --non-interactive --session-id <agent_session.value>`: newest `last_at`, its `resume_cmd` |
+| Last turn and resume | `memex sessions --non-interactive --session-id <id> [--session-id <id> ...]` with every agent's `agent_session.value` in one call: per session, the newest `last_at` and its `resume_cmd` |
 | Worktrees, herdr workspaces | `herdr worktree list --cwd R`; `open_workspace_id` joins a worktree to its workspace |
 | Default branch | `git -C R symbolic-ref --short refs/remotes/origin/HEAD`, else `main` |
 | Branches | `git -C R for-each-ref refs/heads --format='%(refname:short) %(upstream:short) %(committerdate:iso-strict)'`; ahead: `git -C R rev-list --count <default>..<branch>` |
