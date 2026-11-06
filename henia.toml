@@ -1,18 +1,17 @@
 artifacts = ["skills"]
 
 [dependencies.loqui]
-git = "https://github.com/srnnkls/loqui.git"
+repo = "srnnkls/loqui"
 branch = "main"
 skills = ["loqui"]
 
 [dependencies.ponytail]
-git = "https://github.com/DietrichGebert/ponytail.git"
+repo = "DietrichGebert/ponytail"
 tag = "v5.2.0"
 skills = ["ponytail"]
 
-[build]
-output = ".henia/build"
-clean = true
+[slots."implement.approach"]
+provide = ["ponytail:ponytail"]
 
 [harness.claude]
 artifacts = ["skills", "agents", "config"]
@@ -22,7 +21,54 @@ strict = true
 
 [harness.claude.skills]
 default = "dynamic"
-hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "herdr", "issue", "loop", "loqui", "memex", "pr", "review", "rsb", "scope", "sweep", "tfcp", "tfcprr", "validate"]
+hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "herdr", "implement", "issue", "loop", "loqui", "memex", "pr", "review", "rsb", "scope", "sweep", "tfcp", "tfcprr", "validate"]
+
+[harness.claude.agents]
+profile = "claude-agent"
+layout = "flat"
+
+[harness.claude.files]
+"agents/implementer.toml" = { source = "agents/implementer.toml" }
+"agents/reviewer.toml" = { source = "agents/reviewer.toml" }
+"agents/tester.toml" = { source = "agents/tester.toml" }
+"CLAUDE.md" = { source = "instructions/AGENTS.md" }
+"instructions/AGENTS.md" = { source = "instructions/AGENTS.md" }
+
+[harness.claude.config.permissions]
+deny = ["ListAgents", "SendMessage"]
+
+[harness.claude.config.hooks]
+SessionStart = [
+  { hooks = [{ type = "command", command = "fas eval --harness claude" }] },
+]
+UserPromptSubmit = [
+  { hooks = [{ type = "command", command = "fas eval --harness claude" }] },
+]
+PreToolUse = [
+  { hooks = [{ type = "command", command = "fas eval --harness claude" }] },
+  { matcher = "Task|Agent", hooks = [{ type = "command", command = "peer route hook -C \"$CLAUDE_PROJECT_DIR\"" }] },
+]
+PostToolUse = [
+  { hooks = [{ type = "command", command = "fas eval --harness claude" }] },
+]
+Notification = [
+  { hooks = [{ type = "command", command = "fas eval --harness claude" }] },
+]
+PreCompact = [
+  { hooks = [{ type = "command", command = "fas eval --harness claude" }] },
+]
+SubagentStart = [
+  { hooks = [{ type = "command", command = "fas eval --harness claude" }] },
+]
+SubagentStop = [
+  { hooks = [{ type = "command", command = "fas eval --harness claude" }] },
+]
+Stop = [
+  { hooks = [{ type = "command", command = "fas eval --harness claude" }] },
+]
+SessionEnd = [
+  { hooks = [{ type = "command", command = "fas eval --harness claude" }] },
+]
 
 [harness.codex]
 artifacts = ["skills", "agents"]
@@ -32,7 +78,15 @@ strict = true
 
 [harness.codex.skills]
 default = "dynamic"
-hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "herdr", "issue", "loop", "loqui", "memex", "pr", "review", "rsb", "scope", "sweep", "tfcp", "tfcprr", "validate"]
+hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "herdr", "implement", "issue", "loop", "loqui", "memex", "pr", "review", "rsb", "scope", "sweep", "tfcp", "tfcprr", "validate"]
+
+[harness.codex.agents]
+profile = "portable-agent"
+layout = "flat"
+
+[harness.codex.files]
+"AGENTS.md" = { source = "instructions/AGENTS.md" }
+"instructions/AGENTS.md" = { source = "instructions/AGENTS.md" }
 
 [harness.pi]
 artifacts = ["skills", "agents"]
@@ -42,10 +96,18 @@ strict = true
 
 [harness.pi.skills]
 default = "dynamic"
-hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "herdr", "issue", "loop", "loqui", "memex", "pr", "review", "rsb", "scope", "sweep", "tfcp", "tfcprr", "validate"]
+hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "herdr", "implement", "issue", "loop", "loqui", "memex", "pr", "review", "rsb", "scope", "sweep", "tfcp", "tfcprr", "validate"]
+
+[harness.pi.agents]
+profile = "portable-agent"
+layout = "flat"
 
 [harness.pi.references]
 skill = "/skill:{{.Name}}"
+
+[harness.pi.files]
+"AGENTS.md" = { source = "instructions/AGENTS.md" }
+"instructions/AGENTS.md" = { source = "instructions/AGENTS.md" }
 
 [harness.omp]
 artifacts = ["skills", "agents"]
@@ -55,63 +117,15 @@ strict = true
 
 [harness.omp.skills]
 default = "dynamic"
-hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "implement", "herdr", "issue", "loop", "loqui", "memex", "pr", "review", "rsb", "scope", "sweep", "tfcp", "tfcprr", "validate"]
-
-[harness.omp.references]
-skill = "/skill:{{.Name}}"
-
-[harness.claude.agents]
-profile = "claude-agent"
-layout = "flat"
-
-[harness.claude.files]
-"instructions/AGENTS.md" = { source = "instructions/AGENTS.md" }
-"CLAUDE.md" = { source = "instructions/AGENTS.md" }
-"agents/implementer.toml" = { source = "agents/implementer.toml" }
-"agents/reviewer.toml" = { source = "agents/reviewer.toml" }
-"agents/tester.toml" = { source = "agents/tester.toml" }
-
-[harness.claude.config.permissions]
-deny = ["SendMessage", "ListAgents"]
-
-[harness.claude.config.hooks]
-SessionStart = [{ hooks = [{ type = "command", command = "fas eval --harness claude" }] }]
-UserPromptSubmit = [{ hooks = [{ type = "command", command = "fas eval --harness claude" }] }]
-PreToolUse = [
-  { hooks = [{ type = "command", command = "fas eval --harness claude" }] },
-  { matcher = "Task|Agent", hooks = [{ type = "command", command = "peer route hook -C \"$CLAUDE_PROJECT_DIR\"" }] },
-]
-PostToolUse = [{ hooks = [{ type = "command", command = "fas eval --harness claude" }] }]
-Notification = [{ hooks = [{ type = "command", command = "fas eval --harness claude" }] }]
-PreCompact = [{ hooks = [{ type = "command", command = "fas eval --harness claude" }] }]
-SubagentStart = [{ hooks = [{ type = "command", command = "fas eval --harness claude" }] }]
-SubagentStop = [{ hooks = [{ type = "command", command = "fas eval --harness claude" }] }]
-Stop = [{ hooks = [{ type = "command", command = "fas eval --harness claude" }] }]
-SessionEnd = [{ hooks = [{ type = "command", command = "fas eval --harness claude" }] }]
-
-[harness.codex.agents]
-profile = "portable-agent"
-layout = "flat"
-
-[harness.codex.files]
-"instructions/AGENTS.md" = { source = "instructions/AGENTS.md" }
-"AGENTS.md" = { source = "instructions/AGENTS.md" }
-
-[harness.pi.agents]
-profile = "portable-agent"
-layout = "flat"
-
-[harness.pi.files]
-"instructions/AGENTS.md" = { source = "instructions/AGENTS.md" }
-"AGENTS.md" = { source = "instructions/AGENTS.md" }
+hybrid = ["clarify", "code", "continue", "debate", "dispatch", "git", "herdr", "implement", "issue", "loop", "loqui", "memex", "pr", "review", "rsb", "scope", "sweep", "tfcp", "tfcprr", "validate"]
 
 [harness.omp.agents]
 profile = "portable-agent"
 layout = "flat"
 
-[harness.omp.files]
-"instructions/AGENTS.md" = { source = "instructions/AGENTS.md" }
-"AGENTS.md" = { source = "instructions/AGENTS.md" }
+[harness.omp.references]
+skill = "/skill:{{.Name}}"
 
-[slots."implement.approach"]
-provide = ["ponytail:ponytail"]
+[harness.omp.files]
+"AGENTS.md" = { source = "instructions/AGENTS.md" }
+"instructions/AGENTS.md" = { source = "instructions/AGENTS.md" }
