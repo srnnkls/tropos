@@ -1,0 +1,109 @@
+metadata:
+  issue_type: Feature
+  created: 2026-11-05
+  questions_used: 2
+  questions_limit: 5
+  approach: "Library-only dynamic handoff skill per docs/handoff-study.md (D1-D9)"
+  source: scope
+
+ambiguity_scan:
+  scope:
+    status: clear
+    gaps: []
+  behavior:
+    status: clear
+    gaps: []
+  data_model:
+    status: clear
+    gaps: []
+  constraints:
+    status: clear
+    gaps: []
+  edge_cases:
+    status: clear
+    gaps: []
+  integration:
+    status: clear
+    gaps: []
+  terminology:
+    status: clear
+    gaps: []
+  conventions:
+    status: clear
+    gaps: []
+
+clarification_sessions:
+  - id: S001
+    timestamp: 2026-11-05T00:00:00Z
+    questions:
+      - id: Q001
+        question: "How should the constant resume line pick the right handoff with several agents in one repo?"
+        answer: "Newest on the current branch"
+        area: edge_cases
+        doc_updates:
+          - file: scope.md
+            section: Decisions
+            action: AD-2
+      - id: Q002
+        question: "How should handoff apply the .tropos/ ignore check that sweep and issue each own?"
+        answer: "Centralize first"
+        area: conventions
+        doc_updates:
+          - file: scope.md
+            section: Decisions
+            action: AD-3
+  - id: S002
+    timestamp: 2026-11-06T09:10:00Z
+    questions:
+      - id: Q003
+        question: "On a shared branch, how should a successor avoid a sibling's newer handoff?"
+        answer: "Successor surfaces the handoff title first"
+        area: edge_cases
+        doc_updates:
+          - file: scope.md
+            section: FR-4, AC-3
+            action: resume line opens with the Handoff title
+
+assumptions:
+  - id: A001
+    area: conventions
+    question: "Which behavior does the centralized ignore rule keep: issue's warn-to-.gitignore or sweep's append to info/exclude?"
+    assumed: "Append .tropos/ to info/exclude; no tracked file changes"
+    load_bearing: true
+    status: confirmed
+    source: scope
+  - id: A002
+    area: edge_cases
+    question: "How does a successor avoid a sibling's handoff on a shared branch?"
+    assumed: "The skill delivers the exact path; the successor opens with the Handoff title"
+    load_bearing: true
+    status: confirmed
+    source: scope-review
+  - id: A003
+    area: constraints
+    question: "Do slots that quote the user verbatim need redaction?"
+    assumed: "No; .tropos/ stays untracked under the AD-3 rule"
+    load_bearing: false
+    status: assumed
+    source: scope
+  - id: A004
+    area: integration
+    question: "Does the harness-neutral sentence trigger the skill in every harness?"
+    assumed: "Yes; AC-2 checks it manually per harness"
+    load_bearing: true
+    status: confirmed
+    source: scope
+
+review_config:
+  reasoning_effort: high
+  reviewers: [opus, peer-deepseek]
+
+review_gate:
+  status: failed
+  reviewers: [claude-opus, peer-deepseek-flash]
+  reviewed_at: 2026-11-06T09:05:00Z
+  blocking_resolved: 0
+  deferred_nits: []
+
+notes: |
+  Source: docs/handoff-study.md, decided 2026-11-05; D4 refined to branch-matching by AD-2.

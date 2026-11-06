@@ -1,0 +1,61 @@
+scope: handoff
+code: HO
+next_id: 6
+tasks:
+  - id: T001
+    name: Centralize the .tropos local-state ignore rule
+    status: pending
+    requirements: [FR-5]
+    acceptance: [AC-6, AC-7]
+    depends_on: []
+    files:
+      - skills/git/reference/local-state.md
+      - skills/git/SKILL.md
+      - skills/sweep/SKILL.md
+      - skills/issue/SKILL.md
+      - skills/issue/scripts/issue
+  - id: T005
+    name: Add the new-workspace agent procedure to herdr
+    status: pending
+    requirements: [FR-7]
+    acceptance: [AC-11]
+    depends_on: []
+    files:
+      - skills/herdr/SKILL.md
+  - id: T002
+    name: Add the handoff skill
+    status: pending
+    requirements: [FR-1, FR-2, FR-3, FR-4, TR-1, TR-3]
+    acceptance: [AC-1, AC-4, AC-5, AC-10, AC-11]
+    depends_on: [T001, T005]
+    files:
+      - skills/handoff/SKILL.md
+      - docs/handoff-study.md
+  - id: T003
+    name: Point sweep items at session handoffs
+    status: pending
+    requirements: [FR-6]
+    acceptance: [AC-8]
+    depends_on: [T001, T002]
+    files:
+      - skills/sweep/SKILL.md
+  - id: T004
+    name: Verify artifacts and trigger the skill in each harness
+    status: pending
+    requirements: [TR-2]
+    acceptance: [AC-2, AC-3, AC-9]
+    depends_on: [T002, T003]
+    files: []
+
+meta:
+  created: 2026-11-05
+  last_updated: 2026-11-05
+  progress: 0/5
+
+phases:
+  - name: Foundation
+    tasks: [T001, T005]
+  - name: Skill
+    tasks: [T002, T003]
+  - name: Verification
+    tasks: [T004]
