@@ -1,0 +1,619 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.12"
+# dependencies = ["pydantic>=2.7", "pyyaml>=6"]
+# ///
+"""Print the sweep inventory of herdr projects as one JSON document.
+
+Usage: inventory [PROJECT_PATH ...]
+
+Without paths, every project holding a herdr agent is inventoried.
+"""
+
+from __future__ import annotations
+
+import re
+import subprocess
+import sys
+from collections.abc import Iterable, Mapping
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Annotated, Literal, NewType
+
+import yaml
+from pydantic import BaseModel, ConfigDict, Field, NonNegativeInt, TypeAdapter
+
+PaneId = NewType("PaneId", str)
+SessionId = NewType("SessionId", str)
+BranchName = NewType("BranchName", str)
+WorkspaceId = NewType("WorkspaceId", str)
+
+AgentStatus = Literal["idle", "working", "blocked", "done", "unknown"]
+PullRequestState = Literal["OPEN", "CLOSED", "MERGED"]
+
+GITHUB_REMOTE = re.compile(r"github\.com[:/](?P<repo>[^/\s]+/[^/\s]+?)(?:\.git)?$")
+PULL_REQUEST_LIMIT = 1000
+
+
+@dataclass(frozen=True, kw_only=True)
+class Session:
+    harness: str
+    session_id: SessionId
+    last_turn_at: datetime
+    resume_command: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class Tracked:
+    session: Session
+    kind: Literal["tracked"] = "tracked"
+
+
+@dataclass(frozen=True, kw_only=True)
+class Unindexed:
+    session_id: SessionId
+    kind: Literal["unindexed"] = "unindexed"
+
+
+@dataclass(frozen=True, kw_only=True)
+class Untracked:
+    kind: Literal["untracked"] = "untracked"
+
+
+Tracking = Annotated[Tracked | Unindexed | Untracked, Field(discriminator="kind")]
+
+
+@dataclass(frozen=True, kw_only=True)
+class Agent:
+    pane_id: PaneId
+    harness: str
+    status: AgentStatus
+    directory: Path
+    tracking: Tracking
+
+
+@dataclass(frozen=True, kw_only=True)
+class OnBranch:
+    branch: BranchName
+    kind: Literal["branch"] = "branch"
+
+
+@dataclass(frozen=True, kw_only=True)
+class Detached:
+    kind: Literal["detached"] = "detached"
+
+
+WorktreeHead = Annotated[OnBranch | Detached, Field(discriminator="kind")]
+
+
+@dataclass(frozen=True, kw_only=True)
+class Worktree:
+    path: Path
+    head: WorktreeHead
+    uncommitted_entries: NonNegativeInt
+    workspace_id: WorkspaceId | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class MergedByAncestry:
+    kind: Literal["ancestry"] = "ancestry"
+
+
+@dataclass(frozen=True, kw_only=True)
+class MergedByPullRequest:
+    pull_request: str
+    kind: Literal["pull_request"] = "pull_request"
+
+
+@dataclass(frozen=True, kw_only=True)
+class Unmerged:
+    open_pull_request: str | None
+    kind: Literal["unmerged"] = "unmerged"
+
+
+Merge = Annotated[
+    MergedByAncestry | MergedByPullRequest | Unmerged, Field(discriminator="kind")
+]
+
+
+@dataclass(frozen=True, kw_only=True)
+class Branch:
+    name: BranchName
+    upstream: str | None
+    committed_at: datetime
+    ahead: NonNegativeInt
+    merge: Merge
+    worktree: Path | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class Scope:
+    path: Path
+    open_tasks: NonNegativeInt
+
+
+@dataclass(frozen=True, kw_only=True)
+class ToolState:
+    command: str
+    output: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class SlotProblem:
+    slot: str
+    kind: str
+    path: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class Project:
+    root: Path
+    default_branch: BranchName
+    head_commit: str
+    agents: tuple[Agent, ...]
+    branches: tuple[Branch, ...]
+    worktrees: tuple[Worktree, ...]
+    scopes: tuple[Scope, ...]
+    tool_state: tuple[ToolState, ...]
+    slot_problems: tuple[SlotProblem, ...]
+    previous_handoff: Path | None
+    kind: Literal["present"] = "present"
+
+
+@dataclass(frozen=True, kw_only=True)
+class MissingProject:
+    root: Path
+    agents: tuple[Agent, ...]
+    kind: Literal["missing"] = "missing"
+
+
+ProjectInventory = Annotated[Project | MissingProject, Field(discriminator="kind")]
+
+
+@dataclass(frozen=True, kw_only=True)
+class Inventory:
+    generated_at: datetime
+    projects: tuple[ProjectInventory, ...]
+
+
+class Wire(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+
+class HerdrAgentSession(Wire):
+    value: SessionId
+
+
+class HerdrAgent(Wire):
+    pane_id: PaneId
+    agent: str
+    agent_status: AgentStatus = "unknown"
+    cwd: Path
+    agent_session: HerdrAgentSession | None = None
+
+
+class HerdrAgentList(Wire):
+    agents: tuple[HerdrAgent, ...]
+
+
+class HerdrWorktree(Wire):
+    path: Path
+    open_workspace_id: WorkspaceId | None = None
+
+
+class HerdrWorktreeList(Wire):
+    worktrees: tuple[HerdrWorktree, ...] = ()
+
+
+class HerdrResponse[T](Wire):
+    result: T
+
+
+class MemexSession(Wire):
+    source: str
+    session_id: SessionId
+    last_at: datetime
+    resume_cmd: str
+
+
+class GhPullRequest(Wire):
+    head_ref_name: BranchName = Field(alias="headRefName")
+    head_ref_oid: str = Field(alias="headRefOid")
+    state: PullRequestState
+    url: str
+
+
+class SlotProvider(Wire):
+    status: str
+    value: str | None = None
+
+
+class SlotReport(Wire):
+    providers: tuple[SlotProvider, ...] = ()
+    problems: tuple[SlotProblem, ...] = ()
+
+
+class ScopeTask(Wire):
+    status: str
+
+
+class ScopeTasks(Wire):
+    tasks: tuple[ScopeTask, ...] | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class GitRef:
+    name: BranchName
+    upstream: str | None
+    committed_at: datetime
+    tip: str
+    ahead: NonNegativeInt
+
+
+@dataclass(frozen=True, kw_only=True)
+class GitWorktree:
+    path: Path
+    branch: BranchName | None
+    uncommitted_entries: NonNegativeInt
+
+
+@dataclass(frozen=True, kw_only=True)
+class RepositorySnapshot:
+    root: Path
+    default_branch: BranchName
+    head_commit: str
+    refs: tuple[GitRef, ...]
+    merged: frozenset[BranchName]
+    pull_requests: tuple[GhPullRequest, ...]
+    worktrees: tuple[GitWorktree, ...]
+    herdr_worktrees: tuple[HerdrWorktree, ...]
+    scopes: tuple[Scope, ...]
+    tool_state: tuple[ToolState, ...]
+    slot_problems: tuple[SlotProblem, ...]
+    previous_handoff: Path | None
+
+
+def track(agent: HerdrAgent, sessions: Mapping[SessionId, Session]) -> Agent:
+    tracking: Tracked | Unindexed | Untracked
+    match agent.agent_session:
+        case None:
+            tracking = Untracked()
+        case HerdrAgentSession(value=session_id) if session_id in sessions:
+            tracking = Tracked(session=sessions[session_id])
+        case HerdrAgentSession(value=session_id):
+            tracking = Unindexed(session_id=session_id)
+    return Agent(
+        pane_id=agent.pane_id,
+        harness=agent.agent,
+        status=agent.agent_status,
+        directory=agent.cwd,
+        tracking=tracking,
+    )
+
+
+def latest_sessions(rows: Iterable[MemexSession]) -> dict[SessionId, Session]:
+    latest: dict[SessionId, Session] = {}
+    for row in sorted(rows, key=lambda row: row.last_at):
+        latest[row.session_id] = Session(
+            harness=row.source,
+            session_id=row.session_id,
+            last_turn_at=row.last_at,
+            resume_command=row.resume_cmd,
+        )
+    return latest
+
+
+def merge_of(
+    ref: GitRef, merged: frozenset[BranchName], prs: tuple[GhPullRequest, ...]
+) -> Merge:
+    if ref.name in merged:
+        return MergedByAncestry()
+    head_prs = [pr for pr in prs if pr.head_ref_name == ref.name]
+    merged_pr = next(
+        (pr for pr in head_prs if pr.state == "MERGED" and pr.head_ref_oid == ref.tip),
+        None,
+    )
+    if merged_pr:
+        return MergedByPullRequest(pull_request=merged_pr.url)
+    open_pr = next((pr for pr in head_prs if pr.state == "OPEN"), None)
+    return Unmerged(open_pull_request=open_pr.url if open_pr else None)
+
+
+def worktree_of(git: GitWorktree, workspaces: Mapping[Path, WorkspaceId]) -> Worktree:
+    return Worktree(
+        path=git.path,
+        head=OnBranch(branch=git.branch) if git.branch else Detached(),
+        uncommitted_entries=git.uncommitted_entries,
+        workspace_id=workspaces.get(git.path),
+    )
+
+
+def project_of(snapshot: RepositorySnapshot, agents: tuple[Agent, ...]) -> Project:
+    checked_out = {wt.branch: wt.path for wt in snapshot.worktrees if wt.branch}
+    workspaces = {
+        worktree.path: worktree.open_workspace_id
+        for worktree in snapshot.herdr_worktrees
+        if worktree.open_workspace_id
+    }
+    return Project(
+        root=snapshot.root,
+        default_branch=snapshot.default_branch,
+        head_commit=snapshot.head_commit,
+        agents=agents,
+        branches=tuple(
+            Branch(
+                name=ref.name,
+                upstream=ref.upstream,
+                committed_at=ref.committed_at,
+                ahead=ref.ahead,
+                merge=merge_of(ref, snapshot.merged, snapshot.pull_requests),
+                worktree=checked_out.get(ref.name),
+            )
+            for ref in snapshot.refs
+        ),
+        worktrees=tuple(worktree_of(git, workspaces) for git in snapshot.worktrees),
+        scopes=snapshot.scopes,
+        tool_state=snapshot.tool_state,
+        slot_problems=snapshot.slot_problems,
+        previous_handoff=snapshot.previous_handoff,
+    )
+
+
+def open_task_count(tasks: ScopeTasks) -> int:
+    return sum(1 for task in tasks.tasks or () if task.status != "done")
+
+
+def parse_worktree_porcelain(
+    porcelain: str,
+) -> tuple[tuple[Path, BranchName | None], ...]:
+    entries = []
+    for block in porcelain.strip().split("\n\n"):
+        fields = porcelain_fields(block)
+        branch = fields.get("branch")
+        entries.append(
+            (
+                Path(fields["worktree"]),
+                BranchName(branch.removeprefix("refs/heads/")) if branch else None,
+            )
+        )
+    return tuple(entries)
+
+
+def porcelain_fields(block: str) -> dict[str, str]:
+    fields: dict[str, str] = {}
+    for line in block.splitlines():
+        key, _, value = line.partition(" ")
+        fields[key] = value
+    return fields
+
+
+def github_repositories(remotes: str) -> frozenset[str]:
+    return frozenset(
+        match["repo"]
+        for line in remotes.splitlines()
+        if (match := GITHUB_REMOTE.search(line.split()[1]))
+    )
+
+
+class CommandError(Exception):
+    def __init__(self, args: Iterable[str], stderr: str):
+        self.command = " ".join(args)
+        self.stderr = stderr.strip()
+        super().__init__(f"{self.command}: {self.stderr}")
+
+
+def run(*args: str, cwd: Path | None = None) -> str:
+    completed = subprocess.run(args, cwd=cwd, capture_output=True, text=True)
+    if completed.returncode != 0:
+        raise CommandError(args, completed.stderr)
+    return completed.stdout.strip()
+
+
+def try_run(*args: str, cwd: Path | None = None) -> str | None:
+    try:
+        return run(*args, cwd=cwd)
+    except CommandError:
+        return None
+
+
+def herdr[T](result: type[T], *args: str) -> T:
+    return HerdrResponse[result].model_validate_json(run("herdr", *args)).result
+
+
+def read_agents() -> tuple[HerdrAgent, ...]:
+    return herdr(HerdrAgentList, "agent", "list", "--flat").agents
+
+
+def read_sessions(session_ids: Iterable[SessionId]) -> dict[SessionId, Session]:
+    flags = [arg for session_id in session_ids for arg in ("--session-id", session_id)]
+    if not flags:
+        return {}
+    output = run("memex", "sessions", "--non-interactive", *flags)
+    return latest_sessions(
+        MemexSession.model_validate_json(line)
+        for line in output.splitlines()
+        if line.startswith("{")
+    )
+
+
+def read_project_root(directory: Path) -> Path:
+    porcelain = try_run("git", "-C", str(directory), "worktree", "list", "--porcelain")
+    return parse_worktree_porcelain(porcelain)[0][0] if porcelain else directory
+
+
+def read_default_branch(root: Path) -> BranchName:
+    ref = try_run(
+        "git", "-C", str(root), "symbolic-ref", "--short", "refs/remotes/origin/HEAD"
+    )
+    return BranchName(ref.removeprefix("origin/") if ref else "main")
+
+
+def read_pull_requests(root: Path) -> tuple[GhPullRequest, ...]:
+    pull_requests = TypeAdapter(tuple[GhPullRequest, ...])
+    found: list[GhPullRequest] = []
+    for repository in sorted(
+        github_repositories(run("git", "-C", str(root), "remote", "-v"))
+    ):
+        listing = try_run(
+            "gh",
+            "pr",
+            "list",
+            "-R",
+            repository,
+            "--state",
+            "all",
+            "--limit",
+            str(PULL_REQUEST_LIMIT),
+            "--json",
+            "headRefName,headRefOid,state,url",
+        )
+        if listing:
+            found.extend(pull_requests.validate_json(listing))
+    return tuple(found)
+
+
+def read_refs(root: Path, default: BranchName) -> tuple[GitRef, ...]:
+    git = ("git", "-C", str(root))
+    listing = run(
+        *git,
+        "for-each-ref",
+        "refs/heads",
+        "--format=%(refname:short)%09%(upstream:short)"
+        "%09%(committerdate:iso-strict)%09%(objectname)",
+    )
+    refs = []
+    for line in listing.splitlines():
+        name, upstream, committed_at, tip = line.split("\t")
+        refs.append(
+            GitRef(
+                name=BranchName(name),
+                upstream=upstream or None,
+                committed_at=datetime.fromisoformat(committed_at),
+                tip=tip,
+                ahead=int(run(*git, "rev-list", "--count", f"{default}..{name}")),
+            )
+        )
+    return tuple(refs)
+
+
+def read_worktrees(root: Path) -> tuple[GitWorktree, ...]:
+    porcelain = run("git", "-C", str(root), "worktree", "list", "--porcelain")
+    worktrees = []
+    for path, branch in parse_worktree_porcelain(porcelain):
+        status = try_run("git", "-C", str(path), "status", "--short")
+        worktrees.append(
+            GitWorktree(
+                path=path,
+                branch=branch,
+                uncommitted_entries=len(status.splitlines()) if status else 0,
+            )
+        )
+    return tuple(worktrees)
+
+
+def read_herdr_worktrees(root: Path) -> tuple[HerdrWorktree, ...]:
+    return herdr(HerdrWorktreeList, "worktree", "list", "--cwd", str(root)).worktrees
+
+
+def read_scopes(root: Path) -> tuple[Scope, ...]:
+    return tuple(
+        Scope(
+            path=tasks_file.parent,
+            open_tasks=open_task_count(
+                ScopeTasks.model_validate(yaml.safe_load(tasks_file.read_text()) or {})
+            ),
+        )
+        for tasks_file in sorted(root.glob("scopes/active/*/tasks.yaml"))
+    )
+
+
+def read_tool_state(
+    root: Path,
+) -> tuple[tuple[ToolState, ...], tuple[SlotProblem, ...]]:
+    report = SlotReport.model_validate_json(
+        run("henia", "slots", "--project", str(root), "--json", "sweep.state")
+    )
+    commands = [
+        provider.value
+        for provider in report.providers
+        if provider.status == "selected" and provider.value
+    ]
+    states = tuple(
+        ToolState(command=command, output=output)
+        for command in commands
+        if (output := run("sh", "-c", command, cwd=root))
+    )
+    return states, report.problems
+
+
+def read_snapshot(root: Path) -> RepositorySnapshot:
+    default = read_default_branch(root)
+    tool_state, slot_problems = read_tool_state(root)
+    handoff = root / ".tropos" / "sweep.md"
+    merged = run(
+        "git",
+        "-C",
+        str(root),
+        "branch",
+        "--merged",
+        default,
+        "--format=%(refname:short)",
+    )
+    return RepositorySnapshot(
+        root=root,
+        default_branch=default,
+        head_commit=run("git", "-C", str(root), "rev-parse", "--short", default),
+        refs=read_refs(root, default),
+        merged=frozenset(BranchName(name) for name in merged.splitlines()),
+        pull_requests=read_pull_requests(root),
+        worktrees=read_worktrees(root),
+        herdr_worktrees=read_herdr_worktrees(root),
+        scopes=read_scopes(root),
+        tool_state=tool_state,
+        slot_problems=slot_problems,
+        previous_handoff=handoff if handoff.is_file() else None,
+    )
+
+
+def read_project(root: Path, agents: tuple[Agent, ...]) -> ProjectInventory:
+    if not root.is_dir():
+        return MissingProject(root=root, agents=agents)
+    return project_of(read_snapshot(root), agents)
+
+
+def read_inventory(requested: tuple[Path, ...]) -> Inventory:
+    run("memex", "index", "--non-interactive")
+    herdr_agents = read_agents()
+    sessions = read_sessions(
+        agent.agent_session.value for agent in herdr_agents if agent.agent_session
+    )
+    by_root: dict[Path, list[Agent]] = {
+        read_project_root(path): [] for path in requested
+    }
+    for herdr_agent in herdr_agents:
+        root = read_project_root(herdr_agent.cwd)
+        if not requested or root in by_root:
+            by_root.setdefault(root, []).append(track(herdr_agent, sessions))
+    with ThreadPoolExecutor() as pool:
+        projects = pool.map(
+            lambda item: read_project(item[0], tuple(item[1])), sorted(by_root.items())
+        )
+    return Inventory(generated_at=datetime.now(UTC), projects=tuple(projects))
+
+
+def main(arguments: list[str]) -> int:
+    requested = tuple(Path(argument).expanduser().resolve() for argument in arguments)
+    inventory = read_inventory(requested)
+    sys.stdout.write(TypeAdapter(Inventory).dump_json(inventory, indent=2).decode())
+    sys.stdout.write("\n")
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except CommandError as error:
+        print(f"inventory: {error}", file=sys.stderr)
+        sys.exit(1)
