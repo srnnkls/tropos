@@ -43,6 +43,7 @@ The dispatch prompt may lower these ceilings; raising them needs user authorizat
 - One test by default, three per task at most; merge assertions that exercise one failure mechanism.
 - At most two RED attempts and ten minutes total.
 - Use existing local test infrastructure, installed dependencies, and the smallest focused native command; no repository-wide suite when that command can falsify the behavior.
+- Keep each test self-contained: inputs built inline, the tool called directly. CLI tests follow [scrut](../scrut/SKILL.md).
 - Behavior not falsifiable within budget, or a test needing substitute infrastructure: return `status: gap` with the missing tool, requirement, or decision.
 
 Apply the [tester mutation boundary](../../agents/tester.md#boundary).

@@ -28,6 +28,10 @@ The assertion checks only non-null, type, non-empty length, callable existence, 
 
 The test executes a path but cannot distinguish correct from incorrect behavior.
 
+### Hidden setup
+
+Inputs or checks live outside the test: data fixtures, wrapper scripts, or helper checkers the reader must open to see what runs and what is expected. External fixtures only set up a clean, stable, reproducible environment. Build inputs inline and assert on the tool's own output; for CLI tests follow [scrut](../../scrut/SKILL.md).
+
 ### Defective oracle
 
 The test consumes the wrong signal, relies on stale or shared state, fails for an unrelated reason, falsely rejects a conforming implementation, or still passes when the named behavior is removed or reversed.
