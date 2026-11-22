@@ -1,6 +1,16 @@
 ---
 name: rsb
 description: Run a research → synthesis → breakthrough pass on a stuck design question — parallel primary-source research tracks, a synthesis only their combination allows, a bounded novelty check, independent adversarial review, owner decisions, and amendments. Use for "rsb", "research, synthesis, breakthrough", "research track on X", or when a design point keeps relocating edge cases.
+metadata:
+  type: generic
+henia:
+  targets:
+    codex:
+      openai:
+        interface:
+          display_name: Research, Synthesis, Breakthrough
+          short_description: Research, synthesize and review a stuck design question
+          default_prompt: Use $rsb on the stuck design question.
 ---
 
 # Research, Synthesis, Breakthrough
