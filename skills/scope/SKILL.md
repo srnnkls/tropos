@@ -6,6 +6,7 @@ metadata:
 henia:
   slots:
     scope.templates:
+    scope.bootstrap: keyed(unique(path))
   provides:
     scope.templates: {section: templates}
   targets:
@@ -43,6 +44,7 @@ Operations: [review](reference/review.md), [update](reference/update.md), [done/
 | Slot | Covers |
 |---|---|
 | `scope.templates` | Scope document templates; replaces the files under [Templates](#templates) it covers |
+| `scope.bootstrap` | Per-language bootstrap for a new repository (`scope.bootstrap.<language>`); replaces the hand-written lint setup of foundation task 3 for that language |
 
 ## Scope Location
 
@@ -255,6 +257,22 @@ Non-Goals, Invariants, and Conventions are required for every issue type. scope.
 ### Step 5: Validate Structure and Execution Metadata
 
 Run `henia lint <scope>/scope.md` and fix every error; the `tropos/scope` lint module defines the required structure.
+
+A scope that creates or changes code opens `tasks.yaml` with these foundation tasks, per language it touches; every other task depends on them:
+
+| Order | Task | Done when | Canonical source |
+|---|---|---|---|
+| 1 | Functional domain model (Wlaschin, *Domain Modeling Made Functional*): domain values, states, and workflow signatures as types; every body a stub, no behavior or I/O | The language's strictest checker passes; every domain rule maps to the type that encodes it or is named as a runtime check; no placeholder types remain | `henia show 'loqui#model-the-domain-in-types'`, `henia show 'loqui#parse-at-boundaries'` |
+| 2 | Modern language guidelines applied to the touched code | Code follows the guide's idioms and edition | `loqui` guide for the language |
+| 3 | Strict, pedantic lint setup | A checked-in config at the strictest level the guide defines, exceptions named per rule with a reason; one command runs format check, lint, and type check with warnings as errors and passes | `quality` resource of the `loqui` language guide |
+
+A scope that creates a repository runs task 3 through the language's bootstrap provider instead, which deploys the managed lint configuration and gate:
+
+:slot[scope.bootstrap]
+
+A language without a provider, and every existing repository, keeps the hand-written setup.
+
+Task 1 iterates on the types alone until the domain fits: workflows as `input -> Result<output, error>` function types, unvalidated and validated inputs as distinct types, states as sum types. Behavior and tests start in the tasks that depend on it.
 
 Before the scope is implementable, every task names explicit `depends_on` and `files` (expected mutation paths); these drive parallel dispatch. Set optional `domain` where the work belongs to one; it keys the approach providers its subagents receive ([implement slots](../implement/SKILL.md#slots)). Resolve missing paths with one bounded discovery wave, else record a scope gap; never force one serial pipeline per task. Executors derive batches from `depends_on` and `files` per [parallel detection](../implement/reference/parallel-detection.md). A harness todo list may mirror tasks for display; `tasks.yaml` stays authoritative, with no reverse sync.
 
