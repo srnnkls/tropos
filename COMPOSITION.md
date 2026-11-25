@@ -23,6 +23,7 @@ priorities and shadowing; each owner's Slots section states what a slot covers.
 | `review.detectors` | `keyed(list(command))` | [review](skills/review/SKILL.md#slots) | — | — |
 | `review.general` | `keyed(list)` | [review](skills/review/SKILL.md#slots) | — | — |
 | `review.tests` | `keyed(list)` | [review](skills/review/SKILL.md#slots) | — | — |
+| `scope.bootstrap` | `keyed(unique(path))` | [scope](skills/scope/SKILL.md#slots) | [scope](skills/scope/SKILL.md) | [loqui](https://github.com/srnnkls/loqui/blob/HEAD/skills/loqui/SKILL.md) (`scope.bootstrap.bash`, `scope.bootstrap.elisp`, `scope.bootstrap.go`, `scope.bootstrap.python`, `scope.bootstrap.rust`, `scope.bootstrap.zig`) |
 | `scope.templates` | `keyed(list)` | [scope](skills/scope/SKILL.md#slots) | — | [scope](skills/scope/SKILL.md) (`scope.templates`) |
 | `sweep.state` | `keyed(list(command))` | [sweep](skills/sweep/SKILL.md#slots) | — | — |
 | `test.approach` | `keyed(unique)` | [test](skills/test/SKILL.md#slots) | — | [strict-tdd](skills/strict-tdd/SKILL.md) (`test.approach`) |
