@@ -10,11 +10,11 @@ apply_slot_providers: {
 	then: inject: {
 		rule_id: "apply-slot-providers"
 		channel: "agent"
-		text:    "Read every slot provider your skills list for the task's domain and languages with the command it names, apply them, and name each one with the rules it contributed in your report's `providers_applied`."
+		text:    "Resolve and apply your slot providers per `henia show 'implement.reference.subagent-workflow#resolution'`."
 	}
 }
 
-_resolveSlots: "Resolve this skill's slots: read each listed provider your task needs with the command it names before acting on the skill."
+_resolveSlots: "Resolve this skill's slots as its head says before acting on the skill."
 
 resolve_skill_slots: {
 	when: hook.#PostToolUse & tool.#Skill

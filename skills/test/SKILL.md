@@ -54,7 +54,7 @@ Apply [reference/failure-modes.md](reference/failure-modes.md) before writing te
 
 ## RED
 
-Design the tests with the task's `test.approach.<domain>` provider, read with the command the slot providers name. A dispatch names the domain; a direct `$test` run names it from the task's files and requirements. Run the focused command and record the exact failure.
+Design the tests with the providers resolved for the task's domain per [dispatch resolution](../implement/reference/subagent-workflow.md#resolution). A dispatch names the domain; a direct `$test` run names it from the task's files and requirements. Run the focused command and record the exact failure.
 
 Valid RED evidence:
 

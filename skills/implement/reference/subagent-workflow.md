@@ -8,7 +8,7 @@ A dispatch carries task data only. Each role resolves its library input itself, 
 
 1. Load the skills its role definition names. Claude agents preload them; every other harness runs `henia show <skill> --head` for each one not in its context. The heads list the slot providers live.
 2. Run the `code.orientation` providers.
-3. Read each listed provider for the task's domain and languages with the command it names.
+3. Resolve the slots the heads list as the heads say, for the task's domain and languages.
 4. Read the role references and the report schema its definition names with `henia show`.
 
 Never paste library text, slot provider bodies, or orientation output into a prompt.
