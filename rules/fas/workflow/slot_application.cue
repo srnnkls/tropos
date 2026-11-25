@@ -33,3 +33,23 @@ resolve_shown_skill_slots: {
 		text:    _resolveSlots
 	}
 }
+
+_slotRole: {agent_type: =~"^(tester|implementer|fixer)(-|$)", ...}
+
+provider_show_in_role: {
+	when: hook.#PreToolUse & tool.#Bash & _slotRole & {tool_input: command: =~#"henia show ['"]?[\w-]+:"#}
+	then: deny: {
+		rule_id:  "slot-provider-show"
+		reason:   "Denied: per-provider read. Resolve slot providers with one `henia slots --inline` call as the head's Slot providers says."
+		severity: "MEDIUM"
+	}
+}
+
+truncated_slots_in_role: {
+	when: hook.#PreToolUse & tool.#Bash & _slotRole & {tool_input: command: =~#"henia slots [^|;]*--inline[^|;]*\|\s*(head|tail|sed)\b"#}
+	then: deny: {
+		rule_id:  "slot-output-truncated"
+		reason:   "Denied: truncated slot output. Rerun `henia slots --inline` without a pipe and read the whole output."
+		severity: "MEDIUM"
+	}
+}
