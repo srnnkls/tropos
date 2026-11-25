@@ -12,7 +12,7 @@ body:
 ---
 Slot providers:
 
-Resolve with one `henia slots --inline` over these slots, each requested as `<slot>.<domain>` and `<slot>.<language>`; read the whole output.
+Resolve with one `henia slots --inline` call: `--skill` for each loaded skill, `--key` for the task's domain and each language; read the whole output.
 
 :slot[{{range $i, $s := .slots}}{{if $i}} {{end}}{{$s}}{{end}}]
 
